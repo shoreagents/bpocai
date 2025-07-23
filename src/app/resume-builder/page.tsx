@@ -1,0 +1,986 @@
+'use client';
+
+import { useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Upload, Link, X, FileText, Image, AlertCircle, Check, Plus, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { isValidFileType, categorizeFile, isValidUrl, categorizePortfolioLink, saveToLocalStorage, generateSessionId, fileToBase64, formatFileSize, processResumeFile, ProcessedResume, validateProcessedResume } from '@/lib/utils';
+import Header from '@/components/layout/Header';
+
+export default function ResumeBuilderPage() {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [portfolioLinks, setPortfolioLinks] = useState<string[]>([]);
+  const [newLink, setNewLink] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Resume processing states
+  const [processedResumes, setProcessedResumes] = useState<ProcessedResume[]>([]);
+  const [processingStatus, setProcessingStatus] = useState<Record<string, 'processing' | 'completed' | 'error'>>({});
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
+  
+  // OpenAI API key state
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  
+  // Processing logs state
+  const [processingLogs, setProcessingLogs] = useState<Record<string, string[]>>({});
+  const [showProcessingLogs, setShowProcessingLogs] = useState(false);
+  
+  // DOCX preview state
+  const [showDOCXPreview, setShowDOCXPreview] = useState(false);
+
+  // Handle file drag and drop
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    handleFiles(files);
+  }, []);
+
+  const handleFiles = (files: File[]) => {
+    const validFiles: File[] = [];
+    const newErrors: string[] = [];
+
+    files.forEach(file => {
+      if (!isValidFileType(file)) {
+        newErrors.push(`${file.name}: Unsupported file type. Please upload PDF, DOC, DOCX, or image files.`);
+      } else if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        newErrors.push(`${file.name}: File too large. Maximum size is 10MB.`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (newErrors.length > 0) {
+      setErrors(prev => [...prev, ...newErrors]);
+    }
+
+    if (validFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...validFiles]);
+      setErrors(prev => prev.filter(error => !newErrors.includes(error)));
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addPortfolioLink = () => {
+    if (!newLink.trim()) return;
+
+    if (!isValidUrl(newLink)) {
+      setErrors(prev => [...prev, 'Please enter a valid URL']);
+      return;
+    }
+
+    if (portfolioLinks.includes(newLink)) {
+      setErrors(prev => [...prev, 'This URL has already been added']);
+      return;
+    }
+
+    setPortfolioLinks(prev => [...prev, newLink]);
+    setNewLink('');
+    setErrors(prev => prev.filter(error => !error.includes('URL')));
+  };
+
+  const removeLink = (index: number) => {
+    setPortfolioLinks(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const canContinue = uploadedFiles.length > 0 || portfolioLinks.length > 0;
+
+  // Custom logger to capture processing logs
+  const createFileLogger = (fileName: string) => {
+    const logs: string[] = [];
+    
+    const log = (message: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = `[${timestamp}] ${message}`;
+      logs.push(logEntry);
+      console.log(message); // Still log to console
+      
+      // Update logs state
+      setProcessingLogs(prev => ({
+        ...prev,
+        [fileName]: [...logs]
+      }));
+    };
+    
+    return { log, getLogs: () => logs };
+  };
+
+  // Process uploaded files to JSON using OpenAI
+  const processUploadedFiles = async () => {
+    if (uploadedFiles.length === 0) return;
+    
+    if (!openaiApiKey.trim()) {
+      setErrors(prev => [...prev, 'OpenAI API key is required. Please enter your API key first.']);
+      return;
+    }
+
+    // Clear previous logs
+    setProcessingLogs({});
+    setShowProcessingLogs(true);
+
+    const processedResults: ProcessedResume[] = [];
+    
+    for (const file of uploadedFiles) {
+      const { log } = createFileLogger(file.name);
+      setProcessingStatus(prev => ({ ...prev, [file.name]: 'processing' }));
+      
+      try {
+        log(`🚀 Starting new resume processing pipeline for: ${file.name}`);
+        log(`📋 Process: File → API Text Extraction → DOCX Creation → JSON Conversion`);
+        log(`📏 File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        log(`📁 File type: ${file.type}`);
+        
+        // Process with custom logging
+        const processedResume = await processResumeFileWithLogs(file, openaiApiKey, log);
+        processedResults.push(processedResume);
+        
+        setProcessingStatus(prev => ({ ...prev, [file.name]: 'completed' }));
+        log(`✅ Pipeline Complete: Resume processing successful!`);
+        log(`📊 Final JSON contains ${Object.keys(processedResume.parsed || {}).length} main sections`);
+        
+      } catch (error) {
+        console.error(`❌ Error processing ${file.name}:`, error);
+        const { log } = createFileLogger(file.name);
+        log(`❌ Pipeline Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        
+        setProcessingStatus(prev => ({ ...prev, [file.name]: 'error' }));
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setErrors(prev => [...prev, `Failed to process ${file.name}: ${errorMessage}`]);
+      }
+    }
+    
+    setProcessedResumes(processedResults);
+    if (processedResults.length > 0) {
+      // Auto-show DOCX preview and JSON for the new pipeline
+      setShowDOCXPreview(true);
+      setShowJsonPreview(true);
+    }
+  };
+
+  // Wrapper function that processes with logging
+  const processResumeFileWithLogs = async (file: File, apiKey: string, log: (message: string) => void) => {
+    // We'll need to modify the utils function to accept a logger, 
+    // but for now, let's capture the pipeline steps here
+    
+    log(`📤 Step 1: Starting API text extraction...`);
+    log(`🔍 Analyzing file format and preparing for processing...`);
+    
+    // Call the original function and capture metadata from result
+    const result = await processResumeFile(file, apiKey);
+    
+    // Extract pipeline information from the result
+    if (result.pipelineMetadata) {
+      const meta = result.pipelineMetadata;
+      
+      if (meta.step1_textExtraction) {
+        log(`✅ Step 1 Complete: Text extracted (${meta.step1_textExtraction.textLength} characters)`);
+      }
+      
+      log(`📄 Step 2: Creating DOCX file from extracted text...`);
+      if (meta.step2_docxCreation) {
+        log(`📝 DOCX document initialized with extracted content`);
+        log(`⚙️ Generating DOCX binary data...`);
+        log(`✅ Step 2 Complete: DOCX file created (${(meta.step2_docxCreation.docxSize / 1024).toFixed(1)}KB)`);
+      }
+      
+      log(`🔄 Step 3: Converting DOCX to structured JSON...`);
+      log(`📖 Reading DOCX content for verification...`);
+      log(`🤖 Sending to OpenAI for JSON structuring...`);
+      if (meta.step3_jsonConversion) {
+        log(`✅ Step 3 Complete: JSON conversion finished at ${new Date(meta.step3_jsonConversion.timestamp).toLocaleTimeString()}`);
+      }
+      
+      log(`🏗️ Step 4: Building final resume object with metadata...`);
+      log(`📊 Pipeline Statistics Summary:`);
+      log(`   📄 Original file: ${file.name}`);
+      log(`   📝 Text extracted: ${meta.step1_textExtraction?.textLength || 0} characters`);
+      log(`   📋 DOCX created: ${meta.step2_docxCreation?.success ? 'Yes' : 'No'}`);
+      log(`   🎯 Processing method: ${result.processingMethod}`);
+      log(`   📅 Pipeline version: ${meta.pipelineVersion || 'Unknown'}`);
+    }
+    
+    return result;
+  };
+
+  const handleContinue = async () => {
+    if (!canContinue) return;
+
+    setLoading(true);
+    
+    try {
+      // Generate session ID and save data
+      const sessionId = generateSessionId();
+      
+      // Save uploaded files info
+      const fileInfo = uploadedFiles.map(file => ({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        category: categorizeFile(file)
+      }));
+
+      // Save portfolio links with categorization
+      const linkInfo = portfolioLinks.map(link => ({
+        url: link,
+        type: categorizePortfolioLink(link),
+        title: new URL(link).hostname
+      }));
+
+      // Convert files to base64 for storage and API processing
+      const processedFiles = await Promise.all(
+        uploadedFiles.map(async (file) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: file.lastModified,
+          data: await fileToBase64(file)
+        }))
+      );
+
+      // Save to localStorage for persistence
+      saveToLocalStorage('bpoc_session_id', sessionId);
+      saveToLocalStorage('bpoc_uploaded_files', fileInfo);
+      saveToLocalStorage('bpoc_portfolio_links', linkInfo);
+      saveToLocalStorage('bpoc_processed_files', processedFiles);
+      saveToLocalStorage('bpoc_processed_resumes', processedResumes);
+
+      // Navigate to analysis page
+      router.push('/resume-builder/analysis');
+      
+    } catch (error) {
+      console.error('Error saving upload data:', error);
+      setErrors(prev => [...prev, 'Failed to save upload data. Please try again.']);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) return <Image className="h-5 w-5 text-purple-400" />;
+    return <FileText className="h-5 w-5 text-cyan-400" />;
+  };
+
+  const getLinkIcon = (url: string) => {
+    const type = categorizePortfolioLink(url);
+    switch (type) {
+      case 'linkedin': return '💼';
+      case 'github': return '🐙';
+      case 'behance': return '🎨';
+      case 'dribbble': return '🏀';
+      default: return '🔗';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black">
+      <Header />
+      
+      <div className="pt-16">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <div className="flex items-center justify-center mb-6">
+              <Sparkles className="h-12 w-12 text-cyan-400 mr-4" />
+              <h1 className="text-4xl md:text-5xl font-bold gradient-text">
+                Resume Analyzer
+              </h1>
+            </div>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              💡 Upload your files and add portfolio links - we'll create your complete candidate intelligence profile
+            </p>
+          </motion.div>
+
+                  {/* OpenAI API Key Input */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="max-w-2xl mx-auto mb-8"
+        >
+          <Card className="glass-card border-white/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                🤖 OpenAI API Configuration
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Enter your OpenAI API key to use GPT-4o for intelligent resume parsing
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                />
+                <Button
+                  onClick={() => setOpenaiApiKey('')}
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-gray-300 hover:bg-white/10"
+                >
+                  Clear
+                </Button>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                🔒 Your API key is only used locally and never stored on our servers. Get your key from{' '}
+                <a 
+                  href="https://platform.openai.com/api-keys" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:underline"
+                >
+                  platform.openai.com
+                </a>
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Main Upload Interface */}
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* File Upload Section */}
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card className="glass-card border-white/10 h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Upload className="h-5 w-5 text-cyan-400" />
+                      📁 Upload Files
+                    </CardTitle>
+                    <CardDescription className="text-gray-300">
+                      Resume • Certificates • Work Samples
+                      <br />
+                      <span className="text-cyan-400">PDF, DOC, DOCX, JPG, PNG</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Drop Zone */}
+                    <div
+                      className={`relative p-8 border-2 border-dashed rounded-xl transition-all duration-300 cursor-pointer ${
+                        dragActive 
+                          ? 'border-cyan-400 bg-cyan-400/5' 
+                          : 'border-white/20 hover:border-cyan-400/50 hover:bg-cyan-400/5'
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="text-center">
+                        <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-white mb-2">
+                          📄 Drop Files Here
+                        </h3>
+                        <p className="text-gray-400 mb-4">
+                          or click to browse files
+                        </p>
+                        <Button variant="outline" className="border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10">
+                          Browse Files
+                        </Button>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.gif"
+                        onChange={(e) => handleFiles(Array.from(e.target.files || []))}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {/* Uploaded Files */}
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-400" />
+                          Uploaded Files:
+                        </h4>
+                        <div className="space-y-2">
+                          {uploadedFiles.map((file, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="flex items-center justify-between p-3 glass-card rounded-lg border border-white/10"
+                            >
+                              <div className="flex items-center gap-3">
+                                {getFileIcon(file)}
+                                <div>
+                                  <p className="text-white font-medium">{file.name}</p>
+                                  <p className="text-gray-400 text-sm">
+                                    {categorizeFile(file)} • {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile(index)}
+                                className="text-gray-400 hover:text-red-400"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Portfolio Links Section */}
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card className="glass-card border-white/10 h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Link className="h-5 w-5 text-purple-400" />
+                      🔗 Portfolio Links
+                    </CardTitle>
+                    <CardDescription className="text-gray-300">
+                      <span className="text-purple-400">LinkedIn • GitHub • Personal Website • Portfolio</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Add Link Input */}
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={newLink}
+                        onChange={(e) => setNewLink(e.target.value)}
+                        placeholder="https://linkedin.com/in/yourname"
+                        className="flex-1 px-3 py-2 bg-white/5 border border-white/20 rounded-md text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50"
+                        onKeyPress={(e) => e.key === 'Enter' && addPortfolioLink()}
+                      />
+                      <Button onClick={addPortfolioLink} size="sm" className="bg-purple-500 hover:bg-purple-600">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Portfolio Links List */}
+                    {portfolioLinks.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-400" />
+                          Portfolio Links:
+                        </h4>
+                        <div className="space-y-2">
+                          {portfolioLinks.map((link, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="flex items-center justify-between p-3 glass-card rounded-lg border border-white/10"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-lg">{getLinkIcon(link)}</span>
+                                <div>
+                                  <p className="text-white font-medium">
+                                    {new URL(link).hostname}
+                                  </p>
+                                  <p className="text-gray-400 text-sm truncate max-w-xs">
+                                    {link}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeLink(index)}
+                                className="text-gray-400 hover:text-red-400"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick Add Buttons */}
+                    <div className="pt-4 border-t border-white/10">
+                      <p className="text-gray-400 text-sm mb-3">Quick add common platforms:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNewLink('https://linkedin.com/in/')}
+                          className="border-white/20 text-gray-300 hover:bg-white/10"
+                        >
+                          💼 LinkedIn
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNewLink('https://github.com/')}
+                          className="border-white/20 text-gray-300 hover:bg-white/10"
+                        >
+                          🐙 GitHub
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNewLink('https://behance.net/')}
+                          className="border-white/20 text-gray-300 hover:bg-white/10"
+                        >
+                          🎨 Behance
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNewLink('https://')}
+                          className="border-white/20 text-gray-300 hover:bg-white/10"
+                        >
+                          🌐 Website
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* Error Messages */}
+            {errors.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6"
+              >
+                <Card className="glass-card border-red-500/30 bg-red-500/5">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-red-400 mb-2">Please fix these issues:</h4>
+                        <ul className="space-y-1">
+                          {errors.map((error, index) => (
+                            <li key={index} className="text-sm text-red-300">
+                              • {error}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Process Files Section */}
+            {uploadedFiles.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mt-8"
+              >
+                <Card className="glass-card border-white/10">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Sparkles className="h-5 w-5 text-yellow-400" />
+                      🤖 AI-Powered Resume Analysis
+                    </CardTitle>
+                    <CardDescription className="text-gray-300">
+                      Extract content exactly as written, create literal DOCX, then convert to faithful JSON
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Process Files Button */}
+                    <div className="text-center">
+                      <Button
+                        onClick={processUploadedFiles}
+                        disabled={uploadedFiles.length === 0 || !openaiApiKey.trim() || Object.keys(processingStatus).some(key => processingStatus[key] === 'processing')}
+                        className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-6 py-2"
+                      >
+                        {Object.keys(processingStatus).some(key => processingStatus[key] === 'processing') ? (
+                          <>
+                            <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            AI Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Analyze with AI
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Processing Status */}
+                    {Object.keys(processingStatus).length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-white">Processing Status:</h5>
+                        {uploadedFiles.map((file, index) => {
+                          const status = processingStatus[file.name];
+                          return (
+                            <div key={index} className="flex items-center justify-between p-2 glass-card rounded border border-white/10">
+                              <span className="text-gray-300 text-sm">{file.name}</span>
+                              <div className="flex items-center gap-2">
+                                {status === 'processing' && (
+                                  <>
+                                    <div className="animate-spin h-3 w-3 border border-yellow-400 border-t-transparent rounded-full" />
+                                    <span className="text-yellow-400 text-xs">Processing...</span>
+                                  </>
+                                )}
+                                {status === 'completed' && (
+                                  <>
+                                    <Check className="h-3 w-3 text-green-400" />
+                                    <span className="text-green-400 text-xs">Completed</span>
+                                  </>
+                                )}
+                                {status === 'error' && (
+                                  <>
+                                    <X className="h-3 w-3 text-red-400" />
+                                    <span className="text-red-400 text-xs">Error</span>
+                                  </>
+                                )}
+                                {!status && (
+                                  <span className="text-gray-500 text-xs">Pending</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Toggle Controls */}
+                    {processedResumes.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-3">
+                          <Button
+                            onClick={() => setShowProcessingLogs(!showProcessingLogs)}
+                            variant="outline"
+                            className="border-blue-400/20 text-blue-300 hover:bg-blue-400/10"
+                          >
+                            {showProcessingLogs ? 'Hide' : 'Show'} Process Logs
+                          </Button>
+                          <Button
+                            onClick={() => setShowDOCXPreview(!showDOCXPreview)}
+                            variant="outline"
+                            className="border-purple-400/20 text-purple-300 hover:bg-purple-400/10"
+                          >
+                            {showDOCXPreview ? 'Hide' : 'Show'} DOCX Preview
+                          </Button>
+                          <Button
+                            onClick={() => setShowJsonPreview(!showJsonPreview)}
+                            variant="outline"
+                            className="border-green-400/20 text-green-300 hover:bg-green-400/10"
+                          >
+                            {showJsonPreview ? 'Hide' : 'Show'} JSON Data
+                          </Button>
+                        </div>
+
+                        {/* Processing Logs Area */}
+                        {showProcessingLogs && Object.keys(processingLogs).length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <Card className="glass-card border-blue-400/30 bg-blue-400/5">
+                              <CardHeader>
+                                <CardTitle className="text-blue-400 text-sm flex items-center gap-2">
+                                  📋 Processing Logs: File → DOCX → JSON Conversion
+                                </CardTitle>
+                                <CardDescription className="text-blue-300/70">
+                                  Step-by-step conversion logs for each uploaded file
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-6">
+                                  {Object.entries(processingLogs).map(([fileName, logs]) => (
+                                    <div key={fileName} className="space-y-3">
+                                      <div className="flex items-center gap-2 pb-2 border-b border-blue-400/20">
+                                        <span className="text-blue-400 font-medium">📄 {fileName}</span>
+                                        <Badge variant="outline" className="border-blue-400/30 text-blue-300">
+                                          {logs.length} log entries
+                                        </Badge>
+                                      </div>
+                                      
+                                      <div className="max-h-96 overflow-y-auto bg-gray-900/50 rounded-lg p-4">
+                                        <div className="space-y-1">
+                                          {logs.map((log, index) => {
+                                            const isStepStart = log.includes('Step') && (log.includes('Starting') || log.includes('Complete'));
+                                            const isError = log.includes('❌') || log.includes('Error');
+                                            const isSuccess = log.includes('✅') || log.includes('Complete');
+                                            
+                                            return (
+                                              <div
+                                                key={index}
+                                                className={`text-xs font-mono ${
+                                                  isError 
+                                                    ? 'text-red-400' 
+                                                    : isSuccess 
+                                                    ? 'text-green-400' 
+                                                    : isStepStart
+                                                    ? 'text-cyan-400 font-bold'
+                                                    : 'text-gray-300'
+                                                } ${isStepStart ? 'mt-2' : ''}`}
+                                              >
+                                                {log}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Pipeline Steps Summary */}
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3 border-t border-blue-400/20">
+                                        <div className="text-center">
+                                          <div className="text-cyan-400 font-bold text-sm">
+                                            {logs.filter(log => log.includes('Step 1')).length}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">Text Extraction</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-purple-400 font-bold text-sm">
+                                            {logs.filter(log => log.includes('Step 2')).length}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">DOCX Creation</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-yellow-400 font-bold text-sm">
+                                            {logs.filter(log => log.includes('Step 3')).length}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">JSON Conversion</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-green-400 font-bold text-sm">
+                                            {logs.filter(log => log.includes('Pipeline Complete')).length > 0 ? '✅' : '🔄'}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">Status</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        )}
+
+                        {/* DOCX Preview Area */}
+                        {showDOCXPreview && processedResumes.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <Card className="glass-card border-purple-400/30 bg-purple-400/5">
+                              <CardHeader>
+                                <CardTitle className="text-purple-400 text-sm flex items-center gap-2">
+                                  📄 DOCX Preview: Exact Content from Original File
+                                </CardTitle>
+                                <CardDescription className="text-purple-300/70">
+                                  Preview of the literal DOCX preserving content exactly as written in original file
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-6">
+                                  {processedResumes.map((resume, index) => (
+                                    <div key={index} className="space-y-3">
+                                      <div className="flex items-center gap-2 pb-2 border-b border-purple-400/20">
+                                        <span className="text-purple-400 font-medium">
+                                          📄 {resume.docxMetadata?.docxFileName || `Document ${index + 1}`}
+                                        </span>
+                                        <Badge variant="outline" className="border-purple-400/30 text-purple-300">
+                                          {resume.docxMetadata?.docxSize ? `${(resume.docxMetadata.docxSize / 1024).toFixed(1)}KB` : 'N/A'}
+                                        </Badge>
+                                      </div>
+                                      
+                                      {resume.docxMetadata?.docxPreview ? (
+                                        <div className="max-h-96 overflow-y-auto bg-gray-900/50 rounded-lg p-6">
+                                          <div className="bg-white text-black p-6 rounded shadow-lg font-serif leading-relaxed">
+                                            <pre className="whitespace-pre-wrap text-sm font-serif">
+                                              {resume.docxMetadata.docxPreview}
+                                            </pre>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-center py-8 text-gray-400">
+                                          <p>No DOCX preview available for this file</p>
+                                        </div>
+                                      )}
+                                      
+                                      {/* DOCX Stats */}
+                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3 border-t border-purple-400/20">
+                                        <div className="text-center">
+                                          <div className="text-purple-400 font-bold text-sm">
+                                            {resume.docxMetadata?.sectionsCount || 0}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">Sections</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-cyan-400 font-bold text-sm">
+                                            {resume.docxMetadata?.docxSize ? `${(resume.docxMetadata.docxSize / 1024).toFixed(1)}KB` : '0KB'}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">File Size</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-yellow-400 font-bold text-sm">
+                                            {resume.docxMetadata?.contentSource || 'N/A'}
+                                          </div>
+                                          <div className="text-gray-400 text-xs">Source</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-green-400 font-bold text-sm">
+                                            📄
+                                          </div>
+                                          <div className="text-gray-400 text-xs">DOCX Ready</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        )}
+
+                        {/* JSON Preview Area */}
+                        {showJsonPreview && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <Card className="glass-card border-green-400/30 bg-green-400/5">
+                              <CardHeader>
+                                <CardTitle className="text-green-400 text-sm flex items-center gap-2">
+                                  <Check className="h-4 w-4" />
+                                  📄 Final JSON Output (Structured Resume Data)
+                                </CardTitle>
+                                <CardDescription className="text-green-300/70">
+                                  Complete structured data extracted from your resume files
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="max-h-96 overflow-y-auto">
+                                  <pre className="text-xs text-gray-300 whitespace-pre-wrap break-words">
+                                    {JSON.stringify(processedResumes, null, 2)}
+                                  </pre>
+                                </div>
+                                
+                                {/* Summary Stats */}
+                                <div className="mt-4 pt-4 border-t border-green-400/20">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div>
+                                      <div className="text-green-400 font-bold text-lg">
+                                        {processedResumes.length}
+                                      </div>
+                                      <div className="text-gray-400 text-xs">Files Processed</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-cyan-400 font-bold text-lg">
+                                        {processedResumes.reduce((acc, resume) => acc + (resume.parsed?.skills?.length || 0), 0)}
+                                      </div>
+                                      <div className="text-gray-400 text-xs">Skills Found</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-purple-400 font-bold text-lg">
+                                        {processedResumes.reduce((acc, resume) => acc + (resume.experience?.length || 0), 0)}
+                                      </div>
+                                      <div className="text-gray-400 text-xs">Experiences</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-yellow-400 font-bold text-lg">
+                                        {Math.round(processedResumes.reduce((acc, resume) => acc + (resume.confidence || 0), 0) / processedResumes.length)}%
+                                      </div>
+                                      <div className="text-gray-400 text-xs">Avg Confidence</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Continue Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mt-8 text-center"
+            >
+              <Button
+                onClick={handleContinue}
+                disabled={!canContinue || loading}
+                size="lg"
+                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Continue to Analysis
+                  </>
+                )}
+              </Button>
+              
+              {!canContinue && (
+                <p className="text-gray-400 mt-3 text-sm">
+                  Please upload at least one file or add a portfolio link to continue
+                </p>
+              )}
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+} 
