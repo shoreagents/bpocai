@@ -1,23 +1,24 @@
 # Resume Parser Logic Documentation
 
 ## Overview
-This document outlines the complete logic for a multi-format resume parser that converts various file types to JPEG images, performs OCR text extraction, and outputs structured JSON data.
+This document outlines the complete logic for a multi-format resume parser that uses **CloudConvert API** for document conversion, **GPT Vision OCR** for text extraction, and outputs structured JSON data through an organized DOCX pipeline.
 
-## Core Processing Logic
+## Updated Core Processing Logic (CloudConvert + GPT Pipeline)
 
 ### File Type Handling Workflow
 ```
-IF RESUME FILE TYPE IS:
-1. PDF → CONVERT TO JPEG → OCR → JSON
-2. DOCX → CONVERT TO JPEG → OCR → JSON  
-3. JPG/JPEG → OCR → JSON
-4. DOC → CONVERT TO JPEG → OCR → JSON
-5. PNG → CONVERT TO JPEG → OCR → JSON
+NEW PIPELINE WITH CLOUDCONVERT API:
+1. PDF → CLOUDCONVERT TO JPEG → GPT VISION OCR → ORGANIZED DOCX → JSON
+2. DOCX → CLOUDCONVERT TO JPEG → GPT VISION OCR → ORGANIZED DOCX → JSON  
+3. DOC → CLOUDCONVERT TO JPEG → GPT VISION OCR → ORGANIZED DOCX → JSON
+4. JPG/JPEG → DIRECT GPT VISION OCR → ORGANIZED DOCX → JSON
+5. PNG → DIRECT GPT VISION OCR → ORGANIZED DOCX → JSON
 ```
 
-### Processing Pipeline
+### Updated Processing Pipeline
 ```
-Input File → File Type Detection → Format Conversion → JPEG Generation → OCR Processing → Text Parsing → JSON Output
+Input File → File Type Detection → CloudConvert API (for docs) → JPEG Generation → 
+GPT Vision OCR → Text Extraction → Organized DOCX Creation → JSON Output
 ```
 
 ## Required Packages
@@ -26,16 +27,15 @@ Input File → File Type Detection → Format Conversion → JPEG Generation →
 ```json
 {
   "dependencies": {
-    // File conversion
-    "pdfjs-dist": "^3.11.174",           // PDF to canvas/image
-    "mammoth": "^1.6.0",                // DOCX to HTML conversion
-    "html2canvas": "^1.4.1",            // HTML to image conversion
-    "file-type": "^18.5.0",             // File type detection
+    // CloudConvert API integration
+    "axios": "^1.6.0",                   // HTTP client for CloudConvert API calls
     
-    // OCR Processing
-    "tesseract.js": "^5.0.4",           // Client-side OCR
-    "@google-cloud/vision": "^4.0.0",   // Google Cloud Vision (optional)
-    "aws-sdk": "^2.1400.0",             // AWS Textract (optional)
+    // AI Processing
+    "openai": "^4.0.0",                  // GPT-4 Vision for OCR
+    
+    // Document processing
+    "mammoth": "^1.6.0",                // DOCX reading and creation
+    "officegen": "^0.6.5",              // DOCX generation
     
     // Utilities
     "lodash": "^4.17.21",               // Data manipulation
@@ -44,528 +44,312 @@ Input File → File Type Detection → Format Conversion → JPEG Generation →
     // React/UI
     "react": "^18.2.0",
     "lucide-react": "^0.263.1"          // Icons
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"            // TypeScript support
   }
 }
 ```
 
-## File Conversion Methods
+## CloudConvert API Integration
 
-### 1. PDF to JPEG Conversion
-```javascript
-// Using PDF.js to convert PDF pages to JPEG images
-const convertPDFToJPEG = async (pdfFile) => {
-  const pdf = await pdfjsLib.getDocument(pdfFile).promise;
-  const jpegImages = [];
-  
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2.0 });
-    
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    
-    await page.render({ canvasContext: context, viewport }).promise;
-    const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    jpegImages.push(jpegDataUrl);
-  }
-  
-  return jpegImages;
-};
+### Environment Setup
+```bash
+# Add to your .env.local or environment variables
+NEXT_PUBLIC_CLOUDCONVERT_API_KEY=your_cloudconvert_api_key_here
 ```
 
-### 2. DOCX to JPEG Conversion
+### CloudConvert Conversion Method
 ```javascript
-// Convert DOCX → HTML → Rendered Element → JPEG
-const convertDOCXToJPEG = async (docxFile) => {
-  // Step 1: DOCX to HTML using mammoth
-  const arrayBuffer = await docxFile.arrayBuffer();
-  const result = await mammoth.convertToHtml({ arrayBuffer });
+// Using CloudConvert API to convert documents to JPEG
+const convertToJPEGWithCloudConvert = async (file, fileType) => {
+  const CLOUDCONVERT_API_KEY = process.env.NEXT_PUBLIC_CLOUDCONVERT_API_KEY;
   
-  // Step 2: Render HTML to DOM element
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = result.value;
-  tempDiv.style.cssText = `
-    width: 800px;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-    background-color: white;
-    line-height: 1.4;
-  `;
-  document.body.appendChild(tempDiv);
-  
-  // Step 3: Convert DOM element to JPEG using html2canvas
-  const canvas = await html2canvas(tempDiv, {
-    backgroundColor: 'white',
-    scale: 2,
-    useCORS: true
+  // Step 1: Create conversion job
+  const jobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${CLOUDCONVERT_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      tasks: {
+        'import-file': {
+          operation: 'import/upload'
+        },
+        'convert-file': {
+          operation: 'convert',
+          input: 'import-file',
+          output_format: 'jpg',
+          options: {
+            quality: 95,
+            strip: false
+          }
+        },
+        'export-file': {
+          operation: 'export/url',
+          input: 'convert-file'
+        }
+      }
+    })
   });
-  
-  document.body.removeChild(tempDiv);
-  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-  return [jpegDataUrl];
-};
-```
 
-### 3. PNG to JPEG Conversion
-```javascript
-// Convert PNG to JPEG (handling transparency)
-const convertPNGToJPEG = async (pngFile) => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      // Fill white background (replace PNG transparency)
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw PNG image on white background
-      ctx.drawImage(img, 0, 0);
-      
-      // Convert to JPEG
-      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      resolve([jpegDataUrl]);
-    };
-    
-    img.src = URL.createObjectURL(pngFile);
-  });
-};
-```
+  const jobData = await jobResponse.json();
 
-### 4. DOC File Handling
-```javascript
-// DOC files require server-side conversion or external API
-const convertDOCToJPEG = async (docFile) => {
-  // Option 1: Server-side conversion endpoint
+  // Step 2: Upload file
+  const uploadTask = jobData.data.tasks.find(task => task.operation === 'import/upload');
   const formData = new FormData();
-  formData.append('file', docFile);
+  formData.append('file', file);
   
-  const response = await fetch('/api/convert-doc-to-jpeg', {
+  await fetch(uploadTask.result.form.url, {
     method: 'POST',
     body: formData
   });
+
+  // Step 3: Wait for conversion and download result
+  // (polling logic for job completion)
   
-  if (!response.ok) {
-    throw new Error('DOC conversion failed');
-  }
-  
-  const jpegBlob = await response.blob();
-  const jpegDataUrl = URL.createObjectURL(jpegBlob);
-  return [jpegDataUrl];
-  
-  // Option 2: Use CloudConvert or similar API
-  // Option 3: Convert DOC → DOCX → JPEG (if possible)
+  return [jpegDataUrl]; // Returns converted JPEG
 };
 ```
 
-## OCR Processing
+## GPT Vision OCR Processing
 
-### Tesseract.js Implementation
+### GPT-4 Vision OCR Implementation
 ```javascript
-import Tesseract from 'tesseract.js';
-
-const performOCR = async (jpegDataUrl) => {
-  const { data: { text, confidence } } = await Tesseract.recognize(
-    jpegDataUrl,
-    'eng',
-    {
-      logger: (m) => {
-        if (m.status === 'recognizing text') {
-          console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+const performGPTOCROnImages = async (jpegImages, openaiApiKey) => {
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({
+    apiKey: openaiApiKey,
+    dangerouslyAllowBrowser: true
+  });
+  
+  let allExtractedText = '';
+  
+  for (const jpegUrl of jpegImages) {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert OCR system specialized in extracting text from resume images. Extract ALL visible text exactly as it appears, preserving formatting, spacing, and structure."
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Please extract ALL text from this resume image. Include every detail visible - names, contact info, job titles, company names, dates, descriptions, skills, education, etc."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: base64Image
+              }
+            }
+          ]
         }
-      },
-      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
-      preserve_interword_spaces: '1'
+      ],
+      temperature: 0.1,
+      max_tokens: 4000
+    });
+    
+    const extractedText = completion.choices[0]?.message?.content;
+    if (extractedText) {
+      allExtractedText += extractedText + '\n\n';
     }
+  }
+  
+  return allExtractedText.trim();
+};
+```
+
+## Updated File Processing Logic
+
+### Universal File Processor (CloudConvert + GPT Pipeline)
+```javascript
+const processResumeFile = async (file, openaiApiKey) => {
+  console.log('🚀 Starting CloudConvert + GPT OCR pipeline');
+  
+  // Step 1: Convert to JPEG using CloudConvert or direct processing
+  const jpegImages = await convertFileToJPEG(file);
+  
+  // Step 2: Extract text using GPT Vision OCR from JPEG images
+  const extractedText = await performGPTOCROnImages(jpegImages, openaiApiKey);
+  
+  // Step 3: Create organized DOCX from extracted text
+  const { docxFile, docxPreview } = await createOrganizedDOCX(extractedText, file.name);
+  
+  // Step 4: Convert DOCX content to JSON
+  const jsonData = await convertDOCXContentToJSON(docxFile, openaiApiKey);
+  
+  // Step 5: Build final resume object
+  const finalResume = buildResumeWithCloudConvertPipeline(
+    file, extractedText, docxFile, docxPreview, jsonData, jpegImages
   );
   
-  return { text, confidence };
+  return finalResume;
+};
+
+// File type routing
+const convertFileToJPEG = async (file) => {
+  const fileType = file.type.toLowerCase();
+  
+  if (fileType.includes('pdf')) {
+    return await convertToJPEGWithCloudConvert(file, 'PDF');
+  } else if (fileType.includes('wordprocessingml')) {
+    return await convertToJPEGWithCloudConvert(file, 'DOCX');
+  } else if (fileType.includes('msword')) {
+    return await convertToJPEGWithCloudConvert(file, 'DOC');
+  } else if (fileType.includes('jpeg') || fileType.includes('jpg')) {
+    return [URL.createObjectURL(file)]; // Direct processing
+  } else if (fileType.includes('png')) {
+    return [URL.createObjectURL(file)]; // Direct processing
+  } else {
+    throw new Error(`Unsupported file type: ${fileType}`);
+  }
 };
 ```
 
-### Cloud OCR Options (Alternative)
+## Processing Method Determination
+
+### Updated Processing Methods
 ```javascript
-// Google Cloud Vision API
-const googleOCR = async (base64Image) => {
-  const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      requests: [{
-        image: { content: base64Image },
-        features: [{ type: 'TEXT_DETECTION', maxResults: 1 }]
-      }]
-    })
-  });
+const determineProcessingMethod = (fileType) => {
+  const type = fileType.toLowerCase();
   
-  const result = await response.json();
-  return result.responses[0]?.textAnnotations[0]?.description || '';
-};
-```
-
-## JSON Output Structure
-
-### Expected JSON Format
-```typescript
-interface ResumeJSON {
-  // Metadata
-  fileName: string;
-  fileType: string;
-  processingMethod: string;
-  extractedAt: string;
-  ocrConfidence?: number;
+  if (type.includes('pdf')) return 'PDF→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('wordprocessingml')) return 'DOCX→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('msword')) return 'DOC→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('jpeg') || type.includes('jpg')) return 'JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('png')) return 'PNG→GPT-OCR→DOCX→JSON';
   
-  // Raw data
-  rawText: string;
-  jpegImages?: string[];  // base64 data URLs
-  
-  // Parsed information
-  parsed: {
-    personalInfo: {
-      name?: string;
-      email?: string;
-      phone?: string;
-      title?: string;
-      location?: string;
-      linkedin?: string;
-      website?: string;
-    };
-    
-    sections: Array<{
-      title: string;      // e.g., "EXPERIENCE", "EDUCATION"
-      content: string;    // Full text content
-      items?: Array<{     // Structured items (optional)
-        title?: string;
-        company?: string;
-        duration?: string;
-        description?: string;
-      }>;
-    }>;
-    
-    skills: string[];
-    emails: string[];
-    phones: string[];
-    urls: string[];
-  };
-}
-```
-
-### Example JSON Output
-```json
-{
-  "fileName": "john_doe_resume.pdf",
-  "fileType": "application/pdf",
-  "processingMethod": "PDF->JPEG->OCR",
-  "extractedAt": "2025-07-23T10:30:00.000Z",
-  "ocrConfidence": 89.5,
-  "rawText": "JOHN DOE\nSoftware Engineer...",
-  "parsed": {
-    "personalInfo": {
-      "name": "John Doe",
-      "email": "john.doe@email.com",
-      "phone": "(555) 123-4567",
-      "title": "Software Engineer"
-    },
-    "sections": [
-      {
-        "title": "EXPERIENCE",
-        "content": "Senior Software Engineer - TechCorp (2020-Present)..."
-      },
-      {
-        "title": "EDUCATION",
-        "content": "Bachelor of Science in Computer Science - MIT (2016-2020)"
-      }
-    ],
-    "skills": ["JavaScript", "React", "Node.js"],
-    "emails": ["john.doe@email.com"],
-    "phones": ["(555) 123-4567"],
-    "urls": ["https://johndoe.dev"]
-  }
-}
-```
-
-## Text Parsing Logic
-
-### Personal Information Extraction
-```javascript
-const extractPersonalInfo = (text) => {
-  const lines = text.split('\n').filter(line => line.trim());
-  const personalInfo = {};
-  
-  // Name (usually first line)
-  if (lines.length > 0) {
-    personalInfo.name = lines[0].trim();
-  }
-  
-  // Email extraction
-  const emailRegex = /[\w\.-]+@[\w\.-]+\.\w+/g;
-  const emails = text.match(emailRegex) || [];
-  if (emails.length > 0) {
-    personalInfo.email = emails[0];
-  }
-  
-  // Phone extraction
-  const phoneRegex = /(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
-  const phones = text.match(phoneRegex) || [];
-  if (phones.length > 0) {
-    personalInfo.phone = phones[0];
-  }
-  
-  // Title (second line if no special characters)
-  if (lines.length > 1 && !emails.includes(lines[1]) && !phones.includes(lines[1])) {
-    personalInfo.title = lines[1].trim();
-  }
-  
-  return personalInfo;
-};
-```
-
-### Section Detection
-```javascript
-const extractSections = (text) => {
-  const lines = text.split('\n').filter(line => line.trim());
-  const sections = [];
-  
-  const sectionHeaders = [
-    'SUMMARY', 'OBJECTIVE', 'PROFILE',
-    'EXPERIENCE', 'WORK EXPERIENCE', 'EMPLOYMENT', 'PROFESSIONAL EXPERIENCE',
-    'EDUCATION', 'ACADEMIC BACKGROUND',
-    'SKILLS', 'TECHNICAL SKILLS', 'CORE COMPETENCIES',
-    'PROJECTS', 'KEY PROJECTS',
-    'CERTIFICATIONS', 'CERTIFICATES',
-    'ACHIEVEMENTS', 'AWARDS', 'HONORS',
-    'LANGUAGES', 'INTERESTS', 'REFERENCES'
-  ];
-  
-  let currentSection = '';
-  let sectionContent = [];
-  
-  lines.forEach(line => {
-    const upperLine = line.trim().toUpperCase();
-    
-    // Check if line is a section header
-    if (sectionHeaders.some(header => upperLine.includes(header))) {
-      // Save previous section
-      if (currentSection && sectionContent.length > 0) {
-        sections.push({
-          title: currentSection,
-          content: sectionContent.join('\n').trim()
-        });
-      }
-      
-      // Start new section
-      currentSection = upperLine;
-      sectionContent = [];
-    } else if (currentSection && line.trim()) {
-      sectionContent.push(line.trim());
-    }
-  });
-  
-  // Add last section
-  if (currentSection && sectionContent.length > 0) {
-    sections.push({
-      title: currentSection,
-      content: sectionContent.join('\n').trim()
-    });
-  }
-  
-  return sections;
-};
-```
-
-## Main Processing Function
-
-### Universal File Processor
-```javascript
-const processResumeFile = async (file) => {
-  let jpegImages = [];
-  let processingMethod = '';
-  
-  // Step 1: Convert to JPEG based on file type
-  switch (file.type) {
-    case 'application/pdf':
-      jpegImages = await convertPDFToJPEG(file);
-      processingMethod = 'PDF->JPEG->OCR';
-      break;
-      
-    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      jpegImages = await convertDOCXToJPEG(file);
-      processingMethod = 'DOCX->JPEG->OCR';
-      break;
-      
-    case 'application/msword':
-      jpegImages = await convertDOCToJPEG(file);
-      processingMethod = 'DOC->JPEG->OCR';
-      break;
-      
-    case 'image/png':
-      jpegImages = await convertPNGToJPEG(file);
-      processingMethod = 'PNG->JPEG->OCR';
-      break;
-      
-    case 'image/jpeg':
-    case 'image/jpg':
-      jpegImages = [URL.createObjectURL(file)];
-      processingMethod = 'JPEG->OCR';
-      break;
-      
-    default:
-      throw new Error(`Unsupported file type: ${file.type}`);
-  }
-  
-  // Step 2: Perform OCR on all JPEG images
-  let fullText = '';
-  let totalConfidence = 0;
-  
-  for (const jpegDataUrl of jpegImages) {
-    const { text, confidence } = await performOCR(jpegDataUrl);
-    fullText += text + '\n';
-    totalConfidence += confidence;
-  }
-  
-  const averageConfidence = totalConfidence / jpegImages.length;
-  
-  // Step 3: Parse text to structured JSON
-  const personalInfo = extractPersonalInfo(fullText);
-  const sections = extractSections(fullText);
-  
-  // Step 4: Extract additional data
-  const emails = fullText.match(/[\w\.-]+@[\w\.-]+\.\w+/g) || [];
-  const phones = fullText.match(/(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g) || [];
-  const urls = fullText.match(/https?:\/\/[^\s]+/g) || [];
-  
-  // Step 5: Build final JSON
-  const resumeJSON = {
-    fileName: file.name,
-    fileType: file.type,
-    processingMethod,
-    extractedAt: new Date().toISOString(),
-    ocrConfidence: averageConfidence,
-    rawText: fullText,
-    jpegImages, // Optional: include generated images
-    parsed: {
-      personalInfo,
-      sections,
-      skills: [], // TODO: Implement skills extraction
-      emails,
-      phones,
-      urls
-    }
-  };
-  
-  return resumeJSON;
-};
-```
-
-## Error Handling
-
-### Robust Error Handling
-```javascript
-const safeProcessResumeFile = async (file) => {
-  try {
-    // Validate file
-    if (!file) {
-      throw new Error('No file provided');
-    }
-    
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      throw new Error('File size too large (max 10MB)');
-    }
-    
-    // Process file
-    return await processResumeFile(file);
-    
-  } catch (error) {
-    console.error('Resume processing error:', error);
-    
-    return {
-      fileName: file?.name || 'unknown',
-      fileType: file?.type || 'unknown',
-      processingMethod: 'FAILED',
-      extractedAt: new Date().toISOString(),
-      error: error.message,
-      rawText: '',
-      parsed: {
-        personalInfo: {},
-        sections: [],
-        skills: [],
-        emails: [],
-        phones: [],
-        urls: []
-      }
-    };
-  }
+  return 'Unknown→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
 };
 ```
 
 ## Implementation Notes
 
+### Advantages of New Pipeline
+
+#### CloudConvert Benefits
+- **Professional document conversion** with high accuracy
+- **Multi-format support** (PDF, DOC, DOCX) in a single API
+- **Reliable cloud processing** with 99.9% uptime
+- **Quality preservation** with configurable output settings
+- **No client-side dependencies** for complex document formats
+
+#### GPT Vision OCR Benefits
+- **Superior accuracy** compared to traditional OCR engines
+- **Context awareness** for better text understanding
+- **Layout preservation** maintains document structure
+- **Multi-language support** out of the box
+- **Error handling** with intelligent text correction
+
 ### Performance Considerations
-- PDF conversion can be slow for large files
-- OCR processing takes 10-30 seconds per page
-- Consider showing progress indicators
-- Implement file size limits
-- Use Web Workers for heavy processing
+- **CloudConvert processing time**: 10-30 seconds per document
+- **GPT Vision processing**: 5-15 seconds per image
+- **Total pipeline time**: 20-60 seconds depending on document complexity
+- **Implement progress indicators** for better user experience
+- **Consider file size limits** (CloudConvert: 1GB, GPT Vision: optimal < 10MB)
 
-### Accuracy Improvements
-- Use higher scale (2.0+) for better image quality
-- Preprocess images (contrast, brightness)
-- Use multiple OCR engines and compare results
-- Implement post-processing text cleanup
+### Cost Considerations
+- **CloudConvert**: Pay-per-conversion model, starts at $8/month
+- **OpenAI GPT-4 Vision**: Token-based pricing, approximately $0.01-0.03 per image
+- **Combined cost**: ~$0.05-0.10 per resume processing
 
-### Browser Compatibility
-- PDF.js works in all modern browsers
-- html2canvas has some limitations
-- File API support required
-- Canvas API support required
+### Error Handling Strategy
+```javascript
+const safeProcessResumeFile = async (file, openaiApiKey) => {
+  try {
+    return await processResumeFile(file, openaiApiKey);
+  } catch (error) {
+    console.error('Processing error:', error);
+    
+    // Provide specific error messages
+    if (error.message.includes('CloudConvert')) {
+      throw new Error('Document conversion service temporarily unavailable. Please try again.');
+    } else if (error.message.includes('OpenAI')) {
+      throw new Error('OCR service temporarily unavailable. Please try again.');
+    } else {
+      throw new Error('Resume processing failed. Please check your file and try again.');
+    }
+  }
+};
+```
 
 ### Security Considerations
-- Validate file types on both client and server
-- Implement file size limits
-- Sanitize extracted text
-- Be cautious with DOC files (potential security risk)
+- **API keys protection**: Store in environment variables, never in client code
+- **File validation**: Validate file types and sizes before processing
+- **Data privacy**: CloudConvert and OpenAI process files externally
+- **Temporary file cleanup**: Ensure converted files are properly disposed
+- **Rate limiting**: Implement appropriate rate limits for API calls
 
 ## Usage Example
 
 ```javascript
-// React component usage
+// React component usage with new pipeline
 const ResumeUploader = () => {
+  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState('');
+  
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
     
+    setProcessing(true);
+    
     try {
-      const resumeJSON = await safeProcessResumeFile(file);
+      setProgress('Converting document to image...');
+      
+      const resumeJSON = await safeProcessResumeFile(file, openaiApiKey);
+      
+      setProgress('Processing complete!');
       console.log('Processed resume:', resumeJSON);
       
-      // Download JSON
+      // Download JSON result
       const blob = new Blob([JSON.stringify(resumeJSON, null, 2)], 
         { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${file.name}_parsed.json`;
+      link.download = `${file.name}_processed.json`;
       link.click();
       
     } catch (error) {
       console.error('Upload failed:', error);
+      setProgress(`Error: ${error.message}`);
+    } finally {
+      setProcessing(false);
     }
   };
   
   return (
-    <input 
-      type="file" 
-      accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
-      onChange={handleFileUpload}
-    />
+    <div>
+      <input 
+        type="file" 
+        accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+        onChange={handleFileUpload}
+        disabled={processing}
+      />
+      {processing && <p>{progress}</p>}
+    </div>
   );
 };
 ```
+
+## Migration from Previous System
+
+### Key Changes
+1. **CloudConvert replaces**: PDF.js, Mammoth.js conversion, html2canvas
+2. **GPT Vision replaces**: Tesseract.js, direct text extraction
+3. **Unified pipeline**: All document types follow same conversion path
+4. **Improved accuracy**: Better text extraction and structure preservation
+5. **Simplified maintenance**: Fewer dependencies and conversion methods
+
+### Breaking Changes
+- **API key requirements**: Now requires both CloudConvert and OpenAI API keys
+- **Processing time**: Longer processing time due to external API calls
+- **Network dependency**: Requires internet connection for document processing
+- **Cost implications**: Pay-per-use model instead of free local processing

@@ -2,19 +2,28 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Get OpenAI API key from server environment
-    const apiKey = process.env.OPENAI_API_KEY;
+    // Get API keys from server environment
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const cloudConvertApiKey = process.env.CLOUDCONVERT_API_KEY;
     
-    if (!apiKey) {
+    const missingKeys = [];
+    if (!openaiApiKey) missingKeys.push('OPENAI_API_KEY');
+    if (!cloudConvertApiKey) missingKeys.push('CLOUDCONVERT_API_KEY');
+    
+    if (missingKeys.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'OpenAI API key not configured on server' },
+        { 
+          success: false, 
+          error: `API keys not configured on server: ${missingKeys.join(', ')}. Please add to environment variables.` 
+        },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      apiKey: apiKey
+      openaiApiKey: openaiApiKey,
+      cloudConvertApiKey: cloudConvertApiKey
     });
 
   } catch (error) {
@@ -23,7 +32,7 @@ export async function GET() {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch API key'
+        error: 'Failed to fetch API keys'
       },
       { status: 500 }
     );
