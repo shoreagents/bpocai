@@ -26,6 +26,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Determine the correct redirect URL based on environment
+  const isProduction = process.env.NODE_ENV === 'production'
+  const redirectUrl = isProduction 
+    ? process.env.NEXT_PUBLIC_SITE_URL || 'https://bpocai-production.up.railway.app'
+    : 'http://localhost:3000'
+
   // Redirect to home page after successful authentication
-  return NextResponse.redirect(new URL('/', request.url))
+  return NextResponse.redirect(new URL('/', redirectUrl))
 } 
