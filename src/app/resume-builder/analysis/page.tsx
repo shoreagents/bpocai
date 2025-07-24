@@ -221,7 +221,7 @@ export default function AnalysisPage() {
                       transition={{ duration: 0.3, type: 'spring' }}
                     >
                       {progressValue >= 33 ? (
-                        <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+                    <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
                       ) : progressValue > 0 ? (
                         <div className="relative mr-3">
                           <Clock className="h-5 w-5 text-cyan-400 animate-pulse" />
@@ -252,7 +252,7 @@ export default function AnalysisPage() {
                         <div className="relative mr-3">
                           <Clock className="h-5 w-5 text-blue-400 animate-pulse" />
                           <div className="absolute inset-0 h-5 w-5 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin"></div>
-                        </div>
+                  </div>
                       ) : (
                         <div className="h-5 w-5 border-2 border-gray-500 rounded-full mr-3"></div>
                       )}
@@ -278,7 +278,7 @@ export default function AnalysisPage() {
                         <div className="relative mr-3">
                           <Clock className="h-5 w-5 text-yellow-400 animate-pulse" />
                           <div className="absolute inset-0 h-5 w-5 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin"></div>
-                        </div>
+                  </div>
                       ) : (
                         <div className="h-5 w-5 border-2 border-gray-500 rounded-full mr-3"></div>
                       )}
