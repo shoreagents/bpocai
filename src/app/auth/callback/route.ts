@@ -26,17 +26,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Force redirect to production URL if we're in production environment
-  const isProduction = process.env.NODE_ENV === 'production' || 
-                       process.env.VERCEL_URL || 
-                       process.env.RAILWAY_PUBLIC_DOMAIN ||
-                       request.url.includes('railway.app')
-  
-  if (isProduction) {
-    const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bpocai-production.up.railway.app'
-    return NextResponse.redirect(new URL('/', productionUrl))
-  }
-
   // Redirect to home page after successful authentication
   return NextResponse.redirect(new URL('/', request.url))
 } 

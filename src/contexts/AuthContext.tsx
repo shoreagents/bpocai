@@ -89,24 +89,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signInWithGoogle = async () => {
-    // Determine the correct redirect URL based on environment
-    const isProduction = window.location.href.includes('railway.app') || 
-                         window.location.href.includes('production')
-    
-    const redirectTo = isProduction 
-      ? 'https://bpocai-production.up.railway.app/auth/callback'
-      : `${window.location.origin}/auth/callback`
-    
-    console.log('🔍 OAuth Redirect URL:', redirectTo)
-    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent'
-        }
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`
       }
     })
     return { data, error }
