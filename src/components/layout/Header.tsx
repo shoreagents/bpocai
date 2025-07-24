@@ -20,14 +20,11 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import LoginForm from '@/components/auth/LoginForm'
 import SignUpForm from '@/components/auth/SignUpForm'
+import EditProfile from '@/components/auth/EditProfile'
 import { useAuth } from '@/contexts/AuthContext'
 
-
-
 interface HeaderProps {
-
-  className?: string // No longer need auth props - using context
-
+  className?: string
 }
 
 export default function Header({}: HeaderProps) {
@@ -35,6 +32,7 @@ export default function Header({}: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   
   const isAuthenticated = !!user
   
@@ -65,11 +63,39 @@ export default function Header({}: HeaderProps) {
     }
   }
 
+  const handleOpenEditProfile = () => {
+    setIsEditProfileOpen(true)
+    setIsMobileMenuOpen(false) // Close mobile menu if open
+  }
+
   const userMenuItems = [
-    { label: 'Profile', href: '/profile', icon: User, action: null },
+    { label: 'Profile', href: null, icon: User, action: handleOpenEditProfile },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: handleSignOut }
   ]
+
+  // Form switching handlers
+  const handleSwitchToSignUp = () => {
+    setIsLoginDialogOpen(false)
+    setTimeout(() => setIsSignUpDialogOpen(true), 100) // Small delay for smooth transition
+  }
+
+  const handleSwitchToLogin = () => {
+    setIsSignUpDialogOpen(false)
+    setTimeout(() => setIsLoginDialogOpen(true), 100) // Small delay for smooth transition
+  }
+
+  const handleOpenLogin = () => {
+    setIsSignUpDialogOpen(false)
+    setIsLoginDialogOpen(true)
+    setIsMobileMenuOpen(false)
+  }
+
+  const handleOpenSignUp = () => {
+    setIsLoginDialogOpen(false)
+    setIsSignUpDialogOpen(true)
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10">
@@ -162,15 +188,15 @@ export default function Header({}: HeaderProps) {
               <div className="hidden md:flex items-center space-x-3">
                 <Button 
                   variant="ghost" 
-                  className="text-white hover:text-cyan-400 hover:bg-white/10"
-                  onClick={() => setIsLoginDialogOpen(true)}
+                  className="text-white hover:text-cyan-400 hover:bg-white/10 transition-all duration-200"
+                  onClick={handleOpenLogin}
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Sign In
                 </Button>
                 <Button 
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
-                  onClick={() => setIsSignUpDialogOpen(true)}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 transition-all duration-200"
+                  onClick={handleOpenSignUp}
                 >
                   Get Started Free
                 </Button>
@@ -223,21 +249,15 @@ export default function Header({}: HeaderProps) {
                       <div className="space-y-3 pt-6 border-t border-white/10">
                         <Button 
                           variant="outline" 
-                          className="w-full border-white/20 text-white hover:bg-white/10"
-                          onClick={() => {
-                            setIsLoginDialogOpen(true)
-                            setIsMobileMenuOpen(false)
-                          }}
+                          className="w-full border-white/20 text-white hover:bg-white/10 transition-all duration-200"
+                          onClick={handleOpenLogin}
                         >
                           <LogIn className="w-4 h-4 mr-2" />
                           Sign In
                         </Button>
                         <Button 
-                          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
-                          onClick={() => {
-                            setIsSignUpDialogOpen(true)
-                            setIsMobileMenuOpen(false)
-                          }}
+                          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 transition-all duration-200"
+                          onClick={handleOpenSignUp}
                         >
                           Get Started Free
                         </Button>
@@ -282,13 +302,21 @@ export default function Header({}: HeaderProps) {
       {/* Login Dialog */}
       <LoginForm 
         open={isLoginDialogOpen} 
-        onOpenChange={setIsLoginDialogOpen} 
+        onOpenChange={setIsLoginDialogOpen}
+        onSwitchToSignUp={handleSwitchToSignUp}
       />
       
       {/* Sign Up Dialog */}
       <SignUpForm 
         open={isSignUpDialogOpen} 
-        onOpenChange={setIsSignUpDialogOpen} 
+        onOpenChange={setIsSignUpDialogOpen}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
+      
+      {/* Edit Profile Dialog */}
+      <EditProfile 
+        open={isEditProfileOpen} 
+        onOpenChange={setIsEditProfileOpen}
       />
     </header>
   )
