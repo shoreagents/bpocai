@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import DatabaseStatus from "@/components/debug/DatabaseStatus";
+import RedirectHandler from "@/components/auth/RedirectHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,6 +75,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-black text-white`}>
 
         <AuthProvider>
+          <RedirectHandler />
           {children}
           <DatabaseStatus />
         </AuthProvider>

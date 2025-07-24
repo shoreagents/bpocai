@@ -89,10 +89,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signInWithGoogle = async () => {
+    // Force the correct redirect URL based on current environment
+    const isProduction = process.env.NODE_ENV === 'production'
+    const baseUrl = isProduction 
+      ? (process.env.NEXT_PUBLIC_SITE_URL || 'https://bpocai-production.up.railway.app')
+      : 'http://localhost:3000'
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`
+        redirectTo: `${baseUrl}/auth/callback`
       }
     })
     return { data, error }
