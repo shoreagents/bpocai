@@ -1218,6 +1218,7 @@ function organizeResumeContent(extractedText: string): Array<{ title: string; co
     });
   }
   
+
   if (certifications.length > 0) {
     sections.push({
       title: 'CERTIFICATIONS & LICENSES',
@@ -1231,12 +1232,14 @@ function organizeResumeContent(extractedText: string): Array<{ title: string; co
       content: projects.join('\n\n')
     });
   }
+
   
   if (languages.length > 0) {
     sections.push({
       title: 'LANGUAGES',
       content: languages.join('\n')
     });
+
   }
   
   if (other.length > 0) {

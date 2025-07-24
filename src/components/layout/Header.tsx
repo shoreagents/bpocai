@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   Menu, 
@@ -29,6 +30,7 @@ interface HeaderProps {
 
 export default function Header({}: HeaderProps) {
   const { user, signOut, loading } = useAuth()
+  const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
@@ -53,6 +55,14 @@ export default function Header({}: HeaderProps) {
     { title: 'Jobs', href: '/jobs' },
     { title: 'About', href: '/about' }
   ]
+
+  // Check if navigation item is active
+  const isActiveRoute = (href: string) => {
+    if (href === '/') {
+      return pathname === '/'
+    }
+    return pathname.startsWith(href)
+  }
 
   const handleSignOut = async () => {
     try {
@@ -120,15 +130,28 @@ export default function Header({}: HeaderProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="text-white hover:text-cyan-400 transition-colors font-medium"
-              >
-                {item.title}
-              </Link>
-            ))}
+            {navigationItems.map((item) => {
+              const isActive = isActiveRoute(item.href)
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className={cn(
+                    "relative font-medium transition-all duration-200 group",
+                    isActive 
+                      ? "text-cyan-400" 
+                      : "text-white hover:text-cyan-400"
+                  )}
+                >
+                  {item.title}
+                  {/* Active indicator */}
+                  <div className={cn(
+                    "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-200",
+                    isActive ? "w-full" : "w-0 group-hover:w-full"
+                  )} />
+                </Link>
+              )
+            })}
           </nav>
 
           {/* User Section */}
@@ -232,16 +255,28 @@ export default function Header({}: HeaderProps) {
 
                     {/* Mobile Navigation */}
                     <nav className="space-y-2">
-                      {navigationItems.map((item) => (
-                        <Link
-                          key={item.title}
-                          href={item.href}
-                          className="flex items-center p-3 rounded-lg hover:bg-white/10 transition-colors font-medium"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          {item.title}
-                        </Link>
-                      ))}
+                      {navigationItems.map((item) => {
+                        const isActive = isActiveRoute(item.href)
+                        return (
+                          <Link
+                            key={item.title}
+                            href={item.href}
+                            className={cn(
+                              "flex items-center p-3 rounded-lg transition-all duration-200 font-medium relative",
+                              isActive 
+                                ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400 border border-cyan-500/30" 
+                                : "hover:bg-white/10"
+                            )}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            {item.title}
+                            {/* Active indicator for mobile */}
+                            {isActive && (
+                              <div className="absolute right-3 w-2 h-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full" />
+                            )}
+                          </Link>
+                        )
+                      })}
                     </nav>
 
                     {/* Mobile Auth Buttons */}
