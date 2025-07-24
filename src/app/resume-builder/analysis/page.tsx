@@ -41,6 +41,7 @@ export default function AnalysisPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
 
   useEffect(() => {
     // Load data from localStorage
@@ -62,13 +63,26 @@ export default function AnalysisPage() {
       processedFiles
     });
 
-    // Simulate analysis process
+    // Simulate analysis process with animated progress
     const analysisTimer = setTimeout(() => {
       setIsAnalyzing(false);
       setAnalysisComplete(true);
     }, 3000);
 
-    return () => clearTimeout(analysisTimer);
+    // Animate progress bar over 3 seconds
+    const progressInterval = setInterval(() => {
+      setProgressValue(prev => {
+        const increment = 100 / (3000 / 50); // Update every 50ms for smooth animation
+        const newValue = prev + increment;
+        return newValue >= 100 ? 100 : newValue;
+      });
+    }, 50);
+
+    // Clear timers on cleanup
+    return () => {
+      clearTimeout(analysisTimer);
+      clearInterval(progressInterval);
+    };
   }, [router]);
 
   // Mock analysis results - in a real app, these would come from your AI API
@@ -173,33 +187,104 @@ export default function AnalysisPage() {
               className="text-center py-20"
             >
               <div className="max-w-2xl mx-auto">
-                <div className="relative mb-8">
-                  <div className="w-32 h-32 mx-auto glass-card rounded-full flex items-center justify-center">
-                    <Brain className="h-16 w-16 text-cyan-400 animate-pulse" />
+                <div className="text-center mb-8">
+                  <div className="flex items-center justify-center mb-4">
+                    <Brain className="h-12 w-12 text-cyan-400 animate-pulse mr-3" />
+                    <h2 className="text-3xl font-bold gradient-text">
+                      AI Analysis in Progress
+                    </h2>
                   </div>
-                  <div className="absolute inset-0 rounded-full border-4 border-cyan-400/20 border-t-cyan-400 animate-spin"></div>
+                  
+                  <p className="text-lg text-gray-300 mb-6">
+                    Our advanced AI is analyzing your resume and portfolio...
+                  </p>
+                  
+                  <div className="max-w-md mx-auto">
+                    <Progress 
+                      value={progressValue} 
+                      className="h-2 bg-white/10"
+                    />
+                  </div>
                 </div>
                 
-                <h2 className="text-3xl font-bold gradient-text mb-4">
-                  🧠 AI Analysis in Progress
-                </h2>
-                <p className="text-xl text-gray-300 mb-8">
-                  Our advanced AI is analyzing your resume and portfolio...
-                </p>
-                
                 <div className="space-y-4 text-left max-w-md mx-auto">
-                  <div className="flex items-center text-gray-300">
-                    <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+                  {/* Task 1: Processing uploaded documents (0-33%) */}
+                  <motion.div 
+                    className="flex items-center text-gray-300"
+                    animate={{ 
+                      color: progressValue >= 33 ? '#10b981' : progressValue > 0 ? '#06b6d4' : '#6b7280'
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <motion.div
+                      animate={{ scale: progressValue >= 33 ? 1.1 : 1 }}
+                      transition={{ duration: 0.3, type: 'spring' }}
+                    >
+                      {progressValue >= 33 ? (
+                        <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+                      ) : progressValue > 0 ? (
+                        <div className="relative mr-3">
+                          <Clock className="h-5 w-5 text-cyan-400 animate-pulse" />
+                          <div className="absolute inset-0 h-5 w-5 rounded-full border-2 border-cyan-400/30 border-t-cyan-400 animate-spin"></div>
+                        </div>
+                      ) : (
+                        <div className="h-5 w-5 border-2 border-gray-500 rounded-full mr-3"></div>
+                      )}
+                    </motion.div>
                     Processing uploaded documents
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+                  </motion.div>
+                  
+                  {/* Task 2: Analyzing portfolio links (33-66%) */}
+                  <motion.div 
+                    className="flex items-center text-gray-300"
+                    animate={{ 
+                      color: progressValue >= 66 ? '#10b981' : progressValue >= 33 ? '#3b82f6' : '#6b7280'
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <motion.div
+                      animate={{ scale: progressValue >= 66 ? 1.1 : 1 }}
+                      transition={{ duration: 0.3, type: 'spring' }}
+                    >
+                      {progressValue >= 66 ? (
+                        <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+                      ) : progressValue >= 33 ? (
+                        <div className="relative mr-3">
+                          <Clock className="h-5 w-5 text-blue-400 animate-pulse" />
+                          <div className="absolute inset-0 h-5 w-5 rounded-full border-2 border-blue-400/30 border-t-blue-400 animate-spin"></div>
+                        </div>
+                      ) : (
+                        <div className="h-5 w-5 border-2 border-gray-500 rounded-full mr-3"></div>
+                      )}
+                    </motion.div>
                     Analyzing portfolio links
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <Clock className="h-5 w-5 text-yellow-400 mr-3 animate-spin" />
+                  </motion.div>
+                  
+                  {/* Task 3: Generating intelligence report (66-100%) */}
+                  <motion.div 
+                    className="flex items-center text-gray-300"
+                    animate={{ 
+                      color: progressValue >= 100 ? '#10b981' : progressValue >= 66 ? '#eab308' : '#6b7280'
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <motion.div
+                      animate={{ scale: progressValue >= 100 ? 1.1 : 1 }}
+                      transition={{ duration: 0.3, type: 'spring' }}
+                    >
+                      {progressValue >= 100 ? (
+                        <CheckCircle className="h-5 w-5 text-green-400 mr-3" />
+                      ) : progressValue >= 66 ? (
+                        <div className="relative mr-3">
+                          <Clock className="h-5 w-5 text-yellow-400 animate-pulse" />
+                          <div className="absolute inset-0 h-5 w-5 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin"></div>
+                        </div>
+                      ) : (
+                        <div className="h-5 w-5 border-2 border-gray-500 rounded-full mr-3"></div>
+                      )}
+                    </motion.div>
                     Generating intelligence report
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </motion.div>
