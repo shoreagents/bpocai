@@ -33,10 +33,22 @@ export const signIn = async (email: string, password: string) => {
 }
 
 export const signInWithGoogle = async () => {
+  // Determine the correct redirect URL based on environment
+  const isProduction = window.location.href.includes('railway.app') || 
+                       window.location.href.includes('production')
+  
+  const redirectTo = isProduction 
+    ? 'https://bpocai-production.up.railway.app/auth/callback'
+    : `${window.location.origin}/auth/callback`
+  
   return await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`
+      redirectTo: redirectTo,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent'
+      }
     }
   })
 }
