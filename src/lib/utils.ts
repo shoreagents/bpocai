@@ -392,7 +392,7 @@ export interface ProcessedResume {
   
   // Comprehensive content fields
   additionalInfo?: string[];
-  allTextContent?: string;
+
   
   // Optional metadata (for UI purposes)
   fileName?: string;
@@ -558,31 +558,33 @@ async function extractLiteralTextFromFile(file: File, openaiApiKey: string): Pro
     const base64Data = await fileToBase64(file);
     console.log('✅ File converted to base64');
 
-    // Handle different file types with MULTIPLE extraction methods
+    // Handle different file types with ENHANCED extraction methods for complex designs
     if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
-      console.log('📄 PDF detected - using COMPREHENSIVE extraction methods...');
+      console.log('📄 COMPLEX PDF DETECTED - Using CANVA-OPTIMIZED extraction pipeline...');
+      console.log('🎨 Designed for complex layouts, overlays, and design-heavy documents');
       
-      // Method 1: Direct PDF text extraction
+      // Method 1: Direct PDF text extraction (quick check for embedded text)
       try {
-        console.log('🔍 Method 1: Direct PDF text extraction...');
+        console.log('🔍 Method 1: Quick embedded text check...');
         const pdf2md = await import('@opendocsg/pdf2md');
         const arrayBuffer = await file.arrayBuffer();
         const directText = await pdf2md.default(arrayBuffer);
         
-        if (directText && directText.trim().length > 20) {
+        if (directText && directText.trim().length > 50) {
           extractedTexts.push(directText);
-          console.log(`✅ Method 1 success: ${directText.length} characters extracted`);
+          console.log(`✅ Method 1 success: ${directText.length} characters of embedded text found`);
         } else {
-          console.log('⚠️ Method 1: Insufficient text from direct extraction');
+          console.log('⚠️ Method 1: Minimal embedded text - likely a design-heavy PDF');
         }
       } catch (error) {
-        console.log('⚠️ Method 1 failed:', error);
+        console.log('⚠️ Method 1 failed - proceeding with visual extraction:', error);
       }
       
-      // Method 2: PDF to Images then OCR (most reliable for complex layouts)
+      // Method 2: HIGH-RESOLUTION PDF to Images with ENHANCED OCR
       try {
-        console.log('🔍 Method 2: PDF to Images then comprehensive OCR...');
-        const imageTexts = await extractTextFromPDFAsImages(file, openai);
+        console.log('🔍 Method 2: HIGH-RES PDF to Images with ENHANCED OCR...');
+        console.log('📸 Using 4K resolution and advanced OCR for complex layouts');
+        const imageTexts = await extractTextFromComplexPDF(file, openai);
         if (imageTexts && imageTexts.length > 0) {
           imageTexts.forEach((text, pageIndex) => {
             if (text && text.trim().length > 20) {
@@ -595,16 +597,31 @@ async function extractLiteralTextFromFile(file: File, openaiApiKey: string): Pro
         console.log('⚠️ Method 2 failed:', error);
       }
       
-      // Method 3: Enhanced Vision API for PDFs (whole document)
+      // Method 3: SPECIALIZED Resume Vision API with LAYOUT UNDERSTANDING
       try {
-        console.log('🔍 Method 3: Enhanced Vision API for comprehensive extraction...');
-        const visionText = await extractComprehensiveTextWithVision(openai, base64Data, 'pdf');
+        console.log('🔍 Method 3: SPECIALIZED Resume Vision API...');
+        console.log('🧠 AI optimized for resume layouts, Canva designs, and complex formatting');
+        const visionText = await extractResumeWithSpecializedVision(openai, base64Data);
         if (visionText && visionText.trim().length > 20) {
           extractedTexts.push(visionText);
           console.log(`✅ Method 3 success: ${visionText.length} characters extracted`);
         }
       } catch (error) {
         console.log('⚠️ Method 3 failed:', error);
+      }
+      
+      // Method 4: MULTIPLE PASSES with different AI approaches
+      try {
+        console.log('🔍 Method 4: MULTI-PASS specialized extraction...');
+        const multiPassTexts = await extractWithMultiplePasses(openai, base64Data);
+        multiPassTexts.forEach((text, passIndex) => {
+          if (text && text.trim().length > 20) {
+            extractedTexts.push(`PASS ${passIndex + 1}:\n${text}`);
+            console.log(`✅ Method 4 Pass ${passIndex + 1}: ${text.length} characters extracted`);
+          }
+        });
+      } catch (error) {
+        console.log('⚠️ Method 4 failed:', error);
       }
       
     } else if (fileType.includes('docx') || fileType.includes('wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
@@ -689,7 +706,8 @@ async function extractLiteralTextFromFile(file: File, openaiApiKey: string): Pro
       throw new Error('All extraction methods failed - no text could be extracted from the file');
     }
     
-    const finalText = combineExtractedTexts(extractedTexts);
+    const combinedText = combineExtractedTexts(extractedTexts);
+    const finalText = cleanExtractedText(combinedText);
     
     if (!finalText || finalText.trim().length < 10) {
       throw new Error('Insufficient text extracted - please ensure the file contains readable text');
@@ -791,6 +809,264 @@ IMPORTANT: Read the document like a human would read it naturally - top to botto
 
   console.log(`✅ Enhanced Vision API extraction with proper ordering: ${extractedText.length} characters`);
   return extractedText.trim();
+}
+
+// ENHANCED: Extract text from complex PDFs (Canva, design-heavy) with high resolution
+async function extractTextFromComplexPDF(file: File, openai: any): Promise<string[]> {
+  console.log('🎨 COMPLEX PDF PROCESSOR: Optimized for Canva and design-heavy documents');
+  
+  try {
+    // Import PDF.js with enhanced settings
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Set up PDF.js worker with multiple fallback URLs
+    const workerUrls = [
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    ];
+    
+    for (const workerUrl of workerUrls) {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+        console.log(`📦 PDF.js worker configured: ${workerUrl}`);
+        break;
+      } catch (error) {
+        console.log(`⚠️ Worker failed: ${workerUrl}`, error);
+      }
+    }
+    
+    // Load the PDF with enhanced settings
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ 
+      data: arrayBuffer,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true
+    }).promise;
+    
+    console.log(`📄 Complex PDF loaded: ${pdf.numPages} pages`);
+    
+    const pageTexts: string[] = [];
+    
+    // Process each page with HIGH RESOLUTION for complex layouts
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      try {
+        console.log(`🔍 Processing complex page ${pageNum}/${pdf.numPages} with 4K resolution...`);
+        
+        const page = await pdf.getPage(pageNum);
+        
+        // ULTRA HIGH RESOLUTION for complex designs (4x normal)
+        const viewport = page.getViewport({ scale: 4.0 });
+        
+        // Create high-resolution canvas
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        // White background for better OCR
+        context!.fillStyle = 'white';
+        context!.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Render page at ultra-high resolution
+        const renderContext = {
+          canvasContext: context!,
+          viewport: viewport,
+          background: 'white'
+        };
+        
+        await page.render(renderContext).promise;
+        
+        // Convert to high-quality JPEG
+        const imageData = canvas.toDataURL('image/jpeg', 0.98);
+        const base64Data = imageData.split(',')[1];
+        
+        console.log(`🖼️ Page ${pageNum} rendered at ${canvas.width}x${canvas.height} (4K quality)`);
+        
+        // Extract text using SPECIALIZED resume vision API
+        const pageText = await extractResumeWithSpecializedVision(openai, base64Data);
+        
+        if (pageText && pageText.trim().length > 10) {
+          pageTexts.push(pageText);
+          console.log(`✅ Page ${pageNum} text extracted: ${pageText.length} characters`);
+        } else {
+          console.log(`⚠️ Page ${pageNum} yielded minimal text`);
+          pageTexts.push(''); // Keep page order
+        }
+        
+      } catch (pageError) {
+        console.log(`⚠️ Failed to process page ${pageNum}:`, pageError);
+        pageTexts.push(''); // Keep page order
+      }
+    }
+    
+    console.log(`✅ Complex PDF processing complete: ${pageTexts.length} pages processed`);
+    return pageTexts;
+    
+  } catch (error) {
+    console.error('❌ Complex PDF processing failed:', error);
+    // Fallback to regular PDF processing
+    return await extractTextFromPDFAsImages(file, openai);
+  }
+}
+
+// SPECIALIZED: Resume-optimized Vision API extraction
+async function extractResumeWithSpecializedVision(openai: any, base64Data: string): Promise<string> {
+  console.log(`🧠 SPECIALIZED RESUME EXTRACTION: Optimized for modern resume layouts`);
+  
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `You are a RESUME CONTENT SPECIALIST. Extract ALL text from this resume image with PERFECT ACCURACY.
+
+🎯 RESUME-SPECIFIC INSTRUCTIONS:
+1. This is likely a MODERN DESIGNED RESUME (Canva, InDesign, etc.)
+2. Text may be in CREATIVE LAYOUTS, overlays, or decorative elements
+3. PRESERVE EXACT READING ORDER: Name → Title → Contact → Sections
+4. Include ALL sections: Experience, Education, Skills, etc.
+5. Extract EVERY detail: dates, company names, job titles, descriptions
+6. Include contact info: emails, phones, addresses, LinkedIn, websites
+7. Capture skills lists, bullet points, and formatted text
+8. Don't miss small text, icons with text, or background elements
+
+📋 CRITICAL REQUIREMENTS:
+- Extract EVERY visible word and number
+- Maintain the VISUAL READING FLOW (top-to-bottom, left-to-right)
+- Include ALL professional details (no matter how small)
+- Capture formatted lists, tables, and structured content
+- Include years, dates, percentages, and metrics
+- Don't summarize or interpret - extract EXACTLY as written
+- If text is stylized or decorative, still include the content
+
+🚫 NEVER SKIP:
+- Contact information (even if styled)
+- Job descriptions and responsibilities  
+- Education details and dates
+- Skills and competencies
+- Certifications and achievements
+- Social media links and portfolios
+
+Return the complete text preserving the original structure and order.`
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Data}`,
+              detail: "high"
+            }
+          }
+        ]
+      }
+    ],
+    max_tokens: 4000,
+    temperature: 0.1
+  });
+
+  const extractedText = completion.choices[0]?.message?.content;
+  if (!extractedText) {
+    throw new Error('No text returned from Specialized Resume Vision API');
+  }
+
+  console.log(`✅ Specialized resume extraction: ${extractedText.length} characters`);
+  return extractedText.trim();
+}
+
+// MULTI-PASS: Different AI approaches for comprehensive extraction
+async function extractWithMultiplePasses(openai: any, base64Data: string): Promise<string[]> {
+  console.log(`🔄 MULTI-PASS EXTRACTION: Using different AI strategies`);
+  
+  const passes: string[] = [];
+  
+  // Pass 1: Focus on structure and layout
+  try {
+    console.log('🔍 Pass 1: Structure and layout focus...');
+    const structurePass = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Focus on STRUCTURE and LAYOUT. Extract text emphasizing:
+- Document sections and headers
+- Professional formatting and organization
+- Contact information and personal details
+- Clear reading order and hierarchy
+Extract all visible text while maintaining structure.`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Data}`,
+                detail: "high"
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 3000,
+      temperature: 0.1
+    });
+    
+    const structureText = structurePass.choices[0]?.message?.content;
+    if (structureText) {
+      passes.push(structureText);
+      console.log(`✅ Pass 1 complete: ${structureText.length} characters`);
+    }
+  } catch (error) {
+    console.log('⚠️ Pass 1 failed:', error);
+  }
+  
+  // Pass 2: Focus on details and content
+  try {
+    console.log('🔍 Pass 2: Details and content focus...');
+    const contentPass = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Focus on DETAILS and CONTENT. Extract text emphasizing:
+- Job descriptions and responsibilities
+- Skills, achievements, and metrics
+- Education details and dates
+- Small text and fine details
+- Numbers, percentages, and statistics
+Extract every detail you can see, no matter how small.`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Data}`,
+                detail: "high"
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 3000,
+      temperature: 0.1
+    });
+    
+    const contentText = contentPass.choices[0]?.message?.content;
+    if (contentText) {
+      passes.push(contentText);
+      console.log(`✅ Pass 2 complete: ${contentText.length} characters`);
+    }
+  } catch (error) {
+    console.log('⚠️ Pass 2 failed:', error);
+  }
+  
+  console.log(`✅ Multi-pass extraction complete: ${passes.length} passes`);
+  return passes;
 }
 
 // Convert PDF pages to images then extract text from each page
@@ -941,7 +1217,47 @@ async function extractTextWithVisionAPI(openai: any, base64Data: string, fileTyp
   return extractedText;
 }
 
-// Helper function to combine multiple extraction results and ensure completeness
+// Clean extracted text to fix spacing and formatting issues from complex PDFs
+function cleanExtractedText(text: string): string {
+  if (!text) return '';
+  
+  console.log('🧹 Cleaning extracted text for better formatting...');
+  
+  let cleaned = text;
+  
+  // Fix excessive spacing between characters (e.g., "S e n i o r" → "Senior")
+  cleaned = cleaned.replace(/\b([A-Za-z])\s+([A-Za-z])\s+([A-Za-z])/g, (match, a, b, c) => {
+    // Only fix if it's clearly spaced out letters (3+ consecutive single letters with spaces)
+    const words = match.split(/\s+/);
+    if (words.length >= 3 && words.every(word => word.length === 1)) {
+      return words.join('');
+    }
+    return match;
+  });
+  
+  // Fix extensive character spacing in titles and headers
+  cleaned = cleaned.replace(/([A-Z])\s+([a-z])\s+([a-z])\s+([a-z])\s+([a-z])/g, '$1$2$3$4$5');
+  cleaned = cleaned.replace(/([A-Za-z])\s+([A-Za-z])\s+([A-Za-z])\s+([A-Za-z])/g, '$1$2$3$4');
+  
+  // Clean up excessive line breaks and whitespace
+  cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n'); // Max 2 line breaks
+  cleaned = cleaned.replace(/[ \t]+/g, ' '); // Multiple spaces to single space
+  cleaned = cleaned.replace(/^\s+|\s+$/gm, ''); // Trim lines
+  
+  // Fix numbered/bulleted lists formatting
+  cleaned = cleaned.replace(/\n\s*([•○▪▫-]|\d+\.)\s*/g, '\n$1 ');
+  
+  // Clean up section headers
+  cleaned = cleaned.replace(/^#{1,6}\s*(.+?)\s*$/gm, '## $1');
+  
+  // Remove excessive markdown formatting
+  cleaned = cleaned.replace(/#{4,}/g, '###'); // Max 3 hashes
+  
+  console.log(`✅ Text cleaned: ${text.length} → ${cleaned.length} characters`);
+  return cleaned.trim();
+}
+
+// ENHANCED: Intelligent combination for complex PDF extractions
 function combineExtractedTexts(extractedTexts: string[]): string {
   if (extractedTexts.length === 0) {
     return '';
@@ -951,34 +1267,142 @@ function combineExtractedTexts(extractedTexts: string[]): string {
     return extractedTexts[0];
   }
   
-  console.log(`🔗 Combining ${extractedTexts.length} extraction results...`);
+  console.log(`🔗 INTELLIGENT COMBINATION: Merging ${extractedTexts.length} extraction results...`);
+  console.log(`🧠 Using advanced logic for Canva/design PDF optimization`);
   
-  // Find the longest and most complete result as the primary
-  let primary = extractedTexts.reduce((longest, current) => 
-    current.length > longest.length ? current : longest
-  );
+  // Enhanced combination logic for complex resumes
+  const combinedResult = combineComplexPDFResults(extractedTexts);
   
-  // Check if any other extraction has unique content
-  extractedTexts.forEach((text, index) => {
-    console.log(`📊 Extraction ${index + 1}: ${text.length} characters`);
+  console.log(`✅ Intelligent combination complete: ${combinedResult.length} characters`);
+  return combinedResult;
+}
+
+// SPECIALIZED: Intelligent combination for complex PDF results
+function combineComplexPDFResults(extractedTexts: string[]): string {
+  console.log(`🎨 COMPLEX PDF COMBINER: Optimizing multiple extraction results`);
+  
+  // Filter out empty or too-short results
+  const validTexts = extractedTexts.filter(text => text && text.trim().length > 20);
+  
+  if (validTexts.length === 0) {
+    return '';
+  }
+  
+  if (validTexts.length === 1) {
+    return validTexts[0];
+  }
+  
+  // Analyze each extraction result
+  const analysisResults = validTexts.map((text, index) => ({
+    index,
+    text,
+    length: text.length,
+    lineCount: text.split('\n').length,
+    hasEmail: /@/.test(text),
+    hasPhone: /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/.test(text),
+    hasExperience: /(experience|work|job|position)/i.test(text),
+    hasEducation: /(education|university|college|degree)/i.test(text),
+    hasSkills: /(skills|competenc)/i.test(text),
+    hasStructure: /\n\s*\n/.test(text), // Has paragraph breaks
+    completenessScore: 0
+  }));
+  
+  // Calculate completeness scores
+  analysisResults.forEach(result => {
+    let score = 0;
+    score += result.length / 100; // Length factor
+    score += result.hasEmail ? 10 : 0;
+    score += result.hasPhone ? 10 : 0;
+    score += result.hasExperience ? 15 : 0;
+    score += result.hasEducation ? 15 : 0;
+    score += result.hasSkills ? 10 : 0;
+    score += result.hasStructure ? 10 : 0;
+    score += result.lineCount > 10 ? 10 : 0;
     
-    // Look for content that might be missing from primary
-    const textLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    const primaryLines = primary.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
-    textLines.forEach(line => {
-      if (line.length > 3 && !primaryLines.some(pLine => 
-        pLine.includes(line) || line.includes(pLine) || 
-        levenshteinDistance(line, pLine) < Math.min(line.length, pLine.length) * 0.3
-      )) {
-        console.log(`📝 Found unique content: ${line.substring(0, 50)}...`);
-        primary += '\n' + line;
-      }
-    });
+    result.completenessScore = score;
+    console.log(`📊 Extraction ${result.index + 1}: Score ${score.toFixed(1)} (${result.length} chars)`);
   });
   
-  console.log(`✅ Combined result: ${primary.length} characters`);
+  // Sort by completeness score (highest first)
+  analysisResults.sort((a, b) => b.completenessScore - a.completenessScore);
+  
+  // Start with the most complete result
+  let primary = analysisResults[0].text;
+  console.log(`🎯 Primary result: Extraction ${analysisResults[0].index + 1} (score: ${analysisResults[0].completenessScore.toFixed(1)})`);
+  
+  // Intelligently merge additional content from other extractions
+  for (let i = 1; i < analysisResults.length; i++) {
+    const additional = analysisResults[i];
+    console.log(`🔍 Analyzing additional extraction ${additional.index + 1}...`);
+    
+    // Extract unique content not in primary
+    const additionalLines = additional.text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 5);
+    
+    const primaryLines = primary.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 5);
+    
+    const uniqueLines: string[] = [];
+    
+    additionalLines.forEach(line => {
+      // Check if this line adds new information
+      const isUnique = !primaryLines.some(pLine => {
+        const similarity = calculateTextSimilarity(line, pLine);
+        return similarity > 0.7; // 70% similarity threshold
+      });
+      
+      if (isUnique && line.length > 10) {
+        uniqueLines.push(line);
+      }
+    });
+    
+    if (uniqueLines.length > 0) {
+      console.log(`📝 Found ${uniqueLines.length} unique lines from extraction ${additional.index + 1}`);
+      primary += '\n\n' + uniqueLines.join('\n');
+    }
+  }
+  
+  // Final cleanup and optimization
+  primary = cleanupCombinedText(primary);
+  
+  console.log(`✅ Complex PDF combination complete: ${primary.length} final characters`);
   return primary;
+}
+
+// Calculate text similarity between two lines
+function calculateTextSimilarity(text1: string, text2: string): number {
+  const longer = text1.length > text2.length ? text1 : text2;
+  const shorter = text1.length > text2.length ? text2 : text1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const editDistance = levenshteinDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+// Clean up the final combined text
+function cleanupCombinedText(text: string): string {
+  return text
+    // Remove excessive whitespace
+    .replace(/\n{4,}/g, '\n\n\n')
+    .replace(/\s{3,}/g, ' ')
+    // Remove duplicate lines that are very similar
+    .split('\n')
+    .filter((line, index, array) => {
+      if (line.trim().length < 5) return true; // Keep short lines/spacing
+      
+      // Check for near-duplicates
+      for (let i = 0; i < index; i++) {
+        if (calculateTextSimilarity(line.trim(), array[i].trim()) > 0.9) {
+          return false; // Skip near-duplicate
+        }
+      }
+      return true;
+    })
+    .join('\n')
+    .trim();
 }
 
 // Simple Levenshtein distance function for text similarity
@@ -1172,10 +1596,47 @@ function parseOrganizedTextIntoSections(text: string): Array<{ title: string; co
   return sections;
 }
 
-// Create literal preview text (exact content as it appears)
+// Create well-formatted preview text with proper spacing and structure
 function createLiteralDOCXPreview(literalText: string): string {
-  // Return the text exactly as it appears, with a simple formatting for display
-  return `📄 EXACT CONTENT FROM ORIGINAL FILE:\n\n${literalText}`;
+  if (!literalText) return '📄 EXACT CONTENT FROM ORIGINAL FILE:\n\n(No content available)';
+  
+  console.log('🎨 Creating formatted DOCX preview...');
+  
+  // Clean and format the text for better readability
+  let formatted = literalText;
+  
+  // Apply text cleaning first
+  formatted = cleanExtractedText(formatted);
+  
+  // Additional preview-specific formatting
+  // Add proper spacing around section headers
+  formatted = formatted.replace(/^(#{1,3})\s*(.+)$/gm, (match, hashes, title) => {
+    const level = hashes.length;
+    const spacing = level === 1 ? '\n\n' : '\n';
+    return `${spacing}${hashes} ${title.trim()}${spacing}`;
+  });
+  
+  // Format bullet points with proper indentation
+  formatted = formatted.replace(/^([•○▪▫-]|\d+\.)\s*/gm, '   $1 ');
+  
+  // Ensure proper spacing between sections
+  formatted = formatted.replace(/\n(#{1,3})/g, '\n\n$1');
+  
+  // Clean up excessive spacing while maintaining structure
+  formatted = formatted.replace(/\n\s*\n\s*\n/g, '\n\n');
+  
+  // Add proper spacing around contact information
+  formatted = formatted.replace(/(Phone|Email|Address|LinkedIn|Portfolio):\s*/gi, '\n$1: ');
+  
+  // Format experience/education entries with better spacing
+  formatted = formatted.replace(/(\d{4}[-–]\d{4}|\d{4})\s*\n/g, '$1\n\n');
+  
+  // Clean up and trim
+  formatted = formatted.trim();
+  
+  console.log(`✅ Preview formatted: ${literalText.length} → ${formatted.length} characters`);
+  
+  return `📄 FORMATTED CONTENT FROM ORIGINAL FILE:\n\n${formatted}`;
 }
 
 // Create preview text for DOCX display (legacy function)
@@ -1289,16 +1750,9 @@ async function convertDOCXContentToJSON(docxFile: File, openaiApiKey: string): P
     console.log('🤖 Converting DOCX content to structured JSON...');
     const jsonData = await convertTextToStrictJSON(docxContent, docxFile.name, openaiApiKey);
     
-    // Add metadata about DOCX processing
+    // Return clean JSON data without unnecessary metadata
     const enhancedData = {
-      ...jsonData,
-      _docxMetadata: {
-        docxFileName: docxFile.name,
-        docxSize: docxFile.size,
-        docxContentLength: docxContent.length,
-        processingTimestamp: new Date().toISOString(),
-        contentSource: 'DOCX_ONLY'
-      }
+      ...jsonData
     };
     
     console.log('✅ DOCX content converted to JSON successfully');
@@ -1395,8 +1849,7 @@ Use this comprehensive structure and add any additional fields needed:
       "content": ""
     }
   ],
-  "additionalInfo": [],
-  "allTextContent": ""
+  "additionalInfo": []
 }
 
 DOCX content to extract from (get EVERYTHING):
@@ -1422,8 +1875,7 @@ ${text}`
     
     const jsonData = JSON.parse(cleanResponse.trim());
     
-    // Add the complete DOCX text as a backup to ensure nothing is lost
-    jsonData.allTextContent = text;
+    // Text is already included in the structured JSON data
     
     console.log(`✅ Comprehensive JSON conversion complete`);
     console.log(`📊 JSON fields populated: ${Object.keys(jsonData).length}`);

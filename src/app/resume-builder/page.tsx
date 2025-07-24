@@ -7,6 +7,7 @@ import { Upload, Link, X, FileText, Image, AlertCircle, Check, Plus, Sparkles } 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { isValidFileType, categorizeFile, isValidUrl, categorizePortfolioLink, saveToLocalStorage, generateSessionId, fileToBase64, formatFileSize, processResumeFile, ProcessedResume, validateProcessedResume } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 
@@ -26,8 +27,7 @@ export default function ResumeBuilderPage() {
   const [processingStatus, setProcessingStatus] = useState<Record<string, 'processing' | 'completed' | 'error'>>({});
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   
-  // OpenAI API key state
-  const [openaiApiKey, setOpenaiApiKey] = useState('');
+
   
   // Processing logs state
   const [processingLogs, setProcessingLogs] = useState<Record<string, string[]>>({});
@@ -108,6 +108,35 @@ export default function ResumeBuilderPage() {
 
   const canContinue = uploadedFiles.length > 0 || portfolioLinks.length > 0;
 
+  // Fetch API key securely and process file on client
+  const processFileWithAPI = async (file: File, log: (message: string) => void) => {
+    try {
+      log(`🔐 Fetching secure API key...`);
+      
+      // Fetch API key from secure server endpoint
+      const keyResponse = await fetch('/api/get-api-key');
+      if (!keyResponse.ok) {
+        throw new Error('Failed to fetch API key from server');
+      }
+      
+      const keyResult = await keyResponse.json();
+      if (!keyResult.success) {
+        throw new Error(keyResult.error || 'API key not available');
+      }
+      
+      log(`✅ API key obtained, processing file locally...`);
+      
+      // Process file using the original client-side function
+      const processedResume = await processResumeFileWithLogs(file, keyResult.apiKey, log);
+      
+      return processedResume;
+      
+    } catch (error) {
+      log(`❌ Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
+  };
+
   // Custom logger to capture processing logs
   const createFileLogger = (fileName: string) => {
     const logs: string[] = [];
@@ -131,11 +160,6 @@ export default function ResumeBuilderPage() {
   // Process uploaded files to JSON using OpenAI
   const processUploadedFiles = async () => {
     if (uploadedFiles.length === 0) return;
-    
-    if (!openaiApiKey.trim()) {
-      setErrors(prev => [...prev, 'OpenAI API key is required. Please enter your API key first.']);
-      return;
-    }
 
     // Clear previous logs
     setProcessingLogs({});
@@ -153,8 +177,8 @@ export default function ResumeBuilderPage() {
         log(`📏 File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         log(`📁 File type: ${file.type}`);
         
-        // Process with custom logging
-        const processedResume = await processResumeFileWithLogs(file, openaiApiKey, log);
+        // Process with server-side API
+        const processedResume = await processFileWithAPI(file, log);
         processedResults.push(processedResume);
         
         setProcessingStatus(prev => ({ ...prev, [file.name]: 'completed' }));
@@ -317,54 +341,7 @@ export default function ResumeBuilderPage() {
             </p>
           </motion.div>
 
-                  {/* OpenAI API Key Input */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="max-w-2xl mx-auto mb-8"
-        >
-          <Card className="glass-card border-white/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                🤖 OpenAI API Configuration
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Enter your OpenAI API key to use GPT-4o for intelligent resume parsing
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                <input
-                  type="password"
-                  value={openaiApiKey}
-                  onChange={(e) => setOpenaiApiKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
-                />
-                <Button
-                  onClick={() => setOpenaiApiKey('')}
-                  variant="outline"
-                  size="sm"
-                  className="border-white/20 text-gray-300 hover:bg-white/10"
-                >
-                  Clear
-                </Button>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                🔒 Your API key is only used locally and never stored on our servers. Get your key from{' '}
-                <a 
-                  href="https://platform.openai.com/api-keys" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:underline"
-                >
-                  platform.openai.com
-                </a>
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+
 
         {/* Main Upload Interface */}
         <div className="max-w-6xl mx-auto">
@@ -630,7 +607,7 @@ export default function ResumeBuilderPage() {
                     <div className="text-center">
                       <Button
                         onClick={processUploadedFiles}
-                        disabled={uploadedFiles.length === 0 || !openaiApiKey.trim() || Object.keys(processingStatus).some(key => processingStatus[key] === 'processing')}
+                        disabled={uploadedFiles.length === 0 || Object.keys(processingStatus).some(key => processingStatus[key] === 'processing')}
                         className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-6 py-2"
                       >
                         {Object.keys(processingStatus).some(key => processingStatus[key] === 'processing') ? (
@@ -833,11 +810,13 @@ export default function ResumeBuilderPage() {
                                       </div>
                                       
                                       {resume.docxMetadata?.docxPreview ? (
-                                        <div className="max-h-96 overflow-y-auto bg-gray-900/50 rounded-lg p-6">
-                                          <div className="bg-white text-black p-6 rounded shadow-lg font-serif leading-relaxed">
-                                            <pre className="whitespace-pre-wrap text-sm font-serif">
-                                              {resume.docxMetadata.docxPreview}
-                                            </pre>
+                                        <div className="max-h-96 overflow-y-auto bg-gray-900/50 rounded-lg p-4">
+                                          <div className="bg-white text-gray-900 p-8 rounded-lg shadow-lg font-sans">
+                                            <div className="prose prose-sm max-w-none">
+                                              <pre className="whitespace-pre-wrap text-sm leading-loose font-mono bg-gray-50 p-4 rounded border-l-4 border-cyan-400 overflow-x-auto">
+                                                {resume.docxMetadata.docxPreview}
+                                              </pre>
+                                            </div>
                                           </div>
                                         </div>
                                       ) : (
@@ -953,24 +932,41 @@ export default function ResumeBuilderPage() {
               transition={{ delay: 0.6 }}
               className="mt-8 text-center"
             >
-              <Button
-                onClick={handleContinue}
-                disabled={!canContinue || loading}
-                size="lg"
-                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-5 w-5" />
-                    Continue to Analysis
-                  </>
-                )}
-              </Button>
+              {loading ? (
+                <div className="space-y-4">
+                  <div className="glass-card border-white/10 p-6 max-w-md mx-auto">
+                    <div className="flex items-center mb-4">
+                      <Sparkles className="mr-2 h-5 w-5 text-cyan-400 animate-pulse" />
+                      <span className="text-white font-medium">Processing Files...</span>
+                    </div>
+                    <div className="relative">
+                      <Progress 
+                        value={85} 
+                        className="h-3 bg-white/10"
+                      />
+                      <div 
+                        className="absolute inset-0 h-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full animate-pulse"
+                        style={{
+                          animation: 'progress-shimmer 2s ease-in-out infinite',
+                        }}
+                      />
+                    </div>
+                    <div className="mt-3 text-sm text-gray-300 text-center">
+                      Analyzing resume content and portfolio data...
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleContinue}
+                  disabled={!canContinue}
+                  size="lg"
+                  className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Continue to Analysis
+                </Button>
+              )}
               
               {!canContinue && (
                 <p className="text-gray-400 mt-3 text-sm">
