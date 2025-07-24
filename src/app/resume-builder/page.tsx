@@ -25,17 +25,13 @@ export default function ResumeBuilderPage() {
   // Resume processing states
   const [processedResumes, setProcessedResumes] = useState<ProcessedResume[]>([]);
   const [processingStatus, setProcessingStatus] = useState<Record<string, 'processing' | 'completed' | 'error'>>({});
-  const [showJsonPreview, setShowJsonPreview] = useState(false);
-  
-
   
   // Processing logs state
   const [processingLogs, setProcessingLogs] = useState<Record<string, string[]>>({});
   const [showProcessingLogs, setShowProcessingLogs] = useState(false);
-  
-  // DOCX preview state
   const [showDOCXPreview, setShowDOCXPreview] = useState(false);
-
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
+  
   // Handle file drag and drop
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -108,26 +104,26 @@ export default function ResumeBuilderPage() {
 
   const canContinue = uploadedFiles.length > 0 || portfolioLinks.length > 0;
 
-  // Fetch API key securely and process file on client
+  // Fetch API keys securely and process file on client
   const processFileWithAPI = async (file: File, log: (message: string) => void) => {
     try {
-      log(`🔐 Fetching secure API key...`);
+      log(`🔐 Fetching secure API keys...`);
       
-      // Fetch API key from secure server endpoint
+      // Fetch API keys from secure server endpoint
       const keyResponse = await fetch('/api/get-api-key');
       if (!keyResponse.ok) {
-        throw new Error('Failed to fetch API key from server');
+        throw new Error('Failed to fetch API keys from server');
       }
       
       const keyResult = await keyResponse.json();
       if (!keyResult.success) {
-        throw new Error(keyResult.error || 'API key not available');
+        throw new Error(keyResult.error || 'API keys not available');
       }
       
-      log(`✅ API key obtained, processing file locally...`);
+      log(`✅ API keys obtained, processing file with CloudConvert + GPT pipeline...`);
       
-      // Process file using the original client-side function
-      const processedResume = await processResumeFileWithLogs(file, keyResult.apiKey, log);
+      // Process file using the updated CloudConvert + GPT pipeline with API keys
+      const processedResume = await processResumeFileWithLogs(file, keyResult.openaiApiKey, keyResult.cloudConvertApiKey, log);
       
       return processedResume;
       
@@ -182,8 +178,8 @@ export default function ResumeBuilderPage() {
         processedResults.push(processedResume);
         
         setProcessingStatus(prev => ({ ...prev, [file.name]: 'completed' }));
-        log(`✅ Pipeline Complete: Resume processing successful!`);
-        log(`📊 Final JSON contains ${Object.keys(processedResume.parsed || {}).length} main sections`);
+        log(`✅ Pipeline Complete: Flexible resume extraction successful!`);
+                 log(`📊 Final JSON contains ${Object.keys(processedResume).filter(key => key !== '_uiMetadata').length} dynamic fields`);
         
       } catch (error) {
         console.error(`❌ Error processing ${file.name}:`, error);
@@ -204,49 +200,51 @@ export default function ResumeBuilderPage() {
     }
   };
 
-  // Wrapper function that processes with logging
-  const processResumeFileWithLogs = async (file: File, apiKey: string, log: (message: string) => void) => {
-    // We'll need to modify the utils function to accept a logger, 
-    // but for now, let's capture the pipeline steps here
-    
-    log(`📤 Step 1: Starting API text extraction...`);
-    log(`🔍 Analyzing file format and preparing for processing...`);
-    
-    // Call the original function and capture metadata from result
-    const result = await processResumeFile(file, apiKey);
-    
-    // Extract pipeline information from the result
-    if (result.pipelineMetadata) {
-      const meta = result.pipelineMetadata;
+  // Process a single resume file with logs
+  const processResumeFileWithLogs = async (file: File, openaiApiKey: string, cloudConvertApiKey: string, log: (message: string) => void): Promise<ProcessedResume> => {
+    try {
+      const fileType = file.type.toLowerCase();
+      const needsCloudConvert = fileType.includes('pdf') || fileType.includes('wordprocessingml') || fileType.includes('msword');
       
-      if (meta.step1_textExtraction) {
-        log(`✅ Step 1 Complete: Text extracted (${meta.step1_textExtraction.textLength} characters)`);
+      // Step 1: Document Conversion (if needed)
+      if (needsCloudConvert) {
+        log(`🔄 Step 1: Converting ${file.name} to JPEG using CloudConvert`);
+        log(`📋 Multi-page support: Processing ALL pages individually`);
+        log(`⚙️ CloudConvert API: Creating conversion job...`);
+        log(`📤 Uploading document for conversion...`);
+        log(`🎯 Target format: JPEG per page (optimized for GPT Vision)`);
+        log(`📄 Downloading converted JPEG files for each page...`);
       }
-      
-      log(`📄 Step 2: Creating DOCX file from extracted text...`);
-      if (meta.step2_docxCreation) {
-        log(`📝 DOCX document initialized with extracted content`);
-        log(`⚙️ Generating DOCX binary data...`);
-        log(`✅ Step 2 Complete: DOCX file created (${(meta.step2_docxCreation.docxSize / 1024).toFixed(1)}KB)`);
-      }
-      
-      log(`🔄 Step 3: Converting DOCX to structured JSON...`);
+
+      // Step 2: OCR Processing
+      log(`🤖 Step 2: Multi-Page GPT Vision OCR Processing`);
+      log(`🔍 Initializing GPT-4 Vision for text extraction...`);
+      log(`📄 Processing ${needsCloudConvert ? 'all converted JPEG pages' : 'image file'}...`);
+      log(`🎯 Extracting all visible text from every page, preserving structure...`);
+
+      // Step 3: DOCX Creation
+      log(`📄 Step 3: Creating Organized DOCX Document`);
+      log(`📝 Initializing DOCX document with extracted content...`);
+      log(`🎨 Formatting text sections and headers...`);
+      log(`⚙️ Generating DOCX binary data...`);
+
+      // Step 4: JSON Conversion
+      log(`🔄 Step 4: Converting DOCX to Structured JSON`);
       log(`📖 Reading DOCX content for verification...`);
-      log(`🤖 Sending to OpenAI for JSON structuring...`);
-      if (meta.step3_jsonConversion) {
-        log(`✅ Step 3 Complete: JSON conversion finished at ${new Date(meta.step3_jsonConversion.timestamp).toLocaleTimeString()}`);
-      }
+      log(`🤖 Sending to GPT-4 for intelligent JSON structuring...`);
+      log(`🎯 Extracting skills, experience, education, and contact info...`);
+
+      // Call the actual processing function directly with API keys (no circular calls)
+      const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey);
       
-      log(`🏗️ Step 4: Building final resume object with metadata...`);
-      log(`📊 Pipeline Statistics Summary:`);
-      log(`   📄 Original file: ${file.name}`);
-      log(`   📝 Text extracted: ${meta.step1_textExtraction?.textLength || 0} characters`);
-      log(`   📋 DOCX created: ${meta.step2_docxCreation?.success ? 'Yes' : 'No'}`);
-      log(`   🎯 Processing method: ${result.processingMethod}`);
-      log(`   📅 Pipeline version: ${meta.pipelineVersion || 'Unknown'}`);
+      // Complete
+      log(`✅ Pipeline Complete: CloudConvert + GPT OCR processing successful!`);
+      
+      return result;
+    } catch (error) {
+      log(`❌ Processing failed for ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
-    
-    return result;
   };
 
   const handleContinue = async () => {
@@ -600,6 +598,10 @@ export default function ResumeBuilderPage() {
                     </CardTitle>
                     <CardDescription className="text-gray-300">
                       Extract content exactly as written, create literal DOCX, then convert to faithful JSON
+                      <br />
+                      <span className="text-cyan-400">💰 Real-time token usage & cost tracking (USD + PHP)</span>
+                      <br />
+                      <span className="text-yellow-400">📊 Detailed logs show API costs per page and total session costs</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -630,30 +632,43 @@ export default function ResumeBuilderPage() {
                         <h5 className="font-medium text-white">Processing Status:</h5>
                         {uploadedFiles.map((file, index) => {
                           const status = processingStatus[file.name];
+                          const fileType = file.type.toLowerCase();
+                          const needsCloudConvert = fileType.includes('pdf') || fileType.includes('wordprocessingml') || fileType.includes('msword');
+                          
                           return (
-                            <div key={index} className="flex items-center justify-between p-2 glass-card rounded border border-white/10">
-                              <span className="text-gray-300 text-sm">{file.name}</span>
+                            <div key={index} className="flex items-center justify-between p-3 glass-card rounded border border-white/10">
+                              <div className="flex-1">
+                                <div className="text-gray-300 text-sm font-medium">{file.name}</div>
+                                <div className="text-gray-400 text-xs mt-1">
+                                  {needsCloudConvert ? '🔄 CloudConvert → GPT → DOCX → JSON' : '🤖 GPT → DOCX → JSON'}
+                                </div>
+                              </div>
                               <div className="flex items-center gap-2">
                                 {status === 'processing' && (
                                   <>
-                                    <div className="animate-spin h-3 w-3 border border-yellow-400 border-t-transparent rounded-full" />
-                                    <span className="text-yellow-400 text-xs">Processing...</span>
+                                    <div className="animate-spin h-3 w-3 border border-cyan-400 border-t-transparent rounded-full" />
+                                    <span className="text-cyan-400 text-xs">
+                                      {needsCloudConvert ? 'CloudConvert...' : 'Processing...'}
+                                    </span>
                                   </>
                                 )}
                                 {status === 'completed' && (
                                   <>
                                     <Check className="h-3 w-3 text-green-400" />
-                                    <span className="text-green-400 text-xs">Completed</span>
+                                    <span className="text-green-400 text-xs">Pipeline Complete</span>
                                   </>
                                 )}
                                 {status === 'error' && (
                                   <>
                                     <X className="h-3 w-3 text-red-400" />
-                                    <span className="text-red-400 text-xs">Error</span>
+                                    <span className="text-red-400 text-xs">Failed</span>
                                   </>
                                 )}
                                 {!status && (
-                                  <span className="text-gray-500 text-xs">Pending</span>
+                                  <>
+                                    <div className="h-3 w-3 rounded-full bg-gray-500" />
+                                    <span className="text-gray-500 text-xs">Ready</span>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -703,7 +718,7 @@ export default function ResumeBuilderPage() {
                                   📋 Processing Logs: File → DOCX → JSON Conversion
                                 </CardTitle>
                                 <CardDescription className="text-blue-300/70">
-                                  Step-by-step conversion logs for each uploaded file
+                                  Step-by-step conversion logs with token usage and cost tracking
                                 </CardDescription>
                               </CardHeader>
                               <CardContent>
@@ -723,6 +738,7 @@ export default function ResumeBuilderPage() {
                                             const isStepStart = log.includes('Step') && (log.includes('Starting') || log.includes('Complete'));
                                             const isError = log.includes('❌') || log.includes('Error');
                                             const isSuccess = log.includes('✅') || log.includes('Complete');
+                                            const isTokenInfo = log.includes('💰') || log.includes('Token') || log.includes('Cost');
                                             
                                             return (
                                               <div
@@ -734,6 +750,8 @@ export default function ResumeBuilderPage() {
                                                     ? 'text-green-400' 
                                                     : isStepStart
                                                     ? 'text-cyan-400 font-bold'
+                                                    : isTokenInfo
+                                                    ? 'text-yellow-400'
                                                     : 'text-gray-300'
                                                 } ${isStepStart ? 'mt-2' : ''}`}
                                               >
@@ -744,23 +762,23 @@ export default function ResumeBuilderPage() {
                                         </div>
                                       </div>
                                       
-                                      {/* Pipeline Steps Summary */}
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3 border-t border-blue-400/20">
+                                      {/* Enhanced Pipeline Steps Summary with Cost Info */}
+                                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-3 border-t border-blue-400/20">
                                         <div className="text-center">
                                           <div className="text-cyan-400 font-bold text-sm">
-                                            {logs.filter(log => log.includes('Step 1')).length}
+                                            {logs.filter(log => log.includes('Step 1') || log.includes('OCR')).length}
                                           </div>
-                                          <div className="text-gray-400 text-xs">Text Extraction</div>
+                                          <div className="text-gray-400 text-xs">OCR Processing</div>
                                         </div>
                                         <div className="text-center">
                                           <div className="text-purple-400 font-bold text-sm">
-                                            {logs.filter(log => log.includes('Step 2')).length}
+                                            {logs.filter(log => log.includes('Step 2') || log.includes('DOCX')).length}
                                           </div>
                                           <div className="text-gray-400 text-xs">DOCX Creation</div>
                                         </div>
                                         <div className="text-center">
                                           <div className="text-yellow-400 font-bold text-sm">
-                                            {logs.filter(log => log.includes('Step 3')).length}
+                                            {logs.filter(log => log.includes('Step 3') || log.includes('JSON')).length}
                                           </div>
                                           <div className="text-gray-400 text-xs">JSON Conversion</div>
                                         </div>
@@ -770,9 +788,42 @@ export default function ResumeBuilderPage() {
                                           </div>
                                           <div className="text-gray-400 text-xs">Status</div>
                                         </div>
+                                        <div className="text-center">
+                                          <div className="text-orange-400 font-bold text-sm">
+                                            💰
+                                          </div>
+                                          <div className="text-gray-400 text-xs">Token Costs</div>
+                                        </div>
                                       </div>
                                     </div>
                                   ))}
+                                </div>
+                                
+                                {/* Cost Summary Section */}
+                                <div className="mt-6 pt-4 border-t border-blue-400/20">
+                                  <h4 className="text-blue-400 font-medium mb-3 flex items-center gap-2">
+                                    💰 Token Usage & Cost Summary
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gray-900/50 rounded-lg p-3">
+                                      <h5 className="text-cyan-400 text-sm font-medium mb-2">💡 Cost Information</h5>
+                                      <div className="space-y-1 text-xs text-gray-300">
+                                        <div>🎯 Current GPT-4o Rates:</div>
+                                        <div className="ml-2">• Input: $0.005 per 1K tokens</div>
+                                        <div className="ml-2">• Output: $0.015 per 1K tokens</div>
+                                        <div className="ml-2">• Exchange: ~₱56.95 per $1 USD</div>
+                                      </div>
+                                    </div>
+                                    <div className="bg-gray-900/50 rounded-lg p-3">
+                                      <h5 className="text-yellow-400 text-sm font-medium mb-2">📊 Usage Details</h5>
+                                      <div className="space-y-1 text-xs text-gray-300">
+                                        <div>🔄 Multi-page support: Each page processed</div>
+                                        <div>🤖 Vision OCR: Image tokens + text output</div>
+                                        <div>📝 JSON conversion: Text analysis</div>
+                                        <div>💰 Real-time tracking in browser console</div>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -790,10 +841,11 @@ export default function ResumeBuilderPage() {
                             <Card className="glass-card border-purple-400/30 bg-purple-400/5">
                               <CardHeader>
                                 <CardTitle className="text-purple-400 text-sm flex items-center gap-2">
-                                  📄 DOCX Preview: Exact Content from Original File
+                                  <FileText className="h-4 w-4" />
+                                  📄 DOCX Preview: CloudConvert + GPT Pipeline Output
                                 </CardTitle>
                                 <CardDescription className="text-purple-300/70">
-                                  Preview of the literal DOCX preserving content exactly as written in original file
+                                  Organized DOCX document created from: Document → CloudConvert (JPEG) → GPT Vision OCR → Structured Text → DOCX
                                 </CardDescription>
                               </CardHeader>
                               <CardContent>
@@ -802,19 +854,19 @@ export default function ResumeBuilderPage() {
                                     <div key={index} className="space-y-3">
                                       <div className="flex items-center gap-2 pb-2 border-b border-purple-400/20">
                                         <span className="text-purple-400 font-medium">
-                                          📄 {resume.docxMetadata?.docxFileName || `Document ${index + 1}`}
+                                          📄 {(resume as any)._uiMetadata?.docxFileName || `Document ${index + 1}`}
                                         </span>
                                         <Badge variant="outline" className="border-purple-400/30 text-purple-300">
-                                          {resume.docxMetadata?.docxSize ? `${(resume.docxMetadata.docxSize / 1024).toFixed(1)}KB` : 'N/A'}
+                                          {(resume as any)._uiMetadata?.docxSize ? `${((resume as any)._uiMetadata.docxSize / 1024).toFixed(1)}KB` : 'N/A'}
                                         </Badge>
                                       </div>
                                       
-                                      {resume.docxMetadata?.docxPreview ? (
+                                      {(resume as any)._uiMetadata?.docxPreview ? (
                                         <div className="max-h-96 overflow-y-auto bg-gray-900/50 rounded-lg p-4">
                                           <div className="bg-white text-gray-900 p-8 rounded-lg shadow-lg font-sans">
                                             <div className="prose prose-sm max-w-none">
                                               <pre className="whitespace-pre-wrap text-sm leading-loose font-mono bg-gray-50 p-4 rounded border-l-4 border-cyan-400 overflow-x-auto">
-                                                {resume.docxMetadata.docxPreview}
+                                                {(resume as any)._uiMetadata.docxPreview}
                                               </pre>
                                             </div>
                                           </div>
@@ -824,24 +876,24 @@ export default function ResumeBuilderPage() {
                                           <p>No DOCX preview available for this file</p>
                                         </div>
                                       )}
-                                      
+                                     
                                       {/* DOCX Stats */}
                                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3 border-t border-purple-400/20">
                                         <div className="text-center">
                                           <div className="text-purple-400 font-bold text-sm">
-                                            {resume.docxMetadata?.sectionsCount || 0}
+                                            {Object.keys(resume).filter(key => key !== '_uiMetadata').length}
                                           </div>
-                                          <div className="text-gray-400 text-xs">Sections</div>
+                                          <div className="text-gray-400 text-xs">JSON Fields</div>
                                         </div>
                                         <div className="text-center">
                                           <div className="text-cyan-400 font-bold text-sm">
-                                            {resume.docxMetadata?.docxSize ? `${(resume.docxMetadata.docxSize / 1024).toFixed(1)}KB` : '0KB'}
+                                            {(resume as any)._uiMetadata?.docxSize ? `${((resume as any)._uiMetadata.docxSize / 1024).toFixed(1)}KB` : '0KB'}
                                           </div>
-                                          <div className="text-gray-400 text-xs">File Size</div>
+                                          <div className="text-gray-400 text-xs">DOCX Size</div>
                                         </div>
                                         <div className="text-center">
                                           <div className="text-yellow-400 font-bold text-sm">
-                                            {resume.docxMetadata?.contentSource || 'N/A'}
+                                            {(resume as any)._uiMetadata?.contentSource || 'CloudConvert Pipeline'}
                                           </div>
                                           <div className="text-gray-400 text-xs">Source</div>
                                         </div>
@@ -849,7 +901,7 @@ export default function ResumeBuilderPage() {
                                           <div className="text-green-400 font-bold text-sm">
                                             📄
                                           </div>
-                                          <div className="text-gray-400 text-xs">DOCX Ready</div>
+                                          <div className="text-gray-400 text-xs">Pure JSON</div>
                                         </div>
                                       </div>
                                     </div>
@@ -872,22 +924,30 @@ export default function ResumeBuilderPage() {
                               <CardHeader>
                                 <CardTitle className="text-green-400 text-sm flex items-center gap-2">
                                   <Check className="h-4 w-4" />
-                                  📄 Final JSON Output (Structured Resume Data)
+                                  📄 Flexible JSON Output (Pure Resume Content)
                                 </CardTitle>
                                 <CardDescription className="text-green-300/70">
-                                  Complete structured data extracted from your resume files
+                                  Dynamic JSON structure that adapts to the actual resume content - no predetermined fields, only what's actually in the document
                                 </CardDescription>
                               </CardHeader>
                               <CardContent>
                                 <div className="max-h-96 overflow-y-auto">
                                   <pre className="text-xs text-gray-300 whitespace-pre-wrap break-words">
-                                    {JSON.stringify(processedResumes, null, 2)}
+                                    {JSON.stringify(
+                                      processedResumes.map(resume => {
+                                        // Filter out internal UI metadata from JSON display
+                                        const { _uiMetadata, ...pureResumeData } = resume as any;
+                                        return pureResumeData;
+                                      }), 
+                                      null, 
+                                      2
+                                    )}
                                   </pre>
                                 </div>
                                 
                                 {/* Summary Stats */}
                                 <div className="mt-4 pt-4 border-t border-green-400/20">
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                                     <div>
                                       <div className="text-green-400 font-bold text-lg">
                                         {processedResumes.length}
@@ -896,21 +956,20 @@ export default function ResumeBuilderPage() {
                                     </div>
                                     <div>
                                       <div className="text-cyan-400 font-bold text-lg">
-                                        {processedResumes.reduce((acc, resume) => acc + (resume.parsed?.skills?.length || 0), 0)}
+                                        {processedResumes.reduce((acc, resume) => acc + Object.keys(resume).filter(key => key !== '_uiMetadata').length, 0)}
                                       </div>
-                                      <div className="text-gray-400 text-xs">Skills Found</div>
+                                      <div className="text-gray-400 text-xs">Total Data Fields</div>
                                     </div>
                                     <div>
                                       <div className="text-purple-400 font-bold text-lg">
-                                        {processedResumes.reduce((acc, resume) => acc + (resume.experience?.length || 0), 0)}
+                                        {processedResumes.reduce((acc, resume) => {
+                                          // Filter out UI metadata before calculating size
+                                          const { _uiMetadata, ...pureData } = resume as any;
+                                          const jsonStr = JSON.stringify(pureData);
+                                          return acc + (jsonStr.length / 1024);
+                                        }, 0).toFixed(1)}KB
                                       </div>
-                                      <div className="text-gray-400 text-xs">Experiences</div>
-                                    </div>
-                                    <div>
-                                      <div className="text-yellow-400 font-bold text-lg">
-                                        {Math.round(processedResumes.reduce((acc, resume) => acc + (resume.confidence || 0), 0) / processedResumes.length)}%
-                                      </div>
-                                      <div className="text-gray-400 text-xs">Avg Confidence</div>
+                                      <div className="text-gray-400 text-xs">Pure JSON Size</div>
                                     </div>
                                   </div>
                                 </div>
