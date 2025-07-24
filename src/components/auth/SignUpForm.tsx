@@ -29,9 +29,10 @@ import {
 interface SignUpFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSwitchToLogin?: () => void
 }
 
-export default function SignUpForm({ open, onOpenChange }: SignUpFormProps) {
+export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: SignUpFormProps) {
   const { signUp, signInWithGoogle } = useAuth()
   const [formData, setFormData] = useState({
     firstName: '',
@@ -182,9 +183,32 @@ export default function SignUpForm({ open, onOpenChange }: SignUpFormProps) {
     }
   }
 
+  const handleSwitchToLogin = () => {
+    // Reset form state
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      location: '',
+      password: '',
+      confirmPassword: ''
+    })
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+    setAgreedToTerms(false)
+    setErrors({})
+    setSuccessMessage('')
+    setIsLoading(false)
+    
+    // Switch to login form
+    if (onSwitchToLogin) {
+      onSwitchToLogin()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card border-white/20 max-w-md max-h-[90vh] overflow-y-auto [&>div[data-slot=dialog-overlay]]:bg-black/80 [&>div[data-slot=dialog-overlay]]:backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4 duration-300">
+      <DialogContent className="glass-card border-white/20 max-w-lg w-full mx-4 sm:mx-auto max-h-[95vh] overflow-y-auto [&>div[data-slot=dialog-overlay]]:bg-black/80 [&>div[data-slot=dialog-overlay]]:backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-right-1/2 data-[state=open]:slide-in-from-right-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-top-[48%] duration-200">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -194,300 +218,360 @@ export default function SignUpForm({ open, onOpenChange }: SignUpFormProps) {
             damping: 30,
             duration: 0.3
           }}
+          className="space-y-6"
         >
-              <DialogHeader className="text-center">
-                <DialogTitle className="text-2xl font-bold gradient-text flex items-center justify-center gap-2">
-                  <UserPlus className="w-6 h-6" />
-                  Join BPOC.AI
-                </DialogTitle>
-                              <DialogDescription className="text-gray-300">
-                Start your BPO career journey with our FREE platform
-              </DialogDescription>
-            </DialogHeader>
+          {/* Header */}
+          <DialogHeader className="text-center space-y-3">
+            <DialogTitle className="text-2xl sm:text-3xl font-bold gradient-text flex items-center justify-center gap-3">
+              <UserPlus className="w-6 h-6 sm:w-8 sm:h-8" />
+              Join BPOC.AI
+            </DialogTitle>
+            <DialogDescription className="text-gray-300 text-sm sm:text-base">
+              Start your BPO career journey with our FREE platform
+            </DialogDescription>
+          </DialogHeader>
 
-            {/* Success Message */}
-            {successMessage && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                <p className="text-green-400 text-sm">{successMessage}</p>
+          {/* Success Message */}
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-green-500/10 border border-green-500/20 rounded-lg p-4"
+            >
+              <p className="text-green-400 text-sm text-center">{successMessage}</p>
+            </motion.div>
+          )}
+
+          {/* General Error Display */}
+          {errors.general && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-red-500/10 border border-red-500/20 rounded-lg p-4"
+            >
+              <p className="text-red-400 text-sm text-center">{errors.general}</p>
+            </motion.div>
+          )}
+
+          {/* Sign Up Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Name Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="text-sm font-medium text-white block">
+                  First Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="First name"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                      errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                    }`}
+                    disabled={isLoading}
+                    autoComplete="given-name"
+                  />
+                </div>
+                {errors.firstName && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs"
+                  >
+                    {errors.firstName}
+                  </motion.p>
+                )}
               </div>
-            )}
 
-            {/* General Error Display */}
-            {errors.general && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                <p className="text-red-400 text-sm">{errors.general}</p>
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="text-sm font-medium text-white block">
+                  Last Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Last name"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                      errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                    }`}
+                    disabled={isLoading}
+                    autoComplete="family-name"
+                  />
+                </div>
+                {errors.lastName && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs"
+                  >
+                    {errors.lastName}
+                  </motion.p>
+                )}
               </div>
-            )}
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-3">
+            {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="firstName" className="text-sm font-medium text-white">
-                First Name
+              <label htmlFor="signup-email" className="text-sm font-medium text-white block">
+                Email Address
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  id="firstName"
-                  type="text"
-                  placeholder="First name"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  className={`pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                    errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  id="signup-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                    errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
                   }`}
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
-              {errors.firstName && (
-                <p className="text-red-400 text-xs">{errors.firstName}</p>
+              {errors.email && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {errors.email}
+                </motion.p>
               )}
             </div>
 
+            {/* Location Field */}
             <div className="space-y-2">
-              <label htmlFor="lastName" className="text-sm font-medium text-white">
-                Last Name
+              <label htmlFor="location" className="text-sm font-medium text-white block">
+                Location
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  id="lastName"
+                  id="location"
                   type="text"
-                  placeholder="Last name"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  className={`pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                    errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  placeholder="e.g., Clark, Pampanga"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                    errors.location ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
                   }`}
                   disabled={isLoading}
+                  autoComplete="address-level2"
                 />
               </div>
-              {errors.lastName && (
-                <p className="text-red-400 text-xs">{errors.lastName}</p>
+              {errors.location && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {errors.location}
+                </motion.p>
               )}
             </div>
-          </div>
 
-          {/* Email Field */}
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-white">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                  errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                }`}
-                disabled={isLoading}
-              />
-            </div>
-            {errors.email && (
-              <p className="text-red-400 text-xs">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Location Field */}
-          <div className="space-y-2">
-            <label htmlFor="location" className="text-sm font-medium text-white">
-              Location
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="location"
-                type="text"
-                placeholder="e.g., Clark, Pampanga"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                className={`pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                  errors.location ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                }`}
-                disabled={isLoading}
-              />
-            </div>
-            {errors.location && (
-              <p className="text-red-400 text-xs">{errors.location}</p>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-white">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Create a strong password"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className={`pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                  errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                }`}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
+            {/* Password Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="signup-password" className="text-sm font-medium text-white block">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="signup-password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Create password"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`pl-10 pr-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                      errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                    }`}
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                    disabled={isLoading}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs"
+                  >
+                    {errors.password}
+                  </motion.p>
                 )}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="text-red-400 text-xs">{errors.password}</p>
-            )}
-          </div>
+              </div>
 
-          {/* Confirm Password Field */}
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-white">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className={`pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                  errors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                }`}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                disabled={isLoading}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-white block">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    className={`pl-10 pr-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                      errors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                    }`}
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                    disabled={isLoading}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-xs"
+                  >
+                    {errors.confirmPassword}
+                  </motion.p>
                 )}
-              </button>
+              </div>
             </div>
-            {errors.confirmPassword && (
-              <p className="text-red-400 text-xs">{errors.confirmPassword}</p>
-            )}
-          </div>
 
-          {/* Terms and Conditions */}
-          <div className="space-y-2">
-            <div className="flex items-start space-x-3">
-              <button
-                type="button"
-                onClick={() => setAgreedToTerms(!agreedToTerms)}
-                className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                  agreedToTerms 
-                    ? 'bg-cyan-500 border-cyan-500' 
-                    : 'border-white/20 hover:border-cyan-500'
-                } ${errors.terms ? 'border-red-500' : ''}`}
-                disabled={isLoading}
-              >
-                {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
-              </button>
-              <label className="text-sm text-gray-300 leading-tight">
-                I agree to the{' '}
+            {/* Terms and Conditions */}
+            <div className="space-y-2">
+              <div className="flex items-start space-x-3">
                 <button
                   type="button"
-                  className="text-cyan-400 hover:text-cyan-300 underline"
-                  onClick={() => {
-                    // TODO: Open terms modal or navigate to terms page
-                    console.log('Terms clicked')
-                  }}
+                  onClick={() => setAgreedToTerms(!agreedToTerms)}
+                  className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black ${
+                    agreedToTerms 
+                      ? 'bg-cyan-500 border-cyan-500' 
+                      : 'border-white/20 hover:border-cyan-500'
+                  } ${errors.terms ? 'border-red-500' : ''}`}
+                  disabled={isLoading}
+                  aria-label="Agree to terms and conditions"
                 >
-                  Terms of Service
+                  {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
                 </button>
-                {' '}and{' '}
-                <button
-                  type="button"
-                  className="text-cyan-400 hover:text-cyan-300 underline"
-                  onClick={() => {
-                    // TODO: Open privacy modal or navigate to privacy page
-                    console.log('Privacy policy clicked')
-                  }}
+                <label className="text-sm text-gray-300 leading-relaxed">
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                    onClick={() => {
+                      // TODO: Open terms modal or navigate to terms page
+                      console.log('Terms clicked')
+                    }}
+                  >
+                    Terms of Service
+                  </button>
+                  {' '}and{' '}
+                  <button
+                    type="button"
+                    className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                    onClick={() => {
+                      // TODO: Open privacy modal or navigate to privacy page
+                      console.log('Privacy policy clicked')
+                    }}
+                  >
+                    Privacy Policy
+                  </button>
+                </label>
+              </div>
+              {errors.terms && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
                 >
-                  Privacy Policy
-                </button>
-              </label>
+                  {errors.terms}
+                </motion.p>
+              )}
             </div>
-            {errors.terms && (
-              <p className="text-red-400 text-xs">{errors.terms}</p>
-            )}
+
+            {/* Create Account Button */}
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create Free Account
+                </>
+              )}
+            </Button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative">
+            <Separator className="bg-white/20" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-white/5 backdrop-blur-sm px-3 text-sm text-gray-300 border border-white/10 rounded-md">Or continue with</span>
+            </div>
           </div>
 
-          {/* Create Account Button */}
+          {/* Social Sign Up Button */}
           <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-11"
+            type="button"
+            variant="outline"
+            className="w-full h-12 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
+            onClick={handleSocialSignUp}
             disabled={isLoading}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Account...
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Create Free Account
-              </>
-            )}
+            <Chrome className="w-4 h-4 mr-2" />
+            Sign up with Google
           </Button>
-        </form>
 
-        {/* Divider */}
-        <div className="relative">
-          <Separator className="bg-white/20" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-black px-2 text-sm text-gray-400">Or continue with</span>
+          {/* Sign In Link */}
+          <div className="text-center text-sm text-gray-300 pt-2">
+            Already have an account?{' '}
+            <button
+              type="button"
+              className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors underline focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+              onClick={handleSwitchToLogin}
+            >
+              Sign in
+            </button>
           </div>
-        </div>
-
-        {/* Social Sign Up Button */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30"
-          onClick={handleSocialSignUp}
-          disabled={isLoading}
-        >
-          <Chrome className="w-4 h-4 mr-2" />
-          Sign up with Google
-        </Button>
-
-        {/* Sign In Link */}
-        <div className="text-center text-sm text-gray-300">
-          Already have an account?{' '}
-          <button
-            type="button"
-            className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
-            onClick={() => {
-              // TODO: Switch to sign in form
-              console.log('Sign in clicked')
-            }}
-          >
-            Sign in
-          </button>
-        </div>
         </motion.div>
       </DialogContent>
     </Dialog>

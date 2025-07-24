@@ -14,9 +14,10 @@ interface AuthContextType {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signIn: (email: string, password: string) => Promise<any>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
   signInWithGoogle: () => Promise<any>
   signOut: () => Promise<void>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateProfile: (metadata: any) => Promise<any>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -101,6 +102,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut()
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateProfile = async (metadata: any) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: metadata
+    })
+    return { data, error }
+  }
+
   const value = {
     user,
     session,
@@ -108,7 +117,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signIn,
     signInWithGoogle,
-    signOut
+    signOut,
+    updateProfile
   }
 
   return (

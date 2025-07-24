@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import Header from '@/components/layout/Header'
 import Hero from '@/components/sections/Hero'
 
-import DatabaseStatus from '@/components/debug/DatabaseStatus'
+
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -46,12 +46,7 @@ export default function HomePage() {
       <Hero />
 
 
-      {/* Database Status Debug Section */}
-      <section className="py-10 px-4 sm:px-6 lg:px-8 bg-red-900/10 border-y border-red-500/20">
-        <div className="container mx-auto flex justify-center">
-          <DatabaseStatus />
-        </div>
-      </section>
+
 
 
       {/* Features Section */}

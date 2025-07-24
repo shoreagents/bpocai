@@ -1,19 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { 
   Database, 
   CheckCircle, 
   XCircle, 
   AlertCircle, 
   Loader2,
-  RefreshCw,
-  Eye,
-  EyeOff
+  RefreshCw
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -21,14 +25,11 @@ interface ConnectionTest {
   name: string
   status: 'loading' | 'success' | 'error' | 'pending'
   message: string
-
   details?: unknown
-
 }
 
 export default function DatabaseStatus() {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [showCredentials, setShowCredentials] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const [tests, setTests] = useState<ConnectionTest[]>([
     { name: 'Environment Variables', status: 'pending', message: 'Not checked' },
     { name: 'Supabase Client', status: 'pending', message: 'Not checked' },
@@ -217,10 +218,10 @@ export default function DatabaseStatus() {
   }
 
   useEffect(() => {
-    if (isExpanded) {
+    if (isOpen) {
       runTests()
     }
-  }, [isExpanded])
+  }, [isOpen])
 
   const getStatusIcon = (status: ConnectionTest['status']) => {
     switch (status) {
@@ -242,125 +243,113 @@ export default function DatabaseStatus() {
     return <Badge variant="secondary" className="bg-gray-500/20 text-gray-400">Not Tested</Badge>
   }
 
-  const maskCredential = (credential: string) => {
-    if (!credential) return 'Not set'
-    if (credential.length < 20) return credential
-    return credential.slice(0, 10) + '...' + credential.slice(-10)
+  const getFloatingButtonStyle = () => {
+    const hasError = tests.some(test => test.status === 'error')
+    const allSuccess = tests.every(test => test.status === 'success')
+    const isLoading = tests.some(test => test.status === 'loading')
+
+    if (isLoading) return 'bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30'
+    if (hasError) return 'bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30'
+    if (allSuccess) return 'bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30'
+    return 'bg-gray-500/20 border-gray-500/30 text-gray-400 hover:bg-gray-500/30'
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-4xl"
-    >
-      <Card className="glass-card border-white/20">
-        <CardHeader 
-          className="cursor-pointer"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Database className="w-6 h-6 text-cyan-400" />
-              <div>
-                <CardTitle className="text-white">Database Connection Status</CardTitle>
-                <p className="text-sm text-gray-400">Click to check Supabase connection</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {getStatusBadge()}
-              <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <AlertCircle className="w-5 h-5 text-gray-400" />
-              </motion.div>
-            </div>
-          </div>
-        </CardHeader>
 
-        {isExpanded && (
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Connection Tests</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={runTests}
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Run Tests
-              </Button>
+
+  return (
+    <>
+      {/* Floating Button */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="fixed bottom-6 right-6 z-50"
+      >
+        <motion.button
+          onClick={() => setIsOpen(true)}
+          className={`w-14 h-14 rounded-full border-2 flex items-center justify-center backdrop-blur-sm transition-all duration-200 ${getFloatingButtonStyle()}`}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          title="Database Connection Status"
+        >
+          <Database className="w-6 h-6" />
+        </motion.button>
+      </motion.div>
+
+      {/* Status Dialog */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="glass-card border-white/20 max-w-2xl w-full mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Header */}
+            <DialogHeader className="text-center space-y-3">
+              <DialogTitle className="text-2xl font-bold gradient-text flex items-center justify-center gap-3">
+                <Database className="w-6 h-6" />
+                Database Connection Status
+              </DialogTitle>
+              <DialogDescription className="text-gray-300">
+                Real-time status of your Supabase database connection
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Status Badge */}
+            <div className="flex justify-center">
+              {getStatusBadge()}
             </div>
 
             {/* Test Results */}
-            <div className="space-y-3">
-              {tests.map((test, index) => (
-                <motion.div
-                  key={test.name}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    {getStatusIcon(test.status)}
-                    <div>
-                      <div className="font-medium text-white">{test.name}</div>
-                      <div className="text-sm text-gray-400">{test.message}</div>
-                    </div>
-                  </div>
-
-                  {test.details !== undefined && test.details !== null && (
-                                         <details className="text-xs text-gray-500">
-                       <summary className="cursor-pointer">Details</summary>
-                       <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-auto">
-                         {String(JSON.stringify(test.details || {}, null, 2))}
-                       </pre>
-                     </details>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Environment Variables Display */}
-            <div className="mt-6 p-4 bg-white/5 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-white">Environment Variables</h4>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Connection Tests</h3>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => setShowCredentials(!showCredentials)}
-                  className="text-gray-400 hover:text-white"
+                  onClick={runTests}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  disabled={tests.some(test => test.status === 'loading')}
                 >
-                  {showCredentials ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <RefreshCw className={`w-4 h-4 mr-2 ${tests.some(test => test.status === 'loading') ? 'animate-spin' : ''}`} />
+                  Run Tests
                 </Button>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">NEXT_PUBLIC_SUPABASE_URL:</span>
-                  <span className="text-white font-mono">
-                    {showCredentials 
-                      ? process.env.NEXT_PUBLIC_SUPABASE_URL || 'Not set'
-                      : maskCredential(process.env.NEXT_PUBLIC_SUPABASE_URL || '')
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">NEXT_PUBLIC_SUPABASE_ANON_KEY:</span>
-                  <span className="text-white font-mono">
-                    {showCredentials 
-                      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'Not set'
-                      : maskCredential(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
-                    }
-                  </span>
-                </div>
+
+              <div className="space-y-3">
+                {tests.map((test, index) => (
+                  <motion.div
+                    key={test.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(test.status)}
+                      <div>
+                        <div className="font-medium text-white">{test.name}</div>
+                        <div className="text-sm text-gray-400">{test.message}</div>
+                      </div>
+                    </div>
+
+                    {test.details !== undefined && test.details !== null && (
+                      <details className="text-xs text-gray-500">
+                        <summary className="cursor-pointer hover:text-gray-400 transition-colors">Details</summary>
+                        <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-auto max-w-xs">
+                          {String(JSON.stringify(test.details || {}, null, 2))}
+                        </pre>
+                      </details>
+                    )}
+                  </motion.div>
+                ))}
               </div>
             </div>
 
+
+
             {/* Help Section */}
-            <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
               <h4 className="font-medium text-yellow-400 mb-2">Troubleshooting Tips</h4>
               <ul className="text-sm text-yellow-200 space-y-1">
                 <li>• Make sure your .env.local file is in the project root</li>
@@ -371,9 +360,9 @@ export default function DatabaseStatus() {
                 <li>• Check Supabase dashboard for correct credentials</li>
               </ul>
             </div>
-          </CardContent>
-        )}
-      </Card>
-    </motion.div>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 } 

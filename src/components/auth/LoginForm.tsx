@@ -26,9 +26,10 @@ import {
 interface LoginFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSwitchToSignUp?: () => void
 }
 
-export default function LoginForm({ open, onOpenChange }: LoginFormProps) {
+export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: LoginFormProps) {
   const { signIn, signInWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -111,9 +112,23 @@ export default function LoginForm({ open, onOpenChange }: LoginFormProps) {
     }
   }
 
+  const handleSwitchToSignUp = () => {
+    // Reset form state
+    setEmail('')
+    setPassword('')
+    setShowPassword(false)
+    setErrors({})
+    setIsLoading(false)
+    
+    // Switch to sign up form
+    if (onSwitchToSignUp) {
+      onSwitchToSignUp()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card border-white/20 max-w-md [&>div[data-slot=dialog-overlay]]:bg-black/80 [&>div[data-slot=dialog-overlay]]:backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4 duration-300">
+      <DialogContent className="glass-card border-white/20 max-w-md w-full mx-4 sm:mx-auto max-h-[95vh] overflow-y-auto [&>div[data-slot=dialog-overlay]]:bg-black/80 [&>div[data-slot=dialog-overlay]]:backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=open]:slide-in-from-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-top-[48%] duration-200">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -123,155 +138,172 @@ export default function LoginForm({ open, onOpenChange }: LoginFormProps) {
             damping: 30,
             duration: 0.3
           }}
+          className="space-y-6"
         >
-              <DialogHeader className="text-center">
-                <DialogTitle className="text-2xl font-bold gradient-text flex items-center justify-center gap-2">
-                  <LogIn className="w-6 h-6" />
-                  Welcome Back
-                </DialogTitle>
-                              <DialogDescription className="text-gray-300">
-                Sign in to your BPOC.AI account to continue your BPO career journey
-              </DialogDescription>
-            </DialogHeader>
+          {/* Header */}
+          <DialogHeader className="text-center space-y-3">
+            <DialogTitle className="text-2xl sm:text-3xl font-bold gradient-text flex items-center justify-center gap-3">
+              <LogIn className="w-6 h-6 sm:w-8 sm:h-8" />
+              Welcome Back
+            </DialogTitle>
+            <DialogDescription className="text-gray-300 text-sm sm:text-base">
+              Sign in to your BPOC.AI account to continue your BPO career journey
+            </DialogDescription>
+          </DialogHeader>
 
-            {/* General Error Display */}
-            {errors.general && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                <p className="text-red-400 text-sm">{errors.general}</p>
+          {/* General Error Display */}
+          {errors.general && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-red-500/10 border border-red-500/20 rounded-lg p-4"
+            >
+              <p className="text-red-400 text-sm text-center">{errors.general}</p>
+            </motion.div>
+          )}
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label htmlFor="login-email" className="text-sm font-medium text-white block">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                    errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  }`}
+                  disabled={isLoading}
+                  autoComplete="email"
+                />
               </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Field */}
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-white">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                  errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                }`}
-                disabled={isLoading}
-              />
+              {errors.email && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {errors.email}
+                </motion.p>
+              )}
             </div>
-            {errors.email && (
-              <p className="text-red-400 text-xs">{errors.email}</p>
-            )}
-          </div>
 
-          {/* Password Field */}
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-white">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`pl-10 pr-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 ${
-                  errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                }`}
-                disabled={isLoading}
-              />
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label htmlFor="login-password" className="text-sm font-medium text-white block">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`pl-10 pr-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                    errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  }`}
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                  disabled={isLoading}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {errors.password}
+                </motion.p>
+              )}
+            </div>
+
+            {/* Forgot Password Link */}
+            <div className="text-right">
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                disabled={isLoading}
+                className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                onClick={() => {
+                  // TODO: Implement forgot password
+                  console.log('Forgot password clicked')
+                }}
               >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+                Forgot password?
               </button>
             </div>
-            {errors.password && (
-              <p className="text-red-400 text-xs">{errors.password}</p>
-            )}
-          </div>
 
-          {/* Forgot Password Link */}
-          <div className="text-right">
-            <button
-              type="button"
-              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
-              onClick={() => {
-                // TODO: Implement forgot password
-                console.log('Forgot password clicked')
-              }}
+            {/* Sign In Button */}
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+              disabled={isLoading}
             >
-              Forgot password?
-            </button>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </>
+              )}
+            </Button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative">
+            <Separator className="bg-white/20" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-white/5 backdrop-blur-sm px-3 text-sm text-gray-300 border border-white/10 rounded-md">Or continue with</span>
+            </div>
           </div>
 
-          {/* Sign In Button */}
+          {/* Social Login Button */}
           <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-11"
+            type="button"
+            variant="outline"
+            className="w-full h-12 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
+            onClick={handleSocialLogin}
             disabled={isLoading}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                <LogIn className="w-4 h-4 mr-2" />
-                Sign In
-              </>
-            )}
+            <Chrome className="w-4 h-4 mr-2" />
+            Continue with Google
           </Button>
-        </form>
 
-        {/* Divider */}
-        <div className="relative">
-          <Separator className="bg-white/20" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-black px-2 text-sm text-gray-400">Or continue with</span>
+          {/* Sign Up Link */}
+          <div className="text-center text-sm text-gray-300 pt-2">
+            Don&apos;t have an account?{' '}
+            <button
+              type="button"
+              className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors underline focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+              onClick={handleSwitchToSignUp}
+            >
+              Create one for FREE
+            </button>
           </div>
-        </div>
-
-        {/* Social Login Button */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30"
-          onClick={handleSocialLogin}
-          disabled={isLoading}
-        >
-          <Chrome className="w-4 h-4 mr-2" />
-          Continue with Google
-        </Button>
-
-        {/* Sign Up Link */}
-        <div className="text-center text-sm text-gray-300">
-
-          Don&apos;t have an account?{' '}
-
-          <button
-            type="button"
-            className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
-            onClick={() => {
-              // TODO: Switch to sign up form
-              console.log('Sign up clicked')
-            }}
-          >
-            Create one for FREE
-          </button>
-        </div>
         </motion.div>
       </DialogContent>
     </Dialog>
