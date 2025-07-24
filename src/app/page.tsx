@@ -314,7 +314,7 @@ export default function HomePage() {
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
 
-              How It <span className="text-red-500">Works</span>
+            How It<span className="gradient-text"> Works</span> 
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               Get your dream BPO job in just 4 simple steps with our AI-powered platform.

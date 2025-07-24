@@ -814,8 +814,8 @@ export default function ResumeBuilderPage() {
                                           <div className="bg-white text-gray-900 p-8 rounded-lg shadow-lg font-sans">
                                             <div className="prose prose-sm max-w-none">
                                               <pre className="whitespace-pre-wrap text-sm leading-loose font-mono bg-gray-50 p-4 rounded border-l-4 border-cyan-400 overflow-x-auto">
-                                                {resume.docxMetadata.docxPreview}
-                                              </pre>
+                                              {resume.docxMetadata.docxPreview}
+                                            </pre>
                                             </div>
                                           </div>
                                         </div>
@@ -957,15 +957,15 @@ export default function ResumeBuilderPage() {
                   </div>
                 </div>
               ) : (
-                <Button
-                  onClick={handleContinue}
+              <Button
+                onClick={handleContinue}
                   disabled={!canContinue}
-                  size="lg"
-                  className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Continue to Analysis
-                </Button>
+                size="lg"
+                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Continue to Analysis
+              </Button>
               )}
               
               {!canContinue && (

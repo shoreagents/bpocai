@@ -1325,7 +1325,7 @@ function combineComplexPDFResults(extractedTexts: string[]): string {
   
   // Sort by completeness score (highest first)
   analysisResults.sort((a, b) => b.completenessScore - a.completenessScore);
-  
+    
   // Start with the most complete result
   let primary = analysisResults[0].text;
   console.log(`🎯 Primary result: Extraction ${analysisResults[0].index + 1} (score: ${analysisResults[0].completenessScore.toFixed(1)})`);
@@ -1361,7 +1361,7 @@ function combineComplexPDFResults(extractedTexts: string[]): string {
     if (uniqueLines.length > 0) {
       console.log(`📝 Found ${uniqueLines.length} unique lines from extraction ${additional.index + 1}`);
       primary += '\n\n' + uniqueLines.join('\n');
-    }
+      }
   }
   
   // Final cleanup and optimization
