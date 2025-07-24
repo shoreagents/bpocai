@@ -1,5 +1,87 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+
+// Token usage and cost tracking utilities
+interface TokenUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+interface CostCalculation {
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+  inputCostPHP: number;
+  outputCostPHP: number;
+  totalCostPHP: number;
+}
+
+// GPT-4o pricing (per 1K tokens)
+const GPT_4O_PRICING = {
+  INPUT_PER_1K: 0.005,  // $0.005 per 1K input tokens
+  OUTPUT_PER_1K: 0.015, // $0.015 per 1K output tokens
+};
+
+// Current USD to PHP exchange rate
+const USD_TO_PHP_RATE = 56.95;
+
+// Calculate costs for token usage
+function calculateTokenCosts(usage: TokenUsage): CostCalculation {
+  const inputCost = (usage.prompt_tokens / 1000) * GPT_4O_PRICING.INPUT_PER_1K;
+  const outputCost = (usage.completion_tokens / 1000) * GPT_4O_PRICING.OUTPUT_PER_1K;
+  const totalCost = inputCost + outputCost;
+  
+  return {
+    inputCost,
+    outputCost,
+    totalCost,
+    inputCostPHP: inputCost * USD_TO_PHP_RATE,
+    outputCostPHP: outputCost * USD_TO_PHP_RATE,
+    totalCostPHP: totalCost * USD_TO_PHP_RATE
+  };
+}
+
+// Format currency for display
+function formatCurrency(amount: number, currency: 'USD' | 'PHP'): string {
+  if (currency === 'USD') {
+    return `$${amount.toFixed(4)}`;
+  } else {
+    return `₱${amount.toFixed(2)}`;
+  }
+}
+
+// Global token tracking for session
+let sessionTokenUsage = {
+  totalInputTokens: 0,
+  totalOutputTokens: 0,
+  totalTokens: 0,
+  totalCostUSD: 0,
+  totalCostPHP: 0,
+  apiCalls: 0
+};
+
+// Reset session tracking
+function resetSessionTokenTracking() {
+  sessionTokenUsage = {
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalTokens: 0,
+    totalCostUSD: 0,
+    totalCostPHP: 0,
+    apiCalls: 0
+  };
+}
+
+// Update session tracking
+function updateSessionTokenTracking(usage: TokenUsage, costs: CostCalculation) {
+  sessionTokenUsage.totalInputTokens += usage.prompt_tokens;
+  sessionTokenUsage.totalOutputTokens += usage.completion_tokens;
+  sessionTokenUsage.totalTokens += usage.total_tokens;
+  sessionTokenUsage.totalCostUSD += costs.totalCost;
+  sessionTokenUsage.totalCostPHP += costs.totalCostPHP;
+  sessionTokenUsage.apiCalls += 1;
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -471,78 +553,299 @@ export interface ProcessedResume {
   };
 }
 
-// Main resume processing function - Literal DOCX Creation → Preview → JSON Pipeline
-export async function processResumeFile(file: File, openaiApiKey?: string): Promise<ProcessedResume> {
-  console.log('🚀 Starting literal DOCX-first pipeline for:', file.name);
-  console.log('📋 Process: File → Literal Text Extraction → Exact DOCX Creation → JSON from DOCX');
-  console.log('🎯 Preserving content exactly as written in original file');
+// CloudConvert API integration for document conversion
+interface CloudConvertJobResponse {
+  id: string;
+  status: 'waiting' | 'processing' | 'finished' | 'error';
+  files?: Array<{
+    url: string;
+    filename: string;
+  }>;
+  message?: string;
+}
+
+// Convert documents to JPEG using CloudConvert API
+async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloudConvertApiKey: string): Promise<string[]> {
+  console.log(`🔄 Converting ${fileType} to JPEG using CloudConvert...`);
+  
+  if (!cloudConvertApiKey) {
+    throw new Error('CloudConvert API key not provided. Please ensure it is configured on the server.');
+  }
+  
+  try {
+    // Step 1: Create conversion job
+    console.log('📤 Creating CloudConvert job...');
+    const jobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${cloudConvertApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tasks: {
+          'import-file': {
+            operation: 'import/upload'
+          },
+          'convert-file': {
+            operation: 'convert',
+            input: 'import-file',
+            output_format: 'jpg',
+            options: {
+              quality: 95,
+              strip: false
+            }
+          },
+          'export-file': {
+            operation: 'export/url',
+            input: 'convert-file'
+          }
+        }
+      })
+    });
+
+    if (!jobResponse.ok) {
+      const errorText = await jobResponse.text();
+      console.error('CloudConvert job creation error:', errorText);
+      throw new Error(`CloudConvert job creation failed: ${jobResponse.status} ${jobResponse.statusText} - ${errorText}`);
+    }
+
+    const jobData = await jobResponse.json();
+    console.log(`✅ CloudConvert job created: ${jobData.data.id}`);
+
+    // Step 2: Upload file
+    console.log('📁 Uploading file to CloudConvert...');
+    const uploadTask = jobData.data.tasks.find((task: any) => task.operation === 'import/upload');
+    
+    if (!uploadTask?.result?.form) {
+      throw new Error('No upload form data received from CloudConvert');
+    }
+    
+    // CloudConvert requires all form parameters to be included
+    const formData = new FormData();
+    
+    // Add all form parameters first (order matters for some cloud providers)
+    const formParams = uploadTask.result.form.parameters || {};
+    Object.entries(formParams).forEach(([key, value]) => {
+      if (key !== 'file') { // Don't add file twice
+        formData.append(key, value as string);
+      }
+    });
+    
+    // Add the file last
+    formData.append('file', file);
+    
+    console.log(`📤 Uploading to: ${uploadTask.result.form.url}`);
+    console.log(`📋 Form parameters: ${Object.keys(formParams).join(', ')}`);
+    
+    const uploadResponse = await fetch(uploadTask.result.form.url, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('Upload error response:', errorText);
+      throw new Error(`File upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+    }
+
+    console.log('✅ File uploaded successfully');
+
+    // Step 3: Wait for conversion to complete
+    console.log('⏳ Waiting for conversion to complete...');
+    let completed = false;
+    let attempts = 0;
+    const maxAttempts = 30; // 5 minutes max wait time
+    
+    while (!completed && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      attempts++;
+      
+      const statusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobData.data.id}`, {
+        headers: {
+          'Authorization': `Bearer ${cloudConvertApiKey}`
+        }
+      });
+
+      if (!statusResponse.ok) {
+        throw new Error(`Status check failed: ${statusResponse.statusText}`);
+      }
+
+      const statusData = await statusResponse.json();
+      console.log(`🔍 Conversion status: ${statusData.data.status} (attempt ${attempts}/${maxAttempts})`);
+      
+      if (statusData.data.status === 'finished') {
+        completed = true;
+        
+        // Step 4: Get download URLs for ALL pages
+        const exportTask = statusData.data.tasks.find((task: any) => task.operation === 'export/url');
+        
+        if (!exportTask?.result?.files || exportTask.result.files.length === 0) {
+          throw new Error('No download URLs found in conversion result');
+        }
+        
+        const files = exportTask.result.files;
+        console.log(`📥 Downloading ${files.length} converted JPEG file(s) for multi-page support...`);
+        
+        // Download ALL converted files (one per page)
+        const jpegDataUrls: string[] = [];
+        
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (!file.url) {
+            console.warn(`⚠️ No URL for file ${i + 1}, skipping...`);
+            continue;
+          }
+          
+          console.log(`📥 Downloading page ${i + 1}/${files.length}...`);
+          
+          const downloadResponse = await fetch(file.url);
+          if (!downloadResponse.ok) {
+            console.warn(`⚠️ Failed to download page ${i + 1}: ${downloadResponse.statusText}`);
+            continue;
+          }
+          
+          const blob = await downloadResponse.blob();
+          const jpegDataUrl = URL.createObjectURL(blob);
+          jpegDataUrls.push(jpegDataUrl);
+          
+          console.log(`✅ Page ${i + 1} downloaded successfully`);
+        }
+        
+        if (jpegDataUrls.length === 0) {
+          throw new Error('Failed to download any converted JPEG files');
+        }
+        
+        console.log(`✅ ${fileType} successfully converted to ${jpegDataUrls.length} JPEG file(s) using CloudConvert`);
+        console.log(`📄 Multi-page support: Processing ${jpegDataUrls.length} page(s)`);
+        return jpegDataUrls;
+      } else if (statusData.data.status === 'error') {
+        throw new Error(`CloudConvert conversion failed: ${statusData.data.message || 'Unknown error'}`);
+      }
+    }
+    
+    if (!completed) {
+      throw new Error('CloudConvert conversion timed out after 5 minutes');
+    }
+    
+    return [];
+    
+  } catch (error) {
+    console.error('❌ CloudConvert conversion failed:', error);
+    throw new Error(`CloudConvert conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Main resume processing function - Updated with CloudConvert Integration
+export async function processResumeFile(file: File, openaiApiKey?: string, cloudConvertApiKey?: string): Promise<ProcessedResume> {
+  console.log('🚀 Starting CloudConvert + GPT OCR pipeline for:', file.name);
+  console.log('📋 New Process: File → CloudConvert to JPEG → GPT OCR → DOCX → JSON');
+  console.log('🎯 CloudConvert handles document conversion, GPT handles OCR and structuring');
+  
+  // Reset token tracking for this session
+  resetSessionTokenTracking();
+  console.log('💰 Token tracking initialized for new session');
   
   if (!openaiApiKey) {
     throw new Error('OpenAI API key is required. Please add your API key to continue.');
   }
   
+  if (!cloudConvertApiKey) {
+    throw new Error('CloudConvert API key is required for document processing. Please ensure it is configured.');
+  }
+  
   try {
-    // Step 1: Extract text literally (exactly as written)
-    console.log('📤 Step 1: Extracting text exactly as written in original file...');
-    const literalText = await extractAndOrganizeText(file, openaiApiKey);
-    console.log(`✅ Step 1 Complete: Literal text extracted (${literalText.length} characters)`);
+    // Step 1: Convert to JPEG using CloudConvert or direct processing
+    console.log('📤 Step 1: Converting file to JPEG format...');
+    const jpegImages = await convertFileToJPEG(file, cloudConvertApiKey);
+    console.log(`✅ Step 1 Complete: File converted to JPEG format (${jpegImages.length} images)`);
     
-    // Step 2: Create literal DOCX file (preserving exact content)
-    console.log('📄 Step 2: Creating DOCX with exact original content...');
-    const { docxFile, docxPreview } = await createOrganizedDOCX(literalText, file.name);
-    console.log('✅ Step 2 Complete: Literal DOCX created preserving exact content');
+    // Step 2: Extract text using GPT Vision OCR from JPEG images
+    console.log('🤖 Step 2: Performing GPT Vision OCR on JPEG images...');
+    const extractedText = await performGPTOCROnImages(jpegImages, openaiApiKey);
+    console.log(`✅ Step 2 Complete: Text extracted via GPT OCR (${extractedText.length} characters)`);
     
-    // Step 3: Convert DOCX content to JSON (only what's in DOCX)
-    console.log('🔄 Step 3: Converting DOCX content to JSON (literal extraction)...');
+    // Step 3: Create organized DOCX from extracted text
+    console.log('📄 Step 3: Creating organized DOCX from extracted text...');
+    const { docxFile, docxPreview } = await createOrganizedDOCX(extractedText, file.name);
+    console.log('✅ Step 3 Complete: Organized DOCX created from OCR text');
+    
+    // Step 4: Convert DOCX content to JSON
+    console.log('🔄 Step 4: Converting DOCX content to structured JSON...');
     const jsonData = await convertDOCXContentToJSON(docxFile, openaiApiKey);
-    console.log('✅ Step 3 Complete: JSON extracted exactly from DOCX content');
+    console.log('✅ Step 4 Complete: JSON extracted from DOCX content');
     
-    // Step 4: Build final resume object with literal DOCX preview
-    console.log('🏗️ Step 4: Building final resume with literal content...');
-    const finalResume = buildResumeWithDOCXPreview(file, literalText, docxFile, docxPreview, jsonData);
-    console.log('✅ Pipeline Complete: Literal resume content preserved!');
+    // Step 5: Build final resume object
+    console.log('🏗️ Step 5: Building final resume with CloudConvert pipeline...');
+    const finalResume = buildResumeWithCloudConvertPipeline(file, extractedText, docxFile, docxPreview, jsonData, jpegImages);
+    console.log('✅ Pipeline Complete: CloudConvert + GPT OCR processing successful!');
+    
+    // Final session cost summary
+    console.log(`💰 FINAL SESSION SUMMARY:`);
+    console.log(`   📄 File processed: ${file.name}`);
+    console.log(`   🔄 Total GPT API calls: ${sessionTokenUsage.apiCalls}`);
+    console.log(`   📥 Total input tokens: ${sessionTokenUsage.totalInputTokens.toLocaleString()}`);
+    console.log(`   📤 Total output tokens: ${sessionTokenUsage.totalOutputTokens.toLocaleString()}`);
+    console.log(`   🔢 Total tokens used: ${sessionTokenUsage.totalTokens.toLocaleString()}`);
+    console.log(`   💵 Total cost USD: ${formatCurrency(sessionTokenUsage.totalCostUSD, 'USD')}`);
+    console.log(`   💵 Total cost PHP: ${formatCurrency(sessionTokenUsage.totalCostPHP, 'PHP')}`);
+    console.log(`   📊 Average cost per token: ${formatCurrency(sessionTokenUsage.totalCostUSD / sessionTokenUsage.totalTokens, 'USD')}`);
+    console.log(`   🎯 Cost breakdown: Vision OCR + JSON Conversion via GPT-4o`);
     
     return finalResume;
     
   } catch (error) {
-    console.error('❌ Pipeline Error:', error);
+    console.error('❌ CloudConvert Pipeline Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to process ${file.name}: ${errorMessage}`);
   }
 }
 
-// Step 1: Extract text exactly as it appears in the original file (literal extraction)
-async function extractAndOrganizeText(file: File, openaiApiKey: string): Promise<string> {
+// Step 1: Convert file to JPEG based on file type
+async function convertFileToJPEG(file: File, cloudConvertApiKey: string): Promise<string[]> {
   const fileType = file.type.toLowerCase();
-  const fileName = file.name;
+  const fileName = file.name.toLowerCase();
   
-  console.log(`🔍 Processing ${fileName} for literal extraction...`);
+  console.log(`🔍 Determining conversion method for: ${file.name}`);
+  console.log(`📄 File type: ${fileType}`);
   console.log(`📏 File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-  console.log(`📋 Extracting content exactly as written in original file`);
   
   try {
-    // Extract raw text exactly as it appears (no AI organization)
-    const literalText = await extractLiteralTextFromFile(file, openaiApiKey);
-    console.log(`📝 Literal text extracted: ${literalText.length} characters`);
-    console.log(`✅ Content preserved exactly as written in original file`);
-    
-    return literalText;
+    // Handle different file types according to new pipeline
+    if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
+      console.log('📄 PDF detected → Using CloudConvert for PDF to JPEG conversion');
+      return await convertToJPEGWithCloudConvert(file, 'PDF', cloudConvertApiKey);
+      
+    } else if (fileType.includes('wordprocessingml') || fileName.endsWith('.docx')) {
+      console.log('📝 DOCX detected → Using CloudConvert for DOCX to JPEG conversion');
+      return await convertToJPEGWithCloudConvert(file, 'DOCX', cloudConvertApiKey);
+      
+    } else if (fileType.includes('msword') || fileName.endsWith('.doc')) {
+      console.log('📝 DOC detected → Using CloudConvert for DOC to JPEG conversion');
+      return await convertToJPEGWithCloudConvert(file, 'DOC', cloudConvertApiKey);
+      
+    } else if (fileType.includes('jpeg') || fileType.includes('jpg') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+      console.log('🖼️ JPEG/JPG detected → Direct processing (no conversion needed)');
+      const imageUrl = URL.createObjectURL(file);
+      return [imageUrl];
+      
+    } else if (fileType.includes('png') || fileName.endsWith('.png')) {
+      console.log('🖼️ PNG detected → Direct processing (no conversion needed)');
+      const imageUrl = URL.createObjectURL(file);
+      return [imageUrl];
+      
+    } else {
+      throw new Error(`Unsupported file type: ${fileType}. Supported types: PDF, DOC, DOCX, JPG, JPEG, PNG`);
+    }
     
   } catch (error) {
-    console.error('❌ Literal text extraction failed:', error);
-    throw new Error(`Failed to extract literal text: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ File conversion failed:', error);
+    throw new Error(`Failed to convert file to JPEG: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
-// Extract text literally from file with COMPREHENSIVE methods to get ALL content
-async function extractLiteralTextFromFile(file: File, openaiApiKey: string): Promise<string> {
-  const fileType = file.type.toLowerCase();
-  const fileName = file.name;
-  
-  console.log(`🔍 COMPREHENSIVE extraction from ${fileName}...`);
-  console.log(`📄 File type: ${fileType}`);
-  console.log(`📏 File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-  console.log(`🎯 Goal: Extract EVERY word and character`);
+// Step 2: Perform GPT Vision OCR on JPEG images
+async function performGPTOCROnImages(jpegImages: string[], openaiApiKey: string): Promise<string> {
+  console.log(`🤖 Starting GPT Vision OCR on ${jpegImages.length} image(s)...`);
   
   const OpenAI = (await import('openai')).default;
   const openai = new OpenAI({
@@ -550,978 +853,202 @@ async function extractLiteralTextFromFile(file: File, openaiApiKey: string): Pro
     dangerouslyAllowBrowser: true
   });
   
-  const extractedTexts: string[] = [];
+  let allExtractedText = '';
   
   try {
-    // Convert file to base64 for API processing
-    console.log('📦 Converting file to base64...');
-    const base64Data = await fileToBase64(file);
-    console.log('✅ File converted to base64');
-
-    // Handle different file types with ENHANCED extraction methods for complex designs
-    if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
-      console.log('📄 COMPLEX PDF DETECTED - Using CANVA-OPTIMIZED extraction pipeline...');
-      console.log('🎨 Designed for complex layouts, overlays, and design-heavy documents');
+    for (let i = 0; i < jpegImages.length; i++) {
+      const jpegUrl = jpegImages[i];
+      console.log(`📖 Processing image ${i + 1}/${jpegImages.length} with GPT Vision...`);
       
-      // Method 1: Direct PDF text extraction (quick check for embedded text)
-      try {
-        console.log('🔍 Method 1: Quick embedded text check...');
-        const pdf2md = await import('@opendocsg/pdf2md');
-        const arrayBuffer = await file.arrayBuffer();
-        const directText = await pdf2md.default(arrayBuffer);
-        
-        if (directText && directText.trim().length > 50) {
-          extractedTexts.push(directText);
-          console.log(`✅ Method 1 success: ${directText.length} characters of embedded text found`);
-        } else {
-          console.log('⚠️ Method 1: Minimal embedded text - likely a design-heavy PDF');
-        }
-      } catch (error) {
-        console.log('⚠️ Method 1 failed - proceeding with visual extraction:', error);
-      }
-      
-      // Method 2: HIGH-RESOLUTION PDF to Images with ENHANCED OCR
-      try {
-        console.log('🔍 Method 2: HIGH-RES PDF to Images with ENHANCED OCR...');
-        console.log('📸 Using 4K resolution and advanced OCR for complex layouts');
-        const imageTexts = await extractTextFromComplexPDF(file, openai);
-        if (imageTexts && imageTexts.length > 0) {
-          imageTexts.forEach((text, pageIndex) => {
-            if (text && text.trim().length > 20) {
-              extractedTexts.push(`PAGE ${pageIndex + 1}:\n${text}`);
-              console.log(`✅ Method 2 Page ${pageIndex + 1}: ${text.length} characters extracted`);
-            }
-          });
-        }
-      } catch (error) {
-        console.log('⚠️ Method 2 failed:', error);
-      }
-      
-      // Method 3: SPECIALIZED Resume Vision API with LAYOUT UNDERSTANDING
-      try {
-        console.log('🔍 Method 3: SPECIALIZED Resume Vision API...');
-        console.log('🧠 AI optimized for resume layouts, Canva designs, and complex formatting');
-        const visionText = await extractResumeWithSpecializedVision(openai, base64Data);
-        if (visionText && visionText.trim().length > 20) {
-          extractedTexts.push(visionText);
-          console.log(`✅ Method 3 success: ${visionText.length} characters extracted`);
-        }
-      } catch (error) {
-        console.log('⚠️ Method 3 failed:', error);
-      }
-      
-      // Method 4: MULTIPLE PASSES with different AI approaches
-      try {
-        console.log('🔍 Method 4: MULTI-PASS specialized extraction...');
-        const multiPassTexts = await extractWithMultiplePasses(openai, base64Data);
-        multiPassTexts.forEach((text, passIndex) => {
-          if (text && text.trim().length > 20) {
-            extractedTexts.push(`PASS ${passIndex + 1}:\n${text}`);
-            console.log(`✅ Method 4 Pass ${passIndex + 1}: ${text.length} characters extracted`);
-          }
+      // Convert to base64 if needed
+      let base64Image: string;
+      if (jpegUrl.startsWith('data:')) {
+        base64Image = jpegUrl;
+      } else {
+        // Convert blob URL to base64
+        const response = await fetch(jpegUrl);
+        const blob = await response.blob();
+        base64Image = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
         });
-      } catch (error) {
-        console.log('⚠️ Method 4 failed:', error);
       }
       
-    } else if (fileType.includes('docx') || fileType.includes('wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
-      console.log('📝 DOCX detected - using MULTIPLE extraction methods...');
-      
-      // Method 1: Direct DOCX parsing
-      try {
-        console.log('🔍 Method 1: Direct DOCX parsing...');
-        const mammoth = await import('mammoth');
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        if (result.value && result.value.trim().length > 20) {
-          extractedTexts.push(result.value);
-          console.log(`✅ Method 1 success: ${result.value.length} characters extracted`);
-        }
-      } catch (error) {
-        console.log('⚠️ Method 1 failed:', error);
-      }
-      
-      // Method 2: Vision API for complex layouts
-      try {
-        console.log('🔍 Method 2: Vision API for complex DOCX layouts...');
-        const visionText = await extractComprehensiveTextWithVision(openai, base64Data, 'docx');
-        if (visionText && visionText.trim().length > 20) {
-          extractedTexts.push(visionText);
-          console.log(`✅ Method 2 success: ${visionText.length} characters extracted`);
-        }
-      } catch (error) {
-        console.log('⚠️ Method 2 failed:', error);
-      }
-      
-    } else if (fileType.includes('doc') && fileType.includes('msword') || fileName.toLowerCase().endsWith('.doc')) {
-      console.log('📄 DOC detected - using Vision API (legacy format)...');
-      try {
-        const visionText = await extractComprehensiveTextWithVision(openai, base64Data, 'doc');
-        extractedTexts.push(visionText);
-        console.log(`✅ DOC extraction: ${visionText.length} characters`);
-      } catch (error) {
-        console.log('⚠️ DOC extraction failed:', error);
-      }
-      
-    } else if (fileType.includes('image') || /\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(fileName)) {
-      console.log('🖼️ Image detected - using MULTIPLE OCR methods...');
-      
-      // Method 1: Tesseract OCR (if available)
-      try {
-        console.log('🔍 Method 1: Tesseract OCR...');
-        const ocrText = await extractTextWithTesseract(file);
-        if (ocrText && ocrText.trim().length > 10) {
-          extractedTexts.push(ocrText);
-          console.log(`✅ Method 1 success: ${ocrText.length} characters extracted`);
-        }
-      } catch (error) {
-        console.log('⚠️ Method 1 failed, continuing with Vision API...');
-      }
-      
-      // Method 2: Enhanced Vision API
-      try {
-        console.log('🔍 Method 2: Enhanced Vision API OCR...');
-        const visionText = await extractComprehensiveTextWithVision(openai, base64Data, 'image');
-        if (visionText && visionText.trim().length > 10) {
-          extractedTexts.push(visionText);
-          console.log(`✅ Method 2 success: ${visionText.length} characters extracted`);
-        }
-      } catch (error) {
-        console.log('⚠️ Method 2 failed:', error);
-      }
-      
-    } else {
-      console.log('❓ Unknown file type - trying comprehensive Vision API...');
-      try {
-        const visionText = await extractComprehensiveTextWithVision(openai, base64Data, 'unknown');
-        extractedTexts.push(visionText);
-        console.log(`✅ Unknown type extraction: ${visionText.length} characters`);
-      } catch (error) {
-        console.log('⚠️ Unknown type extraction failed:', error);
-      }
-    }
-
-    // Combine all extraction results
-    if (extractedTexts.length === 0) {
-      throw new Error('All extraction methods failed - no text could be extracted from the file');
-    }
-    
-    const combinedText = combineExtractedTexts(extractedTexts);
-    const finalText = cleanExtractedText(combinedText);
-    
-    if (!finalText || finalText.trim().length < 10) {
-      throw new Error('Insufficient text extracted - please ensure the file contains readable text');
-    }
-
-    console.log(`🎉 COMPREHENSIVE extraction complete!`);
-    console.log(`📊 Methods used: ${extractedTexts.length}`);
-    console.log(`📝 Final result: ${finalText.length} characters`);
-    console.log(`📋 Lines extracted: ${finalText.split('\n').length}`);
-    console.log(`📖 Preview: ${finalText.substring(0, 200)}...`);
-    
-    return finalText.trim();
-
-  } catch (error) {
-    console.error('❌ ALL extraction methods failed:', error);
-    throw new Error(`Failed to extract text from ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-// Enhanced comprehensive text extraction using OpenAI Vision API with proper ordering
-async function extractComprehensiveTextWithVision(openai: any, base64Data: string, fileType: string): Promise<string> {
-  console.log(`🤖 Using enhanced Vision API for ${fileType} with PROPER ORDERING...`);
-  
-  // Different prompts for different file types to ensure proper order
-  let orderingInstructions = '';
-  
-  if (fileType === 'image' || fileType === 'jpeg' || fileType === 'jpg' || fileType === 'png') {
-    orderingInstructions = `
-CRITICAL READING ORDER for IMAGES/RESUMES:
-1. Start from the TOP-LEFT corner of the document
-2. Read HORIZONTALLY from LEFT to RIGHT for each line
-3. Then move DOWN to the next line and repeat
-4. For multi-column layouts: read the ENTIRE LEFT column first, then the RIGHT column
-5. For sections: read the HEADER first, then the content below it
-6. For contact info at top: read name, then title, then contact details in order
-7. Maintain the EXACT VISUAL ORDER as it appears in the image
-8. Do NOT rearrange content - preserve the original sequence`;
-  } else if (fileType === 'pdf') {
-    orderingInstructions = `
-CRITICAL READING ORDER for PDFs:
-1. Read each PAGE from TOP to BOTTOM, LEFT to RIGHT
-2. Preserve the exact document flow and structure
-3. Include page headers and footers in their correct positions
-4. For multi-column PDFs: read LEFT column completely, then RIGHT column
-5. Maintain section order exactly as in the original document
-6. Include ALL text from margins, headers, footers, and sidebars`;
-  } else {
-    orderingInstructions = `
-CRITICAL READING ORDER:
-1. Follow the natural document flow from TOP to BOTTOM
-2. Read LEFT to RIGHT within each section
-3. Preserve the original text sequence and structure`;
-  }
-  
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "user",
-        content: [
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
           {
-            type: "text",
-            text: `EXTRACT ALL TEXT from this ${fileType} preserving EXACT VISUAL ORDER. This is critical.
-
-${orderingInstructions}
-
-CONTENT REQUIREMENTS:
-1. Extract EVERY single word, number, and character visible
-2. Include headers, footers, sidebar content, watermarks, small text
-3. Include ALL contact information (emails, phones, addresses, websites)
-4. Include ALL job titles, company names, dates, skills, education details
-5. Include text in tables, lists, or special formatting
-6. Include any decorative elements that contain text
-7. Do not summarize, interpret, or skip any content
-8. Return raw text exactly as written, in the EXACT VISUAL ORDER
-9. If you see text, include it in the correct position
-10. Missing any text or wrong order is not acceptable
-
-IMPORTANT: Read the document like a human would read it naturally - top to bottom, left to right, maintaining the original visual sequence.`
+            role: "system",
+            content: "You are an expert OCR system specialized in extracting text from resume images. Extract ALL visible text exactly as it appears, preserving formatting, spacing, and structure. Include every word, number, date, and detail visible in the image."
           },
           {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Data}`,
-              detail: "high"
-            }
-          }
-        ]
-      }
-    ],
-    max_tokens: 4000,
-    temperature: 0.1
-  });
-
-  const extractedText = completion.choices[0]?.message?.content;
-  if (!extractedText) {
-    throw new Error('No text returned from Vision API');
-  }
-
-  console.log(`✅ Enhanced Vision API extraction with proper ordering: ${extractedText.length} characters`);
-  return extractedText.trim();
-}
-
-// ENHANCED: Extract text from complex PDFs (Canva, design-heavy) with high resolution
-async function extractTextFromComplexPDF(file: File, openai: any): Promise<string[]> {
-  console.log('🎨 COMPLEX PDF PROCESSOR: Optimized for Canva and design-heavy documents');
-  
-  try {
-    // Import PDF.js with enhanced settings
-    const pdfjsLib = await import('pdfjs-dist');
-    
-    // Set up PDF.js worker with multiple fallback URLs
-    const workerUrls = [
-      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
-      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
-    ];
-    
-    for (const workerUrl of workerUrls) {
-      try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-        console.log(`📦 PDF.js worker configured: ${workerUrl}`);
-        break;
-      } catch (error) {
-        console.log(`⚠️ Worker failed: ${workerUrl}`, error);
-      }
-    }
-    
-    // Load the PDF with enhanced settings
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ 
-      data: arrayBuffer,
-      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-      cMapPacked: true
-    }).promise;
-    
-    console.log(`📄 Complex PDF loaded: ${pdf.numPages} pages`);
-    
-    const pageTexts: string[] = [];
-    
-    // Process each page with HIGH RESOLUTION for complex layouts
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      try {
-        console.log(`🔍 Processing complex page ${pageNum}/${pdf.numPages} with 4K resolution...`);
-        
-        const page = await pdf.getPage(pageNum);
-        
-        // ULTRA HIGH RESOLUTION for complex designs (4x normal)
-        const viewport = page.getViewport({ scale: 4.0 });
-        
-        // Create high-resolution canvas
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        // White background for better OCR
-        context!.fillStyle = 'white';
-        context!.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Render page at ultra-high resolution
-        const renderContext = {
-          canvasContext: context!,
-          viewport: viewport,
-          background: 'white'
-        };
-        
-        await page.render(renderContext).promise;
-        
-        // Convert to high-quality JPEG
-        const imageData = canvas.toDataURL('image/jpeg', 0.98);
-        const base64Data = imageData.split(',')[1];
-        
-        console.log(`🖼️ Page ${pageNum} rendered at ${canvas.width}x${canvas.height} (4K quality)`);
-        
-        // Extract text using SPECIALIZED resume vision API
-        const pageText = await extractResumeWithSpecializedVision(openai, base64Data);
-        
-        if (pageText && pageText.trim().length > 10) {
-          pageTexts.push(pageText);
-          console.log(`✅ Page ${pageNum} text extracted: ${pageText.length} characters`);
-        } else {
-          console.log(`⚠️ Page ${pageNum} yielded minimal text`);
-          pageTexts.push(''); // Keep page order
-        }
-        
-      } catch (pageError) {
-        console.log(`⚠️ Failed to process page ${pageNum}:`, pageError);
-        pageTexts.push(''); // Keep page order
-      }
-    }
-    
-    console.log(`✅ Complex PDF processing complete: ${pageTexts.length} pages processed`);
-    return pageTexts;
-    
-  } catch (error) {
-    console.error('❌ Complex PDF processing failed:', error);
-    // Fallback to regular PDF processing
-    return await extractTextFromPDFAsImages(file, openai);
-  }
-}
-
-// SPECIALIZED: Resume-optimized Vision API extraction
-async function extractResumeWithSpecializedVision(openai: any, base64Data: string): Promise<string> {
-  console.log(`🧠 SPECIALIZED RESUME EXTRACTION: Optimized for modern resume layouts`);
-  
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `You are a RESUME CONTENT SPECIALIST. Extract ALL text from this resume image with PERFECT ACCURACY.
-
-🎯 RESUME-SPECIFIC INSTRUCTIONS:
-1. This is likely a MODERN DESIGNED RESUME (Canva, InDesign, etc.)
-2. Text may be in CREATIVE LAYOUTS, overlays, or decorative elements
-3. PRESERVE EXACT READING ORDER: Name → Title → Contact → Sections
-4. Include ALL sections: Experience, Education, Skills, etc.
-5. Extract EVERY detail: dates, company names, job titles, descriptions
-6. Include contact info: emails, phones, addresses, LinkedIn, websites
-7. Capture skills lists, bullet points, and formatted text
-8. Don't miss small text, icons with text, or background elements
-
-📋 CRITICAL REQUIREMENTS:
-- Extract EVERY visible word and number
-- Maintain the VISUAL READING FLOW (top-to-bottom, left-to-right)
-- Include ALL professional details (no matter how small)
-- Capture formatted lists, tables, and structured content
-- Include years, dates, percentages, and metrics
-- Don't summarize or interpret - extract EXACTLY as written
-- If text is stylized or decorative, still include the content
-
-🚫 NEVER SKIP:
-- Contact information (even if styled)
-- Job descriptions and responsibilities  
-- Education details and dates
-- Skills and competencies
-- Certifications and achievements
-- Social media links and portfolios
-
-Return the complete text preserving the original structure and order.`
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Data}`,
-              detail: "high"
-            }
-          }
-        ]
-      }
-    ],
-    max_tokens: 4000,
-    temperature: 0.1
-  });
-
-  const extractedText = completion.choices[0]?.message?.content;
-  if (!extractedText) {
-    throw new Error('No text returned from Specialized Resume Vision API');
-  }
-
-  console.log(`✅ Specialized resume extraction: ${extractedText.length} characters`);
-  return extractedText.trim();
-}
-
-// MULTI-PASS: Different AI approaches for comprehensive extraction
-async function extractWithMultiplePasses(openai: any, base64Data: string): Promise<string[]> {
-  console.log(`🔄 MULTI-PASS EXTRACTION: Using different AI strategies`);
-  
-  const passes: string[] = [];
-  
-  // Pass 1: Focus on structure and layout
-  try {
-    console.log('🔍 Pass 1: Structure and layout focus...');
-    const structurePass = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Focus on STRUCTURE and LAYOUT. Extract text emphasizing:
-- Document sections and headers
-- Professional formatting and organization
-- Contact information and personal details
-- Clear reading order and hierarchy
-Extract all visible text while maintaining structure.`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Data}`,
-                detail: "high"
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Please extract ALL text from this resume image. Include every detail visible - names, contact info, job titles, company names, dates, descriptions, skills, education, etc. Preserve the original formatting and structure as much as possible."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: base64Image
+                }
               }
-            }
-          ]
-        }
-      ],
-      max_tokens: 3000,
-      temperature: 0.1
-    });
-    
-    const structureText = structurePass.choices[0]?.message?.content;
-    if (structureText) {
-      passes.push(structureText);
-      console.log(`✅ Pass 1 complete: ${structureText.length} characters`);
-    }
-  } catch (error) {
-    console.log('⚠️ Pass 1 failed:', error);
-  }
-  
-  // Pass 2: Focus on details and content
-  try {
-    console.log('🔍 Pass 2: Details and content focus...');
-    const contentPass = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Focus on DETAILS and CONTENT. Extract text emphasizing:
-- Job descriptions and responsibilities
-- Skills, achievements, and metrics
-- Education details and dates
-- Small text and fine details
-- Numbers, percentages, and statistics
-Extract every detail you can see, no matter how small.`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Data}`,
-                detail: "high"
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 3000,
-      temperature: 0.1
-    });
-    
-    const contentText = contentPass.choices[0]?.message?.content;
-    if (contentText) {
-      passes.push(contentText);
-      console.log(`✅ Pass 2 complete: ${contentText.length} characters`);
-    }
-  } catch (error) {
-    console.log('⚠️ Pass 2 failed:', error);
-  }
-  
-  console.log(`✅ Multi-pass extraction complete: ${passes.length} passes`);
-  return passes;
-}
-
-// Convert PDF pages to images then extract text from each page
-async function extractTextFromPDFAsImages(file: File, openai: any): Promise<string[]> {
-  console.log('🔄 Converting PDF pages to images for comprehensive OCR...');
-  
-  try {
-    // Dynamically import PDF.js
-    const pdfjsLib = await import('pdfjs-dist');
-    
-    // Set up PDF.js worker with multiple fallback URLs
-    const workerUrls = [
-      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
-      'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
-    ];
-    
-    for (const workerUrl of workerUrls) {
-      try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-        console.log(`📦 Trying PDF.js worker: ${workerUrl}`);
-        break;
-      } catch (error) {
-        console.log(`⚠️ Worker failed: ${workerUrl}`, error);
-      }
-    }
-    
-    // Load the PDF
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    console.log(`📄 PDF loaded: ${pdf.numPages} pages`);
-    
-    const pageTexts: string[] = [];
-    
-    // Process each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      try {
-        console.log(`🔍 Processing PDF page ${pageNum}/${pdf.numPages}...`);
-        
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 2.0 }); // High resolution
-        
-        // Create canvas to render page
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        // Render page to canvas
-        const renderContext = {
-          canvasContext: context!,
-          viewport: viewport
-        };
-        
-        await page.render(renderContext).promise;
-        
-        // Convert canvas to base64 image
-        const imageData = canvas.toDataURL('image/jpeg', 0.95);
-        const base64Data = imageData.split(',')[1];
-        
-        console.log(`🖼️ Page ${pageNum} converted to image`);
-        
-        // Extract text from the image using Vision API
-        const pageText = await extractComprehensiveTextWithVision(openai, base64Data, 'image');
-        
-        if (pageText && pageText.trim().length > 10) {
-          pageTexts.push(pageText);
-          console.log(`✅ Page ${pageNum} text extracted: ${pageText.length} characters`);
-        } else {
-          console.log(`⚠️ Page ${pageNum} yielded insufficient text`);
-          pageTexts.push(''); // Keep page order
-        }
-        
-      } catch (pageError) {
-        console.log(`⚠️ Failed to process page ${pageNum}:`, pageError);
-        pageTexts.push(''); // Keep page order
-      }
-    }
-    
-    console.log(`✅ PDF to images processing complete: ${pageTexts.length} pages processed`);
-    return pageTexts;
-    
-  } catch (error) {
-    console.error('❌ PDF to images conversion failed:', error);
-    throw new Error(`PDF to images conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-// Tesseract OCR extraction (fallback method)
-async function extractTextWithTesseract(file: File): Promise<string> {
-  console.log('🔍 Attempting Tesseract OCR extraction...');
-  
-  try {
-    // Import Tesseract dynamically
-    const Tesseract = await import('tesseract.js');
-    
-    console.log('⚙️ Processing with Tesseract OCR...');
-    const { data: { text } } = await Tesseract.recognize(file, 'eng', {
-      logger: m => {
-        if (m.status === 'recognizing text') {
-          console.log(`📖 OCR Progress: ${Math.round(m.progress * 100)}%`);
-        }
-      }
-    });
-    
-    console.log(`✅ Tesseract extraction complete: ${text.length} characters`);
-    return text;
-    
-  } catch (error) {
-    console.log('⚠️ Tesseract not available or failed:', error);
-    throw new Error('Tesseract OCR failed');
-  }
-}
-
-// Legacy helper function to extract text using OpenAI Vision API  
-async function extractTextWithVisionAPI(openai: any, base64Data: string, fileType: string): Promise<string> {
-  console.log(`🤖 Using OpenAI Vision API for ${fileType} text extraction...`);
-  
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `Extract ALL text content from this ${fileType} file. Return only the extracted text, no formatting or commentary. Focus on preserving the original structure and content.`
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: base64Data,
-              detail: "high"
-            }
+            ]
           }
-        ]
-      }
-    ],
-    max_tokens: 4000
-  });
-
-  const extractedText = completion.choices[0]?.message?.content;
-  if (!extractedText) {
-    throw new Error('No text extracted by Vision API');
-  }
-
-  console.log('✅ Vision API text extraction complete');
-  return extractedText;
-}
-
-// Clean extracted text to fix spacing and formatting issues from complex PDFs
-function cleanExtractedText(text: string): string {
-  if (!text) return '';
-  
-  console.log('🧹 Cleaning extracted text for better formatting...');
-  
-  let cleaned = text;
-  
-  // Fix excessive spacing between characters (e.g., "S e n i o r" → "Senior")
-  cleaned = cleaned.replace(/\b([A-Za-z])\s+([A-Za-z])\s+([A-Za-z])/g, (match, a, b, c) => {
-    // Only fix if it's clearly spaced out letters (3+ consecutive single letters with spaces)
-    const words = match.split(/\s+/);
-    if (words.length >= 3 && words.every(word => word.length === 1)) {
-      return words.join('');
-    }
-    return match;
-  });
-  
-  // Fix extensive character spacing in titles and headers
-  cleaned = cleaned.replace(/([A-Z])\s+([a-z])\s+([a-z])\s+([a-z])\s+([a-z])/g, '$1$2$3$4$5');
-  cleaned = cleaned.replace(/([A-Za-z])\s+([A-Za-z])\s+([A-Za-z])\s+([A-Za-z])/g, '$1$2$3$4');
-  
-  // Clean up excessive line breaks and whitespace
-  cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n'); // Max 2 line breaks
-  cleaned = cleaned.replace(/[ \t]+/g, ' '); // Multiple spaces to single space
-  cleaned = cleaned.replace(/^\s+|\s+$/gm, ''); // Trim lines
-  
-  // Fix numbered/bulleted lists formatting
-  cleaned = cleaned.replace(/\n\s*([•○▪▫-]|\d+\.)\s*/g, '\n$1 ');
-  
-  // Clean up section headers
-  cleaned = cleaned.replace(/^#{1,6}\s*(.+?)\s*$/gm, '## $1');
-  
-  // Remove excessive markdown formatting
-  cleaned = cleaned.replace(/#{4,}/g, '###'); // Max 3 hashes
-  
-  console.log(`✅ Text cleaned: ${text.length} → ${cleaned.length} characters`);
-  return cleaned.trim();
-}
-
-// ENHANCED: Intelligent combination for complex PDF extractions
-function combineExtractedTexts(extractedTexts: string[]): string {
-  if (extractedTexts.length === 0) {
-    return '';
-  }
-  
-  if (extractedTexts.length === 1) {
-    return extractedTexts[0];
-  }
-  
-  console.log(`🔗 INTELLIGENT COMBINATION: Merging ${extractedTexts.length} extraction results...`);
-  console.log(`🧠 Using advanced logic for Canva/design PDF optimization`);
-  
-  // Enhanced combination logic for complex resumes
-  const combinedResult = combineComplexPDFResults(extractedTexts);
-  
-  console.log(`✅ Intelligent combination complete: ${combinedResult.length} characters`);
-  return combinedResult;
-}
-
-// SPECIALIZED: Intelligent combination for complex PDF results
-function combineComplexPDFResults(extractedTexts: string[]): string {
-  console.log(`🎨 COMPLEX PDF COMBINER: Optimizing multiple extraction results`);
-  
-  // Filter out empty or too-short results
-  const validTexts = extractedTexts.filter(text => text && text.trim().length > 20);
-  
-  if (validTexts.length === 0) {
-    return '';
-  }
-  
-  if (validTexts.length === 1) {
-    return validTexts[0];
-  }
-  
-  // Analyze each extraction result
-  const analysisResults = validTexts.map((text, index) => ({
-    index,
-    text,
-    length: text.length,
-    lineCount: text.split('\n').length,
-    hasEmail: /@/.test(text),
-    hasPhone: /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/.test(text),
-    hasExperience: /(experience|work|job|position)/i.test(text),
-    hasEducation: /(education|university|college|degree)/i.test(text),
-    hasSkills: /(skills|competenc)/i.test(text),
-    hasStructure: /\n\s*\n/.test(text), // Has paragraph breaks
-    completenessScore: 0
-  }));
-  
-  // Calculate completeness scores
-  analysisResults.forEach(result => {
-    let score = 0;
-    score += result.length / 100; // Length factor
-    score += result.hasEmail ? 10 : 0;
-    score += result.hasPhone ? 10 : 0;
-    score += result.hasExperience ? 15 : 0;
-    score += result.hasEducation ? 15 : 0;
-    score += result.hasSkills ? 10 : 0;
-    score += result.hasStructure ? 10 : 0;
-    score += result.lineCount > 10 ? 10 : 0;
-    
-    result.completenessScore = score;
-    console.log(`📊 Extraction ${result.index + 1}: Score ${score.toFixed(1)} (${result.length} chars)`);
-  });
-  
-  // Sort by completeness score (highest first)
-  analysisResults.sort((a, b) => b.completenessScore - a.completenessScore);
-  
-  // Start with the most complete result
-  let primary = analysisResults[0].text;
-  console.log(`🎯 Primary result: Extraction ${analysisResults[0].index + 1} (score: ${analysisResults[0].completenessScore.toFixed(1)})`);
-  
-  // Intelligently merge additional content from other extractions
-  for (let i = 1; i < analysisResults.length; i++) {
-    const additional = analysisResults[i];
-    console.log(`🔍 Analyzing additional extraction ${additional.index + 1}...`);
-    
-    // Extract unique content not in primary
-    const additionalLines = additional.text.split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 5);
-    
-    const primaryLines = primary.split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 5);
-    
-    const uniqueLines: string[] = [];
-    
-    additionalLines.forEach(line => {
-      // Check if this line adds new information
-      const isUnique = !primaryLines.some(pLine => {
-        const similarity = calculateTextSimilarity(line, pLine);
-        return similarity > 0.7; // 70% similarity threshold
+        ],
+        temperature: 0.1,
+        max_tokens: 4000
       });
       
-      if (isUnique && line.length > 10) {
-        uniqueLines.push(line);
-      }
-    });
-    
-    if (uniqueLines.length > 0) {
-      console.log(`📝 Found ${uniqueLines.length} unique lines from extraction ${additional.index + 1}`);
-      primary += '\n\n' + uniqueLines.join('\n');
-    }
-  }
-  
-  // Final cleanup and optimization
-  primary = cleanupCombinedText(primary);
-  
-  console.log(`✅ Complex PDF combination complete: ${primary.length} final characters`);
-  return primary;
-}
-
-// Calculate text similarity between two lines
-function calculateTextSimilarity(text1: string, text2: string): number {
-  const longer = text1.length > text2.length ? text1 : text2;
-  const shorter = text1.length > text2.length ? text2 : text1;
-  
-  if (longer.length === 0) return 1.0;
-  
-  const editDistance = levenshteinDistance(longer, shorter);
-  return (longer.length - editDistance) / longer.length;
-}
-
-// Clean up the final combined text
-function cleanupCombinedText(text: string): string {
-  return text
-    // Remove excessive whitespace
-    .replace(/\n{4,}/g, '\n\n\n')
-    .replace(/\s{3,}/g, ' ')
-    // Remove duplicate lines that are very similar
-    .split('\n')
-    .filter((line, index, array) => {
-      if (line.trim().length < 5) return true; // Keep short lines/spacing
+      const extractedText = completion.choices[0]?.message?.content;
       
-      // Check for near-duplicates
-      for (let i = 0; i < index; i++) {
-        if (calculateTextSimilarity(line.trim(), array[i].trim()) > 0.9) {
-          return false; // Skip near-duplicate
-        }
+      // Track token usage and costs for this API call
+      if (completion.usage) {
+        const usage: TokenUsage = {
+          prompt_tokens: completion.usage.prompt_tokens,
+          completion_tokens: completion.usage.completion_tokens,
+          total_tokens: completion.usage.total_tokens
+        };
+        
+        const costs = calculateTokenCosts(usage);
+        updateSessionTokenTracking(usage, costs);
+        
+        console.log(`💰 GPT Vision OCR Page ${i + 1} Token Usage:`);
+        console.log(`   📥 Input tokens: ${usage.prompt_tokens.toLocaleString()}`);
+        console.log(`   📤 Output tokens: ${usage.completion_tokens.toLocaleString()}`);
+        console.log(`   🔢 Total tokens: ${usage.total_tokens.toLocaleString()}`);
+        console.log(`   💵 Cost: ${formatCurrency(costs.totalCost, 'USD')} / ${formatCurrency(costs.totalCostPHP, 'PHP')}`);
+        console.log(`   💸 Input cost: ${formatCurrency(costs.inputCost, 'USD')} / ${formatCurrency(costs.inputCostPHP, 'PHP')}`);
+        console.log(`   💸 Output cost: ${formatCurrency(costs.outputCost, 'USD')} / ${formatCurrency(costs.outputCostPHP, 'PHP')}`);
       }
-      return true;
-    })
-    .join('\n')
-    .trim();
-}
-
-// Simple Levenshtein distance function for text similarity
-function levenshteinDistance(str1: string, str2: string): number {
-  const matrix = [];
-  
-  for (let i = 0; i <= str2.length; i++) {
-    matrix[i] = [i];
-  }
-  
-  for (let j = 0; j <= str1.length; j++) {
-    matrix[0][j] = j;
-  }
-  
-  for (let i = 1; i <= str2.length; i++) {
-    for (let j = 1; j <= str1.length; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
+      
+      if (extractedText) {
+        allExtractedText += extractedText + '\n\n';
+        console.log(`✅ Image ${i + 1} processed: ${extractedText.length} characters extracted`);
       } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
+        console.log(`⚠️ No text extracted from image ${i + 1}`);
       }
     }
-  }
-  
-  return matrix[str2.length][str1.length];
-}
-
-// Organize extracted text using AI for structured DOCX creation
-async function organizeTextWithAI(rawText: string, fileName: string, apiKey: string): Promise<string> {
-  try {
-    console.log('🤖 Sending text to GPT-4o for organization...');
     
-    const OpenAI = (await import('openai')).default;
-    const openai = new OpenAI({
-      apiKey: apiKey,
-      dangerouslyAllowBrowser: true
-    });
+    console.log(`✅ GPT Vision OCR complete: ${allExtractedText.length} total characters extracted`);
     
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a resume organizer. Take the raw extracted text and organize it into clear, well-structured sections suitable for a professional resume document. Return only the organized text with proper headings and formatting."
-        },
-        {
-          role: "user",
-          content: `Organize this resume text into a well-structured format with clear sections:
-
-INSTRUCTIONS:
-1. Create clear section headings (PERSONAL INFORMATION, PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS, etc.)
-2. Organize content under appropriate sections
-3. Clean up any OCR errors or formatting issues
-4. Ensure professional formatting and structure
-5. Remove any duplicate or irrelevant information
-6. Return ONLY the organized text, no commentary
-
-Raw text from ${fileName}:
-${rawText}`
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 3000
-    });
+    // Display session summary for OCR phase
+    console.log(`💰 OCR Phase Summary:`);
+    console.log(`   🔄 API calls made: ${sessionTokenUsage.apiCalls}`);
+    console.log(`   📥 Total input tokens: ${sessionTokenUsage.totalInputTokens.toLocaleString()}`);
+    console.log(`   📤 Total output tokens: ${sessionTokenUsage.totalOutputTokens.toLocaleString()}`);
+    console.log(`   🔢 Total tokens used: ${sessionTokenUsage.totalTokens.toLocaleString()}`);
+    console.log(`   💵 Total cost: ${formatCurrency(sessionTokenUsage.totalCostUSD, 'USD')} / ${formatCurrency(sessionTokenUsage.totalCostPHP, 'PHP')}`);
     
-    const organizedText = completion.choices[0]?.message?.content;
-    if (!organizedText) {
-      throw new Error('No organized text received from AI');
-    }
-    
-    console.log('✅ Text organized by AI');
-    return organizedText.trim();
+    return allExtractedText.trim();
     
   } catch (error) {
-    console.error('AI text organization failed:', error);
-    throw new Error(`Failed to organize text: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ GPT Vision OCR failed:', error);
+    throw new Error(`GPT OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
-// Step 2: Create literal DOCX file preserving exact content
-async function createOrganizedDOCX(literalText: string, originalFileName: string): Promise<{ docxFile: File; docxPreview: string }> {
-  console.log('📄 Creating literal DOCX file preserving exact content...');
-  console.log(`📝 Literal text length: ${literalText.length} characters`);
-  console.log(`🎯 Preserving content exactly as written in original file`);
+// Build final resume object with CloudConvert pipeline metadata
+function buildResumeWithCloudConvertPipeline(
+  originalFile: File,
+  extractedText: string,
+  docxFile: File,
+  docxPreview: string,
+  jsonData: any,
+  jpegImages: string[]
+): ProcessedResume {
+  // Return pure resume content only
+  const pureResumeData = {
+    // Pure resume content (flexible structure based on actual content)
+    ...jsonData
+  };
+  
+  // Add internal UI-only metadata (will be filtered out in JSON display)
+  (pureResumeData as any)._uiMetadata = {
+    docxFileName: docxFile.name,
+    docxSize: docxFile.size,
+    docxPreview: docxPreview,
+    contentSource: 'CloudConvert + GPT Pipeline'
+  };
+  
+  return pureResumeData;
+}
+
+// Determine processing method based on file type
+function determineCloudConvertProcessingMethod(fileType: string): string {
+  const type = fileType.toLowerCase();
+  
+  if (type.includes('pdf')) return 'PDF→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('wordprocessingml') || type.includes('docx')) return 'DOCX→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('msword') || type.includes('doc')) return 'DOC→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('jpeg') || type.includes('jpg')) return 'JPEG→GPT-OCR→DOCX→JSON';
+  if (type.includes('png')) return 'PNG→GPT-OCR→DOCX→JSON';
+  
+  return 'Unknown→CloudConvert→JPEG→GPT-OCR→DOCX→JSON';
+}
+
+// Step 3: Create organized DOCX from extracted text
+async function createOrganizedDOCX(extractedText: string, originalFileName: string): Promise<{ docxFile: File; docxPreview: string }> {
+  console.log('📄 Creating professionally organized DOCX file...');
+  console.log(`📝 Extracted text length: ${extractedText.length} characters`);
+  console.log(`🎯 Organizing content into professional resume structure`);
   
   try {
-    const { Document, Packer, Paragraph, TextRun } = await import('docx');
+    const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx');
     
-    console.log('🔧 Building literal DOCX document (no reorganization)...');
+    console.log('🔧 Analyzing and organizing resume content...');
     
-    // Create DOCX with exact content as it appears (no parsing into sections)
+    // First, organize the text into proper resume sections
+    const organizedSections = organizeResumeContent(extractedText);
+    console.log(`📋 Organized into ${organizedSections.length} sections`);
+    
+    // Create DOCX with professional formatting
     const docElements: any[] = [];
     
-    // Split text by lines and preserve exact formatting
-    const lines = literalText.split('\n');
-    console.log(`📋 Preserving ${lines.length} lines exactly as they appear`);
-    
-    lines.forEach(line => {
-      // Preserve empty lines for spacing
-      if (line.trim() === '') {
-        docElements.push(new Paragraph({ text: "" }));
-      } else {
-        // Preserve exact line content without modification
-        docElements.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: line,
-                size: 22  // Standard size for readability
-              })
-            ]
-          })
-        );
-      }
-    });
+         organizedSections.forEach((section: { title: string; content: string }, index: number) => {
+       // Add spacing before sections (except first)
+       if (index > 0) {
+         docElements.push(new Paragraph({ text: "" }));
+       }
+       
+       // Section Header
+       docElements.push(
+         new Paragraph({
+           children: [
+             new TextRun({
+               text: section.title,
+               size: 28,
+               bold: true,
+               color: "1f4788"
+             })
+           ],
+           spacing: { after: 120 }
+         })
+       );
+       
+       // Section Content
+       const contentLines = section.content.split('\n');
+       contentLines.forEach((line: string) => {
+         if (line.trim()) {
+           docElements.push(
+             new Paragraph({
+               children: [
+                 new TextRun({
+                   text: line.trim(),
+                   size: 22
+                 })
+               ],
+               spacing: { after: 80 }
+             })
+           );
+         }
+       });
+       
+       // Add spacing after section
+       docElements.push(new Paragraph({ text: "" }));
+     });
     
     const doc = new Document({
       sections: [{
@@ -1530,30 +1057,288 @@ async function createOrganizedDOCX(literalText: string, originalFileName: string
       }]
     });
     
-    console.log('⚙️ Generating literal DOCX binary data...');
+    console.log('⚙️ Generating organized DOCX binary data...');
     const uint8Array = await Packer.toBuffer(doc);
     
     // Create DOCX file
-    const docxFileName = `literal_${originalFileName.replace(/\.[^/.]+$/, "")}.docx`;
+    const docxFileName = `organized_${originalFileName.replace(/\.[^/.]+$/, "")}.docx`;
     const docxFile = new File([uint8Array], docxFileName, {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     });
     
-    // Create preview text (exact content)
-    const docxPreview = createLiteralDOCXPreview(literalText);
+    // Create preview text (organized content)
+    const docxPreview = createOrganizedDOCXPreview(organizedSections);
     
-    console.log(`✅ Literal DOCX created: ${docxFileName} (${(docxFile.size / 1024).toFixed(1)}KB)`);
-    console.log(`📖 Preview shows exact original content: ${docxPreview.length} characters`);
+    console.log(`✅ Organized DOCX created: ${docxFileName} (${(docxFile.size / 1024).toFixed(1)}KB)`);
+    console.log(`📖 Preview shows professionally organized content: ${docxPreview.length} characters`);
     
     return { docxFile, docxPreview };
     
   } catch (error) {
-    console.error('❌ Literal DOCX creation failed:', error);
-    throw new Error(`Failed to create literal DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ Organized DOCX creation failed:', error);
+    throw new Error(`Failed to create organized DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
-// Parse organized text into sections
+// Organize resume content into professional sections
+function organizeResumeContent(extractedText: string): Array<{ title: string; content: string }> {
+  console.log('🎯 Organizing resume content into professional sections...');
+  
+  const sections: Array<{ title: string; content: string }> = [];
+  const lines = extractedText.split('\n').map(line => line.trim()).filter(line => line);
+  
+  // Initialize section categories
+  let personalInfo: string[] = [];
+  let summary: string[] = [];
+  let experience: string[] = [];
+  let education: string[] = [];
+  let skills: string[] = [];
+  let certifications: string[] = [];
+  let projects: string[] = [];
+  let languages: string[] = [];
+  let other: string[] = [];
+  
+  let currentSection = 'personal'; // Start with personal info
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lowerLine = line.toLowerCase();
+    
+    // Detect section headers and switch context
+    if (lowerLine.includes('summary') || lowerLine.includes('objective') || lowerLine.includes('profile')) {
+      currentSection = 'summary';
+      if (line.length > 50) { // If it's not just a header
+        summary.push(line);
+      }
+    } else if (lowerLine.includes('experience') || lowerLine.includes('employment') || lowerLine.includes('work history')) {
+      currentSection = 'experience';
+      if (line.length > 20) { // If it's not just a header
+        experience.push(line);
+      }
+    } else if (lowerLine.includes('education') || lowerLine.includes('academic') || lowerLine.includes('degree')) {
+      currentSection = 'education';
+      if (line.length > 20) { // If it's not just a header
+        education.push(line);
+      }
+    } else if (lowerLine.includes('skills') || lowerLine.includes('technical') || lowerLine.includes('competencies')) {
+      currentSection = 'skills';
+      if (line.length > 20) { // If it's not just a header
+        skills.push(line);
+      }
+    } else if (lowerLine.includes('certification') || lowerLine.includes('license') || lowerLine.includes('credential')) {
+      currentSection = 'certifications';
+      if (line.length > 20) { // If it's not just a header
+        certifications.push(line);
+      }
+    } else if (lowerLine.includes('project') || lowerLine.includes('portfolio')) {
+      currentSection = 'projects';
+      if (line.length > 20) { // If it's not just a header
+        projects.push(line);
+      }
+    } else if (lowerLine.includes('language') || lowerLine.includes('linguistic')) {
+      currentSection = 'languages';
+      if (line.length > 20) { // If it's not just a header
+        languages.push(line);
+      }
+    } else {
+      // Add content to current section
+      switch (currentSection) {
+        case 'personal':
+          // Detect personal info patterns
+          if (line.includes('@') || /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(line) || 
+              lowerLine.includes('linkedin') || lowerLine.includes('phone') || 
+              lowerLine.includes('email') || lowerLine.includes('address')) {
+            personalInfo.push(line);
+          } else if (i < 5) { // First few lines likely personal
+            personalInfo.push(line);
+          } else {
+            other.push(line);
+          }
+          break;
+        case 'summary':
+          summary.push(line);
+          break;
+        case 'experience':
+          experience.push(line);
+          break;
+        case 'education':
+          education.push(line);
+          break;
+        case 'skills':
+          skills.push(line);
+          break;
+        case 'certifications':
+          certifications.push(line);
+          break;
+        case 'projects':
+          projects.push(line);
+          break;
+        case 'languages':
+          languages.push(line);
+          break;
+        default:
+          other.push(line);
+      }
+    }
+  }
+  
+  // Build organized sections with proper formatting
+  if (personalInfo.length > 0) {
+    sections.push({
+      title: 'CONTACT INFORMATION',
+      content: personalInfo.join('\n')
+    });
+  }
+  
+  if (summary.length > 0) {
+    sections.push({
+      title: 'PROFESSIONAL SUMMARY',
+      content: summary.join('\n\n')
+    });
+  }
+  
+  if (experience.length > 0) {
+    sections.push({
+      title: 'PROFESSIONAL EXPERIENCE',
+      content: formatExperienceSection(experience)
+    });
+  }
+  
+  if (education.length > 0) {
+    sections.push({
+      title: 'EDUCATION',
+      content: formatEducationSection(education)
+    });
+  }
+  
+  if (skills.length > 0) {
+    sections.push({
+      title: 'SKILLS & COMPETENCIES',
+      content: skills.join('\n')
+    });
+  }
+  
+  if (certifications.length > 0) {
+    sections.push({
+      title: 'CERTIFICATIONS & LICENSES',
+      content: certifications.join('\n')
+    });
+  }
+  
+  if (projects.length > 0) {
+    sections.push({
+      title: 'PROJECTS & PORTFOLIO',
+      content: projects.join('\n\n')
+    });
+  }
+  
+  if (languages.length > 0) {
+    sections.push({
+      title: 'LANGUAGES',
+      content: languages.join('\n')
+    });
+  }
+  
+  if (other.length > 0) {
+    sections.push({
+      title: 'ADDITIONAL INFORMATION',
+      content: other.join('\n')
+    });
+  }
+  
+  console.log(`✅ Organized into ${sections.length} professional sections`);
+  return sections;
+}
+
+// Format experience section with proper spacing
+function formatExperienceSection(experience: string[]): string {
+  const formatted: string[] = [];
+  let currentEntry: string[] = [];
+  
+  for (const line of experience) {
+    // Detect if this looks like a new job entry (company name or job title)
+    if (line.includes('|') || /\b(20\d{2}|19\d{2})\b/.test(line) || 
+        (line.length < 100 && !line.startsWith('•') && !line.startsWith('-'))) {
+      // Save previous entry
+      if (currentEntry.length > 0) {
+        formatted.push(currentEntry.join('\n'));
+        currentEntry = [];
+      }
+      currentEntry.push(line);
+    } else {
+      currentEntry.push(line);
+    }
+  }
+  
+  // Add last entry
+  if (currentEntry.length > 0) {
+    formatted.push(currentEntry.join('\n'));
+  }
+  
+  return formatted.join('\n\n');
+}
+
+// Format education section with proper spacing
+function formatEducationSection(education: string[]): string {
+  const formatted: string[] = [];
+  let currentEntry: string[] = [];
+  
+  for (const line of education) {
+    // Detect if this looks like a new education entry
+    if (line.includes('University') || line.includes('College') || line.includes('School') || 
+        line.includes('Degree') || /\b(20\d{2}|19\d{2})\b/.test(line)) {
+      // Save previous entry
+      if (currentEntry.length > 0) {
+        formatted.push(currentEntry.join('\n'));
+        currentEntry = [];
+      }
+      currentEntry.push(line);
+    } else {
+      currentEntry.push(line);
+    }
+  }
+  
+  // Add last entry
+  if (currentEntry.length > 0) {
+    formatted.push(currentEntry.join('\n'));
+  }
+  
+  return formatted.join('\n\n');
+}
+
+// Create organized DOCX preview with professional formatting
+function createOrganizedDOCXPreview(sections: Array<{ title: string; content: string }>): string {
+  console.log('🎨 Creating organized DOCX preview...');
+  
+  let preview = '📄 PROFESSIONALLY ORGANIZED RESUME\n';
+  preview += '═'.repeat(50) + '\n\n';
+  
+  sections.forEach((section, index) => {
+    // Add spacing between sections (except first)
+    if (index > 0) {
+      preview += '\n';
+    }
+    
+    // Section header with formatting
+    preview += `${section.title}\n`;
+    preview += '─'.repeat(section.title.length) + '\n';
+    
+    // Section content with proper spacing
+    const contentLines = section.content.split('\n');
+    contentLines.forEach(line => {
+      if (line.trim()) {
+        preview += `${line.trim()}\n`;
+      }
+    });
+    
+    preview += '\n';
+  });
+  
+  console.log(`✅ Organized preview created: ${preview.length} characters`);
+  return preview.trim();
+}
+
+// Parse organized text into sections (legacy function - kept for compatibility)
 function parseOrganizedTextIntoSections(text: string): Array<{ title: string; content: string }> {
   const sections: Array<{ title: string; content: string }> = [];
   const lines = text.split('\n');
@@ -1605,8 +1390,11 @@ function createLiteralDOCXPreview(literalText: string): string {
   // Clean and format the text for better readability
   let formatted = literalText;
   
-  // Apply text cleaning first
-  formatted = cleanExtractedText(formatted);
+  // Apply text cleaning first - basic text cleanup
+  formatted = formatted
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/\n\s*\n/g, '\n\n') // Clean up multiple newlines
+    .trim();
   
   // Additional preview-specific formatting
   // Add proper spacing around section headers
@@ -1727,7 +1515,7 @@ async function createDOCXFromText(extractedText: string, originalFileName: strin
   }
 }
 
-// Step 3: Convert DOCX content to JSON (only what's in DOCX)
+// Step 4: Convert DOCX content to JSON (only what's in DOCX)
 async function convertDOCXContentToJSON(docxFile: File, openaiApiKey: string): Promise<any> {
   console.log('🔄 Converting DOCX content to JSON...');
   console.log(`📄 DOCX file: ${docxFile.name} (${(docxFile.size / 1024).toFixed(1)}KB)`);
@@ -1748,7 +1536,7 @@ async function convertDOCXContentToJSON(docxFile: File, openaiApiKey: string): P
     
     // Convert DOCX content to JSON using AI (only what's in the DOCX)
     console.log('🤖 Converting DOCX content to structured JSON...');
-    const jsonData = await convertTextToStrictJSON(docxContent, docxFile.name, openaiApiKey);
+    const jsonData = await convertTextToFlexibleJSON(docxContent, docxFile.name, openaiApiKey);
     
     // Return clean JSON data without unnecessary metadata
     const enhancedData = {
@@ -1764,8 +1552,8 @@ async function convertDOCXContentToJSON(docxFile: File, openaiApiKey: string): P
   }
 }
 
-// Convert text to comprehensive JSON (capture ALL content from DOCX)
-async function convertTextToStrictJSON(text: string, fileName: string, apiKey: string): Promise<any> {
+// Convert text to flexible JSON (adapts to actual resume content)
+async function convertTextToFlexibleJSON(text: string, fileName: string, apiKey: string): Promise<any> {
   try {
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({
@@ -1778,89 +1566,61 @@ async function convertTextToStrictJSON(text: string, fileName: string, apiKey: s
       messages: [
         {
           role: "system",
-          content: "You are a comprehensive JSON converter. Extract EVERY piece of information from the DOCX text and convert it to JSON. Do not miss ANY content - this is critical. Include all text exactly as written."
+          content: "You are a flexible resume parser. Create a JSON structure that perfectly matches the actual content and organization of this resume. Do not force predetermined fields - adapt the structure to what's actually present."
         },
         {
           role: "user",
-          content: `Extract EVERY piece of information from this DOCX content into comprehensive JSON. Missing ANY content is not acceptable.
+          content: `Analyze this resume content and create a JSON structure that perfectly captures its actual organization and content. Be completely flexible and adaptive.
 
 CRITICAL REQUIREMENTS:
-1. Extract EVERY word, number, date, and detail present in the DOCX
-2. Include ALL contact information (emails, phones, addresses, websites, social profiles)
-3. Include ALL job titles, company names, employment dates, and job descriptions
-4. Include ALL education details, degrees, institutions, years, GPA, honors
-5. Include ALL skills, certifications, languages, projects, achievements
-6. Include ALL sections and their complete content
-7. Include ANY additional text or details not covered by standard fields
-8. Do not summarize or shorten any content
-9. Preserve exact wording and details as written
-10. If you see ANY text content, include it somewhere in the JSON
+1. Create field names based on what's actually in the resume
+2. Organize data exactly as it appears in the original document
+3. Do not force predetermined structures - adapt to the content
+4. Preserve all information without summarizing or modifying
+5. Use logical field names that match the resume's sections and content
+6. If something doesn't fit common categories, create appropriate new fields
+7. Maintain the natural hierarchy and grouping from the original resume
+8. Include ALL text content - nothing should be lost
 
-Use this comprehensive structure and add any additional fields needed:
+EXAMPLES OF FLEXIBLE STRUCTURES:
+- If resume has "Professional Summary" → use "professional_summary" field
+- If resume has "Core Competencies" → use "core_competencies" field  
+- If resume has "Volunteer Work" → create "volunteer_work" array
+- If resume has "Publications" → create "publications" array
+- If resume has unique sections → create appropriately named fields
 
-{
-  "name": "",
-  "title": "",
-  "email": "",
-  "phone": "",
-  "location": "",
-  "linkedin": "",
-  "website": "",
-  "summary": "",
-  "objective": "",
-  "experience": [
-    {
-      "company": "",
-      "position": "",
-      "duration": "",
-      "location": "",
-      "responsibilities": [],
-      "achievements": [],
-      "description": ""
-    }
-  ],
-  "education": [
-    {
-      "institution": "",
-      "degree": "",
-      "year": "",
-      "location": "",
-      "gpa": "",
-      "honors": "",
-      "details": "",
-      "coursework": []
-    }
-  ],
-  "skills": [],
-  "certifications": [],
-  "languages": [],
-  "projects": [
-    {
-      "name": "",
-      "description": "",
-      "technologies": [],
-      "duration": "",
-      "url": ""
-    }
-  ],
-  "sections": [
-    {
-      "title": "",
-      "content": ""
-    }
-  ],
-  "additionalInfo": []
-}
+DO NOT use predetermined field names. CREATE fields that match the actual content.
 
-DOCX content to extract from (get EVERYTHING):
+Resume content to analyze:
 ${text}`
         }
       ],
       temperature: 0.1,
-      max_tokens: 4000
+      max_tokens: 2000
     });
     
     const response = completion.choices[0]?.message?.content;
+    
+    // Track token usage and costs for JSON conversion
+    if (completion.usage) {
+      const usage: TokenUsage = {
+        prompt_tokens: completion.usage.prompt_tokens,
+        completion_tokens: completion.usage.completion_tokens,
+        total_tokens: completion.usage.total_tokens
+      };
+      
+      const costs = calculateTokenCosts(usage);
+      updateSessionTokenTracking(usage, costs);
+      
+      console.log(`💰 JSON Conversion Token Usage:`);
+      console.log(`   📥 Input tokens: ${usage.prompt_tokens.toLocaleString()}`);
+      console.log(`   📤 Output tokens: ${usage.completion_tokens.toLocaleString()}`);
+      console.log(`   🔢 Total tokens: ${usage.total_tokens.toLocaleString()}`);
+      console.log(`   💵 Cost: ${formatCurrency(costs.totalCost, 'USD')} / ${formatCurrency(costs.totalCostPHP, 'PHP')}`);
+      console.log(`   💸 Input cost: ${formatCurrency(costs.inputCost, 'USD')} / ${formatCurrency(costs.inputCostPHP, 'PHP')}`);
+      console.log(`   💸 Output cost: ${formatCurrency(costs.outputCost, 'USD')} / ${formatCurrency(costs.outputCostPHP, 'PHP')}`);
+    }
+    
     if (!response) {
       throw new Error('No response from AI');
     }
@@ -2396,6 +2156,7 @@ async function convertPDFToJPEGAdvanced(file: File): Promise<string[]> {
         
         const page = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: 2.0 }); // High resolution for OCR
+        
         
         canvas.width = viewport.width;
         canvas.height = viewport.height;
@@ -3294,15 +3055,15 @@ function extractEducation(text: string): ProcessedResume['education'] {
   // Clean up education entries
   const cleanedEducation = education
     .filter(edu => 
-      edu.institution.length > 3 && 
-      edu.degree.length > 3 &&
+      edu.institution && edu.institution.length > 3 && 
+      edu.degree && edu.degree.length > 3 &&
       edu.institution !== edu.degree
     )
     .map(edu => ({
       ...edu,
-      institution: edu.institution.replace(/[()[\]]/g, '').trim(),
-      degree: edu.degree.replace(/[()[\]]/g, '').trim(),
-      year: edu.year.replace(/[()[\]]/g, '').trim()
+      institution: (edu.institution || '').replace(/[()[\]]/g, '').trim(),
+      degree: (edu.degree || '').replace(/[()[\]]/g, '').trim(),
+      year: (edu.year || '').replace(/[()[\]]/g, '').trim()
     }));
   
   console.log('Extracted education entries:', cleanedEducation.length);
