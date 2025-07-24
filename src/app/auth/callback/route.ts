@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+
   // Determine the correct redirect URL based on environment
   const isProduction = process.env.NODE_ENV === 'production'
   const redirectUrl = isProduction 
@@ -34,4 +35,5 @@ export async function GET(request: NextRequest) {
 
   // Redirect to home page after successful authentication
   return NextResponse.redirect(new URL('/', redirectUrl))
+
 } 
