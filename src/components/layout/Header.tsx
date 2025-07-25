@@ -21,7 +21,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import LoginForm from '@/components/auth/LoginForm'
 import SignUpForm from '@/components/auth/SignUpForm'
-import EditProfile from '@/components/auth/EditProfile'
+
 import { useAuth } from '@/contexts/AuthContext'
 
 interface HeaderProps {
@@ -34,7 +34,7 @@ export default function Header({}: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+
   
   const isAuthenticated = !!user
   
@@ -73,13 +73,8 @@ export default function Header({}: HeaderProps) {
     }
   }
 
-  const handleOpenEditProfile = () => {
-    setIsEditProfileOpen(true)
-    setIsMobileMenuOpen(false) // Close mobile menu if open
-  }
-
   const userMenuItems = [
-    { label: 'Profile', href: null, icon: User, action: handleOpenEditProfile },
+    { label: 'Profile', href: '/profile', icon: User, action: null },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: handleSignOut }
   ]
@@ -348,11 +343,7 @@ export default function Header({}: HeaderProps) {
         onSwitchToLogin={handleSwitchToLogin}
       />
       
-      {/* Edit Profile Dialog */}
-      <EditProfile 
-        open={isEditProfileOpen} 
-        onOpenChange={setIsEditProfileOpen}
-      />
+
     </header>
   )
 } 

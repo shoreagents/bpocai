@@ -8,20 +8,12 @@ import { Badge } from '@/components/ui/badge';
 
 export default function CareerToolsPage() {
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden cyber-grid">
-      {/* Futuristic Background Effects */}
+    <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Background Effects */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl animate-pulse delay-700"></div>
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-cyan-500/6 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-purple-500/6 rounded-full blur-2xl animate-pulse delay-500"></div>
-        
-        {/* Additional floating elements */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-cyan-500/3 to-purple-500/3 rounded-full blur-3xl"></div>
-        
-        {/* Moving gradient lines */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent animate-pulse delay-1000"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
       </div>
 
       <Header />
