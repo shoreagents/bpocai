@@ -34,7 +34,11 @@ export default function SkillsAssessmentPage() {
       icon: Keyboard,
       difficulty: 'Progressive',
       category: 'Technical Skills',
-      duration: '4 levels',
+      duration: '15-20 minutes',
+      levels: 4,
+      totalQuestions: 8,
+      estimatedTime: '15-20 min',
+      levelDetails: ['Easy', 'Medium', 'Hard', 'Expert'],
       difficultyColor: 'bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent border-cyan-500/30',
       categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       skillsAssessed: ['Typing Speed (WPM)', 'Accuracy %', 'Technical Terms', 'Programming Syntax'],
@@ -48,7 +52,11 @@ export default function SkillsAssessmentPage() {
       icon: Brain,
       difficulty: 'Intermediate',
       category: 'Personality',
-      duration: '15 minutes',
+      duration: '12-15 minutes',
+      levels: 1,
+      totalQuestions: 40,
+      estimatedTime: '12-15 min',
+      levelDetails: ['Comprehensive Assessment'],
       difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       categoryColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       skillsAssessed: ['Dominance', 'Influence', 'Steadiness', 'Conscientiousness'],
@@ -62,7 +70,11 @@ export default function SkillsAssessmentPage() {
       icon: MessageSquare,
       difficulty: 'Intermediate',
       category: 'Communication',
-      duration: '12 minutes',
+      duration: '10-12 minutes',
+      levels: 1,
+      totalQuestions: 20,
+      estimatedTime: '10-12 min',
+      levelDetails: ['Mixed Skills Assessment'],
       difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       categoryColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
       skillsAssessed: ['Grammar & Vocabulary', 'Email Writing', 'Customer Responses'],
@@ -76,7 +88,11 @@ export default function SkillsAssessmentPage() {
       icon: PuzzleIcon,
       difficulty: 'Advanced',
       category: 'Cognitive',
-      duration: '20 minutes',
+      duration: '15-20 minutes',
+      levels: 1,
+      totalQuestions: 20,
+      estimatedTime: '15-20 min',
+      levelDetails: ['Advanced Problem Solving'],
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
       categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       skillsAssessed: ['Pattern Recognition', 'Problem Solving', 'Logical Analysis'],
@@ -105,10 +121,17 @@ export default function SkillsAssessmentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
       <Header />
       
-      <div className="pt-16">
+      <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <motion.div
@@ -161,8 +184,8 @@ export default function SkillsAssessmentPage() {
                       {assessment.description}
                     </CardDescription>
 
-                    {/* Difficulty and Category Badges */}
-                    <div className="flex gap-2 mb-4">
+                    {/* Enhanced Info Badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
                       <Badge className={assessment.difficultyColor}>
                         {assessment.difficulty}
                       </Badge>
@@ -171,8 +194,19 @@ export default function SkillsAssessmentPage() {
                       </Badge>
                       <Badge className="bg-white/10 text-gray-300 border-white/20 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {assessment.duration}
+                        {assessment.estimatedTime}
                       </Badge>
+                      {assessment.levels > 1 ? (
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30 flex items-center gap-1">
+                          <Target className="w-3 h-3" />
+                          {assessment.levels} Levels
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          {assessment.totalQuestions} Questions
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
 
@@ -201,7 +235,7 @@ export default function SkillsAssessmentPage() {
                           <span>{assessment.participants.toLocaleString()} completed</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
+                          <Trophy className="w-3 h-3" />
                           <span>{assessment.rating} rating</span>
                         </div>
                       </div>

@@ -168,6 +168,10 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
+            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 mb-4">
+              <Target className="w-4 h-4 mr-2" />
+              Competitive Analysis
+            </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
 
               Why Choose <span className="gradient-text">BPOC.AI</span>
@@ -177,37 +181,54 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {/* Traditional Job Sites */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
+              className="group"
             >
-                              <Card className="glass-card border-white/10 h-full">
-                  <CardHeader className="text-center pb-3">
-                    <CardTitle className="text-xl text-white mb-0">Traditional Job Sites</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+              <Card className="glass-card border-white/10 hover:border-red-400/20 h-full transition-all duration-300 group-hover:scale-[1.02] opacity-80 group-hover:opacity-90">
+                <CardHeader className="text-center pb-6">
+                  <CardTitle className="text-xl text-white mb-2 flex items-center justify-center gap-2">
+                    <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
+                    Traditional Job Sites
+                  </CardTitle>
+                  <div className="w-12 h-px bg-gradient-to-r from-transparent via-red-400/30 to-transparent mx-auto"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Generic resume templates</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">No BPO-specific guidance</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Limited career tools</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">No AI-powered insights</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Generic job matching</span>
                   </div>
                 </CardContent>
@@ -220,42 +241,59 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="relative"
+              className="relative group"
             >
               {/* Recommended Badge */}
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 px-4 py-1 text-xs font-semibold">
-                  RECOMMENDED
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
+                <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0 px-6 py-2 text-sm font-bold shadow-lg shadow-red-500/25">
+                  ✨ RECOMMENDED
                 </Badge>
               </div>
               
-              <Card className="glass-card border-red-500/30 h-full relative overflow-hidden">
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-purple-500/5 rounded-xl"></div>
+              <Card className="glass-card border-red-500/40 hover:border-red-400/60 h-full relative overflow-hidden transition-all duration-300 group-hover:scale-[1.05] shadow-xl shadow-red-500/10 group-hover:shadow-red-500/20">
+                {/* Enhanced Glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-purple-500/5 to-pink-500/10 rounded-xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl"></div>
                 
-                <CardHeader className="text-center pb-3 relative z-10">
-                  <CardTitle className="text-xl text-white mb-0">BPOC.AI</CardTitle>
+                <CardHeader className="text-center pb-6 relative z-10">
+                  <CardTitle className="text-2xl text-white mb-2 flex items-center justify-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/25">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    BPOC.AI
+                  </CardTitle>
+                  <div className="w-16 h-px bg-gradient-to-r from-transparent via-green-400 to-transparent mx-auto"></div>
                 </CardHeader>
-                <CardContent className="space-y-3 relative z-10">
-                  <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-300 text-sm">AI-powered resume builder</span>
+                <CardContent className="space-y-4 relative z-10">
+                  <div className="flex items-start space-x-3 group/item hover:bg-green-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 shadow-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="text-white text-sm font-medium">AI-powered resume builder</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-300 text-sm">BPO-specific optimization</span>
+                  <div className="flex items-start space-x-3 group/item hover:bg-green-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 shadow-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="text-white text-sm font-medium">BPO-specific optimization</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-300 text-sm">Comprehensive career tools</span>
+                  <div className="flex items-start space-x-3 group/item hover:bg-green-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 shadow-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="text-white text-sm font-medium">Comprehensive career tools</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-300 text-sm">AI insights & recommendations</span>
+                  <div className="flex items-start space-x-3 group/item hover:bg-green-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 shadow-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="text-white text-sm font-medium">AI insights & recommendations</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-300 text-sm">Smart job matching</span>
+                  <div className="flex items-start space-x-3 group/item hover:bg-green-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 shadow-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                    </div>
+                    <span className="text-white text-sm font-medium">Smart job matching</span>
                   </div>
                 </CardContent>
               </Card>
@@ -267,30 +305,47 @@ export default function HomePage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
+              className="group"
             >
-                              <Card className="glass-card border-white/10 h-full">
-                  <CardHeader className="text-center pb-3">
-                    <CardTitle className="text-xl text-white mb-0">Other Career Tools</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+              <Card className="glass-card border-white/10 hover:border-red-400/20 h-full transition-all duration-300 group-hover:scale-[1.02] opacity-80 group-hover:opacity-90">
+                <CardHeader className="text-center pb-6">
+                  <CardTitle className="text-xl text-white mb-2 flex items-center justify-center gap-2">
+                    <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
+                    Other Career Tools
+                  </CardTitle>
+                  <div className="w-12 h-px bg-gradient-to-r from-transparent via-red-400/30 to-transparent mx-auto"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Not BPO-focused</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Expensive subscriptions</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Limited Filipino context</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">No job matching</span>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start space-x-3 group/item hover:bg-red-500/5 rounded-lg p-2 transition-colors">
+                    <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <X className="w-4 h-4 text-red-400" />
+                    </div>
                     <span className="text-gray-300 text-sm">Generic advice</span>
                   </div>
                 </CardContent>
@@ -312,6 +367,10 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 mb-4">
+              <Zap className="w-4 h-4 mr-2" />
+              Simple Process
+            </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
 
             How It<span className="gradient-text"> Works</span> 
@@ -321,29 +380,39 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto relative">
             {/* Step 1 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-center relative"
+              className="relative group"
             >
-              <div className="absolute -top-2 -left-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
-                1
-              </div>
-              <div className="mb-6">
-                <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
+              <Card className="glass-card border-white/10 hover:border-cyan-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
+                <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+                  1
+                </div>
+                
+                <CardContent className="p-0 text-center">
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/25 group-hover:shadow-cyan-500/40 transition-all duration-300">
+                      <FileText className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Upload Your Resume</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Upload your existing resume or start from scratch with our AI-powered builder.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Arrow 1 */}
+              <div className="hidden md:flex absolute -right-3 top-1/2 transform -translate-y-1/2 z-20">
+                <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Upload Your Resume</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Upload your existing resume or start from scratch with our AI-powered builder.
-              </p>
             </motion.div>
 
             {/* Step 2 */}
@@ -352,20 +421,32 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-center relative"
+              className="relative group"
             >
-              <div className="absolute -top-2 -left-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
-                2
-              </div>
-              <div className="mb-6">
-                <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
-                  <BrainIcon className="w-8 h-8 text-white" />
+              <Card className="glass-card border-white/10 hover:border-purple-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
+                <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+                  2
+                </div>
+                
+                <CardContent className="p-0 text-center">
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/40 transition-all duration-300">
+                      <BrainIcon className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">AI Analysis</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Our AI analyzes your resume and provides personalized recommendations.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Arrow 2 */}
+              <div className="hidden md:flex absolute -right-3 top-1/2 transform -translate-y-1/2 z-20">
+                <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">AI Analysis</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Our AI analyzes your resume and provides personalized recommendations.
-              </p>
             </motion.div>
 
             {/* Step 3 */}
@@ -374,20 +455,32 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
-              className="text-center relative"
+              className="relative group"
             >
-              <div className="absolute -top-2 -left-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
-                3
-              </div>
-              <div className="mb-6">
-                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-                  <Target className="w-8 h-8 text-white" />
+              <Card className="glass-card border-white/10 hover:border-green-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
+                <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+                  3
+                </div>
+                
+                <CardContent className="p-0 text-center">
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-500/25 group-hover:shadow-green-500/40 transition-all duration-300">
+                      <Target className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Optimize & Improve</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Address red flags, fill gaps, and optimize for BPO industry standards.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Arrow 3 */}
+              <div className="hidden md:flex absolute -right-3 top-1/2 transform -translate-y-1/2 z-20">
+                <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Optimize & Improve</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Address red flags, fill gaps, and optimize for BPO industry standards.
-              </p>
             </motion.div>
 
             {/* Step 4 */}
@@ -396,20 +489,25 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
-              className="text-center relative"
+              className="relative group"
             >
-              <div className="absolute -top-2 -left-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
-                4
-              </div>
-              <div className="mb-6">
-                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-8 h-8 text-white" />
+              <Card className="glass-card border-white/10 hover:border-yellow-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
+                <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+                  4
                 </div>
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Land Your Dream Job</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Apply with confidence and get matched with the best BPO opportunities.
-              </p>
+                
+                <CardContent className="p-0 text-center">
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-yellow-500/25 group-hover:shadow-yellow-500/40 transition-all duration-300">
+                      <CheckCircle className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Land Your Dream Job</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Apply with confidence and get matched with the best BPO opportunities.
+                  </p>
+                </CardContent>
+              </Card>
             </motion.div>
           </div>
 
@@ -432,8 +530,12 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
+            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 mb-4">
+              <Trophy className="w-4 h-4 mr-2" />
+              Testimonials
+            </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              <span className="gradient-text">Success</span> Stories
+              <span className="gradient-text">Success</span> Stories 
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
 
@@ -542,24 +644,32 @@ export default function HomePage() {
             viewport={{ once: true }}
 
             transition={{ delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+            className="grid grid-cols-2 md:grid-cols-4 gap-6"
           >
-            <div>
-              <div className="text-2xl md:text-3xl font-bold text-cyan-400 mb-2">10,000+</div>
-              <div className="text-sm text-gray-400">Happy Users</div>
-            </div>
-            <div>
-              <div className="text-2xl md:text-3xl font-bold text-green-400 mb-2">95%</div>
-              <div className="text-sm text-gray-400">Success Rate</div>
-            </div>
-            <div>
-              <div className="text-2xl md:text-3xl font-bold text-purple-400 mb-2">500+</div>
-              <div className="text-sm text-gray-400">Companies</div>
-            </div>
-            <div>
-              <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-2">4.9/5</div>
-              <div className="text-sm text-gray-400">User Rating</div>
-            </div>
+            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
+              <CardContent className="p-0">
+                <div className="text-2xl md:text-3xl font-bold text-cyan-400 mb-2">10,000+</div>
+                <div className="text-sm text-gray-400">Happy Users</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
+              <CardContent className="p-0">
+                <div className="text-2xl md:text-3xl font-bold text-green-400 mb-2">95%</div>
+                <div className="text-sm text-gray-400">Success Rate</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
+              <CardContent className="p-0">
+                <div className="text-2xl md:text-3xl font-bold text-purple-400 mb-2">500+</div>
+                <div className="text-sm text-gray-400">Companies</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
+              <CardContent className="p-0">
+                <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-2">4.9/5</div>
+                <div className="text-sm text-gray-400">User Rating</div>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
       </section>

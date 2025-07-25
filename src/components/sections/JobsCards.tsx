@@ -40,7 +40,7 @@ export default function JobsCards() {
         { icon: BookOpen, text: 'Question Bank' },
         { icon: Trophy, text: 'Performance Tracking' }
       ],
-      comingSoon: true,
+      comingSoon: false,
       href: '/jobs/interview-prep'
     },
     {
@@ -80,18 +80,16 @@ export default function JobsCards() {
           transition={{ delay: index * 0.1 }}
           className="group"
         >
-          <Card className={`glass-card ${tool.borderColor} ${tool.hoverBorder} h-full transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl ${tool.shadowColor}`}>
+          <Card className={`glass-card ${tool.borderColor} ${tool.hoverBorder} h-full transition-all duration-300 ${tool.shadowColor}`}>
             <CardHeader className="text-center">
               <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className={`w-16 h-16 ${tool.bgColor} rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg transition-all duration-300`}
+                className={`w-16 h-16 ${tool.bgColor} rounded-lg flex items-center justify-center mx-auto mb-4 transition-all duration-300`}
               >
                 <tool.icon className={`w-8 h-8 ${tool.color}`} />
               </motion.div>
               
               <div className="flex items-center justify-center gap-2 mb-2">
-                <CardTitle className="text-2xl text-white group-hover:gradient-text transition-all duration-300">
+                <CardTitle className="text-2xl text-white transition-all duration-300">
                   {tool.title}
                 </CardTitle>
                 {tool.comingSoon && (
@@ -115,7 +113,7 @@ export default function JobsCards() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: (index * 0.1) + (featureIndex * 0.05) }}
-                    className="flex items-center space-x-3 text-gray-300 group-hover:text-white transition-colors duration-300"
+                    className="flex items-center space-x-3 text-gray-300 transition-colors duration-300"
                   >
                     <div className={`w-6 h-6 ${tool.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
                       <feature.icon className={`w-3 h-3 ${tool.color}`} />
@@ -127,13 +125,13 @@ export default function JobsCards() {
 
               {/* Action Button */}
               <Button 
-                className={`w-full bg-gradient-to-r ${tool.buttonGradient} text-white border-0 shadow-lg ${tool.shadowColor} transition-all duration-300 group-hover:shadow-xl ${tool.comingSoon ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-gradient-to-r ${tool.buttonGradient} text-white border-0 shadow-lg ${tool.shadowColor} transition-all duration-300 ${tool.comingSoon ? 'opacity-60 cursor-not-allowed' : ''}`}
                 disabled={tool.comingSoon}
                 onClick={() => handleToolClick(tool)}
               >
                 <span className="flex items-center justify-center">
                   {tool.comingSoon ? 'Coming Soon' : `Start ${tool.title}`}
-                  {!tool.comingSoon && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
+                  {!tool.comingSoon && <ArrowRight className="w-4 h-4 ml-2 transition-transform" />}
                 </span>
               </Button>
             </CardContent>
