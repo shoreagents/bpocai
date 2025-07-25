@@ -75,7 +75,8 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-black text-white`}>
 
         <AuthProvider>
-
+          {children}
+          <DatabaseStatus />
         </AuthProvider>
       </body>
     </html>
