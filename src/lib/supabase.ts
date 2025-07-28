@@ -42,7 +42,42 @@ export const signInWithGoogle = async () => {
 }
 
 export const signOut = async () => {
-  return await supabase.auth.signOut()
+  try {
+    console.log('🚪 Starting comprehensive sign out...')
+    
+    // Clear browser storage
+    if (typeof window !== 'undefined') {
+      // Clear localStorage items
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.includes('supabase') || key.includes('auth'))) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      
+      // Clear sessionStorage
+      sessionStorage.clear()
+      
+      console.log('🧹 Cleared browser storage')
+    }
+    
+    // Sign out from Supabase
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    
+    if (error) {
+      console.error('❌ Supabase sign out error:', error)
+      return { error }
+    }
+    
+    console.log('✅ Sign out successful')
+    return { error: null }
+    
+  } catch (error) {
+    console.error('❌ Sign out failed:', error)
+    return { error }
+  }
 }
 
 export const getCurrentUser = () => {

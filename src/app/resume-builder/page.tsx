@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Upload, Link, X, FileText, Image, AlertCircle, Check, Plus, Sparkles } from 'lucide-react';
+import { Upload, Link, X, FileText, Image, AlertCircle, Check, Plus, Sparkles, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,10 @@ export default function ResumeBuilderPage() {
   const [showProcessingLogs, setShowProcessingLogs] = useState(false);
   const [showDOCXPreview, setShowDOCXPreview] = useState(false);
   const [showJsonPreview, setShowJsonPreview] = useState(false);
+  
+  // AI Analysis states
+  const [isAnalyzingWithClaude, setIsAnalyzingWithClaude] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   
   // Handle file drag and drop
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -160,6 +164,8 @@ export default function ResumeBuilderPage() {
     // Clear previous logs
     setProcessingLogs({});
     setShowProcessingLogs(true);
+    setIsAnalyzingWithClaude(true);
+    setAnalysisProgress(0);
 
     const processedResults: ProcessedResume[] = [];
     
@@ -173,13 +179,27 @@ export default function ResumeBuilderPage() {
         log(`📏 File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         log(`📁 File type: ${file.type}`);
         
+        // Update progress for JSON conversion
+        setAnalysisProgress(25);
+        
         // Process with server-side API
         const processedResume = await processFileWithAPI(file, log);
         processedResults.push(processedResume);
         
         setProcessingStatus(prev => ({ ...prev, [file.name]: 'completed' }));
         log(`✅ Pipeline Complete: Flexible resume extraction successful!`);
-                 log(`📊 Final JSON contains ${Object.keys(processedResume).filter(key => key !== '_uiMetadata').length} dynamic fields`);
+        log(`📊 Final JSON contains ${Object.keys(processedResume).filter(key => key !== '_uiMetadata').length} dynamic fields`);
+        
+        // Update progress for Claude analysis preparation
+        setAnalysisProgress(50);
+        log(`🤖 Preparing data for Claude AI analysis...`);
+        
+        // Simulate Claude analysis (this will be done in the analysis page)
+        setAnalysisProgress(75);
+        log(`🧠 Claude AI will analyze the JSON data in the next step...`);
+        
+        setAnalysisProgress(100);
+        log(`✅ Ready for Claude AI analysis!`);
         
       } catch (error) {
         console.error(`❌ Error processing ${file.name}:`, error);
@@ -198,6 +218,12 @@ export default function ResumeBuilderPage() {
       setShowDOCXPreview(true);
       setShowJsonPreview(true);
     }
+    
+    // Reset analysis state after a delay
+    setTimeout(() => {
+      setIsAnalyzingWithClaude(false);
+      setAnalysisProgress(0);
+    }, 2000);
   };
 
   // Process a single resume file with logs
@@ -302,7 +328,28 @@ export default function ResumeBuilderPage() {
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <Image className="h-5 w-5 text-purple-400" />;
+    if (file.type.includes('pdf')) return <FileText className="h-5 w-5 text-red-400" />;
+    if (file.type.includes('word') || file.type.includes('document')) return <FileText className="h-5 w-5 text-blue-400" />;
     return <FileText className="h-5 w-5 text-cyan-400" />;
+  };
+
+  const getFileTypeBadge = (file: File) => {
+    const category = categorizeFile(file);
+    const colorMap: { [key: string]: string } = {
+      'PDF Document': 'bg-red-500/20 text-red-400 border-red-400/30',
+      'Word Document': 'bg-blue-500/20 text-blue-400 border-blue-400/30',
+      'Image': 'bg-purple-500/20 text-purple-400 border-purple-400/30',
+      'Document': 'bg-cyan-500/20 text-cyan-400 border-cyan-400/30'
+    };
+    
+    return (
+      <Badge 
+        variant="outline" 
+        className={`text-xs ${colorMap[category] || colorMap['Document']}`}
+      >
+        {category}
+      </Badge>
+    );
   };
 
   const getLinkIcon = (url: string) => {
@@ -406,6 +453,8 @@ export default function ResumeBuilderPage() {
                       />
                     </div>
 
+
+
                     {/* Uploaded Files */}
                     {uploadedFiles.length > 0 && (
                       <div className="mt-6">
@@ -423,10 +472,13 @@ export default function ResumeBuilderPage() {
                             >
                               <div className="flex items-center gap-3">
                                 {getFileIcon(file)}
-                                <div>
-                                  <p className="text-white font-medium">{file.name}</p>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-white font-medium">{file.name}</p>
+                                    {getFileTypeBadge(file)}
+                                  </div>
                                   <p className="text-gray-400 text-sm">
-                                    {categorizeFile(file)} • {formatFileSize(file.size)}
+                                    {formatFileSize(file.size)}
                                   </p>
                                 </div>
                               </div>
@@ -605,15 +657,12 @@ export default function ResumeBuilderPage() {
                     </CardTitle>
                     <CardDescription className="text-gray-300">
                       Extract content exactly as written, create literal DOCX, then convert to faithful JSON
-                      <br />
-                      <span className="text-cyan-400">💰 Real-time token usage & cost tracking (USD + PHP)</span>
-                      <br />
-                      <span className="text-yellow-400">📊 Detailed logs show API costs per page and total session costs</span>
+
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Process Files Button */}
-                    <div className="text-center">
+                    <div className="text-center space-y-4">
                       <Button
                         onClick={processUploadedFiles}
                         disabled={uploadedFiles.length === 0 || Object.keys(processingStatus).some(key => processingStatus[key] === 'processing')}
@@ -622,7 +671,7 @@ export default function ResumeBuilderPage() {
                         {Object.keys(processingStatus).some(key => processingStatus[key] === 'processing') ? (
                           <>
                             <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                            AI Processing...
+                            {isAnalyzingWithClaude ? 'Claude AI Processing...' : 'AI Processing...'}
                           </>
                         ) : (
                           <>
@@ -631,6 +680,24 @@ export default function ResumeBuilderPage() {
                           </>
                         )}
                       </Button>
+                      
+                      {/* Claude Analysis Progress */}
+                      {isAnalyzingWithClaude && (
+                        <div className="max-w-md mx-auto">
+                          <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
+                            <span>JSON Conversion & Claude Analysis</span>
+                            <span>{analysisProgress}%</span>
+                          </div>
+                          <Progress 
+                            value={analysisProgress} 
+                            className="h-2 bg-white/10"
+                          />
+                          <div className="flex items-center justify-center mt-2 text-xs text-cyan-400">
+                            <Brain className="h-3 w-3 mr-1 animate-pulse" />
+                            Claude AI will analyze your resume data
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Processing Status */}

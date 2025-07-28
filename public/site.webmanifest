@@ -1,11 +1,14 @@
 {
+
   "name": "BPOC.AI - BPO Career Platform",
   "short_name": "BPOC.AI",
   "description": "AI-powered platform for BPO career development, job matching, and skill assessments",
+
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#06b6d4",
+
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
@@ -39,6 +42,7 @@
       "description": "Access assessments and career development tools",
       "url": "/career-tools",
       "icons": []
+
     }
   ]
 } 
