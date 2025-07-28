@@ -39,7 +39,7 @@ export default function SkillsAssessmentPage() {
       totalQuestions: 8,
       estimatedTime: '15-20 min',
       levelDetails: ['Easy', 'Medium', 'Hard', 'Expert'],
-      difficultyColor: 'bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent border-cyan-500/30',
+      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       skillsAssessed: ['Typing Speed (WPM)', 'Accuracy %', 'Technical Terms', 'Programming Syntax'],
       participants: 8764,
@@ -93,7 +93,7 @@ export default function SkillsAssessmentPage() {
       totalQuestions: 20,
       estimatedTime: '15-20 min',
       levelDetails: ['Advanced Problem Solving'],
-      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       skillsAssessed: ['Pattern Recognition', 'Problem Solving', 'Logical Analysis'],
       participants: 1203,
@@ -173,7 +173,7 @@ export default function SkillsAssessmentPage() {
                 <Card className="glass-card border-white/10 hover:border-white/20 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden">
                   {/* Icon in top right */}
                   <div className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                    <assessment.icon className="w-5 h-5 text-gray-400" />
+                                            <assessment.icon className="w-5 h-5 text-cyan-400" />
                   </div>
 
                   <CardHeader className="pb-4">
