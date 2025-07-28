@@ -565,7 +565,7 @@ export default function DISCPersonalityPage() {
                 Back
               </Button>
               <div className="flex items-center">
-                <Brain className="h-12 w-12 text-blue-400 mr-4" />
+                <Brain className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
                   <h1 className="text-4xl font-bold gradient-text">DISC Personality Assessment</h1>
                   <p className="text-gray-400">Discover your work style and personality type</p>
@@ -617,7 +617,7 @@ export default function DISCPersonalityPage() {
                   <Card className="glass-card border-white/10 text-center">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-center mb-2">
-                        <Brain className="w-5 h-5 text-purple-400 mr-2" />
+                        <Brain className="w-5 h-5 text-cyan-400 mr-2" />
                         <span className="text-2xl font-bold text-white">{questions.length - currentQuestion}</span>
                       </div>
                       <p className="text-xs text-gray-400">Remaining</p>

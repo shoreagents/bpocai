@@ -294,7 +294,7 @@ export default function LogicalReasoningPage() {
                 Back
               </Button>
               <div className="flex items-center">
-                <PuzzleIcon className="h-12 w-12 text-orange-400 mr-4" />
+                <PuzzleIcon className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
                   <h1 className="text-4xl font-bold gradient-text">Logical Reasoning Test</h1>
                   <p className="text-gray-400">Evaluate your problem-solving and analytical thinking</p>
@@ -338,7 +338,7 @@ export default function LogicalReasoningPage() {
                   <Card className="glass-card border-white/10 text-center">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-center mb-2">
-                        <Brain className="w-5 h-5 text-green-400 mr-2" />
+                        <Brain className="w-5 h-5 text-cyan-400 mr-2" />
                         <span className="text-2xl font-bold text-white">{Math.round(progressPercentage)}%</span>
                       </div>
                       <p className="text-xs text-gray-400">Progress</p>
@@ -514,7 +514,7 @@ export default function LogicalReasoningPage() {
                 <Card className="glass-card border-white/10">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-purple-400" />
+                      <Brain className="w-5 h-5 text-cyan-400" />
                       Skills Analysis
                     </CardTitle>
                   </CardHeader>

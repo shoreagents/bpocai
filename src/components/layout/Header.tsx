@@ -12,7 +12,12 @@ import {
   Sparkles,
   Settings,
   LogOut,
-  LogIn
+  LogIn,
+  Home,
+  FileText,
+  Wrench,
+  Briefcase,
+  Users
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,11 +54,12 @@ export default function Header({}: HeaderProps) {
   const userExperiencePoints = 14400 // This would be fetched from your user profile table
 
   const navigationItems = [
-    { title: 'Home', href: '/' },
-    { title: 'Resume Builder', href: '/resume-builder' },
-    { title: 'Career Tools', href: '/career-tools' },
-    { title: 'Jobs', href: '/jobs' },
-    { title: 'About', href: '/about' }
+    { title: 'Home', href: '/', icon: Home },
+    { title: 'Resume Builder', href: '/resume-builder', icon: FileText },
+    { title: 'Career Tools', href: '/career-tools', icon: Wrench },
+    { title: 'Jobs', href: '/jobs', icon: Briefcase },
+    { title: 'Leaderboards', href: '/leaderboards', icon: Trophy },
+    { title: 'About', href: '/about', icon: Users }
   ]
 
   // Check if navigation item is active
@@ -264,6 +270,7 @@ export default function Header({}: HeaderProps) {
                             )}
                             onClick={() => setIsMobileMenuOpen(false)}
                           >
+                            <item.icon className="w-5 h-5 mr-3" />
                             {item.title}
                             {/* Active indicator for mobile */}
                             {isActive && (

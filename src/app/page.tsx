@@ -244,13 +244,13 @@ export default function HomePage() {
               className="relative group"
             >
               {/* Recommended Badge */}
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
+              <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-20">
                 <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0 px-6 py-2 text-sm font-bold shadow-lg shadow-red-500/25">
                   ✨ RECOMMENDED
                 </Badge>
               </div>
               
-              <Card className="glass-card border-red-500/40 hover:border-red-400/60 h-full relative overflow-hidden transition-all duration-300 group-hover:scale-[1.05] shadow-xl shadow-red-500/10 group-hover:shadow-red-500/20">
+              <Card className="glass-card border-red-500/40 hover:border-red-400/60 h-full relative overflow-hidden transition-all duration-300 group-hover:scale-[1.01] shadow-xl shadow-red-500/10 group-hover:shadow-red-500/20">
                 {/* Enhanced Glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-purple-500/5 to-pink-500/10 rounded-xl"></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl"></div>

@@ -342,7 +342,7 @@ export default function ResumeBuilderPage() {
               </h1>
             </div>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              💡 Upload your files and add portfolio links - we'll create your complete candidate intelligence profile
+           Upload your files and add portfolio links - we'll create your complete candidate intelligence profile
             </p>
           </motion.div>
 

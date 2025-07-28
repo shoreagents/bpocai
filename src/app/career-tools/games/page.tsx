@@ -17,7 +17,9 @@ import {
   Trophy,
   Users,
   Zap,
-  BarChart3
+  BarChart3,
+  Guitar,
+  Phone
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -27,46 +29,46 @@ export default function CareerGamesPage() {
 
   const games = [
     {
-      id: 'customer-service-simulator',
-      title: 'Customer Service Simulator',
-      description: 'Handle various customer scenarios and improve your service skills',
-      icon: Headphones,
-      difficulty: 'Intermediate',
-      category: 'Communication',
-      duration: '10 minutes',
-      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      categoryColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      skillsDeveloped: ['Customer Service', 'Problem Solving', 'Communication'],
-      participants: 1247,
-      rating: 4.8
-    },
+        id: 'typing-hero',
+        title: 'Typing Hero',
+        description: 'Guitar Hero meets typing',
+        icon: Guitar,
+        difficulty: 'Intermediate',
+        category: 'Technical',
+        duration: '6 minutes',
+        difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+        categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        skillsDeveloped: ['BPO Vocabulary', 'Typing Speed', 'Rhythm', 'Accuracy'],
+        participants: 2847,
+        rating: 4.9
+      },
+      {
+        id: 'call-flow-builder',
+        title: 'Call Flow Builder',
+        description: 'Design perfect customer service call flows with drag & drop interface',
+        icon: Phone,
+        difficulty: 'Advanced',
+        category: 'Process Design',
+        duration: '12 minutes',
+        difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+        categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+        skillsDeveloped: ['Customer Service Flow', 'Process Design', 'Problem Solving', 'Logical Thinking'],
+        participants: 534,
+        rating: 4.7
+      },
     {
-      id: 'typing-speed-race',
-      title: 'Typing Speed Race',
-      description: 'Compete with other candidates to improve your typing speed',
-      icon: Keyboard,
-      difficulty: 'Beginner',
-      category: 'Technical',
-      duration: '5 minutes',
-      difficultyColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-      categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      skillsDeveloped: ['Typing Speed', 'Accuracy', 'Focus'],
-      participants: 2156,
-      rating: 4.6
-    },
-    {
-      id: 'multitasking-master',
-      title: 'Multitasking Master',
-      description: 'Juggle multiple tasks like a real BPO professional',
+      id: 'task-juggler',
+      title: 'Task Juggler',
+      description: 'Master time-sensitive multitasking with real-time priority management',
       icon: Target,
       difficulty: 'Advanced',
-      category: 'Efficiency',
-      duration: '8 minutes',
+      category: 'Time Management',
+      duration: '10 minutes',
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
-      categoryColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-      skillsDeveloped: ['Multitasking', 'Time Management', 'Stress Management'],
-      participants: 856,
-      rating: 4.9
+      categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      skillsDeveloped: ['Time Management', 'Attention to Detail', 'Work Ethic', 'Prioritization'],
+      participants: 1247,
+      rating: 4.8
     },
     {
       id: 'sales-closer',
@@ -86,8 +88,18 @@ export default function CareerGamesPage() {
 
   const handleStartGame = (gameId: string) => {
     setSelectedGame(gameId);
-    // Here you would typically navigate to the actual game or open a game modal
-    console.log(`Starting game: ${gameId}`);
+    
+    // Navigate to specific game pages
+    if (gameId === 'typing-hero') {
+      router.push('/career-tools/games/typing-hero');
+    } else if (gameId === 'call-flow-builder') {
+      router.push('/career-tools/games/call-flow-builder');
+    } else if (gameId === 'task-juggler') {
+      router.push('/career-tools/games/task-juggler');
+    } else {
+      // For other games, you can add navigation or modals here
+      console.log(`Starting game: ${gameId}`);
+    }
   };
 
   return (
