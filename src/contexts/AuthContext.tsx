@@ -105,7 +105,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      // Use the comprehensive sign out function from lib
+      const { signOut: libSignOut } = await import('@/lib/supabase')
+      const { error } = await libSignOut()
+      
+      if (error) {
+        console.error('Sign out error:', error)
+      }
+      
+      // Force immediate state update regardless of error
+      setUser(null)
+      setSession(null)
+      setLoading(false)
+      
+    } catch (error) {
+      console.error('Sign out failed:', error)
+      // Still clear state even if sign out fails
+      setUser(null)
+      setSession(null)
+      setLoading(false)
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

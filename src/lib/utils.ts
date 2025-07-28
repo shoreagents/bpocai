@@ -331,6 +331,7 @@ export function isValidFileType(file: File): boolean {
     'image/webp',
     'image/gif'
   ];
+  
   return validTypes.includes(file.type);
 }
 
@@ -564,16 +565,22 @@ interface CloudConvertJobResponse {
   message?: string;
 }
 
-// Convert documents to JPEG using CloudConvert API
+// Enhanced error handling for CloudConvert API
 async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloudConvertApiKey: string): Promise<string[]> {
   console.log(`🔄 Converting ${fileType} to JPEG using CloudConvert...`);
-  
+
   if (!cloudConvertApiKey) {
     throw new Error('CloudConvert API key not provided. Please ensure it is configured on the server.');
   }
-  
+
+  // Add file size validation
+  const maxFileSize = 100 * 1024 * 1024; // 100MB limit
+  if (file.size > maxFileSize) {
+    throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds maximum allowed size of 100MB.`);
+  }
+
   try {
-    // Step 1: Create conversion job
+    // Step 1: Create conversion job with enhanced error handling
     console.log('📤 Creating CloudConvert job...');
     const jobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
       method: 'POST',
@@ -592,7 +599,8 @@ async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloud
             output_format: 'jpg',
             options: {
               quality: 95,
-              strip: false
+              strip: false,
+              density: 300 // Higher DPI for better OCR results
             }
           },
           'export-file': {
@@ -606,23 +614,33 @@ async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloud
     if (!jobResponse.ok) {
       const errorText = await jobResponse.text();
       console.error('CloudConvert job creation error:', errorText);
-      throw new Error(`CloudConvert job creation failed: ${jobResponse.status} ${jobResponse.statusText} - ${errorText}`);
+      
+      // Enhanced error messages based on status codes
+      if (jobResponse.status === 401) {
+        throw new Error('Invalid CloudConvert API key. Please check your credentials.');
+      } else if (jobResponse.status === 429) {
+        throw new Error('CloudConvert API rate limit exceeded. Please try again in a few minutes.');
+      } else if (jobResponse.status >= 500) {
+        throw new Error('CloudConvert service is temporarily unavailable. Please try again later.');
+      } else {
+        throw new Error(`CloudConvert job creation failed: ${jobResponse.status} ${jobResponse.statusText} - ${errorText}`);
+      }
     }
 
     const jobData = await jobResponse.json();
     console.log(`✅ CloudConvert job created: ${jobData.data.id}`);
 
-    // Step 2: Upload file
+    // Step 2: Upload file with retry logic
     console.log('📁 Uploading file to CloudConvert...');
     const uploadTask = jobData.data.tasks.find((task: any) => task.operation === 'import/upload');
-    
+
     if (!uploadTask?.result?.form) {
       throw new Error('No upload form data received from CloudConvert');
     }
-    
+
     // CloudConvert requires all form parameters to be included
     const formData = new FormData();
-    
+
     // Add all form parameters first (order matters for some cloud providers)
     const formParams = uploadTask.result.form.parameters || {};
     Object.entries(formParams).forEach(([key, value]) => {
@@ -630,107 +648,178 @@ async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloud
         formData.append(key, value as string);
       }
     });
-    
+
     // Add the file last
     formData.append('file', file);
-    
+
     console.log(`📤 Uploading to: ${uploadTask.result.form.url}`);
     console.log(`📋 Form parameters: ${Object.keys(formParams).join(', ')}`);
-    
-    const uploadResponse = await fetch(uploadTask.result.form.url, {
-      method: 'POST',
-      body: formData
-    });
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
+    // Retry logic for upload
+    let uploadResponse;
+    let uploadAttempts = 0;
+    const maxUploadAttempts = 3;
+
+    while (uploadAttempts < maxUploadAttempts) {
+      try {
+        uploadResponse = await fetch(uploadTask.result.form.url, {
+          method: 'POST',
+          body: formData
+        });
+        break;
+      } catch (uploadError) {
+        uploadAttempts++;
+        console.warn(`Upload attempt ${uploadAttempts} failed:`, uploadError);
+        
+        if (uploadAttempts >= maxUploadAttempts) {
+          throw new Error(`File upload failed after ${maxUploadAttempts} attempts: ${uploadError}`);
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000 * uploadAttempts));
+      }
+    }
+
+    if (!uploadResponse?.ok) {
+      const errorText = await uploadResponse?.text() || 'Unknown upload error';
       console.error('Upload error response:', errorText);
-      throw new Error(`File upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+      throw new Error(`File upload failed: ${uploadResponse?.status} ${uploadResponse?.statusText} - ${errorText}`);
     }
 
     console.log('✅ File uploaded successfully');
 
-    // Step 3: Wait for conversion to complete
+    // Step 3: Wait for conversion to complete with enhanced monitoring
     console.log('⏳ Waiting for conversion to complete...');
     let completed = false;
     let attempts = 0;
     const maxAttempts = 30; // 5 minutes max wait time
-    
+    let lastStatus = '';
+
     while (!completed && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
       attempts++;
-      
-      const statusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobData.data.id}`, {
-        headers: {
-          'Authorization': `Bearer ${cloudConvertApiKey}`
-        }
-      });
 
-      if (!statusResponse.ok) {
-        throw new Error(`Status check failed: ${statusResponse.statusText}`);
-      }
+      try {
+        const statusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobData.data.id}`, {
+          headers: {
+            'Authorization': `Bearer ${cloudConvertApiKey}`
+          }
+        });
 
-      const statusData = await statusResponse.json();
-      console.log(`🔍 Conversion status: ${statusData.data.status} (attempt ${attempts}/${maxAttempts})`);
-      
-      if (statusData.data.status === 'finished') {
-        completed = true;
-        
-        // Step 4: Get download URLs for ALL pages
-        const exportTask = statusData.data.tasks.find((task: any) => task.operation === 'export/url');
-        
-        if (!exportTask?.result?.files || exportTask.result.files.length === 0) {
-          throw new Error('No download URLs found in conversion result');
+        if (!statusResponse.ok) {
+          throw new Error(`Status check failed: ${statusResponse.statusText}`);
         }
+
+        const statusData = await statusResponse.json();
+        const currentStatus = statusData.data.status;
         
-        const files = exportTask.result.files;
-        console.log(`📥 Downloading ${files.length} converted JPEG file(s) for multi-page support...`);
-        
-        // Download ALL converted files (one per page)
-        const jpegDataUrls: string[] = [];
-        
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          if (!file.url) {
-            console.warn(`⚠️ No URL for file ${i + 1}, skipping...`);
-            continue;
+        if (currentStatus !== lastStatus) {
+          console.log(`🔍 Conversion status: ${currentStatus} (attempt ${attempts}/${maxAttempts})`);
+          lastStatus = currentStatus;
+        }
+
+        if (currentStatus === 'finished') {
+          completed = true;
+
+          // Step 4: Get download URLs for ALL pages
+          const exportTask = statusData.data.tasks.find((task: any) => task.operation === 'export/url');
+
+          if (!exportTask?.result?.files || exportTask.result.files.length === 0) {
+            throw new Error('No download URLs found in conversion result');
           }
-          
-          console.log(`📥 Downloading page ${i + 1}/${files.length}...`);
-          
-          const downloadResponse = await fetch(file.url);
-          if (!downloadResponse.ok) {
-            console.warn(`⚠️ Failed to download page ${i + 1}: ${downloadResponse.statusText}`);
-            continue;
+
+          const files = exportTask.result.files;
+          console.log(`📥 Downloading ${files.length} converted JPEG file(s) for multi-page support...`);
+
+          // Download ALL converted files (one per page) with retry logic
+          const jpegDataUrls: string[] = [];
+
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (!file.url) {
+              console.warn(`⚠️ No URL for file ${i + 1}, skipping...`);
+              continue;
+            }
+
+            console.log(`📥 Downloading page ${i + 1}/${files.length}...`);
+
+            // Retry logic for downloads
+            let downloadSuccess = false;
+            let downloadAttempts = 0;
+            const maxDownloadAttempts = 3;
+
+            while (!downloadSuccess && downloadAttempts < maxDownloadAttempts) {
+              try {
+                const downloadResponse = await fetch(file.url);
+                if (!downloadResponse.ok) {
+                  throw new Error(`Download failed: ${downloadResponse.statusText}`);
+                }
+
+                const blob = await downloadResponse.blob();
+                const jpegDataUrl = URL.createObjectURL(blob);
+                jpegDataUrls.push(jpegDataUrl);
+                downloadSuccess = true;
+
+                console.log(`✅ Page ${i + 1} downloaded successfully`);
+              } catch (downloadError) {
+                downloadAttempts++;
+                console.warn(`Download attempt ${downloadAttempts} for page ${i + 1} failed:`, downloadError);
+                
+                if (downloadAttempts >= maxDownloadAttempts) {
+                  console.warn(`⚠️ Failed to download page ${i + 1} after ${maxDownloadAttempts} attempts`);
+                  break;
+                }
+                
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 1000 * downloadAttempts));
+              }
+            }
           }
-          
-          const blob = await downloadResponse.blob();
-          const jpegDataUrl = URL.createObjectURL(blob);
-          jpegDataUrls.push(jpegDataUrl);
-          
-          console.log(`✅ Page ${i + 1} downloaded successfully`);
+
+          if (jpegDataUrls.length === 0) {
+            throw new Error('Failed to download any converted JPEG files');
+          }
+
+          console.log(`✅ ${fileType} successfully converted to ${jpegDataUrls.length} JPEG file(s) using CloudConvert`);
+          console.log(`📄 Multi-page support: Processing ${jpegDataUrls.length} page(s)`);
+          return jpegDataUrls;
+        } else if (currentStatus === 'error') {
+          const errorMessage = statusData.data.message || 'Unknown conversion error';
+          throw new Error(`CloudConvert conversion failed: ${errorMessage}`);
         }
+      } catch (statusError) {
+        console.warn(`Status check attempt ${attempts} failed:`, statusError);
         
-        if (jpegDataUrls.length === 0) {
-          throw new Error('Failed to download any converted JPEG files');
+        if (attempts >= maxAttempts) {
+          throw new Error(`Conversion monitoring failed: ${statusError}`);
         }
-        
-        console.log(`✅ ${fileType} successfully converted to ${jpegDataUrls.length} JPEG file(s) using CloudConvert`);
-        console.log(`📄 Multi-page support: Processing ${jpegDataUrls.length} page(s)`);
-        return jpegDataUrls;
-      } else if (statusData.data.status === 'error') {
-        throw new Error(`CloudConvert conversion failed: ${statusData.data.message || 'Unknown error'}`);
       }
     }
-    
+
     if (!completed) {
       throw new Error('CloudConvert conversion timed out after 5 minutes');
     }
-    
+
     return [];
-    
+
   } catch (error) {
     console.error('❌ CloudConvert conversion failed:', error);
+    
+    // Enhanced error categorization
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        throw new Error('Invalid CloudConvert API key. Please check your credentials and try again.');
+      } else if (error.message.includes('rate limit')) {
+        throw new Error('CloudConvert API rate limit exceeded. Please wait a few minutes and try again.');
+      } else if (error.message.includes('timeout')) {
+        throw new Error('Document conversion timed out. Please try with a smaller file or try again later.');
+      } else if (error.message.includes('upload')) {
+        throw new Error('File upload failed. Please check your internet connection and try again.');
+      } else if (error.message.includes('download')) {
+        throw new Error('Failed to download converted files. Please try again.');
+      }
+    }
+    
     throw new Error(`CloudConvert conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -800,6 +889,8 @@ export async function processResumeFile(file: File, openaiApiKey?: string, cloud
   }
 }
 
+
+
 // Step 1: Convert file to JPEG based on file type
 async function convertFileToJPEG(file: File, cloudConvertApiKey: string): Promise<string[]> {
   const fileType = file.type.toLowerCase();
@@ -846,94 +937,156 @@ async function convertFileToJPEG(file: File, cloudConvertApiKey: string): Promis
 // Step 2: Perform GPT Vision OCR on JPEG images
 async function performGPTOCROnImages(jpegImages: string[], openaiApiKey: string): Promise<string> {
   console.log(`🤖 Starting GPT Vision OCR on ${jpegImages.length} image(s)...`);
-  
+
   const OpenAI = (await import('openai')).default;
   const openai = new OpenAI({
     apiKey: openaiApiKey,
     dangerouslyAllowBrowser: true
   });
-  
+
   let allExtractedText = '';
-  
+
   try {
-    for (let i = 0; i < jpegImages.length; i++) {
-      const jpegUrl = jpegImages[i];
-      console.log(`📖 Processing image ${i + 1}/${jpegImages.length} with GPT Vision...`);
-      
-      // Convert to base64 if needed
-      let base64Image: string;
-      if (jpegUrl.startsWith('data:')) {
-        base64Image = jpegUrl;
-      } else {
-        // Convert blob URL to base64
-        const response = await fetch(jpegUrl);
-        const blob = await response.blob();
-        base64Image = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-      }
-      
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert OCR system specialized in extracting text from resume images. Extract ALL visible text exactly as it appears, preserving formatting, spacing, and structure. Include every word, number, date, and detail visible in the image."
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Please extract ALL text from this resume image. Include every detail visible - names, contact info, job titles, company names, dates, descriptions, skills, education, etc. Preserve the original formatting and structure as much as possible."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: base64Image
-                }
+    // Process images in parallel for better performance (with concurrency limit)
+    const concurrencyLimit = 2; // Process 2 images at a time to avoid rate limits
+    const batches = [];
+    
+    for (let i = 0; i < jpegImages.length; i += concurrencyLimit) {
+      batches.push(jpegImages.slice(i, i + concurrencyLimit));
+    }
+
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`📖 Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} image(s))...`);
+
+      // Process batch in parallel
+      const batchPromises = batch.map(async (jpegUrl, batchImageIndex) => {
+        const imageIndex = batchIndex * concurrencyLimit + batchImageIndex;
+        console.log(`📖 Processing image ${imageIndex + 1}/${jpegImages.length} with GPT Vision...`);
+
+        // Convert to base64 if needed
+        let base64Image: string;
+        if (jpegUrl.startsWith('data:')) {
+          base64Image = jpegUrl;
+        } else {
+          // Convert blob URL to base64
+          const response = await fetch(jpegUrl);
+          const blob = await response.blob();
+          base64Image = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        // Retry logic for GPT API calls
+        let retryAttempts = 0;
+        const maxRetries = 3;
+        
+        while (retryAttempts < maxRetries) {
+          try {
+                         const completion = await openai.chat.completions.create({
+               model: "gpt-4o",
+               messages: [
+                 {
+                   role: "system",
+                   content: "You are an expert OCR system specialized in extracting text from resume images. Extract ALL visible text exactly as it appears, preserving formatting, spacing, and structure. Include every word, number, date, and detail visible in the image. Focus on accuracy and completeness."
+                 },
+                 {
+                   role: "user",
+                   content: [
+                     {
+                       type: "text",
+                       text: "Please extract ALL text from this resume image. Include every detail visible - names, contact info, job titles, company names, dates, descriptions, skills, education, etc. Preserve the original formatting and structure as much as possible. Be thorough and accurate."
+                     },
+                     {
+                       type: "image_url",
+                       image_url: {
+                         url: base64Image
+                       }
+                     }
+                   ]
+                 }
+               ],
+               temperature: 0.1,
+               max_tokens: 4000
+             });
+
+            const extractedText = completion.choices[0]?.message?.content;
+
+            // Track token usage and costs for this API call
+            if (completion.usage) {
+              const usage: TokenUsage = {
+                prompt_tokens: completion.usage.prompt_tokens,
+                completion_tokens: completion.usage.completion_tokens,
+                total_tokens: completion.usage.total_tokens
+              };
+
+              const costs = calculateTokenCosts(usage);
+              updateSessionTokenTracking(usage, costs);
+
+              console.log(`💰 GPT Vision OCR Page ${imageIndex + 1} Token Usage:`);
+              console.log(`   📥 Input tokens: ${usage.prompt_tokens.toLocaleString()}`);
+              console.log(`   📤 Output tokens: ${usage.completion_tokens.toLocaleString()}`);
+              console.log(`   🔢 Total tokens: ${usage.total_tokens.toLocaleString()}`);
+              console.log(`   💵 Cost: ${formatCurrency(costs.totalCost, 'USD')} / ${formatCurrency(costs.totalCostPHP, 'PHP')}`);
+              console.log(`   💸 Input cost: ${formatCurrency(costs.inputCost, 'USD')} / ${formatCurrency(costs.inputCostPHP, 'PHP')}`);
+              console.log(`   💸 Output cost: ${formatCurrency(costs.outputCost, 'USD')} / ${formatCurrency(costs.outputCostPHP, 'PHP')}`);
+            }
+
+            if (extractedText) {
+              console.log(`✅ Image ${imageIndex + 1} processed: ${extractedText.length} characters extracted`);
+              return extractedText;
+            } else {
+              console.log(`⚠️ No text extracted from image ${imageIndex + 1}`);
+              return '';
+            }
+
+          } catch (apiError) {
+            retryAttempts++;
+            console.warn(`GPT API attempt ${retryAttempts} for image ${imageIndex + 1} failed:`, apiError);
+            
+            // Enhanced error handling
+            if (apiError instanceof Error) {
+              if (apiError.message.includes('rate limit') || apiError.message.includes('429')) {
+                console.log(`Rate limit hit, waiting before retry...`);
+                await new Promise(resolve => setTimeout(resolve, 5000 * retryAttempts)); // Exponential backoff
+              } else if (apiError.message.includes('timeout')) {
+                console.log(`Request timeout, retrying...`);
+                await new Promise(resolve => setTimeout(resolve, 2000 * retryAttempts));
+              } else if (apiError.message.includes('quota') || apiError.message.includes('billing')) {
+                throw new Error('OpenAI API quota exceeded. Please check your billing and try again.');
+              } else if (apiError.message.includes('invalid_api_key')) {
+                throw new Error('Invalid OpenAI API key. Please check your credentials.');
               }
-            ]
+            }
+            
+            if (retryAttempts >= maxRetries) {
+              console.error(`Failed to process image ${imageIndex + 1} after ${maxRetries} attempts`);
+              throw new Error(`Failed to process image ${imageIndex + 1}: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
+            }
+            
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, 2000 * retryAttempts));
           }
-        ],
-        temperature: 0.1,
-        max_tokens: 4000
+        }
+        
+        return ''; // Should never reach here
       });
+
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      allExtractedText += batchResults.join('\n\n');
       
-      const extractedText = completion.choices[0]?.message?.content;
-      
-      // Track token usage and costs for this API call
-      if (completion.usage) {
-        const usage: TokenUsage = {
-          prompt_tokens: completion.usage.prompt_tokens,
-          completion_tokens: completion.usage.completion_tokens,
-          total_tokens: completion.usage.total_tokens
-        };
-        
-        const costs = calculateTokenCosts(usage);
-        updateSessionTokenTracking(usage, costs);
-        
-        console.log(`💰 GPT Vision OCR Page ${i + 1} Token Usage:`);
-        console.log(`   📥 Input tokens: ${usage.prompt_tokens.toLocaleString()}`);
-        console.log(`   📤 Output tokens: ${usage.completion_tokens.toLocaleString()}`);
-        console.log(`   🔢 Total tokens: ${usage.total_tokens.toLocaleString()}`);
-        console.log(`   💵 Cost: ${formatCurrency(costs.totalCost, 'USD')} / ${formatCurrency(costs.totalCostPHP, 'PHP')}`);
-        console.log(`   💸 Input cost: ${formatCurrency(costs.inputCost, 'USD')} / ${formatCurrency(costs.inputCostPHP, 'PHP')}`);
-        console.log(`   💸 Output cost: ${formatCurrency(costs.outputCost, 'USD')} / ${formatCurrency(costs.outputCostPHP, 'PHP')}`);
-      }
-      
-      if (extractedText) {
-        allExtractedText += extractedText + '\n\n';
-        console.log(`✅ Image ${i + 1} processed: ${extractedText.length} characters extracted`);
-      } else {
-        console.log(`⚠️ No text extracted from image ${i + 1}`);
+      // Add delay between batches to avoid rate limits
+      if (batchIndex < batches.length - 1) {
+        console.log('⏳ Waiting between batches to avoid rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    
+
     console.log(`✅ GPT Vision OCR complete: ${allExtractedText.length} total characters extracted`);
-    
+
     // Display session summary for OCR phase
     console.log(`💰 OCR Phase Summary:`);
     console.log(`   🔄 API calls made: ${sessionTokenUsage.apiCalls}`);
@@ -941,11 +1094,27 @@ async function performGPTOCROnImages(jpegImages: string[], openaiApiKey: string)
     console.log(`   📤 Total output tokens: ${sessionTokenUsage.totalOutputTokens.toLocaleString()}`);
     console.log(`   🔢 Total tokens used: ${sessionTokenUsage.totalTokens.toLocaleString()}`);
     console.log(`   💵 Total cost: ${formatCurrency(sessionTokenUsage.totalCostUSD, 'USD')} / ${formatCurrency(sessionTokenUsage.totalCostPHP, 'PHP')}`);
-    
+
     return allExtractedText.trim();
-    
+
   } catch (error) {
     console.error('❌ GPT Vision OCR failed:', error);
+    
+    // Enhanced error categorization
+    if (error instanceof Error) {
+      if (error.message.includes('quota') || error.message.includes('billing')) {
+        throw new Error('OpenAI API quota exceeded. Please check your billing and try again.');
+      } else if (error.message.includes('invalid_api_key')) {
+        throw new Error('Invalid OpenAI API key. Please check your credentials and try again.');
+      } else if (error.message.includes('rate limit')) {
+        throw new Error('OpenAI API rate limit exceeded. Please wait a few minutes and try again.');
+      } else if (error.message.includes('timeout')) {
+        throw new Error('OCR processing timed out. Please try again with a smaller file or try later.');
+      } else if (error.message.includes('network')) {
+        throw new Error('Network error during OCR processing. Please check your internet connection and try again.');
+      }
+    }
+    
     throw new Error(`GPT OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -1573,26 +1742,53 @@ async function convertTextToFlexibleJSON(text: string, fileName: string, apiKey:
         },
         {
           role: "user",
-          content: `Analyze this resume content and create a JSON structure that perfectly captures its actual organization and content. Be completely flexible and adaptive.
+          content: `Create a JSON structure for this resume that captures ALL content while using consistent, UI-friendly field names.
 
-CRITICAL REQUIREMENTS:
-1. Create field names based on what's actually in the resume
-2. Organize data exactly as it appears in the original document
-3. Do not force predetermined structures - adapt to the content
-4. Preserve all information without summarizing or modifying
-5. Use logical field names that match the resume's sections and content
-6. If something doesn't fit common categories, create appropriate new fields
-7. Maintain the natural hierarchy and grouping from the original resume
-8. Include ALL text content - nothing should be lost
+REQUIRED CORE FIELDS (always include these with standard names):
+- "name": Full name of the person
+- "email": Email address  
+- "phone": Phone number
+- "location": Address/location
+- "summary": Professional summary/objective (if present)
+- "skills": Array of all skills mentioned
+- "experience": Array of work experience objects
+- "education": Array of education objects
 
-EXAMPLES OF FLEXIBLE STRUCTURES:
-- If resume has "Professional Summary" → use "professional_summary" field
-- If resume has "Core Competencies" → use "core_competencies" field  
-- If resume has "Volunteer Work" → create "volunteer_work" array
-- If resume has "Publications" → create "publications" array
-- If resume has unique sections → create appropriately named fields
+FLEXIBLE ADDITIONAL FIELDS (create as needed based on resume content):
+- Use clear, descriptive field names for any additional sections
+- Examples: "certifications", "languages", "projects", "publications", "volunteer_work", "awards"
+- Preserve all unique content that doesn't fit standard categories
 
-DO NOT use predetermined field names. CREATE fields that match the actual content.
+STRUCTURE EXAMPLE:
+{
+  "name": "John Doe",
+  "email": "john@example.com", 
+  "phone": "+1234567890",
+  "location": "City, Country",
+  "summary": "Professional summary text...",
+  "skills": ["Skill 1", "Skill 2"],
+  "experience": [
+    {
+      "company": "Company Name",
+      "position": "Job Title",
+      "duration": "2020-2023", 
+      "description": "Job responsibilities..."
+    }
+  ],
+  "education": [
+    {
+      "institution": "University Name",
+      "degree": "Degree Name",
+      "year": "2020"
+    }
+  ],
+  "additional_field_name": "Any other content..."
+}
+
+IMPORTANT: 
+- Use empty string "" for missing core fields, empty array [] for missing arrays
+- Extract ALL content - nothing should be lost
+- Use consistent field naming (lowercase with underscores)
 
 Resume content to analyze:
 ${text}`
@@ -3342,4 +3538,228 @@ export function validateProcessedResume(resume: ProcessedResume): {
     score: Math.min(score, 100),
     suggestions
   };
+}
+
+// Enhanced resume validation and processing utilities
+export function validateResumeProcessing(resume: ProcessedResume): {
+  isValid: boolean;
+  score: number;
+  issues: string[];
+  suggestions: string[];
+  strengths: string[];
+} {
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+  const strengths: string[] = [];
+  let score = 100;
+
+  // Check for essential fields
+  if (!resume.name && !resume.parsed?.personalInfo?.name) {
+    issues.push('Missing name information');
+    score -= 20;
+  }
+
+  if (!resume.email && !resume.parsed?.personalInfo?.email) {
+    issues.push('Missing email address');
+    score -= 15;
+  }
+
+  if (!resume.phone && !resume.parsed?.personalInfo?.phone) {
+    issues.push('Missing phone number');
+    score -= 10;
+  }
+
+  // Check experience section
+  if (!resume.experience || resume.experience.length === 0) {
+    issues.push('No work experience found');
+    score -= 25;
+  } else {
+    strengths.push(`Found ${resume.experience.length} experience entries`);
+  }
+
+  // Check education section
+  if (!resume.education || resume.education.length === 0) {
+    issues.push('No education information found');
+    score -= 15;
+  } else {
+    strengths.push(`Found ${resume.education.length} education entries`);
+  }
+
+  // Check skills section
+  if (!resume.skills || resume.skills.length === 0) {
+    issues.push('No skills listed');
+    score -= 10;
+    suggestions.push('Add relevant technical and soft skills');
+  } else {
+    strengths.push(`Found ${resume.skills.length} skills`);
+  }
+
+  // Check summary
+  if (!resume.summary) {
+    issues.push('Missing professional summary');
+    score -= 10;
+    suggestions.push('Add a compelling professional summary');
+  } else {
+    strengths.push('Professional summary present');
+  }
+
+  // Check for raw text quality
+  if (resume.rawText && resume.rawText.length < 100) {
+    issues.push('Very little text extracted - possible OCR issues');
+    score -= 20;
+    suggestions.push('Try uploading a clearer, higher resolution file');
+  }
+
+  // Check for processing metadata
+  if (resume.pipelineMetadata) {
+    strengths.push('Advanced processing pipeline used');
+  }
+
+  // Generate suggestions based on missing elements
+  if (!resume.certifications || resume.certifications.length === 0) {
+    suggestions.push('Consider adding relevant certifications');
+  }
+
+  if (!resume.languages || resume.languages.length === 0) {
+    suggestions.push('Add language proficiencies if applicable');
+  }
+
+  if (!resume.projects || resume.projects.length === 0) {
+    suggestions.push('Include relevant projects or portfolio work');
+  }
+
+  // Ensure score doesn't go below 0
+  score = Math.max(0, score);
+
+  return {
+    isValid: score >= 60,
+    score,
+    issues,
+    suggestions,
+    strengths
+  };
+}
+
+// Enhanced resume processing with quality checks
+export async function processResumeWithQualityChecks(
+  file: File, 
+  openaiApiKey?: string, 
+  cloudConvertApiKey?: string
+): Promise<{
+  resume: ProcessedResume;
+  quality: {
+    isValid: boolean;
+    score: number;
+    issues: string[];
+    suggestions: string[];
+    strengths: string[];
+  };
+  processingTime: number;
+}> {
+  const startTime = Date.now();
+  
+  try {
+    console.log('🚀 Starting enhanced resume processing with quality checks...');
+    
+    // Process the resume
+    const resume = await processResumeFile(file, openaiApiKey, cloudConvertApiKey);
+    
+    // Perform quality validation
+    const quality = validateResumeProcessing(resume);
+    
+    const processingTime = Date.now() - startTime;
+    
+    console.log(`✅ Enhanced processing complete in ${processingTime}ms`);
+    console.log(`📊 Quality Score: ${quality.score}/100`);
+    console.log(`🎯 Valid Resume: ${quality.isValid ? 'Yes' : 'No'}`);
+    
+    return {
+      resume,
+      quality,
+      processingTime
+    };
+    
+  } catch (error) {
+    const processingTime = Date.now() - startTime;
+    console.error('❌ Enhanced processing failed:', error);
+    
+    throw new Error(`Resume processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Utility function to extract key insights from processed resume
+export function extractResumeInsights(resume: ProcessedResume): {
+  keySkills: string[];
+  experienceYears: number;
+  educationLevel: string;
+  industryFocus: string[];
+  contactInfo: {
+    email?: string;
+    phone?: string;
+    linkedin?: string;
+  };
+} {
+  const insights = {
+    keySkills: resume.skills || [],
+    experienceYears: 0,
+    educationLevel: 'Unknown',
+    industryFocus: [] as string[],
+    contactInfo: {
+      email: resume.email || resume.parsed?.personalInfo?.email,
+      phone: resume.phone || resume.parsed?.personalInfo?.phone,
+      linkedin: resume.linkedin || resume.parsed?.personalInfo?.linkedin
+    }
+  };
+
+  // Calculate experience years
+  if (resume.experience && resume.experience.length > 0) {
+    // Simple calculation - could be enhanced with date parsing
+    insights.experienceYears = resume.experience.length * 2; // Rough estimate
+  }
+
+  // Determine education level
+  if (resume.education && resume.education.length > 0) {
+    const educationText = resume.education.map(edu => 
+      `${edu.degree || ''} ${edu.institution || ''}`.toLowerCase()
+    ).join(' ');
+    
+    if (educationText.includes('phd') || educationText.includes('doctorate')) {
+      insights.educationLevel = 'PhD';
+    } else if (educationText.includes('master') || educationText.includes('mba')) {
+      insights.educationLevel = 'Masters';
+    } else if (educationText.includes('bachelor') || educationText.includes('bs') || educationText.includes('ba')) {
+      insights.educationLevel = 'Bachelors';
+    } else if (educationText.includes('associate') || educationText.includes('aa')) {
+      insights.educationLevel = 'Associates';
+    } else if (educationText.includes('high school') || educationText.includes('diploma')) {
+      insights.educationLevel = 'High School';
+    } else {
+      insights.educationLevel = 'Other';
+    }
+  }
+
+  // Determine industry focus based on skills and experience
+  const allText = [
+    resume.summary || '',
+    resume.parsed?.sections?.map(s => s.content).join(' ') || '',
+    resume.skills?.join(' ') || ''
+  ].join(' ').toLowerCase();
+
+  const industryKeywords = {
+    'Technology': ['software', 'programming', 'development', 'coding', 'tech', 'it', 'computer'],
+    'Healthcare': ['medical', 'healthcare', 'nursing', 'patient', 'clinical', 'hospital'],
+    'Finance': ['finance', 'banking', 'accounting', 'financial', 'investment', 'trading'],
+    'Education': ['teaching', 'education', 'academic', 'curriculum', 'student', 'learning'],
+    'Sales': ['sales', 'marketing', 'business development', 'account management', 'revenue'],
+    'Customer Service': ['customer service', 'support', 'help desk', 'client', 'customer'],
+    'Manufacturing': ['manufacturing', 'production', 'quality control', 'operations', 'logistics']
+  };
+
+  for (const [industry, keywords] of Object.entries(industryKeywords)) {
+    if (keywords.some(keyword => allText.includes(keyword))) {
+      insights.industryFocus.push(industry);
+    }
+  }
+
+  return insights;
 }
