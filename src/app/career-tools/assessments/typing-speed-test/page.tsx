@@ -125,28 +125,28 @@ export default function TypingSpeedTestPage() {
         bg: 'bg-green-500/20',
         text: 'text-green-400',
         border: 'border-green-500/30',
-        icon: 'text-green-400',
+        icon: 'text-cyan-400',
         button: 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
       },
       yellow: {
         bg: 'bg-yellow-500/20',
         text: 'text-yellow-400',
         border: 'border-yellow-500/30',
-        icon: 'text-yellow-400',
+        icon: 'text-cyan-400',
         button: 'from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700'
       },
       orange: {
         bg: 'bg-orange-500/20',
         text: 'text-orange-400',
         border: 'border-orange-500/30',
-        icon: 'text-orange-400',
+        icon: 'text-cyan-400',
         button: 'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
       },
       red: {
         bg: 'bg-red-500/20',
         text: 'text-red-400',
         border: 'border-red-500/30',
-        icon: 'text-red-400',
+        icon: 'text-cyan-400',
         button: 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
       }
     };
@@ -281,10 +281,17 @@ export default function TypingSpeedTestPage() {
   const allTestsCompleted = currentLevel === 'difficult' && currentTestIndex === 1 && isTestPassed;
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
       <Header />
       
-      <div className="pt-16">
+      <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <motion.div
@@ -359,7 +366,7 @@ export default function TypingSpeedTestPage() {
               <Card className="glass-card border-white/10 text-center">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-center mb-2">
-                    <Keyboard className="w-5 h-5 text-purple-400 mr-2" />
+                    <Keyboard className="w-5 h-5 text-cyan-400 mr-2" />
                     <span className="text-2xl font-bold text-white">{totalChars}</span>
                   </div>
                   <p className="text-xs text-gray-400">Characters</p>

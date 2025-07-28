@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import DatabaseStatus from "@/components/debug/DatabaseStatus";
-import RedirectHandler from "@/components/auth/RedirectHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://bpocai-production.up.railway.app'),
   title: "BPOC.AI - Where BPO Careers Begin",
   description: "The ultimate AI-powered BPO recruitment platform for Filipino professionals. Build your career with FREE resume builder, skill assessments, and career games.",
   keywords: "BPO, career, resume builder, AI, Philippines, job matching, skills assessment, customer service, technical support, sales",
@@ -75,7 +75,6 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-black text-white`}>
 
         <AuthProvider>
-          <RedirectHandler />
           {children}
           <DatabaseStatus />
         </AuthProvider>

@@ -499,7 +499,7 @@ export default function DISCPersonalityPage() {
     return descriptions[type as keyof typeof descriptions];
   };
 
-  const progressPercentage = ((currentQuestion + 1) / questions.length) * 100;
+  const progressPercentage = (answers.filter(answer => answer !== undefined).length / questions.length) * 100;
 
   // Prevent copy-paste globally during assessment
   useEffect(() => {
@@ -537,10 +537,17 @@ export default function DISCPersonalityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
       <Header />
       
-      <div className="pt-16">
+      <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <motion.div
@@ -558,7 +565,7 @@ export default function DISCPersonalityPage() {
                 Back
               </Button>
               <div className="flex items-center">
-                <Brain className="h-12 w-12 text-blue-400 mr-4" />
+                <Brain className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
                   <h1 className="text-4xl font-bold gradient-text">DISC Personality Assessment</h1>
                   <p className="text-gray-400">Discover your work style and personality type</p>
@@ -610,7 +617,7 @@ export default function DISCPersonalityPage() {
                   <Card className="glass-card border-white/10 text-center">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-center mb-2">
-                        <Brain className="w-5 h-5 text-purple-400 mr-2" />
+                        <Brain className="w-5 h-5 text-cyan-400 mr-2" />
                         <span className="text-2xl font-bold text-white">{questions.length - currentQuestion}</span>
                       </div>
                       <p className="text-xs text-gray-400">Remaining</p>

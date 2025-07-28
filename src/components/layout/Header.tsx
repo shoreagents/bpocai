@@ -12,7 +12,12 @@ import {
   Sparkles,
   Settings,
   LogOut,
-  LogIn
+  LogIn,
+  Home,
+  FileText,
+  Wrench,
+  Briefcase,
+  Users
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +26,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import LoginForm from '@/components/auth/LoginForm'
 import SignUpForm from '@/components/auth/SignUpForm'
-import EditProfile from '@/components/auth/EditProfile'
+
 import { useAuth } from '@/contexts/AuthContext'
 
 interface HeaderProps {
@@ -34,7 +39,7 @@ export default function Header({}: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+
   
   const isAuthenticated = !!user
   
@@ -49,11 +54,12 @@ export default function Header({}: HeaderProps) {
   const userExperiencePoints = 14400 // This would be fetched from your user profile table
 
   const navigationItems = [
-    { title: 'Home', href: '/' },
-    { title: 'Resume Builder', href: '/resume-builder' },
-    { title: 'Career Tools', href: '/career-tools' },
-    { title: 'Jobs', href: '/jobs' },
-    { title: 'About', href: '/about' }
+    { title: 'Home', href: '/', icon: Home },
+    { title: 'Resume Builder', href: '/resume-builder', icon: FileText },
+    { title: 'Career Tools', href: '/career-tools', icon: Wrench },
+    { title: 'Jobs', href: '/jobs', icon: Briefcase },
+    { title: 'Leaderboards', href: '/leaderboards', icon: Trophy },
+    { title: 'About', href: '/about', icon: Users }
   ]
 
   // Check if navigation item is active
@@ -73,13 +79,8 @@ export default function Header({}: HeaderProps) {
     }
   }
 
-  const handleOpenEditProfile = () => {
-    setIsEditProfileOpen(true)
-    setIsMobileMenuOpen(false) // Close mobile menu if open
-  }
-
   const userMenuItems = [
-    { label: 'Profile', href: null, icon: User, action: handleOpenEditProfile },
+    { label: 'Profile', href: '/profile', icon: User, action: null },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: handleSignOut }
   ]
@@ -269,6 +270,7 @@ export default function Header({}: HeaderProps) {
                             )}
                             onClick={() => setIsMobileMenuOpen(false)}
                           >
+                            <item.icon className="w-5 h-5 mr-3" />
                             {item.title}
                             {/* Active indicator for mobile */}
                             {isActive && (
@@ -348,11 +350,7 @@ export default function Header({}: HeaderProps) {
         onSwitchToLogin={handleSwitchToLogin}
       />
       
-      {/* Edit Profile Dialog */}
-      <EditProfile 
-        open={isEditProfileOpen} 
-        onOpenChange={setIsEditProfileOpen}
-      />
+
     </header>
   )
 } 
