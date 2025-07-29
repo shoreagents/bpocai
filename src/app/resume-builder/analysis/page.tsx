@@ -1947,11 +1947,17 @@ export default function AnalysisPage() {
                       <Button 
                         variant="outline" 
                         className="border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-4 flex-col"
-                        disabled
+                        onClick={() => {
+                          // Store resume data in localStorage for the builder
+                          if (resumeData) {
+                            localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                            router.push('/resume-builder/build');
+                          }
+                        }}
                       >
                         <FileText className="h-6 w-6 mb-2" />
                         <span>Build New Resume</span>
-                        <span className="text-xs opacity-80">Coming Soon</span>
+                        <span className="text-xs opacity-80">AI-powered resume builder</span>
                       </Button>
                       
                       <Button 
