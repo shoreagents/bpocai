@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { syncUserToDatabase } from '@/lib/user-sync'
 
 interface AuthContextType {
   user: User | null
@@ -41,6 +42,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       setUser(session?.user ?? null)
+      
+      // Sync user to Railway database if session exists
+      if (session?.user) {
+        try {
+          await syncUserToDatabase(session.user)
+        } catch (error) {
+          console.error('Error syncing user on initial load:', error)
+        }
+      }
+      
       setLoading(false)
     }
 
@@ -51,24 +62,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
-        setLoading(false)
-
-        if (event === 'SIGNED_IN') {
-          // Handle successful sign in
-          console.log('User signed in:', session?.user?.email)
-        } else if (event === 'SIGNED_OUT') {
-          // Handle sign out
-          console.log('User signed out')
+        
+        // Sync user to Railway database on sign up/sign in
+        if (session?.user && (event === 'SIGNED_IN' || event === 'SIGNED_UP')) {
+          try {
+            await syncUserToDatabase(session.user)
+            console.log('User synced to Railway database:', session.user.email)
+          } catch (error) {
+            console.error('Error syncing user to Railway:', error)
+          }
         }
+        
+        setLoading(false)
       }
     )
 
     return () => subscription.unsubscribe()
   }, [])
 
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
   const signUp = async (email: string, password: string, metadata?: any) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -105,26 +117,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = async () => {
-    try {
-      // Use the comprehensive sign out function from lib
-      const { signOut: libSignOut } = await import('@/lib/supabase')
-      const { error } = await libSignOut()
-      
-      if (error) {
-        console.error('Sign out error:', error)
-      }
-      
-      // Force immediate state update regardless of error
-      setUser(null)
-      setSession(null)
-      setLoading(false)
-      
-    } catch (error) {
-      console.error('Sign out failed:', error)
-      // Still clear state even if sign out fails
-      setUser(null)
-      setSession(null)
-      setLoading(false)
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error('Error signing out:', error)
     }
   }
 
@@ -133,6 +128,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase.auth.updateUser({
       data: metadata
     })
+    
+    // Sync updated profile to Railway database
+    if (data.user && !error) {
+      try {
+        await syncUserToDatabase(data.user)
+      } catch (syncError) {
+        console.error('Error syncing updated profile:', syncError)
+      }
+    }
+    
     return { data, error }
   }
 
