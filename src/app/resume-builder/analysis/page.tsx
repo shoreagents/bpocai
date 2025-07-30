@@ -21,7 +21,11 @@ import {
   Clock,
   Upload,
   Copy,
-  Users
+  Users,
+  User,
+  Mail,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -291,6 +295,46 @@ export default function AnalysisPage() {
     if (score >= 80) return 'from-green-400 to-green-600';
     if (score >= 70) return 'from-yellow-400 to-yellow-600';
     return 'from-red-400 to-red-600';
+  };
+
+  const getScoreLevel = () => {
+    const score = finalAnalysisResults?.overallScore || 0;
+    if (score >= 90) {
+      return {
+        level: 'Excellent',
+        bgColor: 'bg-green-500/20',
+        color: 'text-green-400',
+        borderColor: 'border-green-400/30'
+      };
+    } else if (score >= 80) {
+      return {
+        level: 'Very Good',
+        bgColor: 'bg-blue-500/20',
+        color: 'text-blue-400',
+        borderColor: 'border-blue-400/30'
+      };
+    } else if (score >= 70) {
+      return {
+        level: 'Good',
+        bgColor: 'bg-yellow-500/20',
+        color: 'text-yellow-400',
+        borderColor: 'border-yellow-400/30'
+      };
+    } else if (score >= 60) {
+      return {
+        level: 'Fair',
+        bgColor: 'bg-orange-500/20',
+        color: 'text-orange-400',
+        borderColor: 'border-orange-400/30'
+      };
+    } else {
+      return {
+        level: 'Needs Improvement',
+        bgColor: 'bg-red-500/20',
+        color: 'text-red-400',
+        borderColor: 'border-red-400/30'
+      };
+    }
   };
 
   // Function to improve professional summary using Claude API
@@ -621,345 +665,464 @@ export default function AnalysisPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              {/* Overall Score Card */}
-              <Card className="glass-card border-white/10 mb-8">
-                <CardContent className="p-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-center">
-                    <div className="text-center lg:text-left">
-                      <div className="relative w-32 h-32 mx-auto lg:mx-0 mb-4">
-                        <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            stroke="rgba(255,255,255,0.1)"
-                            strokeWidth="8"
-                            fill="none"
-                          />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            stroke="url(#gradient)"
-                            strokeWidth="8"
-                            fill="none"
-                            strokeDasharray={`${(finalAnalysisResults?.overallScore || 0) * 2.51} 251`}
-                            className="transition-all duration-1000"
-                          />
-                          <defs>
-                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#06b6d4" />
-                              <stop offset="100%" stopColor="#8b5cf6" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                                                 <div className="absolute inset-0 flex items-center justify-center">
-                           <div className="text-center">
-                                                           <div className="text-xl font-bold gradient-text">
-                                                                 {finalAnalysisResults?.overallScore ?? 'N/A'}/100
-                              </div>
-                             <div className="text-sm text-gray-400">Overall</div>
-                           </div>
-                         </div>
-                      </div>
-                    </div>
-                    
-                    {/* User Profile Information */}
-                    <div className="lg:col-span-3 space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Basic Information */}
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-white mb-4">Candidate Profile</h3>
-                          
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
-                              <div>
-                                <p className="text-sm text-gray-400">Name</p>
-                                <p className="text-white font-medium">
-                                  {mappedResumeData?.name || 'No name found in resume'}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                              <div>
-                                <p className="text-sm text-gray-400">Email</p>
-                                <p className="text-white font-medium">
-                                  {mappedResumeData?.email || 'No email found in resume'}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                              <div>
-                                <p className="text-sm text-gray-400">Phone</p>
-                                <p className="text-white font-medium">
-                                  {mappedResumeData?.phone || 'No phone number found in resume'}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                              <div>
-                                <p className="text-sm text-gray-400">Location</p>
-                                <p className="text-white font-medium">
-                                  {mappedResumeData?.location || 'No location found in resume'}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Portfolio Links */}
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <Link2 className="h-5 w-5 text-pink-400" />
-                            Portfolio Links
-                          </h3>
-                          
-                          <div className="space-y-3">
-                            {analysisData?.portfolioLinks?.length > 0 ? (
-                              analysisData.portfolioLinks.map((link, index) => {
-                                // Get appropriate icon based on link type
-                                const getLinkIcon = (type: string) => {
-                                  switch (type.toLowerCase()) {
-                                    case 'linkedin': return '💼';
-                                    case 'github': return '🐙';
-                                    case 'behance': return '🎨';
-                                    case 'dribbble': return '🏀';
-                                    case 'website': return '🌐';
-                                    default: return '🔗';
-                                  }
-                                };
 
-                                return (
-                                  <motion.div 
-                                    key={index} 
-                                    className="flex items-center gap-3 p-3 glass-card rounded-lg border border-white/10 hover:border-pink-400/30 transition-all duration-300"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                  >
-                                    <div className="text-lg">{getLinkIcon(link.type)}</div>
-                                    <div className="flex-1">
-                                      <p className="text-sm text-gray-400 capitalize font-medium">{link.type}</p>
-                                      <a 
-                                        href={link.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-cyan-400 hover:text-cyan-300 transition-colors truncate max-w-xs block font-medium"
-                                      >
-                                        {link.title || link.url}
-                                      </a>
-                                    </div>
-                                    <div className="w-2 h-2 rounded-full bg-pink-400"></div>
-                                  </motion.div>
-                                );
-                              })
-                            ) : (
-                              <motion.div 
-                                className="flex items-center gap-3 p-3 glass-card rounded-lg border border-white/10"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                              >
-                                <div className="text-lg text-gray-500">🔗</div>
-                                <div>
-                                  <p className="text-sm text-gray-400 font-medium">Portfolio</p>
-                                  <p className="text-gray-500 text-sm">No portfolio links added</p>
-                                </div>
-                                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                              </motion.div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
 
-                  </div>
-                </CardContent>
-              </Card>
+
 
               {/* Analysis Tabs */}
-              <Tabs defaultValue="overview" className="space-y-6">
+              <Tabs defaultValue="overview" className="space-y-8">
                 <div className="flex justify-center">
-                  <TabsList className="glass-card border-white/10 p-1">
-                    <TabsTrigger value="overview" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+                  <TabsList className="glass-card border-white/20 shadow-lg shadow-white/10 p-1 bg-black/20">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-cyan-400 data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/20">
                       <Target className="h-4 w-4 mr-2" />
                       Overview
                     </TabsTrigger>
-                    <TabsTrigger value="strengths" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+                    <TabsTrigger value="strengths" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:text-green-400 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/20">
                       <Trophy className="h-4 w-4 mr-2" />
                       Strengths
                     </TabsTrigger>
-                    <TabsTrigger value="improvements" className="data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400">
+                    <TabsTrigger value="improvements" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500/20 data-[state=active]:to-red-500/20 data-[state=active]:text-orange-400 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/20">
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Improvements
                     </TabsTrigger>
-                    <TabsTrigger value="salary" className="data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-400">
+                    <TabsTrigger value="salary" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-pink-500/20 data-[state=active]:text-purple-400 data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/20">
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Salary & Career
-                    </TabsTrigger>
-                    <TabsTrigger value="data" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Source Data
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
-                                 <TabsContent value="overview" className="space-y-6">
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     {/* Skills */}
-                     <Card className="glass-card border-white/10">
-                       <CardHeader>
-                         <CardTitle className="flex items-center text-cyan-400">
-                           <Star className="h-5 w-5 mr-2" />
-                           Skills
-                         </CardTitle>
-                       </CardHeader>
-                       <CardContent>
-                         <div className="flex flex-wrap gap-2">
-                           {(Array.isArray(mappedResumeData?.skills) && mappedResumeData.skills.length > 0) ? 
-                             mappedResumeData.skills.map((skill: string, index: number) => (
-                               <motion.div
-                                 key={index}
-                                 initial={{ opacity: 0, scale: 0.8 }}
-                                 animate={{ opacity: 1, scale: 1 }}
-                                 transition={{ delay: index * 0.1 }}
-                               >
-                                 <Badge variant="outline" className="border-cyan-400/30 text-cyan-400 bg-cyan-400/10">
-                                   {skill}
-                                 </Badge>
-                               </motion.div>
-                             )) : 
-                             <p className="text-gray-400 text-sm">No skills data available from resume</p>
-                           }
-                         </div>
-                       </CardContent>
-                     </Card>
+                                                                  <TabsContent value="overview" className="space-y-8">
+                   {/* Header Section */}
+                   <div className="text-center mb-8">
+                     <motion.div
+                       initial={{ opacity: 0, y: 20 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ delay: 0.1 }}
+                     >
+                       <h2 className="text-3xl font-bold text-white mb-4">Resume Overview</h2>
+                       <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+                         Comprehensive breakdown of your resume sections and key information
+                       </p>
+                     </motion.div>
+                   </div>
 
-                     {/* Professional Summary */}
-                     <Card className="glass-card border-white/10">
-                       <CardHeader>
-                         <CardTitle className="flex items-center justify-between text-purple-400">
-                           <div className="flex items-center">
-                             <FileText className="h-5 w-5 mr-2" />
-                             Professional Summary
+                   {/* Three Cards Layout */}
+                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                     {/* Overall Score Card */}
+                     <Card className="glass-card border-cyan-500/30 shadow-lg shadow-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-full flex flex-col">
+                       <CardContent className="p-6 flex-1 flex flex-col justify-center">
+                         <div className="text-center">
+                           <div className="relative w-48 h-48 mx-auto mb-6">
+                             <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
+                               <circle
+                                 cx="50"
+                                 cy="50"
+                                 r="40"
+                                 stroke="rgba(255,255,255,0.1)"
+                                 strokeWidth="8"
+                                 fill="none"
+                               />
+                               <circle
+                                 cx="50"
+                                 cy="50"
+                                 r="40"
+                                 stroke="url(#gradient)"
+                                 strokeWidth="8"
+                                 fill="none"
+                                 strokeDasharray={`${(finalAnalysisResults?.overallScore || 0) * 2.51} 251`}
+                                 className="transition-all duration-1000"
+                               />
+                               <defs>
+                                 <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                   <stop offset="0%" stopColor="#06b6d4" />
+                                   <stop offset="100%" stopColor="#8b5cf6" />
+                                 </linearGradient>
+                               </defs>
+                             </svg>
+                             <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="text-center">
+                                 <div className="text-5xl font-bold gradient-text mb-2">
+                                   {finalAnalysisResults?.overallScore ?? 'N/A'}
+                                 </div>
+                                 <div className="text-lg text-gray-400">Overall Score</div>
+                               </div>
+                             </div>
                            </div>
-                           {mappedResumeData?.summary && (
-                             <Button
-                               onClick={improveSummary}
-                               disabled={isImprovingSummary}
-                               size="sm"
-                               className="bg-purple-500 hover:bg-purple-600 text-white"
-                             >
-                               {isImprovingSummary ? (
-                                 <>
-                                   <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                                   Improving...
-                                 </>
-                               ) : (
-                                 <>
-                                   <Sparkles className="h-4 w-4 mr-2" />
-                                   Improve with AI
-                                 </>
-                               )}
-                             </Button>
-                           )}
-                         </CardTitle>
-                       </CardHeader>
-                       <CardContent>
-                         {improvedSummary ? (
-                           <p className="text-gray-300 leading-relaxed">
-                             {improvedSummary}
-                           </p>
-                         ) : (
-                           <p className="text-gray-300 leading-relaxed">
-                             {mappedResumeData?.summary || 'No professional summary found in resume'}
-                           </p>
-                         )}
-                       </CardContent>
-                     </Card>
-
-                     {/* Work Experience */}
-                     <Card className="glass-card border-white/10">
-                       <CardHeader>
-                         <CardTitle className="flex items-center text-green-400">
-                           <Trophy className="h-5 w-5 mr-2" />
-                           Work Experience
-                         </CardTitle>
-                       </CardHeader>
-                       <CardContent>
-                         <div className="space-y-4">
-                           {(Array.isArray(mappedResumeData?.experience) && mappedResumeData.experience.length > 0) ? 
-                             mappedResumeData.experience.map((exp: any, index: number) => (
-                               <motion.div
-                                 key={index}
-                                 initial={{ opacity: 0, y: 20 }}
-                                 animate={{ opacity: 1, y: 0 }}
-                                 transition={{ delay: (index + 1) * 0.1 }}
-                                 className="border-l-2 border-green-400/30 pl-4"
-                               >
-                                 <h4 className="font-semibold text-white">{exp.position || exp.title || 'Position'}</h4>
-                                 <p className="text-green-400 text-sm">{exp.company || exp.employer || 'Company'} • {exp.duration || exp.period || 'Duration'}</p>
-                                 <p className="text-gray-300 text-sm mt-2">
-                                   {exp.description || exp.responsibilities?.join(', ') || 'No description available'}
-                                 </p>
-                               </motion.div>
-                             )) :
-                             <p className="text-gray-400 text-sm">No work experience data available from resume</p>
-                           }
+                           
+                           {/* Score Level Badge */}
+                           <Badge className={`${getScoreLevel().bgColor} ${getScoreLevel().color} ${getScoreLevel().borderColor} text-base px-4 py-2`}>
+                             {getScoreLevel().level}
+                           </Badge>
                          </div>
                        </CardContent>
                      </Card>
 
-                     {/* Education */}
-                     <Card className="glass-card border-white/10">
-                       <CardHeader>
-                         <CardTitle className="flex items-center text-yellow-400">
-                           <Target className="h-5 w-5 mr-2" />
-                           Education
-                         </CardTitle>
-                       </CardHeader>
-                       <CardContent>
-                         <div className="space-y-4">
-                           {(Array.isArray(mappedResumeData?.education) && mappedResumeData.education.length > 0) ? 
-                             mappedResumeData.education.map((edu: any, index: number) => (
-                               <motion.div
-                                 key={index}
-                                 initial={{ opacity: 0, y: 20 }}
-                                 animate={{ opacity: 1, y: 0 }}
-                                 transition={{ delay: (index + 1) * 0.1 }}
-                                 className="border-l-2 border-yellow-400/30 pl-4"
-                               >
-                                 <h4 className="font-semibold text-white">{edu.degree || edu.title || 'Degree'}</h4>
-                                 <p className="text-yellow-400 text-sm">
-                                   {edu.institution || edu.school || edu.university || 'Institution'}
-                                   {edu.year || edu.graduationYear || edu.yearCompleted || edu.duration ? 
-                                     ` • ${edu.year || edu.graduationYear || edu.yearCompleted || edu.duration}` : 
-                                     ' • Year not specified'
-                                   }
-                                 </p>
-                                 <p className="text-gray-300 text-sm mt-2">
-                                   {edu.details || edu.description || edu.honors || edu.gpa ? 
-                                     `${edu.details || edu.description || ''} ${edu.honors ? `• ${edu.honors}` : ''} ${edu.gpa ? `• GPA: ${edu.gpa}` : ''}`.trim() : 
-                                     'No additional details available'
-                                   }
-                                 </p>
-                               </motion.div>
-                             )) :
-                             <p className="text-gray-400 text-sm">No education data available from resume</p>
-                           }
+                     {/* Candidate Profile Card */}
+                     <Card className="glass-card border-white/20 shadow-lg shadow-white/10 bg-gradient-to-br from-white/5 to-gray-500/5">
+                       <CardContent className="p-6">
+                         <div className="text-center lg:text-left mb-4">
+                           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                             <Users className="h-5 w-5 text-cyan-400" />
+                             Candidate Profile
+                           </h3>
+                         </div>
+                         
+                         <div className="space-y-3">
+                           <div className="flex items-center gap-3 p-3 rounded-lg border border-white/10">
+                             <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+                             <div>
+                               <p className="text-xs text-gray-400">Name</p>
+                               <p className="text-white font-medium text-sm">
+                                 {mappedResumeData?.name || 'No name found'}
+                               </p>
+                             </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3 p-3 rounded-lg border border-white/10">
+                             <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+                             <div>
+                               <p className="text-xs text-gray-400">Email</p>
+                               <p className="text-white font-medium text-sm">
+                                 {mappedResumeData?.email || 'No email found'}
+                               </p>
+                             </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3 p-3 rounded-lg border border-white/10">
+                             <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                             <div>
+                               <p className="text-xs text-gray-400">Phone</p>
+                               <p className="text-white font-medium text-sm">
+                                 {mappedResumeData?.phone || 'No phone found'}
+                               </p>
+                             </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3 p-3 rounded-lg border border-white/10">
+                             <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                             <div>
+                               <p className="text-xs text-gray-400">Location</p>
+                               <p className="text-white font-medium text-sm">
+                                 {mappedResumeData?.location || 'No location found'}
+                               </p>
+                             </div>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                     
+                     {/* Additional Links Card */}
+                     <Card className="glass-card border-pink-500/30 shadow-lg shadow-pink-500/20 bg-gradient-to-br from-pink-500/5 to-purple-500/5">
+                       <CardContent className="p-6">
+                         <div className="text-center lg:text-left mb-4">
+                           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                             <Link2 className="h-5 w-5 text-pink-400" />
+                             Additional Links
+                           </h3>
+                         </div>
+                         
+                         <div className="space-y-3">
+                           {analysisData?.portfolioLinks?.length > 0 ? (
+                             analysisData.portfolioLinks.map((link, index) => {
+                               const getLinkIcon = (type: string) => {
+                                 switch (type.toLowerCase()) {
+                                   case 'linkedin': return '💼';
+                                   case 'github': return '🐙';
+                                   case 'behance': return '🎨';
+                                   case 'dribbble': return '🏀';
+                                   case 'website': return '🌐';
+                                   default: return '🔗';
+                                 }
+                               };
+
+                               return (
+                                 <motion.div 
+                                   key={index} 
+                                   className="flex items-center gap-3 p-3 rounded-lg border border-white/10 hover:border-pink-400/30 transition-all duration-300"
+                                   initial={{ opacity: 0, x: -20 }}
+                                   animate={{ opacity: 1, x: 0 }}
+                                   transition={{ delay: index * 0.1 }}
+                                 >
+                                   <div className="w-3 h-3 rounded-full bg-pink-400 flex-shrink-0"></div>
+                                   <div className="flex-1">
+                                     <p className="text-xs text-gray-400 capitalize font-medium">{link.type}</p>
+                                     <a 
+                                       href={link.url} 
+                                       target="_blank" 
+                                       rel="noopener noreferrer"
+                                       className="text-white font-medium text-sm hover:text-pink-400 transition-colors"
+                                     >
+                                       {link.title || link.url}
+                                     </a>
+                                   </div>
+                                 </motion.div>
+                               );
+                             })
+                           ) : (
+                             <motion.div 
+                               className="flex items-center gap-3 p-3 rounded-lg border border-white/10"
+                               initial={{ opacity: 0 }}
+                               animate={{ opacity: 1 }}
+                             >
+                               <div className="w-3 h-3 rounded-full bg-gray-500 flex-shrink-0"></div>
+                               <div>
+                                 <p className="text-xs text-gray-400 font-medium">Portfolio</p>
+                                 <p className="text-white font-medium text-sm">No additional links added</p>
+                               </div>
+                             </motion.div>
+                           )}
                          </div>
                        </CardContent>
                      </Card>
                    </div>
+                   
+                   {/* First Row - 3 Cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                      {/* Skills Section */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        <Card className="glass-card border-cyan-500/30 shadow-lg shadow-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-full">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-cyan-500/20 rounded-lg">
+                                <Star className="h-5 w-5 text-cyan-400" />
+                              </div>
+                              <CardTitle className="text-cyan-400 text-lg">Skills & Competencies</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              {(Array.isArray(mappedResumeData?.skills) && mappedResumeData.skills.length > 0) ? 
+                                mappedResumeData.skills.map((skill: string, index: number) => (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: index * 0.05 }}
+                                  >
+                                    <Badge 
+                                      variant="outline" 
+                                      className="border-cyan-400/30 text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 transition-colors px-3 py-1 text-sm max-w-full break-words"
+                                    >
+                                      {skill}
+                                    </Badge>
+                                  </motion.div>
+                                )) : 
+                                <div className="text-center py-8 w-full">
+                                  <div className="text-gray-400 text-sm">No skills data available</div>
+                                </div>
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      {/* Professional Summary */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-full">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-500/20 rounded-lg">
+                                  <FileText className="h-5 w-5 text-purple-400" />
+                                </div>
+                                <CardTitle className="text-purple-400 text-lg">Professional Summary</CardTitle>
+                              </div>
+                              {mappedResumeData?.summary && (
+                                <Button
+                                  onClick={improveSummary}
+                                  disabled={isImprovingSummary}
+                                  size="sm"
+                                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                                >
+                                  {isImprovingSummary ? (
+                                    <>
+                                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                      Improving...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="h-4 w-4 mr-2" />
+                                      Improve with AI
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            {improvedSummary ? (
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4">
+                                  <Sparkles className="h-4 w-4 text-green-400" />
+                                  <span className="text-sm text-green-400 font-medium">AI Improved</span>
+                                </div>
+                                <p className="text-gray-300 leading-relaxed text-sm">
+                                  {improvedSummary}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="py-4">
+                                <p className="text-gray-300 leading-relaxed text-sm">
+                                  {mappedResumeData?.summary || 'No professional summary found'}
+                                </p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      {/* Work Experience */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                      >
+                        <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-full">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-green-500/20 rounded-lg">
+                                <Trophy className="h-5 w-5 text-green-400" />
+                              </div>
+                              <CardTitle className="text-green-400 text-lg">Work Experience</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              {(Array.isArray(mappedResumeData?.experience) && mappedResumeData.experience.length > 0) ? 
+                                mappedResumeData.experience.map((exp: any, index: number) => (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: (index + 1) * 0.1 }}
+                                    className="p-4 glass-card rounded-lg border border-white/10 hover:border-green-400/30 transition-all duration-300"
+                                  >
+                                    <h4 className="font-semibold text-white text-base">{exp.position || exp.title || 'Position'}</h4>
+                                    <p className="text-green-400 text-sm mb-2">{exp.company || exp.employer || 'Company'} • {exp.duration || exp.period || 'Duration'}</p>
+                                    <p className="text-gray-300 text-sm leading-relaxed">
+                                      {exp.description || exp.responsibilities?.join(', ') || 'No description available'}
+                                    </p>
+                                  </motion.div>
+                                )) :
+                                <div className="text-center py-12">
+                                  <div className="text-gray-400 text-sm">No work experience data available</div>
+                                </div>
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </div>
+
+                    {/* Second Row - 2 Cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Education */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                      >
+                        <Card className="glass-card border-yellow-500/30 shadow-lg shadow-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 h-full">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-yellow-500/20 rounded-lg">
+                                <Target className="h-5 w-5 text-yellow-400" />
+                              </div>
+                              <CardTitle className="text-yellow-400 text-lg">Education</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              {(Array.isArray(mappedResumeData?.education) && mappedResumeData.education.length > 0) ? 
+                                mappedResumeData.education.map((edu: any, index: number) => (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: (index + 1) * 0.1 }}
+                                    className="p-4 glass-card rounded-lg border border-white/10 hover:border-yellow-400/30 transition-all duration-300"
+                                  >
+                                    <h4 className="font-semibold text-white text-base">{edu.degree || edu.title || 'Degree'}</h4>
+                                    <p className="text-yellow-400 text-sm mb-2">
+                                      {edu.institution || edu.school || edu.university || 'Institution'}
+                                      {edu.year || edu.graduationYear || edu.yearCompleted || edu.duration ? 
+                                        ` • ${edu.year || edu.graduationYear || edu.yearCompleted || edu.duration}` : 
+                                        ' • Year not specified'
+                                      }
+                                    </p>
+                                    <p className="text-gray-300 text-sm leading-relaxed">
+                                      {edu.details || edu.description || edu.honors || edu.gpa ? 
+                                        `${edu.details || edu.description || ''} ${edu.honors ? `• ${edu.honors}` : ''} ${edu.gpa ? `• GPA: ${edu.gpa}` : ''}`.trim() : 
+                                        'No additional details available'
+                                      }
+                                    </p>
+                                  </motion.div>
+                                )) :
+                                <div className="text-center py-12">
+                                  <div className="text-gray-400 text-sm">No education data available</div>
+                                </div>
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      {/* Portfolio Links */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                      >
+                        <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-500/20 rounded-lg">
+                                <Link2 className="h-5 w-5 text-blue-400" />
+                              </div>
+                              <CardTitle className="text-blue-400 text-lg">Additional Links</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              {Array.isArray(analysisData?.portfolioLinks) && analysisData.portfolioLinks.length > 0 ? 
+                                analysisData.portfolioLinks.slice(0, 4).map((link: any, index: number) => (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.7 + (index * 0.1) }}
+                                    className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-400/20 hover:bg-blue-500/15 transition-colors"
+                                  >
+                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                                      <Link2 className="h-4 w-4 text-blue-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-white text-sm font-medium truncate">{link.title || link.name}</p>
+                                      <p className="text-blue-400 text-xs truncate">{link.url}</p>
+                                    </div>
+                                  </motion.div>
+                                )) : 
+                                                              <div className="text-center py-8">
+                                <div className="text-gray-400 text-sm">No additional links available</div>
+                              </div>
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </div>
                  </TabsContent>
 
-                                                 <TabsContent value="strengths" className="space-y-8">
+                                                                                                  <TabsContent value="strengths" className="space-y-8">
                   {/* Header Section */}
                   <div className="text-center mb-8">
                     <motion.div
@@ -974,8 +1137,8 @@ export default function AnalysisPage() {
                     </motion.div>
                   </div>
 
-                  {/* Main Strengths Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* First Row - 3 Cards */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                     
                     {/* Core Professional Strengths */}
                     <motion.div
@@ -983,13 +1146,13 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <Card className="glass-card border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5 hover:from-green-500/15 hover:to-green-600/10 transition-all duration-300">
+                      <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-green-500/20 rounded-lg">
-                              <Target className="h-6 w-6 text-green-400" />
+                              <Target className="h-5 w-5 text-green-400" />
                             </div>
-                            <CardTitle className="text-green-400 text-xl">Core Professional Strengths</CardTitle>
+                            <CardTitle className="text-green-400 text-lg">Core Professional Strengths</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Your strongest professional attributes that set you apart
@@ -997,7 +1160,7 @@ export default function AnalysisPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           {Array.isArray(finalAnalysisResults?.strengthsAnalysis?.coreStrengths) && finalAnalysisResults.strengthsAnalysis.coreStrengths.length > 0 ? 
-                            finalAnalysisResults.strengthsAnalysis.coreStrengths.map((strength: string, index: number) => (
+                            finalAnalysisResults.strengthsAnalysis.coreStrengths.slice(0, 3).map((strength: string, index: number) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
@@ -1027,13 +1190,13 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <Card className="glass-card border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 hover:from-blue-500/15 hover:to-blue-600/10 transition-all duration-300">
+                      <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-500/20 rounded-lg">
-                              <Zap className="h-6 w-6 text-blue-400" />
+                              <Zap className="h-5 w-5 text-blue-400" />
                             </div>
-                            <CardTitle className="text-blue-400 text-xl">Technical Strengths</CardTitle>
+                            <CardTitle className="text-blue-400 text-lg">Technical Strengths</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Technical skills that make you valuable for BPO roles
@@ -1041,7 +1204,7 @@ export default function AnalysisPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           {Array.isArray(finalAnalysisResults?.strengthsAnalysis?.technicalStrengths) && finalAnalysisResults.strengthsAnalysis.technicalStrengths.length > 0 ? 
-                            finalAnalysisResults.strengthsAnalysis.technicalStrengths.map((strength: string, index: number) => (
+                            finalAnalysisResults.strengthsAnalysis.technicalStrengths.slice(0, 3).map((strength: string, index: number) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
@@ -1071,13 +1234,13 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
                     >
-                      <Card className="glass-card border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-purple-600/5 hover:from-purple-500/15 hover:to-purple-600/10 transition-all duration-300">
+                      <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
-                                                         <div className="p-2 bg-purple-500/20 rounded-lg">
-                               <Users className="h-6 w-6 text-purple-400" />
-                             </div>
-                            <CardTitle className="text-purple-400 text-xl">Soft Skills</CardTitle>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-500/20 rounded-lg">
+                              <Users className="h-5 w-5 text-purple-400" />
+                            </div>
+                            <CardTitle className="text-purple-400 text-lg">Soft Skills</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Interpersonal skills that enhance your professional value
@@ -1085,7 +1248,7 @@ export default function AnalysisPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           {Array.isArray(finalAnalysisResults?.strengthsAnalysis?.softSkills) && finalAnalysisResults.strengthsAnalysis.softSkills.length > 0 ? 
-                            finalAnalysisResults.strengthsAnalysis.softSkills.map((skill: string, index: number) => (
+                            finalAnalysisResults.strengthsAnalysis.softSkills.slice(0, 3).map((skill: string, index: number) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
@@ -1108,20 +1271,24 @@ export default function AnalysisPage() {
                         </CardContent>
                       </Card>
                     </motion.div>
+                  </div>
 
+                  {/* Second Row - 2 Cards */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
                     {/* Notable Achievements */}
                     <motion.div
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.5 }}
                     >
-                      <Card className="glass-card border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 hover:from-yellow-500/15 hover:to-yellow-600/10 transition-all duration-300">
+                      <Card className="glass-card border-yellow-500/30 shadow-lg shadow-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-yellow-500/20 rounded-lg">
-                              <Trophy className="h-6 w-6 text-yellow-400" />
+                              <Trophy className="h-5 w-5 text-yellow-400" />
                             </div>
-                            <CardTitle className="text-yellow-400 text-xl">Notable Achievements</CardTitle>
+                            <CardTitle className="text-yellow-400 text-lg">Notable Achievements</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Key accomplishments that demonstrate your value
@@ -1129,7 +1296,7 @@ export default function AnalysisPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           {Array.isArray(finalAnalysisResults?.strengthsAnalysis?.achievements) && finalAnalysisResults.strengthsAnalysis.achievements.length > 0 ? 
-                            finalAnalysisResults.strengthsAnalysis.achievements.map((achievement: string, index: number) => (
+                            finalAnalysisResults.strengthsAnalysis.achievements.slice(0, 4).map((achievement: string, index: number) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
@@ -1159,13 +1326,13 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 }}
                     >
-                      <Card className="glass-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 hover:from-cyan-500/15 hover:to-cyan-600/10 transition-all duration-300">
+                      <Card className="glass-card border-cyan-500/30 shadow-lg shadow-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-cyan-500/20 rounded-lg">
-                              <TrendingUp className="h-6 w-6 text-cyan-400" />
+                              <TrendingUp className="h-5 w-5 text-cyan-400" />
                             </div>
-                            <CardTitle className="text-cyan-400 text-xl">Market Advantages</CardTitle>
+                            <CardTitle className="text-cyan-400 text-lg">Market Advantages</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Specific advantages for the BPO industry
@@ -1173,7 +1340,7 @@ export default function AnalysisPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           {Array.isArray(finalAnalysisResults?.strengthsAnalysis?.marketAdvantage) && finalAnalysisResults.strengthsAnalysis.marketAdvantage.length > 0 ? 
-                            finalAnalysisResults.strengthsAnalysis.marketAdvantage.map((advantage: string, index: number) => (
+                            finalAnalysisResults.strengthsAnalysis.marketAdvantage.slice(0, 4).map((advantage: string, index: number) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
@@ -1196,28 +1363,29 @@ export default function AnalysisPage() {
                         </CardContent>
                       </Card>
                     </motion.div>
+                  </div>
 
-                    {/* Key Strengths Summary */}
+                  {/* Third Row - Key Strengths Summary */}
+                  <div className="mt-8">
                     <motion.div
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.7 }}
-                      className="lg:col-span-2"
                     >
-                      <Card className="glass-card border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5 hover:from-green-500/15 hover:to-green-600/10 transition-all duration-300">
+                      <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-green-500/20 rounded-lg">
-                              <Star className="h-6 w-6 text-green-400" />
+                              <Star className="h-5 w-5 text-green-400" />
                             </div>
-                            <CardTitle className="text-green-400 text-xl">Key Strengths Summary</CardTitle>
+                            <CardTitle className="text-green-400 text-lg">Key Strengths Summary</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Your most valuable professional attributes for career success
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {Array.isArray(finalAnalysisResults?.keyStrengths) && finalAnalysisResults.keyStrengths.length > 0 ? 
                               finalAnalysisResults.keyStrengths.map((strength: string, index: number) => (
                                 <motion.div
@@ -1261,7 +1429,8 @@ export default function AnalysisPage() {
                      </motion.div>
                    </div>
 
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   {/* First Row - 2 Cards */}
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                      
                      {/* Critical Issues to Address */}
                      <motion.div
@@ -1269,13 +1438,13 @@ export default function AnalysisPage() {
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: 0.2 }}
                      >
-                       <Card className="glass-card border-red-500/30 bg-gradient-to-br from-red-500/10 to-red-600/5 hover:from-red-500/15 hover:to-red-600/10 transition-all duration-300">
+                       <Card className="glass-card border-red-500/30 shadow-lg shadow-red-500/20 bg-gradient-to-br from-red-500/5 to-pink-500/5 h-full">
                          <CardHeader className="pb-4">
-                           <div className="flex items-center gap-3 mb-2">
+                           <div className="flex items-center gap-3">
                              <div className="p-2 bg-red-500/20 rounded-lg">
-                               <AlertTriangle className="h-6 w-6 text-red-400" />
+                               <AlertTriangle className="h-5 w-5 text-red-400" />
                              </div>
-                             <CardTitle className="text-red-400 text-xl">Critical Issues to Address</CardTitle>
+                             <CardTitle className="text-red-400 text-lg">Critical Issues to Address</CardTitle>
                            </div>
                            <CardDescription className="text-gray-300 text-sm">
                              High-priority improvements that will significantly boost your resume score
@@ -1288,7 +1457,7 @@ export default function AnalysisPage() {
                                  key={index}
                                  initial={{ opacity: 0, x: -20 }}
                                  animate={{ opacity: 1, x: 0 }}
-                                 transition={{ delay: 0.3 + (index * 0.1) }}
+                                 transition={{ delay: 0.3 + (index * 0.05) }}
                                  className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-400/20 hover:bg-red-500/15 transition-colors"
                                >
                                  <div className="flex-shrink-0 w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center mt-0.5">
@@ -1299,56 +1468,56 @@ export default function AnalysisPage() {
                                  </div>
                                </motion.div>
                              )) : 
-                             <div className="text-center py-8">
-                               <div className="text-gray-400 text-sm">No improvement suggestions available from Claude</div>
+                             <div className="text-center py-10">
+                               <div className="text-gray-400 text-sm">No improvement suggestions available</div>
                              </div>
                            }
                          </CardContent>
                        </Card>
                      </motion.div>
 
-                     {/* Section Analysis - Contact & Summary */}
+                     {/* Section Analysis */}
                      <motion.div
                        initial={{ opacity: 0, y: 30 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: 0.3 }}
                      >
-                       <Card className="glass-card border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 hover:from-blue-500/15 hover:to-blue-600/10 transition-all duration-300">
+                       <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
                          <CardHeader className="pb-4">
-                           <div className="flex items-center gap-3 mb-2">
+                           <div className="flex items-center gap-3">
                              <div className="p-2 bg-blue-500/20 rounded-lg">
-                               <TrendingUp className="h-6 w-6 text-blue-400" />
+                               <TrendingUp className="h-5 w-5 text-blue-400" />
                              </div>
-                             <CardTitle className="text-blue-400 text-xl">Section Analysis</CardTitle>
+                             <CardTitle className="text-blue-400 text-lg">Section Analysis</CardTitle>
                            </div>
                            <CardDescription className="text-gray-300 text-sm">
                              Detailed breakdown of each resume section with scores and recommendations
                            </CardDescription>
                          </CardHeader>
-                         <CardContent className="space-y-3">
+                         <CardContent className="space-y-4">
                            {/* Contact Section */}
                            {finalAnalysisResults?.sectionAnalysis?.contact && (
                              <motion.div
                                initial={{ opacity: 0, x: -20 }}
                                animate={{ opacity: 1, x: 0 }}
                                transition={{ delay: 0.4 }}
-                               className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
+                               className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20"
                              >
-                               <div className="flex items-center justify-between mb-2">
-                                 <h4 className="font-semibold text-white">Contact Information</h4>
-                                 <div className="text-xl font-bold text-green-400">
+                               <div className="flex items-center justify-between mb-3">
+                                 <h4 className="font-semibold text-white text-sm">Contact Information</h4>
+                                 <div className="text-lg font-bold text-green-400">
                                    {finalAnalysisResults.sectionAnalysis.contact.score}/100
                                  </div>
                                </div>
-                               <div className="space-y-1">
+                               <div className="space-y-2">
                                  {finalAnalysisResults.sectionAnalysis.contact.reasons?.map((reason: string, idx: number) => (
-                                   <p key={idx} className="text-gray-300 text-xs">• {reason}</p>
+                                   <p key={idx} className="text-gray-300 text-sm">• {reason}</p>
                                  ))}
                                  {finalAnalysisResults.sectionAnalysis.contact.issues?.map((issue: string, idx: number) => (
-                                   <p key={idx} className="text-red-400 text-xs">⚠️ {issue}</p>
+                                   <p key={idx} className="text-red-400 text-sm">⚠️ {issue}</p>
                                  ))}
                                  {finalAnalysisResults.sectionAnalysis.contact.improvements?.map((improvement: string, idx: number) => (
-                                   <p key={idx} className="text-green-400 text-xs">💡 {improvement}</p>
+                                   <p key={idx} className="text-green-400 text-sm">💡 {improvement}</p>
                                  ))}
                                </div>
                              </motion.div>
@@ -1360,23 +1529,23 @@ export default function AnalysisPage() {
                                initial={{ opacity: 0, x: -20 }}
                                animate={{ opacity: 1, x: 0 }}
                                transition={{ delay: 0.5 }}
-                               className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
+                               className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20"
                              >
-                               <div className="flex items-center justify-between mb-2">
-                                 <h4 className="font-semibold text-white">Professional Summary</h4>
-                                 <div className="text-xl font-bold text-yellow-400">
+                               <div className="flex items-center justify-between mb-3">
+                                 <h4 className="font-semibold text-white text-sm">Professional Summary</h4>
+                                 <div className="text-lg font-bold text-yellow-400">
                                    {finalAnalysisResults.sectionAnalysis.summary.score}/100
                                  </div>
                                </div>
-                               <div className="space-y-1">
+                               <div className="space-y-2">
                                  {finalAnalysisResults.sectionAnalysis.summary.reasons?.map((reason: string, idx: number) => (
-                                   <p key={idx} className="text-gray-300 text-xs">• {reason}</p>
+                                   <p key={idx} className="text-gray-300 text-sm">• {reason}</p>
                                  ))}
                                  {finalAnalysisResults.sectionAnalysis.summary.issues?.map((issue: string, idx: number) => (
-                                   <p key={idx} className="text-red-400 text-xs">⚠️ {issue}</p>
+                                   <p key={idx} className="text-red-400 text-sm">⚠️ {issue}</p>
                                  ))}
                                  {finalAnalysisResults.sectionAnalysis.summary.improvements?.map((improvement: string, idx: number) => (
-                                   <p key={idx} className="text-green-400 text-xs">💡 {improvement}</p>
+                                   <p key={idx} className="text-green-400 text-sm">💡 {improvement}</p>
                                  ))}
                                </div>
                              </motion.div>
@@ -1388,23 +1557,23 @@ export default function AnalysisPage() {
                                initial={{ opacity: 0, x: -20 }}
                                animate={{ opacity: 1, x: 0 }}
                                transition={{ delay: 0.6 }}
-                               className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
+                               className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20"
                              >
-                               <div className="flex items-center justify-between mb-2">
-                                 <h4 className="font-semibold text-white">Work Experience</h4>
-                                 <div className="text-xl font-bold text-yellow-400">
+                               <div className="flex items-center justify-between mb-3">
+                                 <h4 className="font-semibold text-white text-sm">Work Experience</h4>
+                                 <div className="text-lg font-bold text-yellow-400">
                                    {finalAnalysisResults.sectionAnalysis.experience.score}/100
                                  </div>
                                </div>
-                               <div className="space-y-1">
+                               <div className="space-y-2">
                                  {finalAnalysisResults.sectionAnalysis.experience.reasons?.map((reason: string, idx: number) => (
-                                   <p key={idx} className="text-gray-300 text-xs">• {reason}</p>
+                                   <p key={idx} className="text-gray-300 text-sm">• {reason}</p>
                                  ))}
                                  {finalAnalysisResults.sectionAnalysis.experience.issues?.map((issue: string, idx: number) => (
-                                   <p key={idx} className="text-red-400 text-xs">⚠️ {issue}</p>
+                                   <p key={idx} className="text-red-400 text-sm">⚠️ {issue}</p>
                                  ))}
                                  {finalAnalysisResults.sectionAnalysis.experience.improvements?.map((improvement: string, idx: number) => (
-                                   <p key={idx} className="text-green-400 text-xs">💡 {improvement}</p>
+                                   <p key={idx} className="text-green-400 text-sm">💡 {improvement}</p>
                                  ))}
                                </div>
                              </motion.div>
@@ -1416,15 +1585,15 @@ export default function AnalysisPage() {
                                initial={{ opacity: 0, x: -20 }}
                                animate={{ opacity: 1, x: 0 }}
                                transition={{ delay: 0.7 }}
-                               className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
+                               className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20"
                              >
-                               <div className="flex items-center justify-between mb-2">
-                                 <h4 className="font-semibold text-white">Education</h4>
-                                 <div className="text-xl font-bold text-green-400">
+                               <div className="flex items-center justify-between mb-3">
+                                 <h4 className="font-semibold text-white text-sm">Education</h4>
+                                 <div className="text-lg font-bold text-green-400">
                                    {finalAnalysisResults.sectionAnalysis.education.score}/100
                                  </div>
                                </div>
-                               <div className="space-y-1">
+                               <div className="space-y-2">
                                  {finalAnalysisResults.sectionAnalysis.education.reasons?.map((reason: string, idx: number) => (
                                    <p key={idx} className="text-gray-300 text-xs">• {reason}</p>
                                  ))}
@@ -1447,12 +1616,12 @@ export default function AnalysisPage() {
                                className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
                              >
                                <div className="flex items-center justify-between mb-2">
-                                 <h4 className="font-semibold text-white">Skills</h4>
-                                 <div className="text-xl font-bold text-yellow-400">
+                                 <h4 className="font-semibold text-white text-sm">Skills</h4>
+                                 <div className="text-lg font-bold text-yellow-400">
                                    {finalAnalysisResults.sectionAnalysis.skills.score}/100
                                  </div>
                                </div>
-                               <div className="space-y-1">
+                               <div className="space-y-2">
                                  {finalAnalysisResults.sectionAnalysis.skills.reasons?.map((reason: string, idx: number) => (
                                    <p key={idx} className="text-gray-300 text-xs">• {reason}</p>
                                  ))}
@@ -1468,28 +1637,29 @@ export default function AnalysisPage() {
                          </CardContent>
                        </Card>
                      </motion.div>
+                   </div>
 
-                     {/* Recommendations */}
+                   {/* Second Row - Recommendations */}
+                   <div className="mt-8">
                      <motion.div
                        initial={{ opacity: 0, y: 30 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: 0.4 }}
-                       className="lg:col-span-2"
                      >
-                       <Card className="glass-card border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5 hover:from-green-500/15 hover:to-green-600/10 transition-all duration-300">
+                       <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
                          <CardHeader className="pb-4">
-                           <div className="flex items-center gap-3 mb-2">
+                           <div className="flex items-center gap-3">
                              <div className="p-2 bg-green-500/20 rounded-lg">
-                               <CheckCircle className="h-6 w-6 text-green-400" />
+                               <CheckCircle className="h-5 w-5 text-green-400" />
                              </div>
-                             <CardTitle className="text-green-400 text-xl">Actionable Recommendations</CardTitle>
+                             <CardTitle className="text-green-400 text-lg">Actionable Recommendations</CardTitle>
                            </div>
                            <CardDescription className="text-gray-300 text-sm">
                              Specific steps to enhance your resume's effectiveness
                            </CardDescription>
                          </CardHeader>
                          <CardContent>
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                              {Array.isArray(finalAnalysisResults?.recommendations) && finalAnalysisResults.recommendations.length > 0 ? 
                                finalAnalysisResults.recommendations.map((recommendation: string, index: number) => (
                                  <motion.div
@@ -1508,7 +1678,7 @@ export default function AnalysisPage() {
                                  </motion.div>
                                )) : 
                                <div className="col-span-full text-center py-8">
-                                 <div className="text-gray-400 text-sm">No recommendations available from Claude</div>
+                                 <div className="text-gray-400 text-sm">No recommendations available</div>
                                </div>
                              }
                            </div>
@@ -1518,129 +1688,7 @@ export default function AnalysisPage() {
                    </div>
                  </TabsContent>
 
-                <TabsContent value="data" className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="glass-card border-white/10">
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-cyan-400">
-                          <FileText className="h-5 w-5 mr-2" />
-                          Uploaded Files
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {analysisData.uploadedFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 glass-card rounded-lg border border-white/10">
-                              <div className="flex items-center">
-                                <FileText className="h-4 w-4 text-cyan-400 mr-3" />
-                                <div>
-                                  <p className="text-white font-medium">{file.name}</p>
-                                  <p className="text-gray-400 text-sm">{file.category}</p>
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="border-green-400/30 text-green-400">
-                                Analyzed
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
 
-                    <Card className="glass-card border-white/10">
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-purple-400">
-                          <Link2 className="h-5 w-5 mr-2" />
-                          Portfolio Links
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {analysisData.portfolioLinks.map((link, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 glass-card rounded-lg border border-white/10">
-                              <div className="flex items-center">
-                                <Link2 className="h-4 w-4 text-purple-400 mr-3" />
-                                <div>
-                                  <p className="text-white font-medium">{link.title}</p>
-                                  <p className="text-gray-400 text-sm">{link.type}</p>
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="border-green-400/30 text-green-400">
-                                Scanned
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  
-                  {/* Resume JSON Data */}
-                  <Card className="glass-card border-green-500/20 bg-green-500/5">
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-green-400">
-                        <FileText className="h-5 w-5 mr-2" />
-                        Resume JSON Data (Analyzed by Claude)
-                      </CardTitle>
-                      <CardDescription className="text-gray-300">
-                        Raw JSON data extracted from your resume that Claude AI analyzed
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {/* Mapped Data Preview */}
-                        <div>
-                          <h4 className="text-md font-medium text-cyan-400 mb-2">📊 Mapped Data (What UI Uses)</h4>
-                          <div className="bg-green-900/20 rounded-lg p-4 border border-green-500/20 max-h-48 overflow-y-auto">
-                            <pre className="text-green-300 text-xs whitespace-pre-wrap break-words">
-                              {mappedResumeData ? JSON.stringify(mappedResumeData, null, 2) : 'No mapped data available'}
-                            </pre>
-                          </div>
-                        </div>
-                        
-                        {/* Raw Data */}
-                        <div>
-                          <h4 className="text-md font-medium text-gray-400 mb-2">🔍 Raw JSON Data (Original from OpenAI)</h4>
-                          <div className="max-h-48 overflow-y-auto bg-gray-900/50 rounded-lg p-4">
-                            <pre className="text-xs text-gray-300 whitespace-pre-wrap break-words">
-                              {resumeData ? JSON.stringify(resumeData, null, 2) : 'No resume data available'}
-                            </pre>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* JSON Stats */}
-                      <div className="mt-4 pt-4 border-t border-green-400/20">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                          <div>
-                            <div className="text-green-400 font-bold text-lg">
-                              {resumeData ? Object.keys(resumeData).length : 0}
-                            </div>
-                            <div className="text-gray-400 text-xs">JSON Fields</div>
-                          </div>
-                          <div>
-                            <div className="text-cyan-400 font-bold text-lg">
-                              {resumeData?.skills?.length || 0}
-                            </div>
-                            <div className="text-gray-400 text-xs">Skills Found</div>
-                          </div>
-                          <div>
-                            <div className="text-purple-400 font-bold text-lg">
-                              {resumeData?.experience?.length || 0}
-                            </div>
-                            <div className="text-gray-400 text-xs">Experience Items</div>
-                          </div>
-                          <div>
-                            <div className="text-yellow-400 font-bold text-lg">
-                              {resumeData?.education?.length || 0}
-                            </div>
-                            <div className="text-gray-400 text-xs">Education Items</div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
 
                 <TabsContent value="salary" className="space-y-8">
                   {/* Header Section */}
@@ -1657,7 +1705,8 @@ export default function AnalysisPage() {
                     </motion.div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* First Row - 3 Cards */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                     
                     {/* Salary Analysis */}
                     <motion.div
@@ -1665,30 +1714,30 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <Card className="glass-card border-pink-500/30 bg-gradient-to-br from-pink-500/10 to-pink-600/5 hover:from-pink-500/15 hover:to-pink-600/10 transition-all duration-300">
+                      <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-pink-500/20 rounded-lg">
-                              <TrendingUp className="h-6 w-6 text-pink-400" />
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-500/20 rounded-lg">
+                              <TrendingUp className="h-5 w-5 text-purple-400" />
                             </div>
-                            <CardTitle className="text-pink-400 text-xl">Salary Analysis</CardTitle>
+                            <CardTitle className="text-purple-400 text-lg">Salary Analysis</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Market-based salary recommendations and factors
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-4">
                           {/* Current Level */}
                           {finalAnalysisResults?.salaryAnalysis?.currentLevel && (
                             <motion.div
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.3 }}
-                              className="p-3 rounded-lg bg-pink-500/10 border border-pink-400/20"
+                              className="p-4 rounded-lg bg-purple-500/10 border border-purple-400/20"
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold text-white">Current Level</h4>
-                                <Badge className="bg-pink-500/20 text-pink-400 border-pink-400/30">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-semibold text-white text-sm">Current Level</h4>
+                                <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30">
                                   {finalAnalysisResults.salaryAnalysis.currentLevel.toUpperCase()}
                                 </Badge>
                               </div>
@@ -1706,11 +1755,11 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.4 }}
-                              className="p-3 rounded-lg bg-green-500/10 border border-green-400/20"
+                              className="p-4 rounded-lg bg-green-500/10 border border-green-400/20"
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold text-white">Recommended Salary Range</h4>
-                                <div className="text-xl font-bold text-green-400">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-semibold text-white text-sm">Recommended Salary Range</h4>
+                                <div className="text-lg font-bold text-green-400">
                                   {finalAnalysisResults.salaryAnalysis.recommendedSalaryRange.includes('PHP') ? 
                                     finalAnalysisResults.salaryAnalysis.recommendedSalaryRange.replace('PHP', '₱') :
                                     finalAnalysisResults.salaryAnalysis.recommendedSalaryRange
@@ -1729,12 +1778,12 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.5 }}
-                              className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                              className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
                             >
-                              <h4 className="font-semibold text-white mb-3">Factors Affecting Salary</h4>
-                              <div className="space-y-2">
+                              <h4 className="font-semibold text-white mb-3 text-sm">Factors Affecting Salary</h4>
+                              <div className="space-y-3">
                                 {finalAnalysisResults.salaryAnalysis.factorsAffectingSalary.map((factor: string, index: number) => (
-                                  <div key={index} className="flex items-center gap-2">
+                                  <div key={index} className="flex items-center gap-3">
                                     <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
                                     <span className="text-gray-300 text-sm">{factor}</span>
                                   </div>
@@ -1749,12 +1798,12 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.6 }}
-                              className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-400/20"
+                              className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-400/20"
                             >
-                              <h4 className="font-semibold text-white mb-3">Negotiation Tips</h4>
-                              <div className="space-y-2">
+                              <h4 className="font-semibold text-white mb-3 text-sm">Negotiation Tips</h4>
+                              <div className="space-y-3">
                                 {finalAnalysisResults.salaryAnalysis.negotiationTips.map((tip: string, index: number) => (
-                                  <div key={index} className="flex items-center gap-2">
+                                  <div key={index} className="flex items-center gap-3">
                                     <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
                                     <span className="text-gray-300 text-sm">{tip}</span>
                                   </div>
@@ -1772,29 +1821,29 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <Card className="glass-card border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 hover:from-blue-500/15 hover:to-blue-600/10 transition-all duration-300">
+                      <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-500/20 rounded-lg">
-                              <Target className="h-6 w-6 text-blue-400" />
+                              <Target className="h-5 w-5 text-blue-400" />
                             </div>
-                            <CardTitle className="text-blue-400 text-xl">Career Path</CardTitle>
+                            <CardTitle className="text-blue-400 text-lg">Career Path</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Your career progression roadmap
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-4">
                           {/* Current Position */}
                           {finalAnalysisResults?.careerPath?.currentPosition && (
                             <motion.div
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.4 }}
-                              className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
+                              className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20"
                             >
-                              <h4 className="font-semibold text-white mb-2">Current Position</h4>
-                              <p className="text-blue-400 font-medium">
+                              <h4 className="font-semibold text-white mb-3 text-sm">Current Position</h4>
+                              <p className="text-blue-400 font-medium text-sm">
                                 {finalAnalysisResults.careerPath.currentPosition}
                               </p>
                             </motion.div>
@@ -1806,13 +1855,13 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.5 }}
-                              className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20"
+                              className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20"
                             >
-                              <h4 className="font-semibold text-white mb-3">Next Career Steps</h4>
-                              <div className="space-y-3">
+                              <h4 className="font-semibold text-white mb-3 text-sm">Next Career Steps</h4>
+                              <div className="space-y-4">
                                 {finalAnalysisResults.careerPath.nextCareerSteps.map((career: any, index: number) => (
-                                  <div key={index} className="flex items-start gap-3">
-                                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-400/20 border border-blue-400/30 flex items-center justify-center">
+                                  <div key={index} className="flex items-start gap-4">
+                                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-400/20 border border-blue-400/30 flex items-center justify-center">
                                       <span className="text-blue-400 text-xs font-bold">{career.step}</span>
                                     </div>
                                     <div>
@@ -1834,29 +1883,29 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
                     >
-                      <Card className="glass-card border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 hover:from-orange-500/15 hover:to-orange-600/10 transition-all duration-300">
+                      <Card className="glass-card border-orange-500/30 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500/5 to-red-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-orange-500/20 rounded-lg">
-                              <AlertTriangle className="h-6 w-6 text-orange-400" />
+                              <AlertTriangle className="h-5 w-5 text-orange-400" />
                             </div>
-                            <CardTitle className="text-orange-400 text-xl">Skill Gaps to Address</CardTitle>
+                            <CardTitle className="text-orange-400 text-lg">Skill Gaps to Address</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Skills needed for career advancement
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-4">
                           {Array.isArray(finalAnalysisResults?.careerPath?.skillGaps) && finalAnalysisResults.careerPath.skillGaps.length > 0 ? 
                             finalAnalysisResults.careerPath.skillGaps.map((skill: string, index: number) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.5 + (index * 0.1) }}
-                                className="flex items-start gap-3 p-3 rounded-lg bg-orange-500/10 border border-orange-400/20 hover:bg-orange-500/15 transition-colors"
+                                transition={{ delay: 0.5 + (index * 0.05) }}
+                                className="flex items-start gap-4 p-4 rounded-lg bg-orange-500/10 border border-orange-400/20 hover:bg-orange-500/15 transition-colors"
                               >
-                                <div className="flex-shrink-0 w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center mt-0.5">
+                                <div className="flex-shrink-0 w-7 h-7 bg-orange-500/20 rounded-full flex items-center justify-center mt-0.5">
                                   <span className="text-orange-400 text-xs font-bold">{index + 1}</span>
                                 </div>
                                 <div className="flex-1">
@@ -1864,27 +1913,31 @@ export default function AnalysisPage() {
                                 </div>
                               </motion.div>
                             )) : 
-                            <div className="text-center py-8">
-                              <div className="text-gray-400 text-sm">No skill gaps analysis available from Claude</div>
+                            <div className="text-center py-12">
+                              <div className="text-gray-400 text-sm">No skill gaps analysis available</div>
                             </div>
                           }
                         </CardContent>
                       </Card>
                     </motion.div>
+                  </div>
 
+                  {/* Second Row - 2 Cards */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
                     {/* Timeline */}
                     <motion.div
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.5 }}
                     >
-                      <Card className="glass-card border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5 hover:from-green-500/15 hover:to-green-600/10 transition-all duration-300">
+                      <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-full">
                         <CardHeader className="pb-4">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-green-500/20 rounded-lg">
-                              <Clock className="h-6 w-6 text-green-400" />
+                              <Clock className="h-5 w-5 text-green-400" />
                             </div>
-                            <CardTitle className="text-green-400 text-xl">Career Timeline</CardTitle>
+                            <CardTitle className="text-green-400 text-lg">Career Timeline</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
                             Expected timeline for career progression
@@ -1916,7 +1969,7 @@ export default function AnalysisPage() {
                               transition={{ delay: 0.7 }}
                               className="p-3 rounded-lg bg-green-500/10 border border-green-400/20"
                             >
-                              <h4 className="font-semibold text-white mb-2">Timeline Details</h4>
+                              <h4 className="font-semibold text-white mb-2 text-sm">Timeline Details</h4>
                               <p className="text-gray-300 text-sm">
                                 {finalAnalysisResults.careerPath.timelineDetails}
                               </p>
@@ -1925,9 +1978,57 @@ export default function AnalysisPage() {
                         </CardContent>
                       </Card>
                     </motion.div>
+
+                    {/* Market Position */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <Card className="glass-card border-cyan-500/30 shadow-lg shadow-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-full">
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-cyan-500/20 rounded-lg">
+                              <TrendingUp className="h-5 w-5 text-cyan-400" />
+                            </div>
+                            <CardTitle className="text-cyan-400 text-lg">Market Position</CardTitle>
+                          </div>
+                          <CardDescription className="text-gray-300 text-sm">
+                            Your competitive position in the job market
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.7 }}
+                            className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                          >
+                            <h4 className="font-semibold text-white mb-2 text-sm">Competitive Analysis</h4>
+                            <p className="text-gray-300 text-sm">
+                              Based on your skills, experience, and market demand, you are positioned as a competitive candidate in the BPO industry.
+                            </p>
+                          </motion.div>
+                          
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.8 }}
+                            className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                          >
+                            <h4 className="font-semibold text-white mb-2 text-sm">Growth Potential</h4>
+                            <p className="text-gray-300 text-sm">
+                              With continued skill development and experience, you have strong potential for career advancement and salary growth.
+                            </p>
+                          </motion.div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   </div>
                 </TabsContent>
               </Tabs>
+
+
 
               {/* Next Steps */}
               <motion.div
@@ -1936,9 +2037,9 @@ export default function AnalysisPage() {
                 transition={{ delay: 0.6 }}
                 className="mt-12"
               >
-                <Card className="glass-card border-white/10">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gradient-text">
+                <Card className="glass-card border-white/20 shadow-lg shadow-white/10">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gradient-text text-lg">
                       <Sparkles className="h-5 w-5 mr-2" />
                       Next Steps
                     </CardTitle>
@@ -1947,41 +2048,58 @@ export default function AnalysisPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Button 
-                        className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 h-auto p-4 flex-col"
-                        onClick={() => router.push('/resume-builder/upload')}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.7 }}
                       >
-                        <Upload className="h-6 w-6 mb-2" />
-                        <span>Upload More Files</span>
-                        <span className="text-xs opacity-80">Add more documents</span>
-                      </Button>
+                        <Button 
+                          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
+                          onClick={() => router.push('/resume-builder/upload')}
+                        >
+                          <Upload className="h-8 w-8 mb-3" />
+                          <span className="font-semibold text-base">Upload More Files</span>
+                          <span className="text-xs opacity-80 mt-1">Add more documents for better analysis</span>
+                        </Button>
+                      </motion.div>
                       
-                      <Button 
-                        variant="outline" 
-                        className="border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-4 flex-col"
-                        onClick={() => {
-                          // Store resume data in localStorage for the builder
-                          if (resumeData) {
-                            localStorage.setItem('resumeData', JSON.stringify(resumeData));
-                            router.push('/resume-builder/build');
-                          }
-                        }}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8 }}
                       >
-                        <FileText className="h-6 w-6 mb-2" />
-                        <span>Build New Resume</span>
-                        <span className="text-xs opacity-80">AI-powered resume builder</span>
-                      </Button>
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
+                          onClick={() => {
+                            if (resumeData) {
+                              localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                              router.push('/resume-builder/build');
+                            }
+                          }}
+                        >
+                          <FileText className="h-8 w-8 mb-3" />
+                          <span className="font-semibold text-base">Generate New Resume</span>
+                          <span className="text-xs opacity-80 mt-1">AI-powered resume builder</span>
+                        </Button>
+                      </motion.div>
                       
-                      <Button 
-                        variant="outline" 
-                        className="border-green-400/30 text-green-400 hover:bg-green-400/10 h-auto p-4 flex-col"
-                        onClick={() => router.push('/jobs')}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.9 }}
                       >
-                        <Target className="h-6 w-6 mb-2" />
-                        <span>Find Jobs</span>
-                        <span className="text-xs opacity-80">Match with BPO roles</span>
-                      </Button>
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-green-400/30 text-green-400 hover:bg-green-400/10 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
+                          onClick={() => router.push('/jobs')}
+                        >
+                          <Target className="h-8 w-8 mb-3" />
+                          <span className="font-semibold text-base">Find Jobs</span>
+                          <span className="text-xs opacity-80 mt-1">Match with BPO roles</span>
+                        </Button>
+                      </motion.div>
                     </div>
                   </CardContent>
                 </Card>

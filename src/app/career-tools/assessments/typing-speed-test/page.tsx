@@ -312,8 +312,8 @@ export default function TypingSpeedTestPage() {
             className="flex items-center justify-between mb-8"
           >
             <div className="flex items-center">
-                                <Button
-                    variant="ghost"
+              <Button
+                variant="ghost"
                     onClick={() => {
                       if (isActive) {
                         setShowExitDialog(true);
@@ -321,11 +321,11 @@ export default function TypingSpeedTestPage() {
                         router.back();
                       }
                     }}
-                    className="mr-4 text-gray-400 hover:text-white"
-                  >
-                    <ArrowLeft className="h-5 w-5 mr-2" />
-                    Back
-                  </Button>
+                className="mr-4 text-gray-400 hover:text-white"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back
+              </Button>
               <div className="flex items-center">
                 <Keyboard className={`h-12 w-12 ${colors.icon} mr-4`} />
                 <div>
