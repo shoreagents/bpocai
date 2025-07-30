@@ -599,19 +599,19 @@ export default function JobMatchingPage() {
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                      <Button
+                        variant="ghost"
+                        size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSaveJob(job.id);
                           }}
-                          className="text-gray-400 hover:text-white"
-                        >
-                          <BookmarkIcon 
-                            className={`w-4 h-4 ${savedJobs.includes(job.id) ? 'fill-purple-400 text-purple-400' : ''}`} 
-                          />
-                        </Button>
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <BookmarkIcon 
+                          className={`w-4 h-4 ${savedJobs.includes(job.id) ? 'fill-purple-400 text-purple-400' : ''}`} 
+                        />
+                      </Button>
                         
                         <div className="relative" ref={shareJobId === job.id ? shareRef : null}>
                           <Button
@@ -702,7 +702,7 @@ export default function JobMatchingPage() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4">
                     {/* Salary and Location */}
                     <div className="space-y-3">
@@ -852,26 +852,7 @@ export default function JobMatchingPage() {
             </motion.div>
           )}
 
-          {/* Results Info */}
-          {totalPages > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-6"
-            >
-              <div className="glass-card p-4 rounded-lg">
-                <div className="flex items-center justify-between text-sm text-gray-300">
-                  <span>
-                    Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredJobs.length)} of {filteredJobs.length} jobs
-                    {searchTerm && ` matching "${searchTerm}"`}
-                    {filterWorkType !== 'all' && ` with ${getWorkTypeLabel(filterWorkType)} work type`}
-                  </span>
-                  <span>Page {currentPage} of {totalPages}</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
+
 
           {/* Job Details Modal */}
           {selectedJob && selectedJobData && (

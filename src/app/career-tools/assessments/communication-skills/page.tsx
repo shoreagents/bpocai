@@ -30,13 +30,27 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+function shuffleOptions(question: any) {
+  const options = [...question.options];
+  const correctOption = options[question.correct];
+  // Fisher-Yates shuffle
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  const newCorrect = options.indexOf(correctOption);
+  return { ...question, options, correct: newCorrect };
+}
+
 export default function CommunicationSkillsPage() {
   const router = useRouter();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [submittedAnswers, setSubmittedAnswers] = useState<boolean[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [score, setScore] = useState(0);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
 
   const questions = [
     {
@@ -281,10 +295,23 @@ export default function CommunicationSkillsPage() {
     }
   ];
 
+  // Shuffle questions on component mount
+  useEffect(() => {
+    const shuffled = [...questions]
+      .map(q => shuffleOptions(q))
+      .sort(() => Math.random() - 0.5);
+    setShuffledQuestions(shuffled);
+  }, []);
+
   const handleAnswerSelect = (optionIndex: number) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = optionIndex;
     setAnswers(newAnswers);
+    
+    // Mark this question as submitted
+    const newSubmittedAnswers = [...submittedAnswers];
+    newSubmittedAnswers[currentQuestion] = true;
+    setSubmittedAnswers(newSubmittedAnswers);
   };
 
   const handleNext = () => {
@@ -304,7 +331,7 @@ export default function CommunicationSkillsPage() {
   const calculateResults = () => {
     let correctAnswers = 0;
     answers.forEach((answer, index) => {
-      if (answer === questions[index].correct) {
+      if (answer === shuffledQuestions[index].correct) {
         correctAnswers++;
       }
     });
@@ -329,7 +356,7 @@ export default function CommunicationSkillsPage() {
     }
   };
 
-  const progressPercentage = (answers.filter(answer => answer !== undefined).length / questions.length) * 100;
+  const progressPercentage = shuffledQuestions.length > 0 ? (answers.filter(answer => answer !== undefined).length / shuffledQuestions.length) * 100 : 0;
 
   // Prevent copy-paste globally during assessment
   useEffect(() => {
@@ -425,7 +452,7 @@ export default function CommunicationSkillsPage() {
                       <div className="flex items-center justify-center mb-2">
                         <Award className="w-5 h-5 text-yellow-400 mr-2" />
                         <span className="text-2xl font-bold text-white">
-                          {answers.filter((answer, index) => answer === questions[index]?.correct).length}
+                          {answers.filter((answer, index) => answer === shuffledQuestions[index]?.correct).length}
                         </span>
                       </div>
                       <p className="text-xs text-gray-400">Correct</p>
@@ -489,48 +516,93 @@ export default function CommunicationSkillsPage() {
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between mb-4">
-                        <Badge className={getQuestionTypeColor(questions[currentQuestion].type)}>
-                          {questions[currentQuestion].type}
+                        <Badge className={getQuestionTypeColor(shuffledQuestions[currentQuestion]?.type || '')}>
+                          {shuffledQuestions[currentQuestion]?.type || ''}
                         </Badge>
                         <span className="text-xs text-gray-400">
-                          Question {currentQuestion + 1} of {questions.length}
+                          Question {currentQuestion + 1} of {shuffledQuestions.length}
                         </span>
                       </div>
                       <CardTitle className="text-white">
-                        {questions[currentQuestion].question}
+                        {shuffledQuestions[currentQuestion]?.question || ''}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {questions[currentQuestion].options.map((option, index) => (
-                        <motion.div
-                          key={index}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Button
-                            variant={answers[currentQuestion] === index ? "default" : "outline"}
-                            className={`w-full text-left p-4 h-auto justify-start ${
-                              answers[currentQuestion] === index
-                                ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
-                                : 'border-gray-600 text-gray-300 hover:bg-gray-800'
-                            }`}
-                            onClick={() => handleAnswerSelect(index)}
+                      {shuffledQuestions[currentQuestion]?.options.map((option: string, index: number) => {
+                        const isSelected = answers[currentQuestion] === index;
+                        const isSubmitted = submittedAnswers[currentQuestion];
+                        const correctAnswerIndex = shuffledQuestions[currentQuestion]?.correct;
+                        const isCorrect = correctAnswerIndex === index;
+                        
+                        
+
+                        
+
+                        
+
+                        
+
+                        
+
+                        
+
+                        
+
+                        
+
+                        
+                        let buttonClass = 'w-full text-left p-4 h-auto justify-start ';
+                        let iconClass = 'w-4 h-4 rounded-full border-2 mr-3 flex-shrink-0 ';
+                        
+                        // Force the correct answer to be green when submitted
+                        if (isSubmitted && isCorrect) {
+                          buttonClass += ' bg-green-500 hover:bg-green-600 text-white border-green-500 border-4 !important'; // Add !important for debug
+                          iconClass += ' bg-white border-white';
+                        } else if (isSubmitted && isSelected && !isCorrect) {
+                          // Show wrong selected answer in red
+                          buttonClass += ' bg-red-500 hover:bg-red-600 text-white border-red-500';
+                          iconClass += ' bg-white border-white';
+                        } else if (isSubmitted) {
+                          // Other submitted options remain gray
+                          buttonClass += ' border-gray-600 text-gray-300';
+                          iconClass += ' border-gray-400';
+                        } else {
+                          if (isSelected) {
+                            buttonClass += 'bg-cyan-500 hover:bg-cyan-600 text-white';
+                            iconClass += 'bg-white border-white';
+                          } else {
+                            buttonClass += 'border-gray-600 text-gray-300 hover:bg-gray-800';
+                            iconClass += 'border-gray-400';
+                          }
+                        }
+                        
+
+                        
+                        return (
+                          <motion.div
+                            key={index}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                           >
-                            <div className="flex items-center">
-                              <div className={`w-4 h-4 rounded-full border-2 mr-3 flex-shrink-0 ${
-                                answers[currentQuestion] === index
-                                  ? 'bg-white border-white'
-                                  : 'border-gray-400'
-                              }`}>
-                                {answers[currentQuestion] === index && (
-                                  <CheckCircle className="w-4 h-4 text-cyan-500" />
-                                )}
+                            <Button
+                              variant={isSelected ? "default" : "outline"}
+                              className={buttonClass}
+                              onClick={() => handleAnswerSelect(index)}
+                              disabled={isSubmitted}
+                              style={isSubmitted && isCorrect ? { backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' } : {}}
+                            >
+                              <div className="flex items-center">
+                                <div className={iconClass}>
+                                  {isSelected && (
+                                    <CheckCircle className={`w-4 h-4 ${isSubmitted ? (isCorrect ? 'text-green-500' : 'text-red-500') : 'text-cyan-500'}`} />
+                                  )}
+                                </div>
+                                <span className="leading-relaxed">{option}</span>
                               </div>
-                              <span className="leading-relaxed">{option}</span>
-                            </div>
-                          </Button>
-                        </motion.div>
-                      ))}
+                            </Button>
+                          </motion.div>
+                        );
+                      })}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -556,7 +628,7 @@ export default function CommunicationSkillsPage() {
                     disabled={answers[currentQuestion] === undefined}
                     className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
                   >
-                    {currentQuestion === questions.length - 1 ? 'Complete' : 'Next'}
+                    {currentQuestion === shuffledQuestions.length - 1 ? 'Complete' : 'Next'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </motion.div>
@@ -569,105 +641,108 @@ export default function CommunicationSkillsPage() {
                 transition={{ delay: 0.2 }}
                 className="space-y-6"
               >
-                {/* Main Result */}
-                <Card className="glass-card border-cyan-500/30">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-cyan-400" />
-                      Communication Skills Assessment Results
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="text-center">
-                      <div className="text-6xl font-bold text-cyan-400 mb-2">
-                        {score}%
+                {/* Results and Skills Side by Side */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Main Result */}
+                  <Card className="glass-card border-cyan-500/50 shadow-lg shadow-cyan-500/20">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-white flex items-center gap-2 text-lg">
+                        <CheckCircle className="w-5 h-5 text-cyan-400" />
+                        Assessment Results
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                      <div className="text-center">
+                        <div className="text-5xl font-bold text-cyan-400 mb-3">
+                          {score}%
+                        </div>
+                        <Badge className={`${getScoreLevel().bgColor} ${getScoreLevel().color} ${getScoreLevel().borderColor} text-base px-3 py-1`}>
+                          {getScoreLevel().level}
+                        </Badge>
                       </div>
-                      <Badge className={`${getScoreLevel().bgColor} ${getScoreLevel().color} ${getScoreLevel().borderColor} text-lg px-4 py-2`}>
-                        {getScoreLevel().level}
-                      </Badge>
-                    </div>
 
-                    {/* Score Breakdown */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{answers.filter((answer, index) => answer === questions[index].correct).length}</div>
-                        <div className="text-sm text-gray-400">Correct</div>
+                      {/* Score Breakdown */}
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-white mb-1">{answers.filter((answer, index) => answer === shuffledQuestions[index]?.correct).length}</div>
+                          <div className="text-xs text-gray-400">Correct</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-white mb-1">{shuffledQuestions.length - answers.filter((answer, index) => answer === shuffledQuestions[index]?.correct).length}</div>
+                          <div className="text-xs text-gray-400">Incorrect</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-white mb-1">{questions.length}</div>
+                          <div className="text-xs text-gray-400">Total</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-cyan-400 mb-1">{Math.round((score / 100) * questions.length)}</div>
+                          <div className="text-xs text-gray-400">Grade</div>
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{questions.length - answers.filter((answer, index) => answer === questions[index].correct).length}</div>
-                        <div className="text-sm text-gray-400">Incorrect</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{questions.length}</div>
-                        <div className="text-sm text-gray-400">Total</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-cyan-400">{Math.round((score / 100) * questions.length)}</div>
-                        <div className="text-sm text-gray-400">Grade</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
 
-                {/* Category Breakdown */}
-                <Card className="glass-card border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Target className="w-5 h-5 text-green-400" />
-                      Skills Breakdown
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      {["Grammar", "Email Writing", "Customer Service", "Vocabulary"].map((category) => {
-                        const categoryQuestions = questions.filter(q => q.type === category);
-                        const categoryCorrect = categoryQuestions.filter((q, index) => {
-                          const questionIndex = questions.indexOf(q);
-                          return answers[questionIndex] === q.correct;
-                        }).length;
-                        const categoryScore = Math.round((categoryCorrect / categoryQuestions.length) * 100);
+                  {/* Category Breakdown */}
+                  <Card className="glass-card border-white/20 shadow-lg shadow-white/10">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-white flex items-center gap-2 text-lg">
+                        <Target className="w-5 h-5 text-green-400" />
+                        Skills Breakdown
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-6">
+                        {["Grammar", "Email Writing", "Customer Service", "Vocabulary"].map((category) => {
+                          const categoryQuestions = questions.filter(q => q.type === category);
+                          const categoryCorrect = categoryQuestions.filter((q, index) => {
+                            const questionIndex = questions.indexOf(q);
+                            return answers[questionIndex] === q.correct;
+                          }).length;
+                          const categoryScore = Math.round((categoryCorrect / categoryQuestions.length) * 100);
 
-                        return (
-                          <div key={category} className="text-center">
-                            <div className="text-xl font-bold text-cyan-400">{categoryScore}%</div>
-                            <div className="text-sm text-gray-400">{category}</div>
-                            <Badge className={getQuestionTypeColor(category)} variant="outline">
-                              {categoryCorrect}/{categoryQuestions.length}
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                          return (
+                            <div key={category} className="text-center space-y-2">
+                              <div className="text-2xl font-bold text-cyan-400">{categoryScore}%</div>
+                              <div className="text-xs text-gray-400">{category}</div>
+                              <Badge className={`${getQuestionTypeColor(category)} text-xs px-2 py-1`} variant="outline">
+                                {categoryCorrect}/{categoryQuestions.length}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
                 {/* Recommendations */}
-                <Card className="glass-card border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
+                <Card className="glass-card border-white/20 shadow-lg shadow-white/10">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white flex items-center gap-2 text-lg">
                       <Award className="w-5 h-5 text-yellow-400" />
                       Professional Feedback
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {score >= 90 && (
-                        <p className="text-green-400">
+                        <p className="text-green-400 text-base leading-relaxed">
                           Excellent communication skills! You're ready for any BPO role that requires strong English proficiency.
                         </p>
                       )}
                       {score >= 80 && score < 90 && (
-                        <p className="text-blue-400">
+                        <p className="text-blue-400 text-base leading-relaxed">
                           Very good communication skills. You have a strong foundation for most BPO positions.
                         </p>
                       )}
                       {score >= 70 && score < 80 && (
-                        <p className="text-yellow-400">
+                        <p className="text-yellow-400 text-base leading-relaxed">
                           Good communication skills with room for improvement. Consider practicing grammar and customer service scenarios.
                         </p>
                       )}
                       {score < 70 && (
-                        <p className="text-red-400">
+                        <p className="text-red-400 text-base leading-relaxed">
                           Keep practicing! Focus on grammar fundamentals and professional email writing to improve your BPO readiness.
                         </p>
                       )}
@@ -675,12 +750,14 @@ export default function CommunicationSkillsPage() {
                   </CardContent>
                 </Card>
 
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
-                >
-                  Take Test Again
-                </Button>
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => window.location.reload()}
+                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-8 py-2"
+                  >
+                    Take Test Again
+                  </Button>
+                </div>
               </motion.div>
             )}
           </div>
