@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -44,21 +44,32 @@ interface HeaderProps {
   className?: string
 }
 
-export default function Header({}: HeaderProps) {
-  const { user, signOut, loading } = useAuth()
-  const pathname = usePathname()
+// Component to handle search params with Suspense
+function SearchParamsHandler({ 
+  user, 
+  setIsSignUpDialogOpen 
+}: { 
+  user: any; 
+  setIsSignUpDialogOpen: (open: boolean) => void 
+}) {
   const searchParams = useSearchParams()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
-  const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
 
-  // Check for signup parameter and open dialog
   useEffect(() => {
     const signupParam = searchParams.get('signup')
     if (signupParam === 'true' && !user) {
       setIsSignUpDialogOpen(true)
     }
-  }, [searchParams, user])
+  }, [searchParams, user, setIsSignUpDialogOpen])
+
+  return null
+}
+
+export default function Header({}: HeaderProps) {
+  const { user, signOut, loading } = useAuth()
+  const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
+  const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
 
   
   const isAuthenticated = !!user
@@ -132,7 +143,14 @@ export default function Header({}: HeaderProps) {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10">
+    <>
+      <Suspense fallback={null}>
+        <SearchParamsHandler 
+          user={user} 
+          setIsSignUpDialogOpen={setIsSignUpDialogOpen} 
+        />
+      </Suspense>
+      <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -397,5 +415,6 @@ export default function Header({}: HeaderProps) {
       </AlertDialog>
 
     </header>
+    </>
   )
 } 
