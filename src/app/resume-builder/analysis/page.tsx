@@ -174,17 +174,20 @@ export default function AnalysisPage() {
     };
   }, [router]);
 
+  // Use real analysis results from Claude API or show loading state
+  const finalAnalysisResults = analysisResults;
+
   // Auto-improve summary when analysis is complete and summary is available
   useEffect(() => {
-    if (analysisComplete && mappedResumeData?.summary && !improvedSummary && !isImprovingSummary) {
+    if (analysisComplete && finalAnalysisResults?.improvedSummary && !improvedSummary && !isImprovingSummary) {
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
-        improveSummary();
+        setImprovedSummary(finalAnalysisResults.improvedSummary);
       }, 1000);
       
       return () => clearTimeout(timer);
     }
-  }, [analysisComplete, mappedResumeData?.summary, improvedSummary, isImprovingSummary]);
+  }, [analysisComplete, finalAnalysisResults?.improvedSummary, improvedSummary, isImprovingSummary]);
 
   // Perform AI analysis using Claude API
   const performAIAnalysis = async (sessionId: string, uploadedFiles: any[], portfolioLinks: any[], processedFiles: any[]) => {
@@ -202,16 +205,30 @@ export default function AnalysisPage() {
       // Step 2: Prepare data for Claude analysis
       setProgressValue(30);
       
-      const resumeDataFromStorage = processedResumes[0]; // Use the first processed resume
-      console.log('🔍 DEBUG: Raw resume data from localStorage:', resumeDataFromStorage);
-      console.log('🔍 DEBUG: Resume data keys:', Object.keys(resumeDataFromStorage || {}));
-      console.log('🔍 DEBUG: Resume data structure:', JSON.stringify(resumeDataFromStorage, null, 2));
+      // Use ALL processed files (resumes and certificates)
+      console.log('🔍 DEBUG: All processed files from localStorage:', processedResumes);
+      console.log('🔍 DEBUG: Number of processed files:', processedResumes.length);
       
-      // Map the raw data to a consistent structure
-      const mapped = mapResumeData(resumeDataFromStorage);
-      console.log('🔍 DEBUG: Mapped data for UI:', mapped);
+      // Combine all processed files into a comprehensive dataset
+      const combinedResumeData = {
+        files: processedResumes.map((file, index) => ({
+          fileName: uploadedFiles[index]?.name || `File ${index + 1}`,
+          fileType: uploadedFiles[index]?.type || 'unknown',
+          data: file
+        })),
+        totalFiles: processedResumes.length,
+        fileTypes: uploadedFiles.map(file => file.type),
+        fileNames: uploadedFiles.map(file => file.name)
+      };
       
-      setResumeData(resumeDataFromStorage); // Store original data for Claude
+      console.log('🔍 DEBUG: Combined resume data structure:', combinedResumeData);
+      
+      // Map the first resume data for UI display (for backward compatibility)
+      const firstResumeData = processedResumes[0];
+      const mapped = mapResumeData(firstResumeData);
+      console.log('🔍 DEBUG: Mapped data for UI (from first file):', mapped);
+      
+      setResumeData(combinedResumeData); // Store combined data for Claude
       setMappedResumeData(mapped); // Store mapped data for UI display
       const portfolioData = portfolioLinks.map(link => ({
         url: link.url,
@@ -219,7 +236,7 @@ export default function AnalysisPage() {
         title: link.title
       }));
 
-      // Step 3: Call Claude API for analysis
+      // Step 3: Call Claude API for analysis with ALL files
       setProgressValue(50);
       
       const analysisResponse = await fetch('/api/analyze-resume', {
@@ -228,7 +245,7 @@ export default function AnalysisPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          resumeData: resumeDataFromStorage,
+          resumeData: combinedResumeData, // Send all files
           portfolioLinks: portfolioData,
           sessionId
         })
@@ -264,9 +281,6 @@ export default function AnalysisPage() {
     }
   };
 
-  // Use real analysis results from Claude API or show loading state
-  const finalAnalysisResults = analysisResults;
-
   const scoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
     if (score >= 70) return 'text-yellow-400';
@@ -285,29 +299,15 @@ export default function AnalysisPage() {
 
     setIsImprovingSummary(true);
     try {
-      const response = await fetch('/api/improve-summary', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          originalSummary: mappedResumeData.summary,
-          resumeData: resumeData
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (data.success && data.improvedSummary) {
-        setImprovedSummary(data.improvedSummary);
+      // Use the improved summary from the main analysis results
+      if (finalAnalysisResults?.improvedSummary) {
+        setImprovedSummary(finalAnalysisResults.improvedSummary);
         console.log('✅ Summary improved successfully');
       } else {
-        console.error('Failed to improve summary:', data.error);
-        // You could add a toast notification here
+        console.error('No improved summary available from analysis');
       }
     } catch (error) {
       console.error('Error improving summary:', error);
-      // You could add a toast notification here
     } finally {
       setIsImprovingSummary(false);
     }
@@ -716,34 +716,63 @@ export default function AnalysisPage() {
                         
                         {/* Portfolio Links */}
                         <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-white mb-4">Portfolio Links</h3>
+                          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <Link2 className="h-5 w-5 text-pink-400" />
+                            Portfolio Links
+                          </h3>
                           
                           <div className="space-y-3">
                             {analysisData?.portfolioLinks?.length > 0 ? (
-                              analysisData.portfolioLinks.map((link, index) => (
-                                <div key={index} className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-pink-400"></div>
-                                  <div>
-                                    <p className="text-sm text-gray-400 capitalize">{link.type}</p>
-                                    <a 
-                                      href={link.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-cyan-400 hover:text-cyan-300 transition-colors truncate max-w-xs block"
-                                    >
-                                      {link.title || link.url}
-                                    </a>
-                                  </div>
-                                </div>
-                              ))
+                              analysisData.portfolioLinks.map((link, index) => {
+                                // Get appropriate icon based on link type
+                                const getLinkIcon = (type: string) => {
+                                  switch (type.toLowerCase()) {
+                                    case 'linkedin': return '💼';
+                                    case 'github': return '🐙';
+                                    case 'behance': return '🎨';
+                                    case 'dribbble': return '🏀';
+                                    case 'website': return '🌐';
+                                    default: return '🔗';
+                                  }
+                                };
+
+                                return (
+                                  <motion.div 
+                                    key={index} 
+                                    className="flex items-center gap-3 p-3 glass-card rounded-lg border border-white/10 hover:border-pink-400/30 transition-all duration-300"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                  >
+                                    <div className="text-lg">{getLinkIcon(link.type)}</div>
+                                    <div className="flex-1">
+                                      <p className="text-sm text-gray-400 capitalize font-medium">{link.type}</p>
+                                      <a 
+                                        href={link.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-cyan-400 hover:text-cyan-300 transition-colors truncate max-w-xs block font-medium"
+                                      >
+                                        {link.title || link.url}
+                                      </a>
+                                    </div>
+                                    <div className="w-2 h-2 rounded-full bg-pink-400"></div>
+                                  </motion.div>
+                                );
+                              })
                             ) : (
-                              <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                              <motion.div 
+                                className="flex items-center gap-3 p-3 glass-card rounded-lg border border-white/10"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                              >
+                                <div className="text-lg text-gray-500">🔗</div>
                                 <div>
-                                  <p className="text-sm text-gray-400">Portfolio</p>
-                                  <p className="text-gray-500">No portfolio links added</p>
+                                  <p className="text-sm text-gray-400 font-medium">Portfolio</p>
+                                  <p className="text-gray-500 text-sm">No portfolio links added</p>
                                 </div>
-                              </div>
+                                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                              </motion.div>
                             )}
                           </div>
                         </div>
@@ -770,13 +799,13 @@ export default function AnalysisPage() {
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Improvements
                     </TabsTrigger>
-                    <TabsTrigger value="data" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Source Data
-                    </TabsTrigger>
                     <TabsTrigger value="salary" className="data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-400">
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Salary & Career
+                    </TabsTrigger>
+                    <TabsTrigger value="data" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Source Data
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -844,34 +873,9 @@ export default function AnalysisPage() {
                        </CardHeader>
                        <CardContent>
                          {improvedSummary ? (
-                           <div>
-                             <div className="flex items-center justify-between mb-2">
-                               <h4 className="text-sm font-semibold text-green-400">Improved Summary:</h4>
-                               <div className="flex gap-2">
-                                 <Button
-                                   onClick={() => navigator.clipboard.writeText(improvedSummary)}
-                                   size="sm"
-                                   variant="outline"
-                                   className="text-xs border-green-400/30 text-green-400 hover:bg-green-400/10"
-                                 >
-                                   <Copy className="h-3 w-3 mr-1" />
-                                   Copy
-                                 </Button>
-                                 <Button
-                                   onClick={() => setImprovedSummary(null)}
-                                   size="sm"
-                                   variant="outline"
-                                   className="text-xs border-gray-400/30 text-gray-400 hover:bg-gray-400/10"
-                                 >
-                                   <ArrowLeft className="h-3 w-3 mr-1" />
-                                   Reset
-                                 </Button>
-                               </div>
-                             </div>
-                             <p className="text-gray-300 leading-relaxed">
-                               {improvedSummary}
-                             </p>
-                           </div>
+                           <p className="text-gray-300 leading-relaxed">
+                             {improvedSummary}
+                           </p>
                          ) : (
                            <p className="text-gray-300 leading-relaxed">
                              {mappedResumeData?.summary || 'No professional summary found in resume'}
@@ -932,9 +936,18 @@ export default function AnalysisPage() {
                                  className="border-l-2 border-yellow-400/30 pl-4"
                                >
                                  <h4 className="font-semibold text-white">{edu.degree || edu.title || 'Degree'}</h4>
-                                 <p className="text-yellow-400 text-sm">{edu.institution || edu.school || edu.university || 'Institution'} • {edu.year || edu.graduationYear || 'Year'}</p>
+                                 <p className="text-yellow-400 text-sm">
+                                   {edu.institution || edu.school || edu.university || 'Institution'}
+                                   {edu.year || edu.graduationYear || edu.yearCompleted || edu.duration ? 
+                                     ` • ${edu.year || edu.graduationYear || edu.yearCompleted || edu.duration}` : 
+                                     ' • Year not specified'
+                                   }
+                                 </p>
                                  <p className="text-gray-300 text-sm mt-2">
-                                   {edu.details || edu.description || edu.honors || 'No details available'}
+                                   {edu.details || edu.description || edu.honors || edu.gpa ? 
+                                     `${edu.details || edu.description || ''} ${edu.honors ? `• ${edu.honors}` : ''} ${edu.gpa ? `• GPA: ${edu.gpa}` : ''}`.trim() : 
+                                     'No additional details available'
+                                   }
                                  </p>
                                </motion.div>
                              )) :
@@ -1947,11 +1960,17 @@ export default function AnalysisPage() {
                       <Button 
                         variant="outline" 
                         className="border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-4 flex-col"
-                        disabled
+                        onClick={() => {
+                          // Store resume data in localStorage for the builder
+                          if (resumeData) {
+                            localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                            router.push('/resume-builder/build');
+                          }
+                        }}
                       >
                         <FileText className="h-6 w-6 mb-2" />
                         <span>Build New Resume</span>
-                        <span className="text-xs opacity-80">Coming Soon</span>
+                        <span className="text-xs opacity-80">AI-powered resume builder</span>
                       </Button>
                       
                       <Button 

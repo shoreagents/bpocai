@@ -3160,9 +3160,13 @@ function extractEducation(text: string): ProcessedResume['education'] {
   
   // Year patterns
   const yearPatterns = [
-    /(?:graduated|class\s+of|year)\s*:?\s*([0-9]{4})/gi,
+    /(?:graduated|class\s+of|year|completed|finished)\s*:?\s*([0-9]{4})/gi,
     /([0-9]{4})\s*[-–]\s*([0-9]{4})/g,
-    /([0-9]{4})\s*[-–]\s*(?:present|current)/gi,
+    /([0-9]{4})\s*[-–]\s*(?:present|current|ongoing)/gi,
+    /(?:from|since)\s+([0-9]{4})\s+(?:to|until)\s+([0-9]{4})/gi,
+    /(?:from|since)\s+([0-9]{4})\s+(?:to|until)\s+(?:present|current)/gi,
+    /(?:attended|studied|enrolled)\s+(?:from\s+)?([0-9]{4})\s+(?:to\s+)?([0-9]{4})/gi,
+    /(?:attended|studied|enrolled)\s+(?:from\s+)?([0-9]{4})\s+(?:to\s+)?(?:present|current)/gi,
     /\b([0-9]{4})\b/g
   ];
   
@@ -3173,7 +3177,11 @@ function extractEducation(text: string): ProcessedResume['education'] {
     // Pattern: Institution - Degree (Year)
     /([A-Za-z\s]+(?:university|college|institute))\s*[-–]\s*([^,\n]+)\s*\(?([0-9]{4})?\)?/gi,
     // Pattern: Institution, Degree, Year
-    /([A-Za-z\s]+(?:university|college|institute))[,\s]+([^,\n]+)[,\s]+([0-9]{4})/gi
+    /([A-Za-z\s]+(?:university|college|institute))[,\s]+([^,\n]+)[,\s]+([0-9]{4})/gi,
+    // Pattern: Degree, Institution, Year
+    /(bachelor['\s]?s?|master['\s]?s?|phd|doctorate|associate|diploma)[^,\n]*[,\s]+([^,\n]+)[,\s]+([0-9]{4})/gi,
+    // Pattern: Institution (Year) - Degree
+    /([A-Za-z\s]+(?:university|college|institute))\s*\(([0-9]{4})\)\s*[-–]\s*([^,\n]+)/gi
   ];
   
   for (const pattern of combinedPatterns) {
