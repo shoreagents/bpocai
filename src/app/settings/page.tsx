@@ -9,6 +9,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { 
   Settings,
   User,
@@ -54,6 +65,7 @@ export default function SettingsPage() {
     smsNotifications: true,
     pushNotifications: true
   })
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
 
   const settingsSections = [
     {
@@ -101,6 +113,7 @@ export default function SettingsPage() {
   const handleSaveProfile = () => {
     // Save profile logic would go here
     console.log('Profile saved:', profileData)
+    setShowSaveDialog(false)
   }
 
   const handleToggleNotification = (key: string) => {
@@ -174,7 +187,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-end">
             <Button 
-              onClick={handleSaveProfile}
+              onClick={() => setShowSaveDialog(true)}
               className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -585,6 +598,29 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Save Changes Alert Dialog */}
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Save Changes</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to save these changes to your profile? This will update your personal information.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSaveProfile}
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-0"
+            >
+              Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 } 

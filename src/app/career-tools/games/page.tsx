@@ -19,7 +19,10 @@ import {
   Zap,
   BarChart3,
   Guitar,
-  Phone
+  Phone,
+  Brain,
+  Mail,
+  FileText
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -33,7 +36,7 @@ export default function CareerGamesPage() {
         title: 'Typing Hero',
         description: 'Guitar Hero meets typing',
         icon: Guitar,
-        difficulty: 'Intermediate',
+      difficulty: 'Intermediate',
         category: 'Technical',
         duration: '6 minutes',
         difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -71,18 +74,46 @@ export default function CareerGamesPage() {
       rating: 4.8
     },
     {
-      id: 'sales-closer',
-      title: 'Sales Closer',
-      description: 'Practice closing deals and converting leads',
-      icon: TrendingUp,
+      id: 'inbox-zero',
+      title: 'Inbox Zero Challenge',
+      description: 'Master email triage and prioritization in a simulated BPO environment',
+      icon: Mail,
       difficulty: 'Intermediate',
-      category: 'Sales',
-      duration: '15 minutes',
+      category: 'Communication',
+      duration: '5 minutes',
       difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      skillsDeveloped: ['Sales', 'Persuasion', 'Negotiation'],
-      participants: 923,
+      categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+      skillsDeveloped: ['Email Management', 'Time Management', 'Attention to Detail', 'Work Ethic'],
+      participants: 892,
       rating: 4.7
+    },
+    {
+      id: 'broken-briefs',
+      title: 'Broken Briefs',
+      description: 'Transform confusing client instructions into clear, actionable task briefs',
+      icon: FileText,
+      difficulty: 'Advanced',
+      category: 'Communication',
+      duration: '8 minutes',
+      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+      skillsDeveloped: ['Written Communication', 'Summarization', 'Instructional Accuracy', 'Clarity'],
+      participants: 634,
+      rating: 4.8
+    },
+    {
+      id: 'logic-grid',
+      title: 'Logic Grid',
+      description: 'Solve complex puzzles using deductive reasoning and logical clues',
+      icon: Brain,
+      difficulty: 'Advanced',
+      category: 'Problem Solving',
+      duration: '8 minutes',
+      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      categoryColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      skillsDeveloped: ['Critical Thinking', 'Problem Solving', 'Attention to Detail', 'Logical Reasoning'],
+      participants: 756,
+      rating: 4.6
     }
   ];
 
@@ -96,9 +127,15 @@ export default function CareerGamesPage() {
       router.push('/career-tools/games/call-flow-builder');
     } else if (gameId === 'task-juggler') {
       router.push('/career-tools/games/task-juggler');
+    } else if (gameId === 'inbox-zero') {
+      router.push('/career-tools/games/inbox-zero');
+    } else if (gameId === 'broken-briefs') {
+      router.push('/career-tools/games/broken-briefs');
+    } else if (gameId === 'logic-grid') {
+      router.push('/career-tools/games/logic-grid');
     } else {
       // For other games, you can add navigation or modals here
-      console.log(`Starting game: ${gameId}`);
+    console.log(`Starting game: ${gameId}`);
     }
   };
 

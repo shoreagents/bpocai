@@ -4,11 +4,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft,
   Guitar,
@@ -30,31 +41,31 @@ import {
 const BPO_VOCABULARY = {
   easy: {
     words: ['help', 'call', 'chat', 'work', 'home', 'time', 'good', 'best', 'nice', 'easy', 'fast', 'slow', 'high', 'free', 'safe', 'open', 'cool', 'warm', 'date', 'team', 'user', 'game', 'play', 'view', 'save', 'edit', 'send', 'read', 'find', 'sell'],
-    timeLimit: 90, // 1.5 minutes
+    timeLimit: 30, // 30 seconds
     speed: 0.6,
     spawnRate: 1800
   },
   medium: {
     words: ['tasks', 'goals', 'plans', 'costs', 'files', 'codes', 'deals', 'teams', 'users', 'games', 'sites', 'forms', 'cards', 'rates', 'types', 'modes', 'tests', 'loads', 'syncs', 'moves', 'links', 'mails', 'infos', 'pages', 'items', 'roles', 'desks', 'bills', 'notes', 'tools'],
-    timeLimit: 120, // 2 minutes
+    timeLimit: 30, // 30 seconds
     speed: 0.8,
     spawnRate: 1500
   },
   hard: {
     words: ['customer', 'service', 'support', 'billing', 'account', 'payment', 'problem', 'solution', 'request', 'feedback', 'process', 'system', 'update', 'manage', 'handle', 'call back', 'send email', 'fix issue', 'new task', 'team lead', 'data sync', 'user info', 'web page', 'file size', 'test mode', 'load time', 'sync data', 'copy text', 'push code', 'link site'],
-    timeLimit: 150, // 2.5 minutes
+    timeLimit: 30, // 30 seconds
     speed: 1.0,
     spawnRate: 1200
   },
-  difficult: {
+  expert: {
     words: ['troubleshoot', 'escalation', 'resolution', 'representative', 'professional', 'assistance', 'communication', 'documentation', 'verification', 'authorization', 'schedule meeting', 'update system', 'process payment', 'customer feedback', 'technical support', 'quality assurance', 'data management', 'system integration', 'performance review', 'project timeline', 'client requirements', 'workflow automation', 'security protocols', 'backup procedures', 'error handling', 'user experience', 'database query', 'network config', 'server maintenance', 'code deployment'],
-    timeLimit: 180, // 3 minutes
-    speed: 1.4,
+    timeLimit: 30, // 30 seconds
+    speed: 1.0,
     spawnRate: 900
   }
 };
 
-type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'difficult';
+type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'expert';
 
 interface FallingWord {
   id: string;
@@ -83,7 +94,7 @@ interface DifficultyProgress {
   easy: boolean;
   medium: boolean;
   hard: boolean;
-  difficult: boolean;
+  expert: boolean;
 }
 
 export default function TypingHeroPage() {
@@ -96,7 +107,7 @@ export default function TypingHeroPage() {
     oscillators: OscillatorNode[];
     gainNodes: GainNode[];
     isPlaying: boolean;
-    currentTrack: 'menu' | 'easy' | 'medium' | 'hard' | 'difficult' | 'success' | 'failure' | null;
+    currentTrack: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'success' | 'failure' | null;
   }>({
     oscillators: [],
     gainNodes: [],
@@ -111,7 +122,7 @@ export default function TypingHeroPage() {
     easy: false,
     medium: false,
     hard: false,
-    difficult: false
+    expert: false
   });
   
   const [gameStats, setGameStats] = useState<GameStats>({
@@ -136,6 +147,7 @@ export default function TypingHeroPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   
   // Game intervals
   const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -186,7 +198,7 @@ export default function TypingHeroPage() {
   }, []);
 
   // Create electronic music for different game states
-  const playMusic = useCallback((trackType: 'menu' | 'easy' | 'medium' | 'hard' | 'difficult' | 'success' | 'failure') => {
+  const playMusic = useCallback((trackType: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'success' | 'failure') => {
     if (!audioContextRef.current || isMuted) return;
     
     // Stop current music
@@ -228,7 +240,7 @@ export default function TypingHeroPage() {
         leadFreqs: [330, 415, 523], // E, G#, C
         drumTempo: 0.3
       },
-      difficult: {
+      expert: {
         bpm: 160,
         bassFreq: 90,
         leadFreqs: [349, 440, 554], // F, A, C#
@@ -385,7 +397,7 @@ export default function TypingHeroPage() {
       case 'easy': return 'text-green-400 border-green-500/30 bg-green-500/20';
       case 'medium': return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/20';
       case 'hard': return 'text-orange-400 border-orange-500/30 bg-orange-500/20';
-      case 'difficult': return 'text-red-400 border-red-500/30 bg-red-500/20';
+      case 'expert': return 'text-red-400 border-red-500/30 bg-red-500/20';
       default: return 'text-gray-400 border-gray-500/30 bg-gray-500/20';
     }
   };
@@ -437,7 +449,7 @@ export default function TypingHeroPage() {
     setCountdown(null);
     
     // Start background music based on difficulty
-    const musicTrack = difficulty as 'easy' | 'medium' | 'hard' | 'difficult';
+    const musicTrack = difficulty as 'easy' | 'medium' | 'hard' | 'expert';
     playMusic(musicTrack);
     
     // Focus input
@@ -471,7 +483,7 @@ export default function TypingHeroPage() {
               clearInterval(countdownInterval);
               setCountdown(null);
               setGameState('playing');
-              const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'difficult';
+              const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
               playMusic(musicTrack);
               if (inputRef.current) {
                 inputRef.current.focus();
@@ -749,7 +761,7 @@ export default function TypingHeroPage() {
     if (wasMuted) {
       // Was muted, now unmuting - restart music based on current state
       if (gameState === 'playing') {
-        const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'difficult';
+        const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
         playMusic(musicTrack);
       } else if (gameState === 'menu' || gameState === 'difficulty') {
         playMusic('menu');
@@ -801,14 +813,20 @@ export default function TypingHeroPage() {
             className="flex items-center justify-between mb-8"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
+                                <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (gameState === 'playing' || gameState === 'paused') {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
               <div className="flex items-center">
                 <Guitar className="h-12 w-12 text-green-400 mr-4" />
                 <div>
@@ -858,52 +876,83 @@ export default function TypingHeroPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto text-center space-y-8"
+              className="max-w-4xl mx-auto text-center space-y-8"
             >
               <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white mb-4">
-                    🎸 Welcome to Typing Hero!
-                  </CardTitle>
-                  <div className="text-gray-300 space-y-4 text-left">
-                    <p>🎯 <strong>How to Play:</strong></p>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-purple-400 mr-3 mt-0.5">🎵</span>
-                        <span>Words and phrases fall down 5 lanes like notes in Guitar Hero</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-green-400 mr-3 mt-0.5">⚡</span>
-                        <span>Type any visible word anytime - no need to wait!</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-yellow-400 mr-3 mt-0.5">🎯</span>
-                        <span>Get bonus points for perfect timing in the target zone</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-orange-400 mr-3 mt-0.5">🔥</span>
-                        <span>Correct words = Fire effects and points!</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-red-400 mr-3 mt-0.5">💩</span>
-                        <span>Wrong words = Poo effects and lost combo</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-blue-400 mr-3 mt-0.5">🔓</span>
-                        <span>Complete each difficulty to unlock the next one</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-cyan-400 mr-3 mt-0.5">🏆</span>
-                        <span>Achieve 70% accuracy and 10+ correct words to pass</span>
-                      </li>
-                    </ul>
-                    <p className="text-sm">🎵 <strong>Dynamic Music:</strong> Each difficulty has unique electronic beats that get faster and more intense!</p>
-                    <p className="text-sm">📝 <strong>Progressive Challenge:</strong> From short words to complex business phrases!</p>
+                <CardHeader className="pb-6">
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-full flex items-center justify-center mr-4">
+                      <Guitar className="w-8 h-8 text-orange-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-3xl font-bold gradient-text mb-2">
+                        Welcome to Typing Hero!
+                      </CardTitle>
+                      <CardDescription className="text-gray-300 text-lg">
+                        Rock your keyboard with rhythm and speed!
+                      </CardDescription>
+                    </div>
+                  </div>
+                  
+                  <div className="text-gray-300 space-y-6 text-left max-w-3xl mx-auto">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-red-400" />
+                        How to Play
+                      </h3>
+                      <ul className="space-y-3 text-sm">
+                        <li className="flex items-start">
+                          <span className="text-purple-400 mr-3 mt-0.5 text-lg">🎵</span>
+                          <span>Words and phrases fall down 5 lanes like notes in Guitar Hero</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-3 mt-0.5 text-lg">⚡</span>
+                          <span>Type any visible word anytime - no need to wait!</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎯</span>
+                          <span>Get bonus points for perfect timing in the target zone</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-orange-400 mr-3 mt-0.5 text-lg">🔥</span>
+                          <span>Correct words = Fire effects and points!</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-red-400 mr-3 mt-0.5 text-lg">💩</span>
+                          <span>Wrong words = Poo effects and lost combo</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-blue-400 mr-3 mt-0.5 text-lg">🔓</span>
+                          <span>Complete each difficulty to unlock the next one</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
+                          <span>Achieve 70% accuracy and 10+ correct words to pass</span>
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-purple-400 text-lg">🎵</span>
+                          <h4 className="text-white font-semibold">Dynamic Music</h4>
+                        </div>
+                        <p className="text-gray-300 text-sm">Each difficulty has unique electronic beats that get faster and more intense!</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-cyan-400 text-lg">📝</span>
+                          <h4 className="text-white font-semibold">Progressive Challenge</h4>
+                        </div>
+                        <p className="text-gray-300 text-sm">From short words to complex business phrases!</p>
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <Button
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
                     onClick={() => setGameState('difficulty')}
                   >
                     <Play className="h-6 w-6 mr-3" />
@@ -927,7 +976,7 @@ export default function TypingHeroPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(['easy', 'medium', 'hard', 'difficult'] as DifficultyLevel[]).map((difficulty) => {
+                {(['easy', 'medium', 'hard', 'expert'] as DifficultyLevel[]).map((difficulty) => {
                   const config = BPO_VOCABULARY[difficulty];
                   const isUnlocked = isDifficultyUnlocked(difficulty);
                   const isCompleted = difficultyProgress[difficulty];
@@ -937,7 +986,7 @@ export default function TypingHeroPage() {
                       key={difficulty}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * ['easy', 'medium', 'hard', 'difficult'].indexOf(difficulty) }}
+                      transition={{ delay: 0.1 * ['easy', 'medium', 'hard', 'expert'].indexOf(difficulty) }}
                     >
                       <Card className={`glass-card border-white/10 relative ${isUnlocked ? 'hover:border-white/30 cursor-pointer' : 'opacity-50'} transition-all duration-300`}>
                         {!isUnlocked && (
@@ -958,7 +1007,7 @@ export default function TypingHeroPage() {
                               {difficulty === 'easy' && '⭐'}
                               {difficulty === 'medium' && '⭐⭐'}
                               {difficulty === 'hard' && '⭐⭐⭐'}
-                              {difficulty === 'difficult' && '⭐⭐⭐⭐'}
+                              {difficulty === 'expert' && '⭐⭐⭐⭐'}
                             </Badge>
                           </div>
                           
@@ -973,7 +1022,7 @@ export default function TypingHeroPage() {
                                  {difficulty === 'easy' && '4-Letter Words'}
                                  {difficulty === 'medium' && '5-6 Letter Words'}
                                  {difficulty === 'hard' && 'Long Words + Phrases'}
-                                 {difficulty === 'difficult' && 'Complex Phrases'}
+                                 {difficulty === 'expert' && 'Complex Phrases'}
                                </span>
                              </div>
                             <div className="flex justify-between">
@@ -982,7 +1031,7 @@ export default function TypingHeroPage() {
                                 {difficulty === 'easy' && 'Slow'}
                                 {difficulty === 'medium' && 'Normal'}
                                 {difficulty === 'hard' && 'Fast'}
-                                {difficulty === 'difficult' && 'Very Fast'}
+                                {difficulty === 'expert' && 'Very Fast'}
                               </span>
                             </div>
                           </div>
@@ -1362,6 +1411,29 @@ export default function TypingHeroPage() {
           )}
         </div>
       </div>
+      
+      {/* Exit Game Alert Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Exit Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

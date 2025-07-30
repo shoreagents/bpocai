@@ -8,6 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
   PuzzleIcon,
   CheckCircle,
@@ -25,6 +36,7 @@ export default function LogicalReasoningPage() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [score, setScore] = useState(0);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const questions = [
     {
@@ -285,14 +297,20 @@ export default function LogicalReasoningPage() {
             className="flex items-center justify-between mb-8"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
+                                <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (currentQuestion > 0 && !isFinished) {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
               <div className="flex items-center">
                 <PuzzleIcon className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
@@ -455,7 +473,7 @@ export default function LogicalReasoningPage() {
                   <Button
                     onClick={handleNext}
                     disabled={answers[currentQuestion] === undefined}
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
                   >
                     {currentQuestion === questions.length - 1 ? 'Complete' : 'Next'}
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -588,7 +606,7 @@ export default function LogicalReasoningPage() {
 
                 <Button
                   onClick={() => window.location.reload()}
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                  className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
                 >
                   Take Test Again
                 </Button>
@@ -597,6 +615,29 @@ export default function LogicalReasoningPage() {
           </div>
         </div>
       </div>
+      
+      {/* Exit Assessment Alert Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Exit Assessment</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to exit the assessment? This will take you back to the main menu and you'll lose your current progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Exit Assessment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   Menu, 
@@ -22,6 +22,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 import { cn } from '@/lib/utils'
 import LoginForm from '@/components/auth/LoginForm'
@@ -36,9 +47,18 @@ interface HeaderProps {
 export default function Header({}: HeaderProps) {
   const { user, signOut, loading } = useAuth()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
+
+  // Check for signup parameter and open dialog
+  useEffect(() => {
+    const signupParam = searchParams.get('signup')
+    if (signupParam === 'true' && !user) {
+      setIsSignUpDialogOpen(true)
+    }
+  }, [searchParams, user])
 
   
   const isAuthenticated = !!user
@@ -54,7 +74,7 @@ export default function Header({}: HeaderProps) {
   const userExperiencePoints = 14400 // This would be fetched from your user profile table
 
   const navigationItems = [
-    { title: 'Home', href: '/', icon: Home },
+    { title: 'Home', href: '/home', icon: Home },
     { title: 'Resume Builder', href: '/resume-builder', icon: FileText },
     { title: 'Career Tools', href: '/career-tools', icon: Wrench },
     { title: 'Jobs', href: '/jobs', icon: Briefcase },
@@ -64,16 +84,19 @@ export default function Header({}: HeaderProps) {
 
   // Check if navigation item is active
   const isActiveRoute = (href: string) => {
-    if (href === '/') {
-      return pathname === '/'
+    if (href === '/home') {
+      return pathname === '/home' || pathname === '/'
     }
     return pathname.startsWith(href)
   }
+
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false)
 
   const handleSignOut = async () => {
     try {
       await signOut()
       setIsMobileMenuOpen(false) // Close mobile menu if open
+      setShowSignOutDialog(false)
     } catch (error) {
       console.error('Sign out error:', error)
     }
@@ -82,7 +105,7 @@ export default function Header({}: HeaderProps) {
   const userMenuItems = [
     { label: 'Profile', href: '/profile', icon: User, action: null },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
-    { label: 'Sign Out', href: null, icon: LogOut, action: handleSignOut }
+    { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }
   ]
 
   // Form switching handlers
@@ -113,7 +136,7 @@ export default function Header({}: HeaderProps) {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
+          <Link href="/home" className="flex items-center space-x-2 group">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -350,6 +373,28 @@ export default function Header({}: HeaderProps) {
         onSwitchToLogin={handleSwitchToLogin}
       />
       
+      {/* Sign Out Alert Dialog */}
+      <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Sign Out</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to sign out? You'll need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSignOut}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </header>
   )

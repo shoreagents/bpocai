@@ -4,10 +4,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft,
   Target,
@@ -106,6 +117,7 @@ export default function TaskJugglerPage() {
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [multiplier, setMultiplier] = useState(1);
   const [levelProgress, setLevelProgress] = useState(0);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const getPriorityColor = (priority: TaskPriority) => {
     switch (priority) {
@@ -366,14 +378,20 @@ export default function TaskJugglerPage() {
             className="flex items-center justify-between mb-6"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
+                                <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (gameState === 'playing' || gameState === 'paused') {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
               <div className="flex items-center">
                 <Target className="h-12 w-12 text-green-400 mr-4" />
                 <div>
@@ -389,49 +407,80 @@ export default function TaskJugglerPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto text-center space-y-8"
+              className="max-w-4xl mx-auto text-center space-y-8"
             >
               <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white mb-4">
-                    🎯 Welcome to Task Juggler!
-                  </CardTitle>
-                  <div className="text-gray-300 space-y-4 text-left">
-                    <p>🎮 <strong>How to Play:</strong></p>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-red-400 mr-3 mt-0.5">⏰</span>
-                        <span>Tasks appear with different priorities and time limits</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-green-400 mr-3 mt-0.5">🎯</span>
-                        <span>Choose which tasks to tackle first based on priority</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-blue-400 mr-3 mt-0.5">✅</span>
-                        <span>Complete tasks before time runs out for full points</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-yellow-400 mr-3 mt-0.5">⏸️</span>
-                        <span>Snooze low-priority tasks if needed (+15 seconds)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-orange-400 mr-3 mt-0.5">🔥</span>
-                        <span>Build streaks for score multipliers up to 3x</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-purple-400 mr-3 mt-0.5">📈</span>
-                        <span>Manage up to 4 concurrent tasks in real-time</span>
-                      </li>
-                    </ul>
-                    <p className="text-sm">⚡ <strong>High-Pressure Environment:</strong> Test your multitasking abilities in a fast-paced BPO simulation!</p>
-                    <p className="text-sm">🏆 <strong>Strategic Gameplay:</strong> Balance speed, accuracy, and smart prioritization to maximize your score!</p>
+                <CardHeader className="pb-6">
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mr-4">
+                      <Target className="w-8 h-8 text-green-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-3xl font-bold gradient-text mb-2">
+                        Welcome to Task Juggler!
+                      </CardTitle>
+                      <CardDescription className="text-gray-300 text-lg">
+                        Master time-sensitive multitasking with real-time priority management
+                      </CardDescription>
+                    </div>
+                  </div>
+                  
+                  <div className="text-gray-300 space-y-6 text-left max-w-3xl mx-auto">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <span className="text-gray-400 text-lg">🎮</span>
+                        How to Play
+                      </h3>
+                      <ul className="space-y-3 text-sm">
+                        <li className="flex items-start">
+                          <span className="text-red-400 mr-3 mt-0.5 text-lg">⏰</span>
+                          <span>Tasks appear with different priorities and time limits</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-3 mt-0.5 text-lg">🎯</span>
+                          <span>Choose which tasks to tackle first based on priority</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-blue-400 mr-3 mt-0.5 text-lg">✅</span>
+                          <span>Complete tasks before time runs out for full points</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-yellow-400 mr-3 mt-0.5 text-lg">⏸️</span>
+                          <span>Snooze low-priority tasks if needed (+15 seconds)</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-orange-400 mr-3 mt-0.5 text-lg">🔥</span>
+                          <span>Build streaks for score multipliers up to 3x</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-purple-400 mr-3 mt-0.5 text-lg">📈</span>
+                          <span>Manage up to 4 concurrent tasks in real-time</span>
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-yellow-400 text-lg">⚡</span>
+                          <h4 className="text-white font-semibold">High-Pressure Environment</h4>
+                        </div>
+                        <p className="text-gray-300 text-sm">Test your multitasking abilities in a fast-paced BPO simulation!</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-cyan-400 text-lg">🏆</span>
+                          <h4 className="text-white font-semibold">Strategic Gameplay</h4>
+                        </div>
+                        <p className="text-gray-300 text-sm">Balance speed, accuracy, and smart prioritization to maximize your score!</p>
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <Button
                     onClick={startGame}
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
                   >
                     <Play className="h-6 w-6 mr-3" />
                     Start Juggling
@@ -763,7 +812,7 @@ export default function TaskJugglerPage() {
                       Play Again
                     </Button>
                     <Button
-                      onClick={() => router.back()}
+                      onClick={() => setShowExitDialog(true)}
                       variant="outline"
                       size="lg"
                       className="border-gray-600 text-gray-300 hover:bg-gray-800 text-lg px-8 py-3"
@@ -777,6 +826,29 @@ export default function TaskJugglerPage() {
           )}
         </div>
       </div>
+      
+      {/* Exit Game Alert Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Exit Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

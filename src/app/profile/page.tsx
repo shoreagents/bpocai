@@ -340,26 +340,26 @@ export default function ProfilePage() {
 
 
             {/* Achievements - Extended */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
               className="max-w-4xl mx-auto"
             >
               <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-400" />
-                    Achievements
-                  </CardTitle>
-                  <CardDescription className="text-gray-300">
-                    Your progress and milestones on BPOC.AI
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-yellow-400" />
+                      Achievements
+                    </CardTitle>
+                    <CardDescription className="text-gray-300">
+                      Your progress and milestones on BPOC.AI
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {achievements.map((achievement) => (
-                                              <div
+                      {achievements.map((achievement) => (
+                        <div
                           key={achievement.id}
                           className={`p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] ${
                             achievement.earned 
@@ -367,40 +367,40 @@ export default function ProfilePage() {
                               : 'border-gray-700/30 bg-gray-700/20 text-gray-500 opacity-50'
                           }`}
                         >
-                        <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-3">
                                                       <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                               achievement.earned ? 'bg-green-500/20' : 'bg-gray-700/20'
                             }`}>
                             <achievement.icon className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1">
+                            </div>
+                            <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-lg">{achievement.title}</h4>
-                              {achievement.earned && (
-                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                                  <Check className="w-3 h-3 mr-1" />
-                                  Earned
-                                </Badge>
-                              )}
-                            </div>
+                                {achievement.earned && (
+                                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Earned
+                                  </Badge>
+                                )}
+                              </div>
                             <p className="text-sm opacity-80 mb-3">{achievement.description}</p>
                             <div className="flex items-center justify-between">
                               <span className="text-sm capitalize font-medium">{achievement.rarity}</span>
                               <span className="text-sm font-bold">+{achievement.points} XP</span>
-                            </div>
-                            {achievement.earned && achievement.earnedDate && (
+                              </div>
+                              {achievement.earned && achievement.earnedDate && (
                               <p className="text-xs opacity-60 mt-2">
-                                Earned on {new Date(achievement.earnedDate).toLocaleDateString()}
-                              </p>
-                            )}
+                                  Earned on {new Date(achievement.earnedDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
           </div>
         </div>
       </div>
