@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowRight,
@@ -48,11 +49,16 @@ const demoTabs = [
 ]
 
 export default function Hero() {
+  const router = useRouter()
   const [currentTypingIndex, setCurrentTypingIndex] = useState(0)
   const [displayText, setDisplayText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [typingSpeed, setTypingSpeed] = useState(150)
   const [activeTab, setActiveTab] = useState(0)
+
+  const handleBuildResume = () => {
+    router.push('/resume-builder')
+  }
 
   // Auto-rotate tabs every 5 seconds
   useEffect(() => {
@@ -408,6 +414,7 @@ export default function Hero() {
             >
               <Button 
                 size="lg" 
+                onClick={handleBuildResume}
                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 shadow-lg shadow-red-500/25 relative group overflow-hidden"
               >
                 <motion.div
@@ -462,7 +469,7 @@ export default function Hero() {
                     <Sparkles className="w-6 h-6 text-black" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">BPOC.AI Platform</h3>
+                    <h3 className="font-semibold text-white">BPOC.AI</h3>
                     <p className="text-sm text-gray-400">Interactive Demo</p>
                   </div>
                 </div>

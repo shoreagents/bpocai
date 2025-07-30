@@ -8,6 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
   Keyboard,
   Clock,
@@ -39,6 +50,7 @@ export default function TypingSpeedTestPage() {
   const [isFinished, setIsFinished] = useState(false);
   const [completedTests, setCompletedTests] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const levelData = {
     easy: {
@@ -126,28 +138,28 @@ export default function TypingSpeedTestPage() {
         text: 'text-green-400',
         border: 'border-green-500/30',
         icon: 'text-cyan-400',
-        button: 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
+        button: 'from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
       },
       yellow: {
         bg: 'bg-yellow-500/20',
         text: 'text-yellow-400',
         border: 'border-yellow-500/30',
         icon: 'text-cyan-400',
-        button: 'from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700'
+        button: 'from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
       },
       orange: {
         bg: 'bg-orange-500/20',
         text: 'text-orange-400',
         border: 'border-orange-500/30',
         icon: 'text-cyan-400',
-        button: 'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+        button: 'from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
       },
       red: {
         bg: 'bg-red-500/20',
         text: 'text-red-400',
         border: 'border-red-500/30',
         icon: 'text-cyan-400',
-        button: 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+        button: 'from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
       }
     };
     return colorMap[color as keyof typeof colorMap];
@@ -300,14 +312,20 @@ export default function TypingSpeedTestPage() {
             className="flex items-center justify-between mb-8"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
+                                <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (isActive) {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
               <div className="flex items-center">
                 <Keyboard className={`h-12 w-12 ${colors.icon} mr-4`} />
                 <div>
@@ -572,6 +590,29 @@ export default function TypingSpeedTestPage() {
           </div>
         </div>
       </div>
+      
+      {/* Exit Assessment Alert Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Exit Assessment</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to exit the assessment? This will take you back to the main menu and you'll lose your current progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Exit Assessment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

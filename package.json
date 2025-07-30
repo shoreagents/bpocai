@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@opendocsg/pdf2md": "^0.2.1",
+    "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-navigation-menu": "^1.2.13",
     "@radix-ui/react-progress": "^1.1.7",

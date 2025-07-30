@@ -8,6 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
   Brain,
   CheckCircle,
@@ -25,6 +36,7 @@ export default function DISCPersonalityPage() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [scores, setScores] = useState({ D: 0, I: 0, S: 0, C: 0 });
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   // All questions shuffled to mix DISC categories
   const questions = [
@@ -558,7 +570,13 @@ export default function DISCPersonalityPage() {
             <div className="flex items-center">
               <Button
                 variant="ghost"
-                onClick={() => router.back()}
+                    onClick={() => {
+                      if (currentQuestion > 0 && !isFinished) {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
                 className="mr-4 text-gray-400 hover:text-white"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
@@ -836,6 +854,29 @@ export default function DISCPersonalityPage() {
           </div>
         </div>
       </div>
+      
+      {/* Exit Assessment Alert Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Exit Assessment</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to exit the assessment? This will take you back to the main menu and you'll lose your current progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Exit Assessment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

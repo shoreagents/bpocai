@@ -4,9 +4,20 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft,
   Phone,
@@ -24,7 +35,8 @@ import {
   Headphones,
   Brain,
   AlertTriangle,
-  Lightbulb
+  Lightbulb,
+  X
 } from 'lucide-react';
 
 type FlowNodeType = 'greeting' | 'question' | 'response' | 'action' | 'decision' | 'end';
@@ -132,7 +144,9 @@ export default function CallFlowBuilderPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ type: FlowNodeType; text: string } | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [testScenario, setTestScenario] = useState(TEST_SCENARIOS[0]);
   const [gameStats, setGameStats] = useState<GameStats>({
     efficiency: 0,
@@ -144,6 +158,8 @@ export default function CallFlowBuilderPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completedFlow, setCompletedFlow] = useState<string[]>([]);
   const [flowFeedback, setFlowFeedback] = useState<{message: string, type: 'success' | 'warning' | 'info'} | null>(null);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const getNodeTypeColor = (type: FlowNodeType) => {
     const colors = {
@@ -178,21 +194,38 @@ export default function CallFlowBuilderPage() {
     if (!draggedItem || !canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Calculate position relative to the canvas, accounting for scroll
+    const x = e.clientX - rect.left + scrollLeft;
+    const y = e.clientY - rect.top + scrollTop;
+
+    // Node dimensions (w-48 = 192px width, approximate height)
+    const nodeWidth = 192;
+    const nodeHeight = 80;
+
+    // Center the node on the drop point
+    const centeredX = Math.max(0, Math.min(x - nodeWidth / 2, rect.width - nodeWidth));
+    const centeredY = Math.max(0, Math.min(y - nodeHeight / 2, rect.height - nodeHeight));
 
     const newNode: FlowNode = {
       id: `node-${Date.now()}`,
       type: draggedItem.type,
       text: draggedItem.text,
-      x: Math.max(0, Math.min(x - 100, rect.width - 200)),
-      y: Math.max(0, Math.min(y - 25, rect.height - 50)),
+      x: centeredX,
+      y: centeredY,
       connections: []
     };
 
     const updatedNodes = [...flowNodes, newNode];
     setFlowNodes(updatedNodes);
     setDraggedItem(null);
+    
+    // Reset cursor
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = 'default';
+    }
     
     // Generate initial feedback when nodes are added
     const feedback = generateFlowFeedback(updatedNodes, connections);
@@ -201,6 +234,20 @@ export default function CallFlowBuilderPage() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    // Add visual feedback during drag
+    if (draggedItem && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+      
+      const x = e.clientX - rect.left + scrollLeft;
+      const y = e.clientY - rect.top + scrollTop;
+      
+      setMousePosition({ x, y });
+      
+      // Update cursor position for visual feedback
+      canvasRef.current.style.cursor = 'crosshair';
+    }
   };
 
   const generateFlowSequence = (nodes: FlowNode[], connections: Connection[]) => {
@@ -298,7 +345,7 @@ export default function CallFlowBuilderPage() {
       setCompletedFlow(flowSequence);
       setFlowFeedback(feedback);
     }
-    setConnectingFrom(null);
+    // Don't reset connectingFrom - allow multiple connections from the same node
   };
 
   const deleteNode = (nodeId: string) => {
@@ -312,8 +359,10 @@ export default function CallFlowBuilderPage() {
     setConnections([]);
     setSelectedNode(null);
     setConnectingFrom(null);
+    setIsConnecting(false);
     setCompletedFlow([]);
     setFlowFeedback(null);
+    setShowClearDialog(false);
   };
 
   const testFlow = () => {
@@ -375,14 +424,20 @@ export default function CallFlowBuilderPage() {
             className="flex items-center justify-between mb-6"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
+                                <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (gameState === 'building' || gameState === 'testing') {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
               <div className="flex items-center">
                 <Phone className="h-12 w-12 text-green-400 mr-4" />
                 <div>
@@ -398,48 +453,79 @@ export default function CallFlowBuilderPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto text-center space-y-8"
+              className="max-w-4xl mx-auto text-center space-y-8"
             >
               <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-white mb-4">
-                    📞 Welcome to Call Flow Builder!
-                  </CardTitle>
-                  <div className="text-gray-300 space-y-4 text-left">
-                    <p>🎯 <strong>How to Play:</strong></p>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-start">
-                        <span className="text-green-400 mr-3 mt-0.5">📞</span>
-                        <span>Drag conversation pieces from the toolbox to the canvas</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-blue-400 mr-3 mt-0.5">🔗</span>
-                        <span>Connect flow pieces with arrows to create logical paths</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-purple-400 mr-3 mt-0.5">🧪</span>
-                        <span>Test your flow with real customer scenarios</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-orange-400 mr-3 mt-0.5">📊</span>
-                        <span>Get scored on efficiency and customer satisfaction</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-yellow-400 mr-3 mt-0.5">🎯</span>
-                        <span>Build optimal customer service workflows</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-cyan-400 mr-3 mt-0.5">⚡</span>
-                        <span>Master process design and efficiency optimization</span>
-                      </li>
-                    </ul>
-                    <p className="text-sm">🧠 <strong>Skills Assessment:</strong> Customer service flow, problem solving, and logical thinking!</p>
-                    <p className="text-sm">🏗️ <strong>Process Design:</strong> Learn to create efficient customer service workflows!</p>
+                <CardHeader className="pb-6">
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-full flex items-center justify-center mr-4">
+                      <Phone className="w-8 h-8 text-red-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-3xl font-bold gradient-text mb-2">
+                        Welcome to Call Flow Builder!
+                      </CardTitle>
+                      <CardDescription className="text-gray-300 text-lg">
+                        Design perfect customer service call flows with drag & drop interface
+                      </CardDescription>
+                    </div>
+                  </div>
+                  
+                  <div className="text-gray-300 space-y-6 text-left max-w-3xl mx-auto">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <Target className="w-5 h-5 text-red-400" />
+                        How to Play
+                      </h3>
+                      <ul className="space-y-3 text-sm">
+                        <li className="flex items-start">
+                          <span className="text-green-400 mr-3 mt-0.5 text-lg">📞</span>
+                          <span>Drag conversation pieces from the toolbox to the canvas</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-blue-400 mr-3 mt-0.5 text-lg">🔗</span>
+                          <span>Connect flow pieces with arrows to create logical paths</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-purple-400 mr-3 mt-0.5 text-lg">🧪</span>
+                          <span>Test your flow with real customer scenarios</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-orange-400 mr-3 mt-0.5 text-lg">📊</span>
+                          <span>Get scored on efficiency and customer satisfaction</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎯</span>
+                          <span>Build optimal customer service workflows</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-cyan-400 mr-3 mt-0.5 text-lg">⚡</span>
+                          <span>Master process design and efficiency optimization</span>
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Brain className="w-5 h-5 text-purple-400" />
+                          <h4 className="text-white font-semibold">Skills Assessment</h4>
+                        </div>
+                        <p className="text-gray-300 text-sm">Customer service flow, problem solving, and logical thinking!</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-orange-400 text-lg">🏗️</span>
+                          <h4 className="text-white font-semibold">Process Design</h4>
+                        </div>
+                        <p className="text-gray-300 text-sm">Learn to create efficient customer service workflows!</p>
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <Button
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
                     onClick={startNewFlow}
                   >
                     <Play className="h-6 w-6 mr-3" />
@@ -453,22 +539,35 @@ export default function CallFlowBuilderPage() {
           {/* Game Building Interface */}
           {gameState === 'building' && (
             <div className="space-y-6">
-              {/* Toolbar */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between"
-              >
-                <div className="flex items-center space-x-4">
-                  <Button
-                    onClick={clearCanvas}
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Clear
-                  </Button>
-                </div>
+                                    {/* Toolbar */}
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <Button
+                            onClick={() => setShowClearDialog(true)}
+                            variant="outline"
+                            className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Clear
+                          </Button>
+                          {connectingFrom && (
+                            <Button
+                              onClick={() => {
+                                setConnectingFrom(null);
+                                setIsConnecting(false);
+                              }}
+                              variant="outline"
+                              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Cancel Connection
+                            </Button>
+                          )}
+                        </div>
                 
                 <div className="flex items-center space-x-4">
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
@@ -538,6 +637,11 @@ export default function CallFlowBuilderPage() {
                         className="relative w-full h-[540px] bg-gray-900/20 rounded-lg overflow-hidden"
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
+                        onDragLeave={(e) => {
+                          if (canvasRef.current && !canvasRef.current.contains(e.relatedTarget as Node)) {
+                            canvasRef.current.style.cursor = 'default';
+                          }
+                        }}
                       >
                         {flowNodes.length === 0 && (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-500">
@@ -549,8 +653,23 @@ export default function CallFlowBuilderPage() {
                         )}
 
                         {connectingFrom && (
-                          <div className="absolute top-2 left-2 bg-yellow-500/20 border border-yellow-500/50 rounded-md p-2 text-yellow-300 text-xs z-10">
+                          <div className="absolute top-2 right-2 bg-yellow-500/20 border border-yellow-500/50 rounded-md p-2 text-yellow-300 text-xs z-10">
                             🔗 Click another node to connect
+                          </div>
+                        )}
+
+                        {/* Drop indicator */}
+                        {draggedItem && (
+                          <div 
+                            className="absolute border-2 border-dashed border-green-400 bg-green-400/10 rounded-lg w-48 h-20 pointer-events-none z-10 opacity-50"
+                            style={{
+                              left: `${Math.max(0, Math.min(mousePosition.x - 96, 540 - 192))}px`,
+                              top: `${Math.max(0, Math.min(mousePosition.y - 40, 540 - 80))}px`
+                            }}
+                          >
+                            <div className="flex items-center justify-center h-full text-green-400 text-xs">
+                              Drop here
+                            </div>
                           </div>
                         )}
 
@@ -607,9 +726,11 @@ export default function CallFlowBuilderPage() {
                               selectedNode === node.id ? 'ring-2 ring-white/50' : ''
                             } ${
                               connectingFrom === node.id ? 'ring-2 ring-yellow-400' : ''
-                                        } ${
-              connectingFrom && connectingFrom !== node.id ? 'ring-2 ring-green-400' : ''
-            } hover:scale-105`}
+                            } ${
+                              connectingFrom && connectingFrom !== node.id && !connections.find(conn => conn.from === connectingFrom && conn.to === node.id) ? 'ring-2 ring-green-400' : ''
+                            } ${
+                              connectingFrom && connectingFrom !== node.id && connections.find(conn => conn.from === connectingFrom && conn.to === node.id) ? 'ring-2 ring-gray-400 opacity-50' : ''
+                            } hover:scale-105`}
                             style={{ left: node.x, top: node.y }}
                             onClick={() => {
                               if (connectingFrom && connectingFrom !== node.id) {
@@ -636,11 +757,22 @@ export default function CallFlowBuilderPage() {
                                     } else {
                                       // Otherwise, toggle connection mode for this node
                                       setConnectingFrom(connectingFrom === node.id ? null : node.id);
+                                      setIsConnecting(connectingFrom !== node.id);
                                     }
                                   }}
                                   className={`text-xs p-1 hover:bg-white/10 rounded ${
                                     connectingFrom === node.id ? 'bg-yellow-500/30' : ''
+                                  } ${
+                                    connectingFrom && connectingFrom !== node.id && connections.find(conn => conn.from === connectingFrom && conn.to === node.id) ? 'opacity-50' : ''
                                   }`}
+                                  title={
+                                    connectingFrom === node.id 
+                                      ? "Click another node to connect, or click again to cancel" 
+                                      : connectingFrom && connections.find(conn => conn.from === connectingFrom && conn.to === node.id)
+                                        ? "Already connected"
+                                        : "Click to start connecting from this node"
+                                  }
+                                  disabled={!!(connectingFrom && connectingFrom !== node.id && connections.find(conn => conn.from === connectingFrom && conn.to === node.id))}
                                 >
                                   <Link className="h-3 w-3" />
                                 </button>
@@ -853,6 +985,52 @@ export default function CallFlowBuilderPage() {
           )}
         </div>
       </div>
+      
+      {/* Clear Canvas Alert Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Clear Canvas</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to clear the canvas? This will remove all nodes and connections you've created.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={clearCanvas}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Clear Canvas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Exit Game Alert Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="glass-card border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+            >
+              Exit Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -7,6 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   ArrowLeft,
   Target,
@@ -43,6 +51,8 @@ export default function JobMatchingPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isPageSelectorOpen, setIsPageSelectorOpen] = useState(false);
+  const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
+  const [isGetStartedDialogOpen, setIsGetStartedDialogOpen] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const pageSelectorRef = useRef<HTMLDivElement>(null);
@@ -99,324 +109,249 @@ export default function JobMatchingPage() {
         'Collaborate with cross-functional teams to resolve issues'
       ],
       qualifications: [
-        'Bachelor\'s degree preferred',
-        '3+ years customer service experience',
-        'Excellent English communication skills',
-        'Experience with CRM systems',
-        'Strong problem-solving abilities'
+        '3+ years of customer service experience',
+        'Excellent communication and problem-solving skills',
+        'Proficiency in CRM systems and customer support tools',
+        'Ability to work in a fast-paced environment',
+        'Strong attention to detail and analytical thinking'
       ],
       perks: [
-        'Health insurance coverage',
+        'Competitive salary with performance bonuses',
+        'Comprehensive health insurance coverage',
+        'Professional development and training programs',
         'Flexible work arrangements',
-        'Performance bonuses',
-        'Career advancement opportunities',
-        'Free lunch and snacks',
-        'Training and development programs'
+        'Employee discount on Amazon products'
       ]
     },
     {
       id: '2',
       company: 'Google',
       companyLogo: '🔍',
-      postedDays: 30,
+      postedDays: 3,
       title: 'Technical Support Specialist',
-      employmentType: ['Full-time', 'Flexible schedule'],
-      salary: '$28-40k',
-      location: 'Angeles City, Pampanga',
+      employmentType: ['Full-time', 'Mid level'],
+      salary: '$28/hr',
+      location: 'Makati, Metro Manila',
       matchPercentage: 88,
-      description: 'Support Google\'s global user base by providing technical assistance for various Google products. Help users troubleshoot and optimize their experience with Google services.',
+      description: 'Provide technical support for Google products and services. Help users troubleshoot issues and optimize their experience with Google\'s ecosystem.',
       responsibilities: [
-        'Troubleshoot technical issues for Google products',
+        'Resolve technical issues for Google products',
         'Provide step-by-step guidance to users',
         'Document common issues and solutions',
-        'Escalate complex problems to engineering teams',
-        'Contribute to knowledge base articles'
+        'Collaborate with engineering teams on bug reports',
+        'Maintain high customer satisfaction scores'
       ],
       qualifications: [
-        'Strong technical background',
-        '2+ years technical support experience',
-        'Fluent in English and Filipino',
-        'Knowledge of Google Workspace',
-        'Problem-solving mindset'
+        '2+ years of technical support experience',
+        'Strong knowledge of Google products and services',
+        'Excellent troubleshooting and problem-solving skills',
+        'Ability to explain technical concepts clearly',
+        'Experience with customer support tools and systems'
       ],
       perks: [
-        'Comprehensive health benefits',
-        'Work from home options',
-        'Google product discounts',
-        'Learning and development budget',
-        'Wellness programs',
-        'Team building activities'
+        'Competitive salary with stock options',
+        'Comprehensive benefits package',
+        'Access to Google\'s learning resources',
+        'Modern office with great amenities',
+        'Opportunities for career growth'
       ]
     },
     {
       id: '3',
       company: 'Microsoft',
-      companyLogo: '💻',
-      postedDays: 18,
-      title: 'Senior Sales Representative',
-      employmentType: ['Contract', 'Remote'],
-      salary: '$42/hr',
-      location: 'Remote, Philippines',
+      companyLogo: '🪟',
+      postedDays: 7,
+      title: 'Customer Success Manager',
+      employmentType: ['Full-time', 'Senior level'],
+      salary: '$32/hr',
+      location: 'BGC, Taguig',
       matchPercentage: 92,
-      description: 'Drive Microsoft\'s business growth by selling enterprise solutions to key accounts. Build relationships with decision-makers and present tailored technology solutions.',
+      description: 'Drive customer success and satisfaction for Microsoft products. Build strong relationships with clients and ensure they achieve their goals.',
       responsibilities: [
-        'Develop and execute sales strategies',
-        'Build relationships with enterprise clients',
-        'Present Microsoft solutions to stakeholders',
-        'Achieve quarterly sales targets',
-        'Collaborate with technical teams for demos'
+        'Manage customer relationships and success metrics',
+        'Onboard new customers and provide training',
+        'Identify upsell and cross-sell opportunities',
+        'Gather customer feedback and relay to product teams',
+        'Create success plans and track progress'
       ],
       qualifications: [
-        'Bachelor\'s degree in Business or related field',
-        '5+ years B2B sales experience',
-        'Strong presentation skills',
-        'Knowledge of Microsoft products',
-        'Proven track record in enterprise sales'
+        '4+ years of customer success or account management',
+        'Experience with Microsoft products and services',
+        'Strong relationship-building and communication skills',
+        'Data-driven approach to customer success',
+        'Project management and strategic thinking abilities'
       ],
       perks: [
-        'Competitive commission structure',
-        'Remote work flexibility',
-        'Microsoft product licenses',
-        'Professional development courses',
-        'Annual sales incentive trips',
-        'Health and dental coverage'
+        'Competitive salary with performance bonuses',
+        'Comprehensive health and wellness benefits',
+        'Professional development opportunities',
+        'Flexible work arrangements',
+        'Access to Microsoft\'s technology stack'
       ]
     },
     {
       id: '4',
-      company: 'Meta',
-      companyLogo: '📘',
-      postedDays: 3,
-      title: 'Content Moderator',
-      employmentType: ['Full-time', 'In office'],
-      salary: '$25-32k',
-      location: 'Clark, Pampanga',
-      matchPercentage: 78,
-      description: 'Help maintain a safe and positive community experience across Meta\'s platforms. Review and moderate content according to community guidelines and policies.',
+      company: 'Shopee',
+      companyLogo: '🛍️',
+      postedDays: 2,
+      title: 'E-commerce Support Agent',
+      employmentType: ['Full-time', 'Entry level'],
+      salary: '$22/hr',
+      location: 'Quezon City',
+      matchPercentage: 85,
+      description: 'Support Shopee sellers and buyers with their e-commerce needs. Help resolve issues and ensure smooth transactions.',
       responsibilities: [
-        'Review reported content for policy violations',
-        'Make decisions on content removal or approval',
-        'Escalate complex cases to senior moderators',
-        'Maintain accuracy and speed metrics',
-        'Stay updated on policy changes'
+        'Handle customer inquiries about orders and products',
+        'Assist sellers with platform-related issues',
+        'Process refunds and resolve disputes',
+        'Provide guidance on platform features and policies',
+        'Maintain accurate records of customer interactions'
       ],
       qualifications: [
-        'High school diploma required',
-        'Strong attention to detail',
-        'Cultural awareness and sensitivity',
-        'Ability to work in fast-paced environment',
-        'Emotional resilience'
+        '1+ year of customer service experience',
+        'Familiarity with e-commerce platforms',
+        'Strong communication and problem-solving skills',
+        'Ability to work in shifts',
+        'Attention to detail and accuracy'
       ],
       perks: [
-        'Mental health support programs',
-        'Free meals and transportation',
-        'Career progression opportunities',
-        'Team social events',
-        'Health insurance',
-        'Paid time off'
+        'Competitive salary with performance incentives',
+        'Health insurance and benefits',
+        'Training and development programs',
+        'Employee discounts on Shopee',
+        'Career growth opportunities'
       ]
     },
     {
       id: '5',
-      company: 'Airbnb',
-      companyLogo: '🏠',
+      company: 'Accenture',
+      companyLogo: '🏢',
       postedDays: 1,
-      title: 'Customer Experience Associate',
-      employmentType: ['Contract', 'Remote'],
-      salary: '$30/hr',
-      location: 'Remote, Philippines',
-      matchPercentage: 85,
-      description: 'Deliver exceptional customer experiences for Airbnb hosts and guests. Handle inquiries, resolve issues, and ensure positive interactions with the platform.',
+      title: 'BPO Team Lead',
+      employmentType: ['Full-time', 'Senior level'],
+      salary: '$40/hr',
+      location: 'Cebu City',
+      matchPercentage: 90,
+      description: 'Lead a team of BPO professionals and ensure high-quality service delivery. Manage performance and drive continuous improvement.',
       responsibilities: [
-        'Assist hosts and guests via multiple channels',
-        'Resolve booking and payment issues',
-        'Provide platform guidance and support',
-        'Handle emergency situations professionally',
-        'Contribute to process improvements'
+        'Lead and mentor a team of 15-20 agents',
+        'Monitor team performance and provide coaching',
+        'Handle escalated customer issues',
+        'Develop and implement process improvements',
+        'Collaborate with clients and stakeholders'
       ],
       qualifications: [
-        'Customer service experience preferred',
-        'Excellent communication skills',
-        'Empathy and problem-solving abilities',
-        'Familiarity with travel industry',
-        'Adaptability to changing situations'
+        '5+ years of BPO experience with 2+ years in leadership',
+        'Strong leadership and people management skills',
+        'Experience with performance management and coaching',
+        'Excellent communication and stakeholder management',
+        'Knowledge of BPO processes and best practices'
       ],
       perks: [
-        'Remote work setup allowance',
-        'Airbnb travel credits',
-        'Flexible working hours',
-        'Professional development budget',
-        'Health and wellness benefits',
-        'Global team collaboration'
+        'Competitive salary with leadership bonuses',
+        'Comprehensive benefits package',
+        'Professional development and training',
+        'Opportunities for international assignments',
+        'Access to Accenture\'s global network'
       ]
     },
     {
       id: '6',
-      company: 'Apple',
-      companyLogo: '🍎',
-      postedDays: 6,
-      title: 'Technical Support Engineer',
-      employmentType: ['Full-time', 'Flexible schedule'],
-      salary: '$38-45k',
-      location: 'Angeles City, Pampanga',
-      matchPercentage: 90,
-      description: 'Provide world-class technical support for Apple products and services. Help customers troubleshoot issues and maximize their Apple experience.',
+      company: 'Concentrix',
+      companyLogo: '📞',
+      postedDays: 4,
+      title: 'Customer Experience Specialist',
+      employmentType: ['Full-time', 'Mid level'],
+      salary: '$25/hr',
+      location: 'Davao City',
+      matchPercentage: 87,
+      description: 'Deliver exceptional customer experiences across multiple channels. Help customers resolve issues and build brand loyalty.',
       responsibilities: [
-        'Diagnose and resolve complex technical issues',
-        'Provide software and hardware support',
-        'Guide customers through troubleshooting steps',
-        'Document solutions and best practices',
-        'Collaborate with engineering teams'
+        'Handle customer inquiries via phone, chat, and email',
+        'Resolve complex customer issues efficiently',
+        'Provide product information and recommendations',
+        'Escalate issues when necessary',
+        'Maintain customer satisfaction metrics'
       ],
       qualifications: [
-        'Technical degree or equivalent experience',
-        'Strong knowledge of Apple ecosystem',
-        'Excellent problem-solving skills',
-        'Customer-focused mindset',
-        'Ability to explain technical concepts clearly'
+        '2+ years of customer service experience',
+        'Excellent communication and interpersonal skills',
+        'Ability to handle multiple channels simultaneously',
+        'Strong problem-solving and critical thinking',
+        'Experience with customer service tools and systems'
       ],
       perks: [
-        'Apple product discounts',
-        'Comprehensive training programs',
-        'Career advancement opportunities',
+        'Competitive salary with performance bonuses',
         'Health and wellness benefits',
-        'Flexible work arrangements',
-        'Innovation time for projects'
+        'Training and career development',
+        'Employee recognition programs',
+        'Work-life balance initiatives'
       ]
     },
     {
       id: '7',
-      company: 'Tesla',
-      companyLogo: '⚡',
-      postedDays: 10,
-      title: 'Software Engineer (AI/ML)',
-      employmentType: ['Full-time', 'Hybrid'],
-      salary: '$40-55k',
-      location: 'Remote, Philippines',
-      matchPercentage: 93,
-      description: 'Join Tesla\'s AI/ML team to develop cutting-edge solutions for autonomous driving. Work on projects that impact millions of users worldwide.',
+      company: 'Netflix',
+      companyLogo: '📺',
+      postedDays: 1,
+      title: 'Content Support Specialist',
+      employmentType: ['Full-time', 'Mid level'],
+      salary: '$30/hr',
+      location: 'Manila, Metro Manila',
+      matchPercentage: 89,
+      description: 'Support Netflix users with content-related inquiries and technical issues. Help customers discover and enjoy their favorite shows and movies.',
       responsibilities: [
-        'Design and implement machine learning models',
-        'Develop scalable and efficient algorithms',
-        'Collaborate with cross-functional teams',
-        'Optimize existing models for performance',
-        'Stay updated with latest AI/ML advancements'
+        'Assist customers with content recommendations',
+        'Troubleshoot streaming and playback issues',
+        'Handle billing and subscription inquiries',
+        'Provide technical support for various devices',
+        'Maintain high customer satisfaction scores'
       ],
       qualifications: [
-        'Master\'s degree in Computer Science or related field',
-        '3+ years experience in AI/ML',
-        'Strong Python and TensorFlow/PyTorch',
-        'Experience with deep learning frameworks',
-        'Problem-solving and critical thinking'
+        '2+ years of customer service experience',
+        'Strong knowledge of streaming platforms',
+        'Excellent communication and problem-solving skills',
+        'Ability to work in shifts',
+        'Familiarity with various devices and platforms'
       ],
       perks: [
-        'Remote work flexibility',
-        'Tesla product discounts',
-        'Learning and development budget',
-        'Wellness programs',
-        'Team building activities'
+        'Competitive salary with performance bonuses',
+        'Netflix subscription benefits',
+        'Comprehensive health insurance',
+        'Professional development opportunities',
+        'Flexible work arrangements'
       ]
     },
     {
       id: '8',
       company: 'Spotify',
-      companyLogo: '��',
+      companyLogo: '🎵',
       postedDays: 2,
-      title: 'Content Creator',
-      employmentType: ['Contract', 'Remote'],
-      salary: '$20-25k',
-      location: 'Remote, Philippines',
-      matchPercentage: 82,
-      description: 'Create engaging and original content for Spotify\'s global user base. Help promote new releases and artist discovery.',
+      title: 'Music Support Agent',
+      employmentType: ['Full-time', 'Entry level'],
+      salary: '$24/hr',
+      location: 'Cebu City',
+      matchPercentage: 86,
+      description: 'Help Spotify users with music-related inquiries and technical support. Assist with playlist creation, account management, and app issues.',
       responsibilities: [
-        'Develop and execute content strategies',
-        'Create high-quality audio and visual content',
-        'Engage with community members and influencers',
-        'Analyze content performance and trends',
-        'Stay updated with music industry news'
+        'Handle music and playlist-related inquiries',
+        'Assist with account and subscription issues',
+        'Provide technical support for the Spotify app',
+        'Help users discover new music and features',
+        'Resolve payment and billing concerns'
       ],
       qualifications: [
-        'Strong creative writing and storytelling skills',
-        'Experience with audio/video editing software',
-        'Familiarity with social media platforms',
-        'Ability to work independently and manage time',
-        'Passion for music and entertainment'
+        '1+ year of customer service experience',
+        'Passion for music and streaming services',
+        'Strong communication and interpersonal skills',
+        'Ability to work in a fast-paced environment',
+        'Familiarity with music streaming platforms'
       ],
       perks: [
-        'Remote work setup allowance',
-        'Spotify travel credits',
-        'Flexible working hours',
-        'Professional development budget',
+        'Competitive salary with performance incentives',
+        'Spotify Premium subscription',
         'Health and wellness benefits',
-        'Global team collaboration'
-      ]
-    },
-    {
-      id: '9',
-      company: 'Uber',
-      companyLogo: '🚗',
-      postedDays: 15,
-      title: 'Data Analyst',
-      employmentType: ['Full-time', 'Hybrid'],
-      salary: '$35-45k',
-      location: 'Angeles City, Pampanga',
-      matchPercentage: 89,
-      description: 'Analyze ride-sharing data to improve user experience and operational efficiency. Help make data-driven decisions for the company.',
-      responsibilities: [
-        'Collect, process, and analyze large datasets',
-        'Develop data models and predictive algorithms',
-        'Present findings and recommendations to stakeholders',
-        'Identify trends and patterns in user behavior',
-        'Stay updated with latest data analysis tools'
-      ],
-      qualifications: [
-        'Bachelor\'s degree in Statistics, Mathematics, or related field',
-        '2+ years experience in data analysis',
-        'Proficient in SQL and Python',
-        'Strong attention to detail and problem-solving skills',
-        'Ability to work in a fast-paced environment'
-      ],
-      perks: [
-        'Comprehensive health benefits',
-        'Work from home options',
-        'Uber product discounts',
-        'Learning and development budget',
-        'Wellness programs',
-        'Team building activities'
-      ]
-    },
-    {
-      id: '10',
-      company: 'Airbnb',
-      companyLogo: '🏠',
-      postedDays: 1,
-      title: 'Customer Experience Associate',
-      employmentType: ['Contract', 'Remote'],
-      salary: '$30/hr',
-      location: 'Remote, Philippines',
-      matchPercentage: 85,
-      description: 'Deliver exceptional customer experiences for Airbnb hosts and guests. Handle inquiries, resolve issues, and ensure positive interactions with the platform.',
-      responsibilities: [
-        'Assist hosts and guests via multiple channels',
-        'Resolve booking and payment issues',
-        'Provide platform guidance and support',
-        'Handle emergency situations professionally',
-        'Contribute to process improvements'
-      ],
-      qualifications: [
-        'Customer service experience preferred',
-        'Excellent communication skills',
-        'Empathy and problem-solving abilities',
-        'Familiarity with travel industry',
-        'Adaptability to changing situations'
-      ],
-      perks: [
-        'Remote work setup allowance',
-        'Airbnb travel credits',
-        'Flexible working hours',
-        'Professional development budget',
-        'Health and wellness benefits',
-        'Global team collaboration'
+        'Training and development programs',
+        'Employee recognition programs'
       ]
     }
   ];
@@ -433,28 +368,22 @@ export default function JobMatchingPage() {
     setSelectedJob(jobId);
   };
 
-  const selectedJobData = selectedJob ? jobs.find(job => job.id === selectedJob) : null;
-
   const handleShare = (platform: string, job: any) => {
-    const jobUrl = `${window.location.origin}/jobs/job-matching?job=${job.id}`;
-    const jobTitle = `${job.title} at ${job.company}`;
-    const jobDescription = `Check out this ${job.title} position at ${job.company} - ${job.matchPercentage}% match! Salary: ${job.salary}, Location: ${job.location}`;
-
+    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
+    const message = `Check out this amazing job opportunity at ${job.company}: ${job.title}`;
+    
     switch (platform) {
       case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`, '_blank');
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`);
         break;
       case 'linkedin':
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`, '_blank');
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`);
         break;
       case 'email':
-        window.open(`mailto:?subject=${encodeURIComponent(jobTitle)}&body=${encodeURIComponent(jobDescription + '\n\n' + jobUrl)}`, '_blank');
+        window.open(`mailto:?subject=${encodeURIComponent(`Job Opportunity: ${job.title}`)}&body=${encodeURIComponent(message + '\n\n' + jobUrl)}`);
         break;
       case 'copy':
-        navigator.clipboard.writeText(jobUrl).then(() => {
-          // You could add a toast notification here
-          alert('Link copied to clipboard!');
-        });
+        navigator.clipboard.writeText(jobUrl);
         break;
     }
     setShareJobId(null);
@@ -464,42 +393,51 @@ export default function JobMatchingPage() {
     if (percentage >= 90) return 'bg-green-500/20 text-green-400 border-green-500/30';
     if (percentage >= 80) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     if (percentage >= 70) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    return 'text-red-400 bg-red-500/10 border-red-500/20';
+    return 'bg-red-500/20 text-red-400 border-red-500/30';
   };
 
   const getWorkType = (job: any) => {
-    if (job.employmentType.some((type: string) => type.toLowerCase().includes('remote')) ||
-        job.location.toLowerCase().includes('remote')) {
-      return 'remote';
-    }
-    if (job.employmentType.some((type: string) => type.toLowerCase().includes('hybrid'))) {
-      return 'hybrid';
-    }
-    return 'onsite';
+    // Mock work type based on company
+    const workTypes: { [key: string]: string } = {
+      'Amazon': 'remote',
+      'Google': 'hybrid',
+      'Microsoft': 'onsite',
+      'Shopee': 'remote',
+      'Accenture': 'onsite',
+      'Concentrix': 'hybrid',
+      'Netflix': 'remote',
+      'Spotify': 'hybrid'
+    };
+    return workTypes[job.company] || 'onsite';
   };
 
   const getWorkTypeLabel = (workType: string) => {
-    switch (workType) {
-      case 'remote':
-        return 'Remote';
-      case 'hybrid':
-        return 'Hybrid';
-      case 'onsite':
-        return 'On Site';
-      default:
-        return 'All';
-    }
+    const labels: { [key: string]: string } = {
+      'all': 'All Work Types',
+      'remote': 'Remote',
+      'hybrid': 'Hybrid',
+      'onsite': 'On-site'
+    };
+    return labels[workType] || workType;
   };
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to page 1 when search term changes
+    setCurrentPage(1); // Reset to page 1 when search changes
   };
 
   const handleFilterChange = (workType: string) => {
     setFilterWorkType(workType);
     setIsFilterOpen(false);
     setCurrentPage(1); // Reset to page 1 when filter changes
+  };
+
+  const handleSignIn = () => {
+    setIsSignInDialogOpen(true);
+  };
+
+  const handleGetStarted = () => {
+    setIsGetStartedDialogOpen(true);
   };
 
   const filteredJobs = useMemo(() => {
@@ -515,7 +453,7 @@ export default function JobMatchingPage() {
       
       return matchesSearch && matchesWorkType;
     });
-  }, [searchTerm, filterWorkType, jobs]); // Added jobs to dependency array
+  }, [searchTerm, filterWorkType, jobs]);
 
   const totalPages = useMemo(() => {
     return Math.ceil(filteredJobs.length / itemsPerPage);
@@ -526,6 +464,8 @@ export default function JobMatchingPage() {
     const end = start + itemsPerPage;
     return filteredJobs.slice(start, end);
   }, [currentPage, filteredJobs, itemsPerPage]);
+
+  const selectedJobData = selectedJob ? jobs.find(job => job.id === selectedJob) : null;
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -739,16 +679,16 @@ export default function JobMatchingPage() {
                     </div>
 
                     {/* Job Title */}
-                    <CardTitle className="text-xl text-white mb-3">
+                    <h2 className="text-xl font-bold text-white mb-2">
                       {job.title}
-                    </CardTitle>
+                    </h2>
 
                     {/* Employment Type Badges */}
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {job.employmentType.map((type, idx) => (
                         <Badge 
                           key={idx}
-                          className="bg-white/10 text-gray-300 border-white/20 text-xs"
+                          className="bg-white/10 text-gray-300 border-white/20 px-2 py-1 text-xs"
                         >
                           {type}
                         </Badge>
@@ -757,18 +697,18 @@ export default function JobMatchingPage() {
 
                     {/* Match Percentage */}
                     <div className="mb-4">
-                      <Badge className={`${getMatchColor(job.matchPercentage)} text-xs`}>
+                      <Badge className={`${getMatchColor(job.matchPercentage)} px-3 py-1 text-sm`}>
                         {job.matchPercentage}% Match
                       </Badge>
                     </div>
                   </CardHeader>
-
-                  <CardContent className="pt-0">
+                  
+                  <CardContent className="space-y-4">
                     {/* Salary and Location */}
-                    <div className="space-y-2 mb-6">
+                    <div className="space-y-3">
                       <div className="flex items-center text-gray-300">
                         <DollarSign className="w-4 h-4 mr-2 text-green-400" />
-                        <span className="text-sm font-medium">{job.salary}</span>
+                        <span className="text-sm">{job.salary}</span>
                       </div>
                       <div className="flex items-center text-gray-300">
                         <MapPin className="w-4 h-4 mr-2 text-purple-400" />
@@ -776,15 +716,15 @@ export default function JobMatchingPage() {
                       </div>
                     </div>
 
-                    {/* Apply Button */}
+                    {/* Quick Apply Button */}
                     <Button 
                       className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleJobClick(job.id);
+                        handleSignIn();
                       }}
                     >
-                      See More
+                      Apply now
                     </Button>
                   </CardContent>
                 </Card>
@@ -797,10 +737,10 @@ export default function JobMatchingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.4 }}
               className="flex items-center justify-between mt-8 py-4"
             >
-              {/* Left side - Navigation controls */}
+              {/* Left side - Navigation */}
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -812,7 +752,7 @@ export default function JobMatchingPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 
-                {/* Page Numbers */}
+                {/* Show first few pages, ellipsis, and last page if needed */}
                 {totalPages <= 7 ? (
                   // Show all pages if 7 or fewer
                   Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -1075,6 +1015,7 @@ export default function JobMatchingPage() {
                       {/* Apply Button */}
                       <Button 
                         className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 text-lg py-4"
+                        onClick={handleSignIn}
                       >
                         Apply now
                       </Button>
@@ -1146,6 +1087,116 @@ export default function JobMatchingPage() {
               </motion.div>
             </motion.div>
           )}
+
+          {/* Sign In Dialog */}
+          <Dialog open={isSignInDialogOpen} onOpenChange={setIsSignInDialogOpen}>
+            <DialogContent className="bg-gray-900/95 backdrop-blur-md border border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-white">Sign In to Your Account</DialogTitle>
+                <DialogDescription className="text-gray-300">
+                  Access your personalized job recommendations and save your favorite positions.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Email</label>
+                  <Input 
+                    type="email" 
+                    placeholder="Enter your email"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Password</label>
+                  <Input 
+                    type="password" 
+                    placeholder="Enter your password"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  />
+                </div>
+                <Button 
+                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
+                >
+                  Sign In
+                </Button>
+                <div className="text-center">
+                  <span className="text-gray-400 text-sm">Don't have an account? </span>
+                  <button 
+                    onClick={() => {
+                      setIsSignInDialogOpen(false);
+                      setIsGetStartedDialogOpen(true);
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 text-sm font-medium"
+                  >
+                    Get Started Free
+                  </button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Get Started Free Dialog */}
+          <Dialog open={isGetStartedDialogOpen} onOpenChange={setIsGetStartedDialogOpen}>
+            <DialogContent className="bg-gray-900/95 backdrop-blur-md border border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-white">Create Your Free Account</DialogTitle>
+                <DialogDescription className="text-gray-300">
+                  Join thousands of BPO professionals and unlock personalized career opportunities.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300">First Name</label>
+                    <Input 
+                      placeholder="Enter your first name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300">Last Name</label>
+                    <Input 
+                      placeholder="Enter your last name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Email</label>
+                  <Input 
+                    type="email" 
+                    placeholder="Enter your email"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Password</label>
+                  <Input 
+                    type="password" 
+                    placeholder="Create a password"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  />
+                </div>
+                <Button 
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                >
+                  Create Account
+                </Button>
+                <div className="text-center">
+                  <span className="text-gray-400 text-sm">Already have an account? </span>
+                  <button 
+                    onClick={() => {
+                      setIsGetStartedDialogOpen(false);
+                      setIsSignInDialogOpen(true);
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 text-sm font-medium"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
