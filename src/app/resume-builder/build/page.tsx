@@ -116,6 +116,7 @@ export default function ResumeBuilderPage() {
     secondary: resumeTemplates[0].secondaryColor
   });
   const [improvedResume, setImprovedResume] = useState<ImprovedResumeContent | null>(null);
+  const [originalResumeData, setOriginalResumeData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sections, setSections] = useState<ResumeSection[]>([]);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
@@ -125,7 +126,9 @@ export default function ResumeBuilderPage() {
     // Get resume data from localStorage
     const resumeData = localStorage.getItem('resumeData');
     if (resumeData) {
-      generateImprovedResume(JSON.parse(resumeData));
+      const parsedData = JSON.parse(resumeData);
+      setOriginalResumeData(parsedData);
+      generateImprovedResume(parsedData);
     } else {
       // No resume data available, show error
       setError('No resume data found. Please upload a resume first.');
@@ -165,6 +168,82 @@ export default function ResumeBuilderPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Extract header information from original resume data
+  const getHeaderInfo = () => {
+    if (!originalResumeData) {
+      console.log('🔍 DEBUG: No original resume data available');
+      return {
+        name: 'Your Name',
+        title: 'Your Title',
+        location: 'Your Location',
+        email: 'your.email@example.com',
+        phone: '+63 912 345 6789'
+      };
+    }
+
+    console.log('🔍 DEBUG: Extracting header info from original resume data');
+    console.log('  - Original data keys:', Object.keys(originalResumeData));
+
+    // Smart field mapping for header data
+    const findField = (obj: any, fieldNames: string[]) => {
+      for (const field of fieldNames) {
+        if (obj[field]) return obj[field];
+      }
+      return null;
+    };
+
+    const extractFromContact = (obj: any, type: string) => {
+      const contactFields = ['contact', 'contact_info', 'personal_info', 'contact_information'];
+      for (const field of contactFields) {
+        if (obj[field] && obj[field][type]) return obj[field][type];
+      }
+      return null;
+    };
+
+    const extractFromArray = (obj: any, arrayFields: string[]) => {
+      for (const field of arrayFields) {
+        if (obj[field] && Array.isArray(obj[field]) && obj[field].length > 0) {
+          return obj[field][0];
+        }
+      }
+      return null;
+    };
+
+    const combineFields = (obj: any, fields: string[]) => {
+      const values = fields.map(field => obj[field]).filter(Boolean);
+      return values.length > 0 ? values.join(' ') : null;
+    };
+
+    const headerInfo = {
+      name: findField(originalResumeData, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) ||
+            combineFields(originalResumeData, ['first_name', 'last_name']) ||
+            extractFromContact(originalResumeData, 'name') ||
+            'Your Name',
+      
+      title: findField(originalResumeData, ['title', 'job_title', 'position', 'role', 'current_position']) ||
+             'Your Title',
+      
+      location: findField(originalResumeData, ['location', 'address', 'city', 'residence', 'current_location']) ||
+                extractFromContact(originalResumeData, 'location') ||
+                combineFields(originalResumeData, ['city', 'state']) ||
+                combineFields(originalResumeData, ['city', 'country']) ||
+                'Your Location',
+      
+      email: findField(originalResumeData, ['email', 'email_address', 'contact_email', 'primary_email']) ||
+             extractFromContact(originalResumeData, 'email') ||
+             extractFromArray(originalResumeData, ['emails', 'contact_emails']) ||
+             'your.email@example.com',
+      
+      phone: findField(originalResumeData, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
+             extractFromContact(originalResumeData, 'phone') ||
+             extractFromArray(originalResumeData, ['phones', 'phone_numbers']) ||
+             '+63 912 345 6789'
+    };
+
+    console.log('🔍 DEBUG: Extracted header info:', headerInfo);
+    return headerInfo;
   };
 
   const initializeSections = () => {
@@ -658,9 +737,9 @@ export default function ResumeBuilderPage() {
                 >
                   {/* Header */}
                   <div className="text-center mb-8 pb-6 border-b-2" style={{ borderColor: customColors.primary }}>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Name</h1>
-                    <p className="text-gray-600">Your Title • Your Location</p>
-                    <p className="text-gray-600">your.email@example.com • +63 912 345 6789</p>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{getHeaderInfo().name}</h1>
+                    <p className="text-gray-600">{getHeaderInfo().title} • {getHeaderInfo().location}</p>
+                    <p className="text-gray-600">{getHeaderInfo().email} • {getHeaderInfo().phone}</p>
                   </div>
 
                   {/* Sections */}
