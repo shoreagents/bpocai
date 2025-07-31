@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Upload, Link, X, FileText, Image, AlertCircle, Check, Plus, Sparkles, Brain } from 'lucide-react';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { PacmanLoader } from 'react-spinners';
+import PlatformIcon from '@/components/ui/platform-icon';
 import { isValidFileType, categorizeFile, isValidUrl, categorizePortfolioLink, saveToLocalStorage, generateSessionId, fileToBase64, formatFileSize, processResumeFile, ProcessedResume, validateProcessedResume } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 
@@ -351,14 +353,27 @@ export default function ResumeBuilderPage() {
 
   const getLinkIcon = (url: string) => {
     const type = categorizePortfolioLink(url);
-    switch (type) {
-      case 'linkedin': return '💼';
-      case 'github': return '🐙';
-      case 'behance': return '🎨';
-      case 'dribbble': return '🏀';
-      default: return '🔗';
-    }
+    return type;
   };
+
+  // Simulate analysis progress
+  useEffect(() => {
+    if (isAnalyzingWithClaude) {
+      const interval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return prev;
+          }
+          return Math.min(prev + Math.random() * 5, 95);
+        });
+      }, 500);
+      
+      return () => clearInterval(interval);
+    } else {
+      setAnalysisProgress(0);
+    }
+  }, [isAnalyzingWithClaude]);
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -406,7 +421,7 @@ export default function ResumeBuilderPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-white">
                       <Upload className="h-5 w-5 text-cyan-400" />
-                      📁 Upload Files
+                      Upload Files
                     </CardTitle>
                     <CardDescription className="text-gray-300">
                       Resume • Certificates • Work Samples
@@ -431,7 +446,7 @@ export default function ResumeBuilderPage() {
                       <div className="text-center">
                         <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-white mb-2">
-                          📄 Drop Files Here
+                          Drop Files Here
                         </h3>
                         <p className="text-gray-400 mb-4">
                           or click to browse files
@@ -506,7 +521,7 @@ export default function ResumeBuilderPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-white">
                       <Link className="h-5 w-5 text-purple-400" />
-                      🔗 Portfolio Links
+                      Portfolio Links
                     </CardTitle>
                     <CardDescription className="text-gray-300">
                       <span className="text-purple-400">LinkedIn • GitHub • Personal Website • Portfolio</span>
@@ -523,7 +538,7 @@ export default function ResumeBuilderPage() {
                         className="flex-1 px-3 py-2 bg-white/5 border border-white/20 rounded-md text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50"
                         onKeyPress={(e) => e.key === 'Enter' && addPortfolioLink()}
                       />
-                      <Button onClick={addPortfolioLink} size="sm" className="bg-purple-500 hover:bg-purple-600">
+                      <Button onClick={addPortfolioLink} className="bg-purple-500 hover:bg-purple-600 px-3 py-2 h-auto">
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -544,7 +559,13 @@ export default function ResumeBuilderPage() {
                               className="flex items-center justify-between p-3 glass-card rounded-lg border border-white/10"
                             >
                               <div className="flex items-center gap-3">
-                                <span className="text-lg">{getLinkIcon(link)}</span>
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10">
+                                  <PlatformIcon 
+                                    platform={getLinkIcon(link) as any} 
+                                    size={16} 
+                                    className="text-white"
+                                  />
+                                </div>
                                 <div>
                                   <p className="text-white font-medium">
                                     {new URL(link).hostname}
@@ -578,7 +599,8 @@ export default function ResumeBuilderPage() {
                           onClick={() => setNewLink('https://linkedin.com/in/')}
                           className="border-white/20 text-gray-300 hover:bg-white/10"
                         >
-                          💼 LinkedIn
+                          <PlatformIcon platform="linkedin" size={16} className="mr-2 text-blue-400" />
+                          LinkedIn
                         </Button>
                         <Button
                           variant="outline"
@@ -586,7 +608,8 @@ export default function ResumeBuilderPage() {
                           onClick={() => setNewLink('https://github.com/')}
                           className="border-white/20 text-gray-300 hover:bg-white/10"
                         >
-                          🐙 GitHub
+                          <PlatformIcon platform="github" size={16} className="mr-2 text-gray-400" />
+                          GitHub
                         </Button>
                         <Button
                           variant="outline"
@@ -594,7 +617,8 @@ export default function ResumeBuilderPage() {
                           onClick={() => setNewLink('https://behance.net/')}
                           className="border-white/20 text-gray-300 hover:bg-white/10"
                         >
-                          🎨 Behance
+                          <PlatformIcon platform="behance" size={16} className="mr-2 text-blue-600" />
+                          Behance
                         </Button>
                         <Button
                           variant="outline"
@@ -661,40 +685,70 @@ export default function ResumeBuilderPage() {
                     {/* Process Files Button */}
                     <div className="text-center space-y-4">
                       {/* Only show Analyze button if not completed */}
-                      {processedResumes.length === 0 && (
+                      {processedResumes.length === 0 && !isAnalyzingWithClaude && (
                         <Button
                           onClick={processUploadedFiles}
                           disabled={uploadedFiles.length === 0 || Object.keys(processingStatus).some(key => processingStatus[key] === 'processing')}
-                          className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-6 py-2"
+                          className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg shadow-cyan-500/25"
                         >
-                          {Object.keys(processingStatus).some(key => processingStatus[key] === 'processing') ? (
-                            <>
-                              <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                              {isAnalyzingWithClaude ? 'Claude AI Processing...' : 'AI Processing...'}
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Analyze with AI
-                            </>
-                          )}
+                          <Sparkles className="mr-2 h-5 w-5" />
+                          Analyze with AI
                         </Button>
                       )}
                       
-                      {/* Processing Logs with Integrated Progress Bar */}
-                      {showProcessingLogs && Object.keys(processingLogs).length > 0 && (
+                      {/* Simple Pac-Man Loading */}
+                      {isAnalyzingWithClaude && (
+                        <div className="text-center space-y-4">
+                          <div className="flex justify-center">
+                            <PacmanLoader 
+                              color="#fbbf24" 
+                              size={40}
+                              margin={4}
+                              speedMultiplier={1.2}
+                            />
+                          </div>
+                          <div className="text-center">
+                            <h3 className="text-white font-medium mb-2">AI-Powered Resume Analysis</h3>
+                            <p className="text-gray-400 text-sm">Extract content exactly as written, create literal DOCX, then convert to faithful JSON</p>
+                          </div>
+                          {/* Progress Bar */}
+                          <div className="max-w-md mx-auto space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-400">Progress</span>
+                              <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                style={{ width: `${analysisProgress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Processing Logs with Enhanced Progress Bar */}
+                      {showProcessingLogs && Object.keys(processingLogs).length > 0 && !isAnalyzingWithClaude && (
                         <div className="max-w-2xl mx-auto">
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {Object.entries(processingLogs).map(([fileName, logs]) => (
-                              <div key={fileName} className="bg-gray-900/50 rounded-lg p-4 border border-white/10">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-white font-medium text-sm">📄 {fileName}</span>
-                                  <span className="text-gray-400 text-xs">
+                              <motion.div 
+                                key={fileName} 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="glass-card border-white/10 rounded-lg p-4 shadow-lg"
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-cyan-400" />
+                                    <span className="text-white font-medium text-sm">{fileName}</span>
+                                  </div>
+                                  <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
                                     {fileProgress[fileName]}% complete
-                                  </span>
+                                  </Badge>
                                 </div>
                                 
-                                {/* Progress Bar */}
+                                {/* Enhanced Progress Bar */}
                                 <div className="mb-3">
                                   <Progress 
                                     value={fileProgress[fileName]} 
@@ -703,10 +757,10 @@ export default function ResumeBuilderPage() {
                                 </div>
                                 
                                 {/* Latest Log Message */}
-                                <div className="text-sm text-gray-300 font-mono">
+                                <div className="text-sm text-gray-300 font-mono bg-black/20 rounded p-2">
                                   {logs.length > 0 ? logs[logs.length - 1] : 'Processing...'}
                                 </div>
-                              </div>
+                              </motion.div>
                             ))}
                           </div>
                         </div>
@@ -717,15 +771,19 @@ export default function ResumeBuilderPage() {
                         <motion.div
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="max-w-md mx-auto"
+                          className="max-w-sm mx-auto"
                         >
-                          <Card className="glass-card border-green-500/30 bg-green-500/5">
-                            <CardContent className="pt-6 text-center">
-                              <div className="flex items-center justify-center mb-3">
-                                <Check className="h-8 w-8 text-green-400" />
+                          <Card className="glass-card border-green-500/30 bg-green-500/5 p-4">
+                            <CardContent className="p-0">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-green-400" />
+                                </div>
+                                <div>
+                                  <h3 className="text-green-400 font-medium text-sm">Analysis Complete</h3>
+                                  <p className="text-gray-300 text-xs">Ready for next step</p>
+                                </div>
                               </div>
-                              <h3 className="text-green-400 font-medium mb-2">Analysis Complete</h3>
-                              <p className="text-gray-300 text-sm">Ready for next step</p>
                             </CardContent>
                           </Card>
                         </motion.div>

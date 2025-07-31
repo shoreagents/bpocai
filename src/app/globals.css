@@ -242,3 +242,44 @@
     opacity: 0.6;
   }
 }
+
+@keyframes pacman-mouth-move {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes ghost-eaten {
+  0%, 80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+}
+
+@keyframes dot-eaten {
+  0%, 85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  95% {
+    opacity: 0.3;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+
