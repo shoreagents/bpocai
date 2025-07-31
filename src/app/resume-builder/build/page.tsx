@@ -13,14 +13,18 @@ import {
   Trash2,
   Save,
   ArrowLeft,
-  AlertTriangle
+  AlertTriangle,
+  Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import LoadingScreen from '@/components/ui/loading-screen';
+import Header from '@/components/layout/Header';
 
 interface ResumeTemplate {
   id: string;
@@ -157,6 +161,7 @@ export default function ResumeBuilderPage() {
   const [sections, setSections] = useState<ResumeSection[]>([]);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progressValue, setProgressValue] = useState(0);
 
   useEffect(() => {
     // Get resume data from localStorage
@@ -180,6 +185,19 @@ export default function ResumeBuilderPage() {
   const generateImprovedResume = async (resumeData: any) => {
     setIsLoading(true);
     setError(null);
+    setProgressValue(0);
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgressValue(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return prev;
+        }
+        return Math.min(prev + Math.random() * 10, 90);
+      });
+    }, 800);
+
     try {
       const response = await fetch('/api/improve-resume', {
         method: 'POST',
@@ -194,7 +212,10 @@ export default function ResumeBuilderPage() {
 
       const data = await response.json();
       if (data.success) {
-        setImprovedResume(data.improvedResume);
+        setProgressValue(100);
+        setTimeout(() => {
+          setImprovedResume(data.improvedResume);
+        }, 500);
       } else {
         setError(data.error || 'Failed to improve resume');
       }
@@ -202,7 +223,10 @@ export default function ResumeBuilderPage() {
       console.error('Error generating improved resume:', error);
       setError('Failed to generate improved resume. Please try again.');
     } finally {
-      setIsLoading(false);
+      clearInterval(progressInterval);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
     }
   };
 
@@ -828,13 +852,16 @@ export default function ResumeBuilderPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold text-white mb-2">Generating Your Improved Resume</h2>
-          <p className="text-gray-300">Claude AI is enhancing your resume content...</p>
-        </div>
-      </div>
+      <>
+        <Header />
+        <LoadingScreen 
+          title="Generating Your Improved Resume"
+          subtitle="Claude AI is enhancing your resume content..."
+          progressValue={progressValue}
+          showProgress={true}
+          showStatusIndicators={true}
+        />
+      </>
     );
   }
 
@@ -860,106 +887,156 @@ export default function ResumeBuilderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => router.back()}
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Analysis
-            </Button>
-            <div className="h-6 w-px bg-white/20"></div>
-            <h1 className="text-2xl font-bold text-white">Resume Builder</h1>
-          </div>
-          
-          <Button
-            onClick={exportToPDF}
-            className="bg-green-600 hover:bg-green-700 text-white"
+    <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
+      <Header />
+      
+      <div className="pt-16 relative z-10">
+        <div className="container mx-auto px-4 py-8">
+          {/* Enhanced Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between mb-8"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
-          </Button>
-        </div>
-
-        <div className="space-y-8">
-          {/* Template Selection - Horizontal Above Preview */}
-          <Card className="glass-card border-white/10">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-white text-lg">
-                <Type className="h-5 w-5 mr-2" />
-                Choose Template
-              </CardTitle>
-              <p className="text-sm text-gray-400">Select a style that matches your personality</p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-                {resumeTemplates.map((template) => (
-                  <motion.div
-                    key={template.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+            <div className="flex items-center">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="mr-4 text-gray-400 hover:text-white"
                   >
-                    <Card
-                      className={`cursor-pointer transition-all duration-200 ${
-                        selectedTemplate.id === template.id
-                          ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/50 shadow-lg'
-                          : 'border-white/10 hover:border-white/30 hover:bg-white/5'
-                      }`}
-                      onClick={() => handleTemplateChange(template)}
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-gray-900 border-gray-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Leave Generated Resume?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-gray-300">
+                      Are you sure you want to go back to the resume builder? Any unsaved changes will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => router.push('/resume-builder')}
+                      className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                      <CardContent className="p-3">
-                        <div className="text-center">
-                          <div className="text-lg mb-2">
-                            {template.id === 'executive' && '💼'}
-                            {template.id === 'tech-innovator' && '⚡'}
-                            {template.id === 'creative-artist' && '🎨'}
-                            {template.id === 'minimalist-zen' && '🧘'}
-                            {template.id === 'corporate-chic' && '👔'}
-                            {template.id === 'startup-energy' && '🚀'}
-                            {template.id === 'academic-scholar' && '📚'}
-                            {template.id === 'freelance-charm' && '✨'}
-                          </div>
-                          <h4 className="font-semibold text-white text-xs mb-1">{template.name}</h4>
-                          <div className="flex justify-center gap-1 mb-2">
-                            <div
-                              className="w-2 h-2 rounded-full border border-white/20"
-                              style={{ backgroundColor: template.primaryColor }}
-                            />
-                            <div
-                              className="w-2 h-2 rounded-full border border-white/20"
-                              style={{ backgroundColor: template.secondaryColor }}
-                            />
-                          </div>
-                          <p className="text-xs text-gray-300 leading-relaxed line-clamp-2">{template.description}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                      Yes, Go Back
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <div className="flex items-center">
+                <Type className="h-12 w-12 text-cyan-400 mr-4" />
+                <div>
+                  <h1 className="text-4xl font-bold gradient-text">Generated Resume</h1>
+                  <p className="text-gray-400">Your AI-enhanced professional resume</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="border-white/20 text-gray-300 hover:bg-white/10"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              <Button
+                onClick={exportToPDF}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+            </div>
+          </motion.div>
 
-          {/* Main Content Area */}
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
-            {/* Left Sidebar - Section Management Only */}
-            <div className="xl:col-span-1">
-              <div className="sticky top-8">
-                <Card className="glass-card border-white/10">
+          <div className="space-y-8">
+            {/* Compact Template Selection */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="glass-card border-white/10 shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center text-white text-lg">
+                    <Palette className="h-5 w-5 mr-2 text-cyan-400" />
+                    Choose Template
+                  </CardTitle>
+                  <p className="text-sm text-gray-400">Select your preferred style</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                    {resumeTemplates.map((template) => (
+                      <motion.div
+                        key={template.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <Card
+                          className={`cursor-pointer transition-all duration-200 ${
+                            selectedTemplate.id === template.id
+                              ? 'border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/50 shadow-lg shadow-cyan-500/25'
+                              : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                          }`}
+                          onClick={() => handleTemplateChange(template)}
+                        >
+                          <CardContent className="p-2">
+                            <div className="text-center">
+                              <div className="text-lg mb-1">
+                                {template.id === 'executive' && '💼'}
+                                {template.id === 'tech-innovator' && '⚡'}
+                                {template.id === 'creative-artist' && '🎨'}
+                                {template.id === 'minimalist-zen' && '🧘'}
+                                {template.id === 'corporate-chic' && '👔'}
+                                {template.id === 'startup-energy' && '🚀'}
+                                {template.id === 'academic-scholar' && '📚'}
+                                {template.id === 'freelance-charm' && '✨'}
+                              </div>
+                              <h4 className="font-medium text-white text-xs">{template.name}</h4>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Enhanced Main Content Area */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="grid grid-cols-1 xl:grid-cols-5 gap-8"
+            >
+              {/* Enhanced Left Sidebar - Section Management */}
+              <div className="xl:col-span-1">
+                <Card className="glass-card border-white/10 shadow-lg">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center text-white text-lg">
-                      <Move className="h-5 w-5 mr-2" />
+                      <Move className="h-5 w-5 mr-2 text-cyan-400" />
                       Manage Sections
                     </CardTitle>
                     <p className="text-sm text-gray-400">Drag to reorder, click to toggle visibility</p>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {sections.map((section) => (
                         <motion.div
                           key={section.id}
@@ -967,10 +1044,10 @@ export default function ResumeBuilderPage() {
                           onDragStart={() => handleDragStart(section.id)}
                           onDragOver={handleDragOver}
                           onDrop={() => handleDrop(section.id)}
-                          className={`flex items-center justify-between p-3 rounded-lg border cursor-move transition-all ${
+                          className={`flex items-center justify-between p-3 rounded-lg border cursor-move transition-all duration-200 ${
                             draggedSection === section.id
-                              ? 'border-blue-500 bg-blue-500/20 shadow-lg'
-                              : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                              ? 'border-cyan-500 bg-cyan-500/20 shadow-lg shadow-cyan-500/25'
+                              : 'border-white/10 hover:border-white/30 hover:bg-white/5 hover:shadow-lg'
                           }`}
                         >
                           <div className="flex items-center gap-3">
@@ -990,21 +1067,69 @@ export default function ResumeBuilderPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-            </div>
-
-            {/* Main Content - Resume Preview */}
-            <div className="xl:col-span-4">
-              <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white text-xl">Resume Preview</CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <span>Template:</span>
-                      <span className="font-medium text-white">{selectedTemplate.name}</span>
+                
+                {/* Color Customization - Moved here and not sticky */}
+                <Card className="glass-card border-white/10 shadow-lg mt-6">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center text-white text-sm">
+                      <Palette className="h-4 w-4 mr-2" />
+                      Color Customization
+                      <div className="ml-auto flex gap-1">
+                        <div
+                          className="w-3 h-3 rounded-full border border-white/20"
+                          style={{ backgroundColor: customColors.primary }}
+                        />
+                        <div
+                          className="w-3 h-3 rounded-full border border-white/20"
+                          style={{ backgroundColor: customColors.secondary }}
+                        />
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-xs text-gray-300 mb-2 block">Primary Color</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={customColors.primary}
+                          onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
+                          className="w-10 h-8 rounded border border-white/20 bg-white/5 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-400 font-mono">{customColors.primary}</span>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
+                    <div>
+                      <label className="text-xs text-gray-300 mb-2 block">Secondary Color</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={customColors.secondary}
+                          onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
+                          className="w-10 h-8 rounded border border-white/20 bg-white/5 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-400 font-mono">{customColors.secondary}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Enhanced Main Content - Resume Preview */}
+              <div className="xl:col-span-4">
+                <Card className="glass-card border-white/10 shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-white text-xl flex items-center">
+                        <Eye className="h-5 w-5 mr-2 text-cyan-400" />
+                        Resume Preview
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>Template:</span>
+                        <span className="font-medium text-white">{selectedTemplate.name}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
                 <CardContent>
                   <div className="flex justify-center">
                     <div
@@ -1114,66 +1239,12 @@ export default function ResumeBuilderPage() {
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Draggable Color Customization Window */}
-        <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0.1}
-          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-          className="fixed bottom-6 right-6 z-50"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Card className="glass-card border-white/10 shadow-2xl w-80">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-white text-sm">
-                <Palette className="h-4 w-4 mr-2" />
-                Color Customization
-                <div className="ml-auto flex gap-1">
-                  <div
-                    className="w-3 h-3 rounded-full border border-white/20"
-                    style={{ backgroundColor: customColors.primary }}
-                  />
-                  <div
-                    className="w-3 h-3 rounded-full border border-white/20"
-                    style={{ backgroundColor: customColors.secondary }}
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-300 mb-2 block">Primary Color</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={customColors.primary}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, primary: e.target.value }))}
-                    className="w-10 h-8 rounded border border-white/20 bg-white/5 cursor-pointer"
-                  />
-                  <span className="text-xs text-gray-400 font-mono">{customColors.primary}</span>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-gray-300 mb-2 block">Secondary Color</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={customColors.secondary}
-                    onChange={(e) => setCustomColors(prev => ({ ...prev, secondary: e.target.value }))}
-                    className="w-10 h-8 rounded border border-white/20 bg-white/5 cursor-pointer"
-                  />
-                  <span className="text-xs text-gray-400 font-mono">{customColors.secondary}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+
       </div>
     </div>
+  </div>
   );
 }

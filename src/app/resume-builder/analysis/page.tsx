@@ -27,11 +27,13 @@ import {
   Phone,
   MapPin
 } from 'lucide-react';
+import LoadingScreen from '@/components/ui/loading-screen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { getFromLocalStorage } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
@@ -196,9 +198,20 @@ export default function AnalysisPage() {
   // Perform AI analysis using Claude API
   const performAIAnalysis = async (sessionId: string, uploadedFiles: any[], portfolioLinks: any[], processedFiles: any[]) => {
     try {
-      // Step 1: Convert files to JSON (if not already processed)
-      setProgressValue(10);
+      // Start with 0% and simulate progress
+      setProgressValue(0);
       
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setProgressValue(prev => {
+          if (prev >= 85) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return Math.min(prev + Math.random() * 8, 85);
+        });
+      }, 600);
+
       // Get processed resumes from localStorage
       const processedResumes = getFromLocalStorage('bpoc_processed_resumes', []);
       
@@ -206,9 +219,6 @@ export default function AnalysisPage() {
         throw new Error('No processed resume data found. Please go back and process your files first.');
       }
 
-      // Step 2: Prepare data for Claude analysis
-      setProgressValue(30);
-      
       // Use ALL processed files (resumes and certificates)
       console.log('🔍 DEBUG: All processed files from localStorage:', processedResumes);
       console.log('🔍 DEBUG: Number of processed files:', processedResumes.length);
@@ -240,9 +250,6 @@ export default function AnalysisPage() {
         title: link.title
       }));
 
-      // Step 3: Call Claude API for analysis with ALL files
-      setProgressValue(50);
-      
       const analysisResponse = await fetch('/api/analyze-resume', {
         method: 'POST',
         headers: {
@@ -266,16 +273,15 @@ export default function AnalysisPage() {
         throw new Error(analysisData.error || 'Analysis failed');
       }
 
-      // Step 4: Set analysis results
-      setProgressValue(90);
+      // Set analysis results and complete
+      setProgressValue(100);
       setAnalysisResults(analysisData.analysis);
       
-      // Step 5: Complete analysis
-      setProgressValue(100);
+      clearInterval(progressInterval);
       setTimeout(() => {
         setIsAnalyzing(false);
         setAnalysisComplete(true);
-      }, 500);
+      }, 1000);
 
     } catch (error) {
       console.error('AI Analysis error:', error);
@@ -371,24 +377,16 @@ export default function AnalysisPage() {
   // Show loading state while analysis is in progress
   if (isAnalyzing) {
     return (
-      <div className="min-h-screen bg-black">
+      <>
         <Header />
-        <div className="pt-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="text-center">
-                <div className="animate-spin h-16 w-16 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-6"></div>
-                <h2 className="text-2xl font-bold text-white mb-4">Analyzing Your Resume</h2>
-                <p className="text-gray-400 mb-6">Claude AI is processing your resume data...</p>
-                <div className="max-w-md mx-auto">
-                  <Progress value={progressValue} className="h-2 bg-white/10" />
-                  <p className="text-sm text-gray-300 mt-2">{progressValue}% Complete</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        <LoadingScreen 
+          title="Analyzing Your Resume"
+          subtitle="Claude AI is processing your resume data..."
+          progressValue={progressValue}
+          showProgress={true}
+          showStatusIndicators={true}
+        />
+      </>
     );
   }
 
@@ -464,10 +462,17 @@ export default function AnalysisPage() {
 
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen cyber-grid overflow-hidden">
       <Header />
       
-      <div className="pt-16">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <motion.div
@@ -476,14 +481,36 @@ export default function AnalysisPage() {
             className="flex items-center justify-between mb-8"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-gray-900 border-gray-700">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Leave Analysis Results?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-gray-300">
+                      Are you sure you want to go back? You'll lose access to your analysis results.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => router.back()}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Yes, Go Back
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <div className="flex items-center">
                 <Brain className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
@@ -885,8 +912,8 @@ export default function AnalysisPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                       >
-                        <Card className="glass-card border-cyan-500/30 shadow-lg shadow-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-full">
-                          <CardHeader className="pb-4">
+                        <Card className="glass-card border-cyan-500/30 shadow-lg shadow-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-80 flex flex-col">
+                          <CardHeader className="pb-4 flex-shrink-0">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-cyan-500/20 rounded-lg">
                                 <Star className="h-5 w-5 text-cyan-400" />
@@ -894,7 +921,7 @@ export default function AnalysisPage() {
                               <CardTitle className="text-cyan-400 text-lg">Skills & Competencies</CardTitle>
                             </div>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(34, 211, 238, 0.3) transparent' }}>
                             <div className="flex flex-wrap gap-2">
                               {(Array.isArray(mappedResumeData?.skills) && mappedResumeData.skills.length > 0) ? 
                                 mappedResumeData.skills.map((skill: string, index: number) => (
@@ -927,8 +954,8 @@ export default function AnalysisPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                       >
-                        <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-full">
-                          <CardHeader className="pb-4">
+                        <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-80 flex flex-col">
+                          <CardHeader className="pb-4 flex-shrink-0">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-500/20 rounded-lg">
@@ -958,7 +985,7 @@ export default function AnalysisPage() {
                               )}
                             </div>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(168, 85, 247, 0.3) transparent' }}>
                             {improvedSummary ? (
                               <div className="space-y-4">
                                 <div className="flex items-center gap-2 mb-4">
@@ -986,8 +1013,8 @@ export default function AnalysisPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
                       >
-                        <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-full">
-                          <CardHeader className="pb-4">
+                        <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-80 flex flex-col">
+                          <CardHeader className="pb-4 flex-shrink-0">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-green-500/20 rounded-lg">
                                 <Trophy className="h-5 w-5 text-green-400" />
@@ -995,7 +1022,7 @@ export default function AnalysisPage() {
                               <CardTitle className="text-green-400 text-lg">Work Experience</CardTitle>
                             </div>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(34, 197, 94, 0.3) transparent' }}>
                             <div className="space-y-4">
                               {(Array.isArray(mappedResumeData?.experience) && mappedResumeData.experience.length > 0) ? 
                                 mappedResumeData.experience.map((exp: any, index: number) => (
@@ -1438,8 +1465,8 @@ export default function AnalysisPage() {
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: 0.2 }}
                      >
-                       <Card className="glass-card border-red-500/30 shadow-lg shadow-red-500/20 bg-gradient-to-br from-red-500/5 to-pink-500/5 h-full">
-                         <CardHeader className="pb-4">
+                       <Card className="glass-card border-red-500/30 shadow-lg shadow-red-500/20 bg-gradient-to-br from-red-500/5 to-pink-500/5 h-[28rem] flex flex-col">
+                         <CardHeader className="pb-4 flex-shrink-0">
                            <div className="flex items-center gap-3">
                              <div className="p-2 bg-red-500/20 rounded-lg">
                                <AlertTriangle className="h-5 w-5 text-red-400" />
@@ -1450,7 +1477,7 @@ export default function AnalysisPage() {
                              High-priority improvements that will significantly boost your resume score
                            </CardDescription>
                          </CardHeader>
-                         <CardContent className="space-y-3">
+                         <CardContent className="flex-1 space-y-3">
                            {Array.isArray(finalAnalysisResults?.improvements) && finalAnalysisResults.improvements.length > 0 ? 
                              finalAnalysisResults.improvements.map((improvement: string, index: number) => (
                                <motion.div
@@ -1482,8 +1509,8 @@ export default function AnalysisPage() {
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: 0.3 }}
                      >
-                       <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
-                         <CardHeader className="pb-4">
+                       <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-[28rem] flex flex-col">
+                         <CardHeader className="pb-4 flex-shrink-0">
                            <div className="flex items-center gap-3">
                              <div className="p-2 bg-blue-500/20 rounded-lg">
                                <TrendingUp className="h-5 w-5 text-blue-400" />
@@ -1494,7 +1521,7 @@ export default function AnalysisPage() {
                              Detailed breakdown of each resume section with scores and recommendations
                            </CardDescription>
                          </CardHeader>
-                         <CardContent className="space-y-4">
+                         <CardContent className="flex-1 overflow-y-auto space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(59, 130, 246, 0.3) transparent' }}>
                            {/* Contact Section */}
                            {finalAnalysisResults?.sectionAnalysis?.contact && (
                              <motion.div
@@ -1714,8 +1741,8 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-full">
-                        <CardHeader className="pb-4">
+                      <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-[28rem] flex flex-col">
+                        <CardHeader className="pb-4 flex-shrink-0">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-purple-500/20 rounded-lg">
                               <TrendingUp className="h-5 w-5 text-purple-400" />
@@ -1726,7 +1753,7 @@ export default function AnalysisPage() {
                             Market-based salary recommendations and factors
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="flex-1 overflow-y-auto space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(168, 85, 247, 0.3) transparent' }}>
                           {/* Current Level */}
                           {finalAnalysisResults?.salaryAnalysis?.currentLevel && (
                             <motion.div
@@ -1755,11 +1782,11 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.4 }}
-                              className="p-4 rounded-lg bg-green-500/10 border border-green-400/20"
+                              className="p-4 rounded-lg bg-purple-500/10 border border-purple-400/20"
                             >
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-white text-sm">Recommended Salary Range</h4>
-                                <div className="text-lg font-bold text-green-400">
+                                <div className="text-lg font-bold text-purple-400">
                                   {finalAnalysisResults.salaryAnalysis.recommendedSalaryRange.includes('PHP') ? 
                                     finalAnalysisResults.salaryAnalysis.recommendedSalaryRange.replace('PHP', '₱') :
                                     finalAnalysisResults.salaryAnalysis.recommendedSalaryRange
@@ -1778,13 +1805,13 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.5 }}
-                              className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                              className="p-4 rounded-lg bg-purple-500/10 border border-purple-400/20"
                             >
                               <h4 className="font-semibold text-white mb-3 text-sm">Factors Affecting Salary</h4>
                               <div className="space-y-3">
                                 {finalAnalysisResults.salaryAnalysis.factorsAffectingSalary.map((factor: string, index: number) => (
                                   <div key={index} className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
+                                    <div className="w-2 h-2 rounded-full bg-purple-400"></div>
                                     <span className="text-gray-300 text-sm">{factor}</span>
                                   </div>
                                 ))}
@@ -1798,13 +1825,13 @@ export default function AnalysisPage() {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.6 }}
-                              className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-400/20"
+                              className="p-4 rounded-lg bg-purple-500/10 border border-purple-400/20"
                             >
                               <h4 className="font-semibold text-white mb-3 text-sm">Negotiation Tips</h4>
                               <div className="space-y-3">
                                 {finalAnalysisResults.salaryAnalysis.negotiationTips.map((tip: string, index: number) => (
                                   <div key={index} className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                                    <div className="w-2 h-2 rounded-full bg-purple-400"></div>
                                     <span className="text-gray-300 text-sm">{tip}</span>
                                   </div>
                                 ))}
@@ -1821,8 +1848,8 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
-                        <CardHeader className="pb-4">
+                      <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-[28rem] flex flex-col">
+                        <CardHeader className="pb-4 flex-shrink-0">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-500/20 rounded-lg">
                               <Target className="h-5 w-5 text-blue-400" />
@@ -1833,7 +1860,7 @@ export default function AnalysisPage() {
                             Your career progression roadmap
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="flex-1 overflow-y-auto space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(59, 130, 246, 0.3) transparent' }}>
                           {/* Current Position */}
                           {finalAnalysisResults?.careerPath?.currentPosition && (
                             <motion.div
@@ -1883,8 +1910,8 @@ export default function AnalysisPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
                     >
-                      <Card className="glass-card border-orange-500/30 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500/5 to-red-500/5 h-full">
-                        <CardHeader className="pb-4">
+                      <Card className="glass-card border-orange-500/30 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-500/5 to-red-500/5 h-[28rem] flex flex-col">
+                        <CardHeader className="pb-4 flex-shrink-0">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-orange-500/20 rounded-lg">
                               <AlertTriangle className="h-5 w-5 text-orange-400" />
@@ -1895,7 +1922,7 @@ export default function AnalysisPage() {
                             Skills needed for career advancement
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="flex-1 overflow-y-auto space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(249, 115, 22, 0.3) transparent' }}>
                           {Array.isArray(finalAnalysisResults?.careerPath?.skillGaps) && finalAnalysisResults.careerPath.skillGaps.length > 0 ? 
                             finalAnalysisResults.careerPath.skillGaps.map((skill: string, index: number) => (
                               <motion.div
@@ -2093,7 +2120,7 @@ export default function AnalysisPage() {
                         <Button 
                           variant="outline" 
                           className="w-full border-green-400/30 text-green-400 hover:bg-green-400/10 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
-                          onClick={() => router.push('/jobs')}
+                          onClick={() => router.push('/jobs/job-matching')}
                         >
                           <Target className="h-8 w-8 mb-3" />
                           <span className="font-semibold text-base">Find Jobs</span>
