@@ -71,7 +71,7 @@ export default function AboutPage() {
             <div className="flex items-center justify-center mb-6">
               <Users className="h-12 w-12 text-cyan-400 mr-4" />
               <h1 className="text-4xl md:text-5xl font-bold gradient-text">
-                About
+                About Us
               </h1>
             </div>
             
