@@ -5,18 +5,18 @@ export const syncUserToDatabase = async (user: User) => {
     const metadata = user.user_metadata || {}
     const { firstName, lastName } = parseFullName(metadata.full_name || user.email || '')
     
-    const userData = {
-      id: user.id,
-      email: user.email || '',
-      first_name: metadata.first_name || firstName,
-      last_name: metadata.last_name || lastName,
-      full_name: `${metadata.first_name || firstName} ${metadata.last_name || lastName}`.trim(),
-      location: metadata.location || '',
-      avatar_url: user.user_metadata?.avatar_url || '',
-      phone: metadata.phone || '',
-      bio: metadata.bio || '',
-      position: metadata.position || ''
-    }
+         const userData = {
+       id: user.id,
+       email: user.email || '',
+       first_name: metadata.first_name || firstName,
+       last_name: metadata.last_name || lastName,
+       full_name: `${metadata.first_name || firstName} ${metadata.last_name || lastName}`.trim(),
+       location: metadata.location || '',
+       avatar_url: null, // Don't sync avatar_url from Supabase - let Railway preserve its own value
+       phone: metadata.phone || '',
+       bio: metadata.bio || '',
+       position: metadata.position || ''
+     }
 
     console.log('Syncing user data to Railway:', userData)
 

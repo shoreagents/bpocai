@@ -160,16 +160,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('📋 Supabase update result:', { data, error })
     
     if (data.user && !error) {
-      console.log('✅ Supabase update successful, syncing to Railway')
+      console.log('✅ Supabase update successful')
       // Update the local user state to reflect changes immediately
       setUser(data.user)
       
-      try {
-        await syncUserToDatabase(data.user)
-        console.log('✅ Railway sync after profile update successful')
-      } catch (syncError) {
-        console.error('❌ Error syncing updated profile to Railway:', syncError)
-      }
+      // Note: We don't automatically sync to Railway here to avoid overwriting
+      // Railway data with Supabase metadata. The settings page handles Railway updates separately.
     } else {
       console.error('❌ Supabase update failed:', error)
     }

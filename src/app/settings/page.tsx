@@ -387,12 +387,7 @@ export default function SettingsPage() {
       
       console.log('📸 Starting photo upload...')
       
-      // Test storage connection first
-      const storageTest = await testStorageConnection()
-      if (!storageTest.success) {
-        throw new Error(`Storage connection failed: ${storageTest.error}`)
-      }
-      console.log('✅ Storage connection test passed')
+
       
       // Optimize image
       const optimizedFile = await optimizeImage(file)
@@ -619,11 +614,12 @@ export default function SettingsPage() {
                         <p className="text-xs text-red-400">{photoError}</p>
                       )}
                       
+                      {/* Hidden Test Storage Button - functionality preserved */}
                       <Button
                         onClick={handleTestStorage}
                         variant="outline"
                         size="sm"
-                        className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                        className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hidden"
                       >
                         <Database className="w-4 h-4 mr-2" />
                         Test Storage
@@ -700,7 +696,8 @@ export default function SettingsPage() {
                     placeholder="Enter your job title or position"
                   />
                 </div>
-                <div>
+                {/* Hidden Avatar URL Field - functionality preserved */}
+                <div className="hidden">
                   <label className="text-sm font-medium text-gray-300 mb-2 block">Avatar URL</label>
                   <Input
                     value={profileData.avatar_url}
@@ -737,7 +734,8 @@ export default function SettingsPage() {
               )}
               
               <div className="flex justify-between items-center">
-                <div className="flex flex-col">
+                {/* Hidden Update Display Name Button - functionality preserved */}
+                <div className="flex flex-col hidden">
                   <Button 
                     onClick={handleForceUpdateDisplayName}
                     disabled={saveStatus === 'saving'}

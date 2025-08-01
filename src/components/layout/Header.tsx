@@ -154,9 +154,7 @@ export default function Header({}: HeaderProps) {
     ? userProfile.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
     : 'U')
   
-  // Mock level and XP for now - these would come from your app's database
-  const userLevel = 12 // This would be fetched from your user profile table
-  const userExperiencePoints = 14400 // This would be fetched from your user profile table
+
 
   const navigationItems = [
     { title: 'Home', href: '/home', icon: Home },
@@ -274,17 +272,7 @@ export default function Header({}: HeaderProps) {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <div className="hidden md:flex items-center space-x-4">
-                {/* User Level & XP */}
-                <div className="flex items-center space-x-2 glass-card px-3 py-1">
-                  <Trophy className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-medium">Level {userLevel}</span>
-                  <div className="w-16 h-1 bg-white/20 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full transition-all duration-300"
-                      style={{ width: `${(userExperiencePoints % 1000) / 10}%` }}
-                    />
-                  </div>
-                </div>
+
 
                 {/* User Menu */}
                 <div className="relative group">
@@ -379,7 +367,6 @@ export default function Header({}: HeaderProps) {
                           </div>
                           <div>
                             <p className="font-medium">{userDisplayName}</p>
-                            <p className="text-sm text-gray-400">Level {userLevel}</p>
                           </div>
                         </div>
                       </div>

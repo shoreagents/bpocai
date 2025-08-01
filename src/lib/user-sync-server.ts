@@ -35,8 +35,8 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
       const existingUserResult = await client.query(existingUserQuery, [userData.id])
       const existingAvatarUrl = existingUserResult.rows[0]?.avatar_url
       
-      // Preserve existing avatar_url if new one is not provided
-      const avatarUrl = userData.avatar_url || existingAvatarUrl
+             // Always preserve existing avatar_url from Railway - don't overwrite with Supabase data
+       const avatarUrl = existingAvatarUrl
       
       const updateQuery = `
         UPDATE users 
