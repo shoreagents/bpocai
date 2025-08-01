@@ -35,7 +35,8 @@ import {
   Users,
   Zap,
   BarChart3,
-  Star
+  Star,
+  Share
 } from 'lucide-react';
 
 interface Email {
@@ -70,7 +71,7 @@ export default function InboxZeroPage() {
     emailsProcessed: 0,
     correctActions: 0,
     missedUrgent: 0,
-    timeLeft: 300, // 5 minutes
+    timeLeft: 120, // 2 minutes
     accuracy: 0
   });
   const [gameTime, setGameTime] = useState(300);
@@ -222,12 +223,15 @@ export default function InboxZeroPage() {
       emailsProcessed: 0,
       correctActions: 0,
       missedUrgent: 0,
-      timeLeft: 300,
+      timeLeft: 120,
       accuracy: 0
     });
-    setGameTime(300);
+    setGameTime(120);
     setEmails([]);
     setCurrentEmail(null);
+
+    // Spawn first email immediately
+    setEmails([generateEmail()]);
 
     // Start spawning emails
     const spawnInterval = setInterval(() => {
@@ -235,7 +239,7 @@ export default function InboxZeroPage() {
         const newEmail = generateEmail();
         return [...prev, newEmail];
       });
-    }, 8000); // Spawn every 8 seconds
+    }, 6000); // Spawn every 6 seconds
 
     setEmailSpawnInterval(spawnInterval);
 
@@ -428,7 +432,7 @@ export default function InboxZeroPage() {
                           </li>
                           <li className="flex items-start">
                             <span className="text-purple-400 mr-3 mt-0.5 text-lg">⏰</span>
-                            <span>Complete as many emails as possible within 5 minutes</span>
+                            <span>Complete as many emails as possible within 2 minutes</span>
                           </li>
                           <li className="flex items-start">
                             <span className="text-orange-400 mr-3 mt-0.5 text-lg">🏆</span>
@@ -697,25 +701,45 @@ export default function InboxZeroPage() {
                       </p>
                     </div>
 
-                    <div className="flex gap-3">
-                      <Button
-                        className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                        onClick={startGame}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Play Again
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setGameState('menu')}
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Menu
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                                  </CardContent>
+              </Card>
+
+              {/* Actions */}
+              <div className="flex gap-4 mt-6">
+                  <Button
+                    onClick={() => setGameState('menu')}
+                    className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Inbox Zero Challenge Results',
+                          text: `I achieved ${gameStats.score} points with ${gameStats.accuracy}% accuracy in the Inbox Zero challenge!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Inbox Zero Challenge Results: ${gameStats.score} points with ${gameStats.accuracy}% accuracy!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                    onClick={startGame}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Take Again
+                  </Button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -724,7 +748,7 @@ export default function InboxZeroPage() {
       
       {/* Exit Game Alert Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+        <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
@@ -732,12 +756,12 @@ export default function InboxZeroPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => router.back()}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Exit Game
             </AlertDialogAction>

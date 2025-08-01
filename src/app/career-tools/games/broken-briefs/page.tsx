@@ -37,7 +37,8 @@ import {
   Star,
   MessageSquare,
   Edit3,
-  Award
+  Award,
+  Share
 } from 'lucide-react';
 
 interface Brief {
@@ -72,11 +73,11 @@ export default function BrokenBriefsPage() {
     score: 0,
     briefsCompleted: 0,
     accuracy: 0,
-    timeLeft: 300, // 5 minutes per brief
+          timeLeft: 120, // 2 minutes per brief
     currentBrief: 0,
     totalBriefs: 5
   });
-  const [gameTime, setGameTime] = useState(300);
+  const [gameTime, setGameTime] = useState(120);
   const [gameInterval, setGameInterval] = useState<NodeJS.Timeout | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -89,7 +90,7 @@ export default function BrokenBriefsPage() {
       keyPoints: ['social media promo', 'similar to July version', 'fresh look', 'include discount', 'complete by Friday'],
       requiredElements: ['Design', 'Social media', 'Promo', 'July style', 'Discount', 'Friday deadline'],
       optionalElements: ['Fresh look', 'Not too samey', 'Quick completion'],
-      timeLimit: 300, // 5 minutes
+      timeLimit: 120, // 2 minutes
       difficulty: 'easy',
       isCompleted: false
     },
@@ -100,7 +101,7 @@ export default function BrokenBriefsPage() {
       keyPoints: ['website redesign', 'modern design', 'clean and professional', 'contact form', 'blog section', 'mobile responsive'],
       requiredElements: ['Website', 'Redesign', 'Modern', 'Professional', 'Contact form', 'Blog', 'Mobile responsive'],
       optionalElements: ['Clean design', 'Not flashy', 'Show services'],
-      timeLimit: 300, // 5 minutes
+      timeLimit: 120, // 2 minutes
       difficulty: 'medium',
       isCompleted: false
     },
@@ -111,7 +112,7 @@ export default function BrokenBriefsPage() {
       keyPoints: ['product launch', 'subscription service', 'small businesses', 'social media', 'email campaign', 'press release', '$5k budget'],
       requiredElements: ['Product launch', 'Subscription service', 'Small business audience', 'Social media', 'Email campaign', 'Press release', '$5k budget'],
       optionalElements: ['Create buzz', 'Don\'t oversell', 'Next month'],
-      timeLimit: 300, // 5 minutes
+      timeLimit: 120, // 2 minutes
       difficulty: 'hard',
       isCompleted: false
     },
@@ -122,7 +123,7 @@ export default function BrokenBriefsPage() {
       keyPoints: ['networking event', 'speakers', 'hotel/conference center', 'catering', 'decorations', 'video recording', '3 months timeline'],
       requiredElements: ['Networking event', 'Speakers', 'Venue', 'Catering', 'Decorations', 'Video recording', '3 months timeline'],
       optionalElements: ['Nice location', 'Flexible budget', 'Reasonable cost'],
-      timeLimit: 300, // 5 minutes
+      timeLimit: 120, // 2 minutes
       difficulty: 'hard',
       isCompleted: false
     },
@@ -133,7 +134,7 @@ export default function BrokenBriefsPage() {
       keyPoints: ['content marketing', 'B2B audience', 'whitepapers', 'case studies', 'blog posts', 'SEO', 'qualified leads'],
       requiredElements: ['Content marketing', 'B2B audience', 'Whitepapers', 'Case studies', 'Blog posts', 'SEO', 'Qualified leads'],
       optionalElements: ['Business-focused content', 'Lead generation'],
-      timeLimit: 300, // 5 minutes
+      timeLimit: 120, // 2 minutes
       difficulty: 'medium',
       isCompleted: false
     }
@@ -145,11 +146,11 @@ export default function BrokenBriefsPage() {
       score: 0,
       briefsCompleted: 0,
       accuracy: 0,
-      timeLeft: 300, // 5 minutes per brief
+      timeLeft: 120, // 2 minutes per brief
       currentBrief: 0,
       totalBriefs: 5
     });
-    setGameTime(300); // 5 minutes
+    setGameTime(120); // 2 minutes
     setCurrentBrief(briefs[0]);
     setUserBrief('');
     setShowFeedback(false);
@@ -182,7 +183,7 @@ export default function BrokenBriefsPage() {
       // Move to next brief
       setCurrentBrief(briefs[nextBriefIndex]);
       setUserBrief('');
-      setGameTime(300); // Reset to 5 minutes
+      setGameTime(120); // Reset to 2 minutes
       
       // Start new timer for next brief
       const newTimer = setInterval(() => {
@@ -404,7 +405,7 @@ export default function BrokenBriefsPage() {
                           </li>
                           <li className="flex items-start">
                             <span className="text-purple-400 mr-3 mt-0.5 text-lg">⏰</span>
-                            <span>Complete 5 briefs within 8 minutes</span>
+                            <span>Complete 5 briefs within 2 minutes each</span>
                           </li>
                           <li className="flex items-start">
                             <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
@@ -625,8 +626,28 @@ export default function BrokenBriefsPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="max-w-2xl mx-auto text-center"
+                className="max-w-4xl mx-auto space-y-8"
               >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setGameState('menu')}
+                      className="mr-4 text-gray-400 hover:text-white"
+                    >
+                      <ArrowLeft className="h-5 w-5 mr-2" />
+                      Back
+                    </Button>
+                    <div className="flex items-center">
+                      <FileText className="h-12 w-12 text-green-400 mr-4" />
+                      <div>
+                        <h1 className="text-4xl font-bold gradient-text">Broken Briefs</h1>
+                        <p className="text-gray-400">Transform confusing instructions into clear task briefs</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <Card className="glass-card border-white/10">
                   <CardHeader>
                     <div className="flex items-center justify-center mb-6">
@@ -659,7 +680,7 @@ export default function BrokenBriefsPage() {
                         <div className="text-sm text-gray-400">Accuracy</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{formatTime(480 - gameTime)}</div>
+                        <div className="text-2xl font-bold text-white">{formatTime(600 - gameTime)}</div>
                         <div className="text-sm text-gray-400">Time Used</div>
                       </div>
                     </div>
@@ -686,25 +707,71 @@ export default function BrokenBriefsPage() {
                       </p>
                     </div>
 
-                    <div className="flex gap-3">
-                      <Button
-                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                        onClick={startGame}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Play Again
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setGameState('menu')}
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Menu
-                      </Button>
+                    {/* Detailed Performance Feedback */}
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                      <h4 className="text-white font-semibold mb-3">Performance Analysis</h4>
+                      <div className="space-y-3 text-sm text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span>Brief clarity and structure</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                          <span>Key requirements identification</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                          <span>Time management under pressure</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                          <span>Communication precision</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-3">
+                        Tip: Practice identifying key requirements quickly and structuring information clearly for better brief writing.
+                      </p>
                     </div>
+
                   </CardContent>
                 </Card>
+
+                {/* Actions */}
+                <div className="flex gap-4 mt-6">
+                  <Button
+                    onClick={() => setGameState('menu')}
+                    className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Broken Briefs Game Results',
+                          text: `I achieved ${gameStats.score} points with ${gameStats.accuracy}% accuracy in the Broken Briefs challenge!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Broken Briefs Game Results: ${gameStats.score} points with ${gameStats.accuracy}% accuracy!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                    onClick={startGame}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Take Again
+                  </Button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -713,7 +780,7 @@ export default function BrokenBriefsPage() {
       
       {/* Exit Game Alert Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+        <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">

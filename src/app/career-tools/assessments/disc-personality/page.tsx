@@ -26,7 +26,9 @@ import {
   BarChart3,
   Users,
   Target,
-  Zap
+  Zap,
+  Share,
+  RotateCcw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -697,28 +699,35 @@ export default function DISCPersonalityPage() {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >
-                          <Button
-                            variant={answers[currentQuestion] === index ? "default" : "outline"}
-                            className={`w-full text-left p-4 h-auto justify-start ${
+                          <div
+                            className={`flex items-start gap-3 p-4 rounded-lg border transition-colors cursor-pointer ${
                               answers[currentQuestion] === index
-                                ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                                : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                                ? 'bg-blue-500/20 border-blue-500/50'
+                                : 'bg-white/5 border-white/10 hover:bg-white/10'
                             }`}
                             onClick={() => handleAnswerSelect(index)}
+                            onCopy={(e) => e.preventDefault()}
+                            onCut={(e) => e.preventDefault()}
+                            onPaste={(e) => e.preventDefault()}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onDragStart={(e) => e.preventDefault()}
+                            style={{ userSelect: 'none', WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none' }}
                           >
-                            <div className="flex items-center">
-                              <div className={`w-4 h-4 rounded-full border-2 mr-3 flex-shrink-0 ${
-                                answers[currentQuestion] === index
-                                  ? 'bg-white border-white'
-                                  : 'border-gray-400'
-                              }`}>
-                                {answers[currentQuestion] === index && (
-                                  <CheckCircle className="w-4 h-4 text-blue-500" />
-                                )}
-                              </div>
-                              <span className="leading-relaxed">{option.text}</span>
+                            <div className={`w-5 h-5 rounded-full border-2 mt-1 flex-shrink-0 flex items-center justify-center ${
+                              answers[currentQuestion] === index
+                                ? 'border-blue-400 bg-blue-400'
+                                : 'border-gray-400'
+                            }`}>
+                              {answers[currentQuestion] === index && (
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              )}
                             </div>
-                          </Button>
+                            <div className="flex-1">
+                              <span className={`${answers[currentQuestion] === index ? 'text-blue-300' : 'text-gray-300'}`}>
+                                {option.text}
+                              </span>
+                            </div>
+                          </div>
                         </motion.div>
                       ))}
                     </CardContent>
@@ -843,12 +852,42 @@ export default function DISCPersonalityPage() {
                   </Card>
                 </div>
 
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                >
-                  Take Assessment Again
-                </Button>
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => router.push('/career-tools/assessments')}
+                    variant="outline"
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My DISC Personality Assessment Results',
+                          text: `My DISC type is ${getDominantType()}. Check out my personality assessment results!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My DISC Personality Assessment Results: ${getDominantType()} type. Check out my results!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Take Again
+                  </Button>
+                </div>
               </motion.div>
             )}
           </div>

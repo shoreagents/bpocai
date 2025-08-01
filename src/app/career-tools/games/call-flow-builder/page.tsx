@@ -36,7 +36,8 @@ import {
   Brain,
   AlertTriangle,
   Lightbulb,
-  X
+  X,
+  Share
 } from 'lucide-react';
 
 type FlowNodeType = 'greeting' | 'question' | 'response' | 'action' | 'decision' | 'end';
@@ -960,27 +961,45 @@ export default function CallFlowBuilderPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="mt-10 flex justify-center space-x-6">
-                    <Button
-                      onClick={startNewFlow}
-                      size="lg"
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg px-8 py-3"
-                    >
-                      <RotateCcw className="h-5 w-5 mr-3" />
-                      Build New Flow
-                    </Button>
-                    <Button
-                      onClick={() => setGameState('menu')}
-                      variant="outline"
-                      size="lg"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-800 text-lg px-8 py-3"
-                    >
-                      Back to Menu
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => setGameState('menu')}
+                  className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Main Menu
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Share functionality
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'My Call Flow Builder Results',
+                        text: `I achieved ${Math.round((gameStats.efficiency + gameStats.customerSatisfaction + gameStats.resolutionRate) / 3)}% overall score with ${gameStats.efficiency}% efficiency!`,
+                        url: window.location.href
+                      });
+                    } else {
+                      // Fallback: copy to clipboard
+                      navigator.clipboard.writeText(`My Call Flow Builder Results: ${Math.round((gameStats.efficiency + gameStats.customerSatisfaction + gameStats.resolutionRate) / 3)}% overall score with ${gameStats.efficiency}% efficiency!`);
+                    }
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                  onClick={startNewFlow}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Take Again
+                </Button>
+              </div>
             </motion.div>
           )}
         </div>
@@ -988,7 +1007,7 @@ export default function CallFlowBuilderPage() {
       
       {/* Clear Canvas Alert Dialog */}
       <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+        <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Clear Canvas</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
@@ -996,12 +1015,12 @@ export default function CallFlowBuilderPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={clearCanvas}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Clear Canvas
             </AlertDialogAction>
@@ -1011,7 +1030,7 @@ export default function CallFlowBuilderPage() {
       
       {/* Exit Game Alert Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+        <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
@@ -1019,12 +1038,12 @@ export default function CallFlowBuilderPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => router.back()}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Exit Game
             </AlertDialogAction>

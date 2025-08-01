@@ -34,7 +34,8 @@ import {
   VolumeX,
   Lock,
   CheckCircle,
-  Star
+  Star,
+  Share
 } from 'lucide-react';
 
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
@@ -42,13 +43,13 @@ const BPO_VOCABULARY = {
   easy: {
     words: ['help', 'call', 'chat', 'work', 'home', 'time', 'good', 'best', 'nice', 'easy', 'fast', 'slow', 'high', 'free', 'safe', 'open', 'cool', 'warm', 'date', 'team', 'user', 'game', 'play', 'view', 'save', 'edit', 'send', 'read', 'find', 'sell'],
     timeLimit: 30, // 30 seconds
-    speed: 0.6,
+    speed: 1.0,
     spawnRate: 1800
   },
   medium: {
     words: ['tasks', 'goals', 'plans', 'costs', 'files', 'codes', 'deals', 'teams', 'users', 'games', 'sites', 'forms', 'cards', 'rates', 'types', 'modes', 'tests', 'loads', 'syncs', 'moves', 'links', 'mails', 'infos', 'pages', 'items', 'roles', 'desks', 'bills', 'notes', 'tools'],
     timeLimit: 30, // 30 seconds
-    speed: 0.8,
+    speed: 1.0,
     spawnRate: 1500
   },
   hard: {
@@ -131,7 +132,7 @@ export default function TypingHeroPage() {
     poos: 0,
     combo: 0,
     wpm: 0,
-    accuracy: 100,
+    accuracy: 0,
     timeLeft: 90,
     charactersTyped: 0,
     correctWords: 0,
@@ -435,7 +436,7 @@ export default function TypingHeroPage() {
       poos: 0,
       combo: 0,
       wpm: 0,
-      accuracy: 100,
+      accuracy: 0,
       timeLeft: config.timeLimit,
       charactersTyped: 0,
       correctWords: 0,
@@ -670,8 +671,7 @@ export default function TypingHeroPage() {
         
         if (newTimeLeft <= 0) {
           // Time's up - check if passed
-          const totalWords = prev.correctWords + prev.totalWords;
-          const accuracy = totalWords > 0 ? (prev.correctWords / totalWords) * 100 : 0;
+          const accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
           const passed = accuracy >= 70 && prev.correctWords >= 10; // Pass criteria
           
           setTimeout(() => endGame(passed), 100);
@@ -680,8 +680,7 @@ export default function TypingHeroPage() {
         
         // Update WPM and accuracy
         const elapsedSeconds = getCurrentConfig().timeLimit - newTimeLeft;
-        const totalWords = prev.correctWords + prev.totalWords;
-        const accuracy = totalWords > 0 ? (prev.correctWords / totalWords) * 100 : 100;
+        const accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
         const wordsTyped = prev.charactersTyped / 5;
         const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
         
@@ -1386,27 +1385,53 @@ export default function TypingHeroPage() {
                       </p>
                     </div>
                   )}
-
-                  {/* Actions */}
-                  <div className="flex gap-4">
-                    <Button
-                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                      onClick={() => startGame(currentDifficulty)}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Try Again
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-white/20 text-white hover:bg-white/10"
-                      onClick={() => setGameState('difficulty')}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Choose Difficulty
-                    </Button>
-                  </div>
+                  {gameState === 'completed' && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
+                      <p className="text-green-400 font-medium mb-2">Challenge Passed! 🎉</p>
+                      <p className="text-gray-300 text-sm">
+                        You met all requirements: 70%+ accuracy and 10+ correct words
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => router.push('/career-tools/games')}
+                  className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Main Menu
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Share functionality
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'My Typing Hero Game Results',
+                        text: `I achieved ${gameStats.score.toLocaleString()} points with ${gameStats.wpm} WPM and ${Math.round(gameStats.accuracy)}% accuracy!`,
+                        url: window.location.href
+                      });
+                    } else {
+                      // Fallback: copy to clipboard
+                      navigator.clipboard.writeText(`My Typing Hero Game Results: ${gameStats.score.toLocaleString()} points with ${gameStats.wpm} WPM and ${Math.round(gameStats.accuracy)}% accuracy!`);
+                    }
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                  onClick={() => startGame(currentDifficulty)}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Take Again
+                </Button>
+              </div>
             </motion.div>
           )}
         </div>
@@ -1414,7 +1439,7 @@ export default function TypingHeroPage() {
       
       {/* Exit Game Alert Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+                    <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">

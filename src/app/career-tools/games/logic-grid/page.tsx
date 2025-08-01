@@ -35,7 +35,8 @@ import {
   Globe,
   MapPin,
   Shield,
-  BarChart
+  BarChart,
+  Share
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 
@@ -107,7 +108,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Building'
       }
     ],
-    timeLimit: 180,
+    timeLimit: 90,
     hints: 4
   },
   {
@@ -149,7 +150,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Calendar'
       }
     ],
-    timeLimit: 150,
+    timeLimit: 90,
     hints: 4
   },
 
@@ -206,7 +207,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Building'
       }
     ],
-    timeLimit: 240,
+    timeLimit: 90,
     hints: 6
   },
   {
@@ -261,7 +262,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Calendar'
       }
     ],
-    timeLimit: 200,
+    timeLimit: 90,
     hints: 6
   },
   {
@@ -316,7 +317,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Clock'
       }
     ],
-    timeLimit: 220,
+    timeLimit: 90,
     hints: 6
   },
 
@@ -386,7 +387,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'DollarSign'
       }
     ],
-    timeLimit: 220,
+    timeLimit: 90,
     hints: 8
   },
   {
@@ -454,7 +455,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Users'
       }
     ],
-    timeLimit: 180,
+    timeLimit: 90,
     hints: 8
   },
   {
@@ -522,7 +523,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Clock'
       }
     ],
-    timeLimit: 150,
+    timeLimit: 90,
     hints: 8
   },
   {
@@ -594,7 +595,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'TestTube'
       }
     ],
-    timeLimit: 160,
+    timeLimit: 90,
     hints: 8
   },
 
@@ -669,7 +670,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'BarChart'
       }
     ],
-    timeLimit: 170,
+    timeLimit: 90,
     hints: 8
   },
   {
@@ -742,7 +743,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Globe'
       }
     ],
-    timeLimit: 120,
+    timeLimit: 90,
     hints: 8
   },
   {
@@ -815,7 +816,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'DollarSign'
       }
     ],
-    timeLimit: 100,
+    timeLimit: 90,
     hints: 8
   },
   {
@@ -888,7 +889,7 @@ const PUZZLES: Puzzle[] = [
         icon: 'Shield'
       }
     ],
-    timeLimit: 110,
+    timeLimit: 90,
     hints: 8
   }
 ];
@@ -1178,7 +1179,13 @@ export default function LogicGridGame() {
                 <div className="flex items-center">
                   <Button
                     variant="ghost"
-                    onClick={() => router.back()}
+                    onClick={() => {
+                      if (gameState === 'playing') {
+                        setShowExitDialog(true);
+                      } else {
+                        router.back();
+                      }
+                    }}
                     className="mr-4 text-gray-400 hover:text-white"
                   >
                     <ArrowLeft className="h-5 w-5 mr-2" />
@@ -1581,8 +1588,28 @@ export default function LogicGridGame() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto text-center space-y-8"
+              className="max-w-4xl mx-auto space-y-8"
             >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setGameState('menu')}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
+                  <div className="flex items-center">
+                    <Brain className="h-12 w-12 text-purple-400 mr-4" />
+                    <div>
+                      <h1 className="text-4xl font-bold gradient-text">Logic Grid</h1>
+                      <p className="text-gray-400">Master deductive reasoning through complex puzzles</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <Card className="glass-card border-white/10">
                 <CardHeader>
                   <div className="flex items-center justify-center mb-6">
@@ -1611,24 +1638,45 @@ export default function LogicGridGame() {
                     </div>
                   </div>
                   
-                  <div className="flex space-x-4">
-                    <Button
-                      onClick={() => setGameState('menu')}
-                      className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700"
-                    >
-                      Main Menu
-                    </Button>
-                    {currentPuzzleIndex < availablePuzzles.length - 1 && (
-                      <Button
-                        onClick={nextPuzzle}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                      >
-                        Next Puzzle
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                {/* Actions */}
+                <div className="flex gap-4 mt-6">
+                  <Button
+                    onClick={() => setGameState('menu')}
+                    className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Logic Grid Game Results',
+                          text: `I solved the puzzle with ${score} points in ${formatTime(currentPuzzle?.timeLimit || 0 - timeLeft)}!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Logic Grid Game Results: ${score} points in ${formatTime(currentPuzzle?.timeLimit || 0 - timeLeft)}!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                    onClick={() => currentPuzzleIndex < availablePuzzles.length - 1 ? nextPuzzle() : startGame(selectedDifficulty as 'easy' | 'medium')}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Take Again
+                  </Button>
+                </div>
             </motion.div>
           )}
 
@@ -1637,8 +1685,28 @@ export default function LogicGridGame() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto text-center space-y-8"
+              className="max-w-4xl mx-auto space-y-8"
             >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setGameState('menu')}
+                    className="mr-4 text-gray-400 hover:text-white"
+                  >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back
+                  </Button>
+                  <div className="flex items-center">
+                    <Brain className="h-12 w-12 text-purple-400 mr-4" />
+                    <div>
+                      <h1 className="text-4xl font-bold gradient-text">Logic Grid</h1>
+                      <p className="text-gray-400">Master deductive reasoning through complex puzzles</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <Card className="glass-card border-white/10">
                 <CardHeader>
                   <div className="flex items-center justify-center mb-6">
@@ -1647,45 +1715,89 @@ export default function LogicGridGame() {
                     </div>
                     <div>
                       <CardTitle className="text-3xl font-bold gradient-text mb-2">
-                        Time's Up!
+                        Puzzle Incomplete
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-lg">
-                        Don't worry, you can try again!
+                        Time ran out before you could solve the puzzle. Keep practicing to improve your logical reasoning skills!
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex space-x-4">
-                    <Button
-                      onClick={() => setGameState('menu')}
-                      className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700"
-                    >
-                      Main Menu
-                    </Button>
-                    <Button
-                      onClick={() => startGame(selectedDifficulty as 'easy' | 'medium')}
-                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                    >
-                      Try Again
-                    </Button>
+                <CardContent className="space-y-6">
+                  {/* Performance Feedback */}
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <h4 className="text-white font-semibold mb-2">Performance Feedback</h4>
+                    <div className="space-y-3 text-sm text-gray-300">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                        <span>Time management needs improvement</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                        <span>Focus on systematic problem-solving approach</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <span>Practice with easier puzzles first</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-3">
+                      Tip: Try using the hint system to understand the logical patterns better.
+                    </p>
                   </div>
                 </CardContent>
-              </Card>
+                </Card>
+
+                {/* Actions */}
+                <div className="flex gap-4 mt-6">
+                  <Button
+                    onClick={() => setGameState('menu')}
+                    className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Logic Grid Game Results',
+                          text: `I attempted the puzzle but ran out of time. Need to practice more logical reasoning!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Logic Grid Game Results: Attempted the puzzle but ran out of time. Need to practice more logical reasoning!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                    onClick={() => startGame(selectedDifficulty as 'easy' | 'medium')}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Take Again
+                  </Button>
+                </div>
             </motion.div>
           )}
 
           {/* Exit Dialog */}
           <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-            <AlertDialogContent className="glass-card border-white/10">
+            <AlertDialogContent className="bg-black border-gray-700">
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
                 <AlertDialogDescription className="text-gray-300">
-                  Are you sure you want to exit? Your progress will be lost.
+                  Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+                <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
                   Cancel
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -1693,7 +1805,7 @@ export default function LogicGridGame() {
                     setShowExitDialog(false);
                     router.back();
                   }}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   Exit Game
                 </AlertDialogAction>

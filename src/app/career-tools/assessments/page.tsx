@@ -98,6 +98,24 @@ export default function SkillsAssessmentPage() {
       skillsAssessed: ['Pattern Recognition', 'Problem Solving', 'Logical Analysis'],
       participants: 1203,
       rating: 4.9
+    },
+    {
+      id: 'workplace-judgment',
+      title: 'Workplace Judgment Assessment',
+      description: 'Advanced scenario-based assessment with team consultation. Test your professional decision-making skills.',
+      icon: Brain,
+      difficulty: 'Advanced',
+      category: 'Professional Skills',
+      duration: '15-20 minutes',
+      levels: 1,
+      totalQuestions: 20,
+      estimatedTime: '15-20 min',
+      levelDetails: ['Scenario-Based Assessment'],
+      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      categoryColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+      skillsAssessed: ['Critical Thinking', 'Team Collaboration', 'Cultural Intelligence', 'Strategic Decision Making'],
+      participants: 156,
+      rating: 4.9
     }
   ];
 
@@ -109,7 +127,8 @@ export default function SkillsAssessmentPage() {
       'typing-speed-test': '/career-tools/assessments/typing-speed-test',
       'disc-personality': '/career-tools/assessments/disc-personality',
       'communication-skills': '/career-tools/assessments/communication-skills',
-      'logical-reasoning': '/career-tools/assessments/logical-reasoning'
+      'logical-reasoning': '/career-tools/assessments/logical-reasoning',
+      'workplace-judgment': '/career-tools/assessments/workplace-judgment'
     };
     
     const route = routeMap[testId];
@@ -142,7 +161,7 @@ export default function SkillsAssessmentPage() {
             <div className="flex items-center">
               <Button
                 variant="ghost"
-                onClick={() => router.back()}
+                onClick={() => router.push('/career-tools')}
                 className="mr-4 text-gray-400 hover:text-white"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />

@@ -26,7 +26,9 @@ import {
   Brain,
   Target,
   Award,
-  Lightbulb
+  Lightbulb,
+  Share,
+  RotateCcw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -546,7 +548,7 @@ export default function LogicalReasoningPage() {
                 {/* Results and Skills Side by Side */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Main Result */}
-                  <Card className="glass-card border-orange-500/50 shadow-lg shadow-orange-500/20">
+                  <Card className="glass-card border-white/10 shadow-lg shadow-white/10">
                     <CardHeader className="pb-4">
                       <CardTitle className="text-white flex items-center gap-2 text-lg">
                         <CheckCircle className="w-5 h-5 text-orange-400" />
@@ -662,12 +664,40 @@ export default function LogicalReasoningPage() {
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-center">
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => router.push('/career-tools/assessments')}
+                    variant="outline"
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Logical Reasoning Test Results',
+                          text: `I achieved ${score}% on the Logical Reasoning Test!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Logical Reasoning Test Results: ${score}% score!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
                   <Button
                     onClick={() => window.location.reload()}
-                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-8 py-2"
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
                   >
-                    Take Test Again
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Take Again
                   </Button>
                 </div>
               </motion.div>

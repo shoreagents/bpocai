@@ -26,7 +26,9 @@ import {
   FileText,
   Users,
   Target,
-  Award
+  Award,
+  Share,
+  RotateCcw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -579,28 +581,28 @@ export default function CommunicationSkillsPage() {
 
                         
                         return (
-                          <motion.div
-                            key={index}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            <Button
+                        <motion.div
+                          key={index}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Button
                               variant={isSelected ? "default" : "outline"}
                               className={buttonClass}
-                              onClick={() => handleAnswerSelect(index)}
+                            onClick={() => handleAnswerSelect(index)}
                               disabled={isSubmitted}
                               style={isSubmitted && isCorrect ? { backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' } : {}}
-                            >
-                              <div className="flex items-center">
+                          >
+                            <div className="flex items-center">
                                 <div className={iconClass}>
                                   {isSelected && (
                                     <CheckCircle className={`w-4 h-4 ${isSubmitted ? (isCorrect ? 'text-green-500' : 'text-red-500') : 'text-cyan-500'}`} />
-                                  )}
-                                </div>
-                                <span className="leading-relaxed">{option}</span>
+                                )}
                               </div>
-                            </Button>
-                          </motion.div>
+                              <span className="leading-relaxed">{option}</span>
+                            </div>
+                          </Button>
+                        </motion.div>
                         );
                       })}
                     </CardContent>
@@ -643,77 +645,77 @@ export default function CommunicationSkillsPage() {
               >
                 {/* Results and Skills Side by Side */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Main Result */}
+                {/* Main Result */}
                   <Card className="glass-card border-cyan-500/50 shadow-lg shadow-cyan-500/20">
                     <CardHeader className="pb-4">
                       <CardTitle className="text-white flex items-center gap-2 text-lg">
-                        <CheckCircle className="w-5 h-5 text-cyan-400" />
+                      <CheckCircle className="w-5 h-5 text-cyan-400" />
                         Assessment Results
-                      </CardTitle>
-                    </CardHeader>
+                    </CardTitle>
+                  </CardHeader>
                     <CardContent className="space-y-8">
-                      <div className="text-center">
+                    <div className="text-center">
                         <div className="text-5xl font-bold text-cyan-400 mb-3">
-                          {score}%
-                        </div>
-                        <Badge className={`${getScoreLevel().bgColor} ${getScoreLevel().color} ${getScoreLevel().borderColor} text-base px-3 py-1`}>
-                          {getScoreLevel().level}
-                        </Badge>
+                        {score}%
                       </div>
+                        <Badge className={`${getScoreLevel().bgColor} ${getScoreLevel().color} ${getScoreLevel().borderColor} text-base px-3 py-1`}>
+                        {getScoreLevel().level}
+                      </Badge>
+                    </div>
 
-                      {/* Score Breakdown */}
+                    {/* Score Breakdown */}
                       <div className="grid grid-cols-2 gap-6">
-                        <div className="text-center">
+                      <div className="text-center">
                           <div className="text-3xl font-bold text-white mb-1">{answers.filter((answer, index) => answer === shuffledQuestions[index]?.correct).length}</div>
                           <div className="text-xs text-gray-400">Correct</div>
-                        </div>
-                        <div className="text-center">
+                      </div>
+                      <div className="text-center">
                           <div className="text-3xl font-bold text-white mb-1">{shuffledQuestions.length - answers.filter((answer, index) => answer === shuffledQuestions[index]?.correct).length}</div>
                           <div className="text-xs text-gray-400">Incorrect</div>
-                        </div>
-                        <div className="text-center">
+                      </div>
+                      <div className="text-center">
                           <div className="text-3xl font-bold text-white mb-1">{questions.length}</div>
                           <div className="text-xs text-gray-400">Total</div>
-                        </div>
-                        <div className="text-center">
+                      </div>
+                      <div className="text-center">
                           <div className="text-3xl font-bold text-cyan-400 mb-1">{Math.round((score / 100) * questions.length)}</div>
                           <div className="text-xs text-gray-400">Grade</div>
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                  {/* Category Breakdown */}
+                {/* Category Breakdown */}
                   <Card className="glass-card border-white/20 shadow-lg shadow-white/10">
                     <CardHeader className="pb-4">
                       <CardTitle className="text-white flex items-center gap-2 text-lg">
-                        <Target className="w-5 h-5 text-green-400" />
-                        Skills Breakdown
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                      <Target className="w-5 h-5 text-green-400" />
+                      Skills Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                       <div className="grid grid-cols-2 gap-6">
-                        {["Grammar", "Email Writing", "Customer Service", "Vocabulary"].map((category) => {
-                          const categoryQuestions = questions.filter(q => q.type === category);
-                          const categoryCorrect = categoryQuestions.filter((q, index) => {
-                            const questionIndex = questions.indexOf(q);
-                            return answers[questionIndex] === q.correct;
-                          }).length;
-                          const categoryScore = Math.round((categoryCorrect / categoryQuestions.length) * 100);
+                      {["Grammar", "Email Writing", "Customer Service", "Vocabulary"].map((category) => {
+                        const categoryQuestions = questions.filter(q => q.type === category);
+                        const categoryCorrect = categoryQuestions.filter((q, index) => {
+                          const questionIndex = questions.indexOf(q);
+                          return answers[questionIndex] === q.correct;
+                        }).length;
+                        const categoryScore = Math.round((categoryCorrect / categoryQuestions.length) * 100);
 
-                          return (
+                        return (
                             <div key={category} className="text-center space-y-2">
                               <div className="text-2xl font-bold text-cyan-400">{categoryScore}%</div>
                               <div className="text-xs text-gray-400">{category}</div>
                               <Badge className={`${getQuestionTypeColor(category)} text-xs px-2 py-1`} variant="outline">
-                                {categoryCorrect}/{categoryQuestions.length}
-                              </Badge>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
+                              {categoryCorrect}/{categoryQuestions.length}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
                 </div>
 
                 {/* Recommendations */}
@@ -750,12 +752,40 @@ export default function CommunicationSkillsPage() {
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-center">
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => router.push('/career-tools/assessments')}
+                    variant="outline"
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Communication Skills Test Results',
+                          text: `I achieved ${score}% on the Communication Skills Test!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Communication Skills Test Results: ${score}% score!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  >
+                    <Share className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
                   <Button
                     onClick={() => window.location.reload()}
-                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white px-8 py-2"
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
                   >
-                    Take Test Again
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Take Again
                   </Button>
                 </div>
               </motion.div>
