@@ -30,9 +30,26 @@ import {
   Crown,
   Medal,
   Shield,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { uploadProfilePhoto, deleteProfilePhoto, optimizeImage } from '@/lib/storage'
+
+interface UserProfile {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  full_name: string
+  location: string
+  avatar_url?: string
+  phone?: string
+  bio?: string
+  position?: string
+  created_at: string
+  updated_at: string
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -41,12 +58,44 @@ export default function ProfilePage() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<string>('');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState('');
   
-  // Extract user info from Supabase user object
-  const userDisplayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const userInitials = user?.user_metadata?.full_name 
-    ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-    : user?.email?.slice(0, 2).toUpperCase() || 'U';
+  // Fetch user profile from Railway
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          setProfileLoading(true);
+          console.log('🔄 Profile page: Fetching user profile for:', user.id);
+          const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log('✅ Profile page: User profile loaded:', data.user);
+            setUserProfile(data.user)
+          } else {
+            console.error('❌ Profile page: Failed to fetch user profile:', response.status, response.statusText);
+          }
+        } catch (error) {
+          console.error('❌ Profile page: Error fetching user profile:', error)
+        } finally {
+          setProfileLoading(false);
+        }
+      } else {
+        console.log('⚠️ Profile page: No user ID available for profile fetch');
+      }
+    }
+
+    fetchUserProfile()
+  }, [user?.id])
+  
+  // Extract user info from Railway data only
+  const userDisplayName = profileLoading ? 'Loading...' : (userProfile?.full_name || 'User');
+  const userInitials = profileLoading ? 'L' : (userProfile?.full_name 
+    ? userProfile.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
+    : 'U');
 
   // Mock user data - in production this would come from your database
   const userStats = {
@@ -62,31 +111,31 @@ export default function ProfilePage() {
   };
 
   const [profileData, setProfileData] = useState({
-    firstName: 'Aaron',
-    lastName: 'Punzalan',
-    email: 'apunzalan500@gmail.com',
-    phone: '+63 961 260 9123',
-    location: 'Clark, Pampanga',
-    jobTitle: 'Junior Developer',
-    company: 'ShoreAgents',
-    bio: 'Passionate junior developer with 2+ years of experience in web development and a strong background in customer service. Currently working at ShoreAgents where I develop innovative solutions for BPO operations. Skilled in JavaScript, React, and Node.js with a keen interest in AI-powered applications. Previously worked as a customer service representative for 3 years, which gave me valuable insights into client needs and business processes. Always eager to learn new technologies and contribute to meaningful projects that make a difference.'
+    firstName: userProfile?.first_name || 'Aaron',
+    lastName: userProfile?.last_name || 'Punzalan',
+    email: userProfile?.email || 'apunzalan500@gmail.com',
+    phone: userProfile?.phone || '+63 961 260 9123',
+    location: userProfile?.location || 'Clark, Pampanga',
+    jobTitle: userProfile?.position || 'Junior Developer',
+    company: '', // Removed ShoreAgents
+    bio: userProfile?.bio || 'Passionate junior developer with 2+ years of experience in web development and a strong background in customer service. Skilled in JavaScript, React, and Node.js with a keen interest in AI-powered applications. Previously worked as a customer service representative for 3 years, which gave me valuable insights into client needs and business processes. Always eager to learn new technologies and contribute to meaningful projects that make a difference.'
   });
 
-  // Update profile data when user data loads/changes
+  // Update profile data when Railway data loads
   useEffect(() => {
-    if (user) {
+    if (userProfile) {
       setProfileData({
-        firstName: user.user_metadata?.first_name || 'Aaron',
-        lastName: user.user_metadata?.last_name || 'Punzalan',
-        email: user.email || 'apunzalan500@gmail.com',
-        phone: user.user_metadata?.phone || '+63 961 260 9123',
-        location: user.user_metadata?.location || 'Clark, Pampanga',
-        jobTitle: user.user_metadata?.job_title || 'Junior Developer',
-        company: user.user_metadata?.company || 'ShoreAgents',
-        bio: user.user_metadata?.bio || 'Passionate junior developer with 2+ years of experience in web development and a strong background in customer service. Currently working at ShoreAgents where I develop innovative solutions for BPO operations. Skilled in JavaScript, React, and Node.js with a keen interest in AI-powered applications. Previously worked as a customer service representative for 3 years, which gave me valuable insights into client needs and business processes. Always eager to learn new technologies and contribute to meaningful projects that make a difference.'
+        firstName: userProfile.first_name || 'Aaron',
+        lastName: userProfile.last_name || 'Punzalan',
+        email: userProfile.email || 'apunzalan500@gmail.com',
+        phone: userProfile.phone || '+63 961 260 9123',
+        location: userProfile.location || 'Clark, Pampanga',
+        jobTitle: userProfile.position || 'Junior Developer',
+        company: '', // Removed ShoreAgents
+        bio: userProfile.bio || 'Passionate junior developer with 2+ years of experience in web development and a strong background in customer service. Skilled in JavaScript, React, and Node.js with a keen interest in AI-powered applications. Previously worked as a customer service representative for 3 years, which gave me valuable insights into client needs and business processes. Always eager to learn new technologies and contribute to meaningful projects that make a difference.'
       });
     }
-  }, [user]);
+  }, [userProfile]);
 
   // Mock achievements data
   const achievements = [
@@ -156,17 +205,72 @@ export default function ProfilePage() {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfilePicture(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+    
+    try {
+      setPhotoUploading(true);
+      setPhotoError('');
+      
+      console.log('📸 Starting photo upload from profile page...');
+      
+      // Optimize image
+      const optimizedFile = await optimizeImage(file);
+      console.log('✅ Image optimized');
+      
+      // Upload to Supabase
+      const { fileName, publicUrl } = await uploadProfilePhoto(optimizedFile, user.id);
+      console.log('✅ Photo uploaded to Supabase:', publicUrl);
+      
+      // Update local state
+      setProfilePicture(publicUrl);
+      
+      // Update Railway database
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          avatar_url: publicUrl
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Profile photo updated in Railway');
+        
+        // Trigger header update
+        window.dispatchEvent(new CustomEvent('profileUpdated'));
+      } else {
+        console.error('❌ Failed to update profile photo in Railway');
+      }
+      
+    } catch (error) {
+      console.error('❌ Photo upload failed:', error);
+      
+      // Extract meaningful error message
+      let errorMessage = 'Upload failed';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle Supabase error objects
+        if ('message' in error) {
+          errorMessage = String(error.message);
+        } else if ('error' in error) {
+          errorMessage = String(error.error);
+        } else {
+          errorMessage = JSON.stringify(error);
+        }
+      } else {
+        errorMessage = String(error);
+      }
+      
+      setPhotoError(errorMessage);
+    } finally {
+      setPhotoUploading(false);
     }
   };
-
 
 
   const progressToNextLevel = ((userStats.experiencePoints % 1000) / 1000) * 100;
@@ -235,9 +339,19 @@ export default function ProfilePage() {
                     {/* Profile Picture */}
                     <div className="relative flex-shrink-0">
                       <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gradient-to-br from-cyan-400 to-purple-400 p-1">
-                        {profilePicture ? (
+                        {photoUploading ? (
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                          </div>
+                        ) : profilePicture ? (
                           <img 
                             src={profilePicture} 
+                            alt="Profile" 
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : userProfile?.avatar_url ? (
+                          <img 
+                            src={userProfile.avatar_url} 
                             alt="Profile" 
                             className="w-full h-full rounded-full object-cover"
                           />
@@ -251,9 +365,14 @@ export default function ProfilePage() {
                       </div>
                       <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute -bottom-2 -right-2 w-10 h-10 bg-cyan-500 hover:bg-cyan-600 rounded-full flex items-center justify-center transition-colors"
+                        disabled={photoUploading}
+                        className="absolute -bottom-2 -right-2 w-10 h-10 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-500 rounded-full flex items-center justify-center transition-colors"
                       >
-                        <Camera className="w-5 h-5 text-white" />
+                        {photoUploading ? (
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        ) : (
+                          <Camera className="w-5 h-5 text-white" />
+                        )}
                       </button>
                       <input
                         ref={fileInputRef}
@@ -270,9 +389,6 @@ export default function ProfilePage() {
                         <div>
                           <h2 className="text-3xl font-bold text-white">{userDisplayName}</h2>
                           <p className="text-gray-400">{profileData.jobTitle || 'BPO Professional'}</p>
-                          {profileData.company && (
-                            <p className="text-gray-500">@ {profileData.company}</p>
-                          )}
                         </div>
                         <Button
                           onClick={() => router.push('/settings')}

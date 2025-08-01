@@ -23,7 +23,8 @@ import {
   Chrome,
   User,
   CheckCircle,
-  MapPin
+  MapPin,
+  Phone
 } from 'lucide-react'
 
 interface SignUpFormProps {
@@ -38,6 +39,8 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
+    position: '',
     location: '',
     password: '',
     confirmPassword: ''
@@ -72,6 +75,16 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
       newErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email'
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required'
+    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+      newErrors.phone = 'Please enter a valid phone number'
+    }
+
+    if (!formData.position.trim()) {
+      newErrors.position = 'Position is required'
     }
 
     if (!formData.location.trim()) {
@@ -120,6 +133,8 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
         {
           first_name: formData.firstName,
           last_name: formData.lastName,
+          phone: formData.phone,
+          position: formData.position,
           location: formData.location,
           full_name: `${formData.firstName} ${formData.lastName}`
         }
@@ -147,6 +162,8 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
             firstName: '',
             lastName: '',
             email: '',
+            phone: '',
+            position: '',
             location: '',
             password: '',
             confirmPassword: ''
@@ -189,6 +206,8 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
       firstName: '',
       lastName: '',
       email: '',
+      phone: '',
+      position: '',
       location: '',
       password: '',
       confirmPassword: ''
@@ -345,6 +364,68 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
                   className="text-red-400 text-xs"
                 >
                   {errors.email}
+                </motion.p>
+              )}
+            </div>
+
+            {/* Phone Field */}
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium text-white block">
+                Phone Number
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="e.g., +63 912 345 6789"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                    errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  }`}
+                  disabled={isLoading}
+                  autoComplete="tel"
+                />
+              </div>
+              {errors.phone && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {errors.phone}
+                </motion.p>
+              )}
+            </div>
+
+            {/* Position Field */}
+            <div className="space-y-2">
+              <label htmlFor="position" className="text-sm font-medium text-white block">
+                Position
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="position"
+                  type="text"
+                  placeholder="e.g., Customer Service, Sales"
+                  value={formData.position}
+                  onChange={(e) => handleInputChange('position', e.target.value)}
+                  className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
+                    errors.position ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                  }`}
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+              </div>
+              {errors.position && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {errors.position}
                 </motion.p>
               )}
             </div>

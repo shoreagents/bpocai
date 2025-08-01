@@ -10,6 +10,9 @@ CREATE TABLE users (
   full_name TEXT NOT NULL,
   location TEXT NOT NULL,
   avatar_url TEXT,
+  phone TEXT,
+  bio TEXT,
+  position TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
