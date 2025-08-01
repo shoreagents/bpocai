@@ -214,7 +214,7 @@ export default function ResumeBuilderPage() {
       if (data.success) {
         setProgressValue(100);
         setTimeout(() => {
-          setImprovedResume(data.improvedResume);
+        setImprovedResume(data.improvedResume);
         }, 500);
       } else {
         setError(data.error || 'Failed to improve resume');
@@ -225,7 +225,7 @@ export default function ResumeBuilderPage() {
     } finally {
       clearInterval(progressInterval);
       setTimeout(() => {
-        setIsLoading(false);
+      setIsLoading(false);
       }, 1000);
     }
   };
@@ -898,7 +898,7 @@ export default function ResumeBuilderPage() {
       <Header />
       
       <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
           {/* Enhanced Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -908,13 +908,13 @@ export default function ResumeBuilderPage() {
             <div className="flex items-center">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
+            <Button
                     variant="ghost"
                     className="mr-4 text-gray-400 hover:text-white"
-                  >
+            >
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back
-                  </Button>
+            </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-gray-900 border-gray-700">
                   <AlertDialogHeader>
@@ -943,8 +943,8 @@ export default function ResumeBuilderPage() {
                   <p className="text-gray-400">Your AI-enhanced professional resume</p>
                 </div>
               </div>
-            </div>
-            
+          </div>
+          
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -953,17 +953,17 @@ export default function ResumeBuilderPage() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-              <Button
-                onClick={exportToPDF}
+          <Button
+            onClick={exportToPDF}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-            </div>
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
           </motion.div>
 
-          <div className="space-y-8">
+        <div className="space-y-8">
             {/* Compact Template Selection */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -972,50 +972,50 @@ export default function ResumeBuilderPage() {
             >
               <Card className="glass-card border-white/10 shadow-lg">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center text-white text-lg">
+              <CardTitle className="flex items-center text-white text-lg">
                     <Palette className="h-5 w-5 mr-2 text-cyan-400" />
-                    Choose Template
-                  </CardTitle>
+                Choose Template
+              </CardTitle>
                   <p className="text-sm text-gray-400">Select your preferred style</p>
-                </CardHeader>
-                <CardContent>
+            </CardHeader>
+            <CardContent>
                   <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                    {resumeTemplates.map((template) => (
-                      <motion.div
-                        key={template.id}
+                {resumeTemplates.map((template) => (
+                  <motion.div
+                    key={template.id}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <Card
-                          className={`cursor-pointer transition-all duration-200 ${
-                            selectedTemplate.id === template.id
+                  >
+                    <Card
+                      className={`cursor-pointer transition-all duration-200 ${
+                        selectedTemplate.id === template.id
                               ? 'border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/50 shadow-lg shadow-cyan-500/25'
-                              : 'border-white/10 hover:border-white/30 hover:bg-white/5'
-                          }`}
-                          onClick={() => handleTemplateChange(template)}
-                        >
+                          : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                      }`}
+                      onClick={() => handleTemplateChange(template)}
+                    >
                           <CardContent className="p-2">
-                            <div className="text-center">
+                        <div className="text-center">
                               <div className="text-lg mb-1">
-                                {template.id === 'executive' && '💼'}
-                                {template.id === 'tech-innovator' && '⚡'}
-                                {template.id === 'creative-artist' && '🎨'}
-                                {template.id === 'minimalist-zen' && '🧘'}
-                                {template.id === 'corporate-chic' && '👔'}
-                                {template.id === 'startup-energy' && '🚀'}
-                                {template.id === 'academic-scholar' && '📚'}
-                                {template.id === 'freelance-charm' && '✨'}
-                              </div>
+                            {template.id === 'executive' && '💼'}
+                            {template.id === 'tech-innovator' && '⚡'}
+                            {template.id === 'creative-artist' && '🎨'}
+                            {template.id === 'minimalist-zen' && '🧘'}
+                            {template.id === 'corporate-chic' && '👔'}
+                            {template.id === 'startup-energy' && '🚀'}
+                            {template.id === 'academic-scholar' && '📚'}
+                            {template.id === 'freelance-charm' && '✨'}
+                          </div>
                               <h4 className="font-medium text-white text-xs">{template.name}</h4>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
             </motion.div>
 
             {/* Enhanced Main Content Area */}
@@ -1026,7 +1026,7 @@ export default function ResumeBuilderPage() {
               className="grid grid-cols-1 xl:grid-cols-5 gap-8"
             >
               {/* Enhanced Left Sidebar - Section Management */}
-              <div className="xl:col-span-1">
+            <div className="xl:col-span-1">
                 <Card className="glass-card border-white/10 shadow-lg">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center text-white text-lg">
@@ -1083,7 +1083,7 @@ export default function ResumeBuilderPage() {
                           className="w-3 h-3 rounded-full border border-white/20"
                           style={{ backgroundColor: customColors.secondary }}
                         />
-                      </div>
+              </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -1113,23 +1113,23 @@ export default function ResumeBuilderPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+            </div>
 
               {/* Enhanced Main Content - Resume Preview */}
-              <div className="xl:col-span-4">
+            <div className="xl:col-span-4">
                 <Card className="glass-card border-white/10 shadow-lg">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
                       <CardTitle className="text-white text-xl flex items-center">
                         <Eye className="h-5 w-5 mr-2 text-cyan-400" />
                         Resume Preview
                       </CardTitle>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <span>Template:</span>
-                        <span className="font-medium text-white">{selectedTemplate.name}</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>Template:</span>
+                      <span className="font-medium text-white">{selectedTemplate.name}</span>
                     </div>
-                  </CardHeader>
+                  </div>
+                </CardHeader>
                 <CardContent>
                   <div className="flex justify-center">
                     <div
@@ -1243,8 +1243,8 @@ export default function ResumeBuilderPage() {
         </div>
 
 
+                </div>
       </div>
     </div>
-  </div>
   );
 }

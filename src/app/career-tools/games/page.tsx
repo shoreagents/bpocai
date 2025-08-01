@@ -22,7 +22,9 @@ import {
   Phone,
   Brain,
   Mail,
-  FileText
+  FileText,
+  Utensils,
+  Scale
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -36,9 +38,10 @@ export default function CareerGamesPage() {
         title: 'Typing Hero',
         description: 'Guitar Hero meets typing',
         icon: Guitar,
-      difficulty: 'Intermediate',
+        difficulty: 'Intermediate',
         category: 'Technical',
         duration: '6 minutes',
+        content: '4 Difficulties',
         difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
         categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
         skillsDeveloped: ['BPO Vocabulary', 'Typing Speed', 'Rhythm', 'Accuracy'],
@@ -53,6 +56,7 @@ export default function CareerGamesPage() {
         difficulty: 'Advanced',
         category: 'Process Design',
         duration: '12 minutes',
+        content: 'Unlimited Flows',
         difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
         categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
         skillsDeveloped: ['Customer Service Flow', 'Process Design', 'Problem Solving', 'Logical Thinking'],
@@ -67,6 +71,7 @@ export default function CareerGamesPage() {
       difficulty: 'Advanced',
       category: 'Time Management',
       duration: '10 minutes',
+      content: '3 Levels',
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
       categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       skillsDeveloped: ['Time Management', 'Attention to Detail', 'Work Ethic', 'Prioritization'],
@@ -81,6 +86,7 @@ export default function CareerGamesPage() {
       difficulty: 'Intermediate',
       category: 'Communication',
       duration: '5 minutes',
+      content: 'Dynamic Emails',
       difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
       skillsDeveloped: ['Email Management', 'Time Management', 'Attention to Detail', 'Work Ethic'],
@@ -95,6 +101,7 @@ export default function CareerGamesPage() {
       difficulty: 'Advanced',
       category: 'Communication',
       duration: '8 minutes',
+      content: '5 Briefs',
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
       categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
       skillsDeveloped: ['Written Communication', 'Summarization', 'Instructional Accuracy', 'Clarity'],
@@ -109,11 +116,27 @@ export default function CareerGamesPage() {
       difficulty: 'Advanced',
       category: 'Problem Solving',
       duration: '8 minutes',
+      content: '4 Difficulties',
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
       categoryColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       skillsDeveloped: ['Critical Thinking', 'Problem Solving', 'Attention to Detail', 'Logical Reasoning'],
       participants: 756,
       rating: 4.6
+    },
+    {
+      id: 'internship-food',
+      title: 'The Right Choice',
+      description: 'Make judgment calls in workplace scenarios',
+      icon: Scale,
+      difficulty: 'Intermediate',
+      category: 'Judgment',
+      duration: '2 minutes',
+      content: '15 Scenarios',
+      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      skillsDeveloped: ['Cultural Awareness', 'Workplace Ethics', 'Social Cues', 'Professional Judgment'],
+      participants: 423,
+      rating: 4.8
     }
   ];
 
@@ -133,9 +156,11 @@ export default function CareerGamesPage() {
       router.push('/career-tools/games/broken-briefs');
     } else if (gameId === 'logic-grid') {
       router.push('/career-tools/games/logic-grid');
+    } else if (gameId === 'internship-food') {
+      router.push('/career-tools/games/right-choice');
     } else {
       // For other games, you can add navigation or modals here
-    console.log(`Starting game: ${gameId}`);
+      console.log(`Starting game: ${gameId}`);
     }
   };
 
@@ -161,7 +186,7 @@ export default function CareerGamesPage() {
             <div className="flex items-center">
               <Button
                 variant="ghost"
-                onClick={() => router.back()}
+                onClick={() => router.push('/career-tools')}
                 className="mr-4 text-gray-400 hover:text-white"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
@@ -190,7 +215,7 @@ export default function CareerGamesPage() {
                 <Card className="glass-card border-white/10 hover:border-white/20 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden">
                   {/* Icon in top right */}
                   <div className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                    <game.icon className="w-5 h-5 text-gray-400" />
+                    <game.icon className="w-5 h-5 text-green-400" />
                   </div>
 
                   <CardHeader className="pb-4">
@@ -212,6 +237,10 @@ export default function CareerGamesPage() {
                       <Badge className="bg-white/10 text-gray-300 border-white/20 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {game.duration}
+                      </Badge>
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1">
+                        <BarChart3 className="w-3 h-3" />
+                        {game.content}
                       </Badge>
                     </div>
                   </CardHeader>

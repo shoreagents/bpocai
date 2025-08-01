@@ -29,7 +29,9 @@ import {
   CheckCircle,
   ArrowRight,
   Trophy,
-  Star
+  Star,
+  Share,
+  Play
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -40,15 +42,30 @@ export default function TypingSpeedTestPage() {
   const [currentLevel, setCurrentLevel] = useState<DifficultyLevel>('easy');
   const [currentTestIndex, setCurrentTestIndex] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(30);
   const [userInput, setUserInput] = useState('');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [correctChars, setCorrectChars] = useState(0);
   const [totalChars, setTotalChars] = useState(0);
   const [wpm, setWpm] = useState(0);
-  const [accuracy, setAccuracy] = useState(100);
+  const [accuracy, setAccuracy] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [completedTests, setCompletedTests] = useState<string[]>([]);
+  const [allTestsCompleted, setAllTestsCompleted] = useState(false);
+  const [finalResults, setFinalResults] = useState<{
+    totalWpm: number;
+    totalAccuracy: number;
+    testsPassed: number;
+    totalTests: number;
+  } | null>(null);
+  const [showDifficultySelection, setShowDifficultySelection] = useState(true);
+  const [showLevelResults, setShowLevelResults] = useState(false);
+  const [levelResults, setLevelResults] = useState<{
+    level: string;
+    wpm: number;
+    accuracy: number;
+    passed: boolean;
+  } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
 
@@ -167,6 +184,52 @@ export default function TypingSpeedTestPage() {
 
   const colors = getColorClasses(currentLevelData.color);
 
+  const difficulties = [
+    {
+      id: 'easy',
+      title: 'Easy',
+      stars: 1,
+      wordType: 'Common Words',
+      speed: '30+ WPM',
+      requirement: 'Basic typing skills',
+      timeLimit: '30 seconds'
+    },
+    {
+      id: 'medium',
+      title: 'Medium',
+      stars: 2,
+      wordType: 'Business Terms',
+      speed: '40+ WPM',
+      requirement: 'Professional typing',
+      timeLimit: '30 seconds'
+    },
+    {
+      id: 'hard',
+      title: 'Hard',
+      stars: 3,
+      wordType: 'Technical Terms',
+      speed: '50+ WPM',
+      requirement: 'Advanced typing',
+      timeLimit: '30 seconds'
+    },
+    {
+      id: 'difficult',
+      title: 'Expert',
+      stars: 4,
+      wordType: 'Programming Code',
+      speed: '60+ WPM',
+      requirement: 'Expert typing',
+      timeLimit: '30 seconds'
+    }
+  ];
+
+  const handleDifficultySelect = (difficulty: DifficultyLevel) => {
+    setCurrentLevel(difficulty);
+    setCurrentTestIndex(0);
+    setShowDifficultySelection(false);
+    resetTest();
+  };
+
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       const timer = setTimeout(() => {
@@ -218,18 +281,17 @@ export default function TypingSpeedTestPage() {
   const resetTest = () => {
     setIsActive(false);
     setIsFinished(false);
-    setTimeLeft(60);
+    setTimeLeft(30);
     setUserInput('');
     setCurrentWordIndex(0);
     setCorrectChars(0);
     setTotalChars(0);
     setWpm(0);
-    setAccuracy(100);
+    setAccuracy(0);
   };
 
   const handleFinish = () => {
     setIsActive(false);
-    setIsFinished(true);
     
     // Mark test as completed if passed
     if (wpm >= currentLevelData.minWpm && accuracy >= currentLevelData.minAccuracy) {
@@ -237,6 +299,25 @@ export default function TypingSpeedTestPage() {
       if (!completedTests.includes(testKey)) {
         setCompletedTests([...completedTests, testKey]);
       }
+    }
+
+    // Check if this is the last test in the current level
+    const isLastTestInLevel = currentTestIndex === currentLevelData.tests.length - 1;
+    
+    if (isLastTestInLevel) {
+      // Show level results
+      setLevelResults({
+        level: currentLevelData.title,
+        wpm: wpm,
+        accuracy: accuracy,
+        passed: wpm >= currentLevelData.minWpm && accuracy >= currentLevelData.minAccuracy
+      });
+      setShowLevelResults(true);
+    } else {
+      // Move to next test in same level after a short delay
+      setTimeout(() => {
+        handleNextTest();
+      }, 1000);
     }
   };
 
@@ -255,7 +336,7 @@ export default function TypingSpeedTestPage() {
     setTotalChars(total);
     setAccuracy(total > 0 ? Math.round((correct / total) * 100) : 100);
 
-    const timeElapsed = 60 - timeLeft;
+    const timeElapsed = 30 - timeLeft; // Changed from 60 to 30
     const wordsTyped = inputWords.length - 1; // -1 because last word might be incomplete
     setWpm(timeElapsed > 0 ? Math.round((wordsTyped / timeElapsed) * 60) : 0);
   };
@@ -269,20 +350,28 @@ export default function TypingSpeedTestPage() {
   };
 
   const handleNextTest = () => {
-    // Check if there's another test in current level
+    // Move to next test in current level
     if (currentTestIndex < currentLevelData.tests.length - 1) {
       setCurrentTestIndex(currentTestIndex + 1);
       resetTest();
-    } else {
-      // Move to next level's first test
-      const levels: DifficultyLevel[] = ['easy', 'medium', 'hard', 'difficult'];
-      const currentLevelIndex = levels.indexOf(currentLevel);
-      if (currentLevelIndex < levels.length - 1) {
-        setCurrentLevel(levels[currentLevelIndex + 1]);
-        setCurrentTestIndex(0);
-        resetTest();
-      }
     }
+  };
+
+  const handleContinueToNextLevel = () => {
+    const levels: DifficultyLevel[] = ['easy', 'medium', 'hard', 'difficult'];
+    const currentLevelIndex = levels.indexOf(currentLevel);
+    if (currentLevelIndex < levels.length - 1) {
+      setCurrentLevel(levels[currentLevelIndex + 1]);
+      setCurrentTestIndex(0);
+      resetTest();
+      setShowLevelResults(false);
+    }
+  };
+
+  const handleBackToDifficultySelection = () => {
+    setShowLevelResults(false);
+    setShowDifficultySelection(true);
+    resetTest();
   };
 
 
@@ -290,7 +379,11 @@ export default function TypingSpeedTestPage() {
   const isTestPassed = wpm >= currentLevelData.minWpm && accuracy >= currentLevelData.minAccuracy;
   const hasNextTest = currentTestIndex < currentLevelData.tests.length - 1 || 
                      (currentLevel !== 'difficult' || currentTestIndex < 1);
-  const allTestsCompleted = currentLevel === 'difficult' && currentTestIndex === 1 && isTestPassed;
+
+  // Calculate typing progress based on words typed vs total words
+  const wordsTyped = userInput.trim().split(' ').filter(word => word.length > 0).length;
+  const totalWords = words.length;
+  const typingProgress = totalWords > 0 ? Math.min((wordsTyped / totalWords) * 100, 100) : 0;
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -317,7 +410,12 @@ export default function TypingSpeedTestPage() {
                     onClick={() => {
                       if (isActive) {
                         setShowExitDialog(true);
+                      } else if (!showDifficultySelection) {
+                        // If we're in the test but not active, go back to difficulty selection
+                        setShowDifficultySelection(true);
+                        resetTest();
                       } else {
+                        // If we're on difficulty selection, go back to previous page
                         router.back();
                       }
                     }}
@@ -344,248 +442,426 @@ export default function TypingSpeedTestPage() {
 
 
           <div className="max-w-4xl mx-auto space-y-6">
-            {/* Stats Cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
-            >
-              <Card className="glass-card border-white/10 text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Clock className="w-5 h-5 text-cyan-400 mr-2" />
-                    <span className="text-2xl font-bold text-white">{timeLeft}s</span>
-                  </div>
-                  <p className="text-xs text-gray-400">Time Left</p>
-                </CardContent>
-              </Card>
-
-              <Card className="glass-card border-white/10 text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Zap className="w-5 h-5 text-yellow-400 mr-2" />
-                    <span className="text-2xl font-bold text-white">{wpm}</span>
-                  </div>
-                  <p className="text-xs text-gray-400">WPM</p>
-                </CardContent>
-              </Card>
-
-              <Card className="glass-card border-white/10 text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Target className="w-5 h-5 text-green-400 mr-2" />
-                    <span className="text-2xl font-bold text-white">{accuracy}%</span>
-                  </div>
-                  <p className="text-xs text-gray-400">Accuracy</p>
-                </CardContent>
-              </Card>
-
-              <Card className="glass-card border-white/10 text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Keyboard className="w-5 h-5 text-cyan-400 mr-2" />
-                    <span className="text-2xl font-bold text-white">{totalChars}</span>
-                  </div>
-                  <p className="text-xs text-gray-400">Characters</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Progress Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-                                <Card className="glass-card border-white/10">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-300">Progress</span>
-                        <span className="text-sm text-gray-300">{Math.round(((60 - timeLeft) / 60) * 100)}%</span>
-                      </div>
-                      <Progress value={((60 - timeLeft) / 60) * 100} className="h-2" />
-                    </CardContent>
-                  </Card>
-            </motion.div>
-
-            {/* Test Text */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge className={`${colors.bg} ${colors.text} ${colors.border}`}>
-                      {currentLevelData.title}
-                    </Badge>
-                    <span className="text-xs text-gray-400">
-                      Test {(() => {
-                        const levels: DifficultyLevel[] = ['easy', 'medium', 'hard', 'difficult'];
-                        const currentLevelIndex = levels.indexOf(currentLevel);
-                        return currentLevelIndex * 2 + currentTestIndex + 1;
-                      })()} of 8
-                    </span>
-                  </div>
-                  <CardTitle className={`text-white flex items-center gap-2`}>
-                    <Target className={`w-5 h-5 ${colors.icon}`} />
-                    {currentTest.name}
-                  </CardTitle>
-                  {currentLevel === 'difficult' && (
-                    <CardDescription className="text-yellow-400 text-sm">
-                      ⚠️ Expert Level: Contains programming syntax, special symbols, and advanced formatting
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div 
-                    className={`bg-gray-900/50 rounded-lg p-6 text-lg leading-relaxed ${
-                      currentLevel === 'hard' || currentLevel === 'difficult' ? 'font-mono' : ''
-                    } ${currentLevel === 'difficult' ? 'border border-red-500/20 text-base' : ''}`}
-                    onCopy={(e) => e.preventDefault()}
-                    onContextMenu={(e) => e.preventDefault()}
-                    style={{ userSelect: 'none' }}
-                  >
-                    {words.map((word, index) => (
-                      <span
-                        key={index}
-                        className={`${getWordColor(index, word)} transition-colors duration-200`}
-                      >
-                        {word}{index < words.length - 1 ? ' ' : ''}
-                      </span>
-                    ))}
-                  </div>
-
-                  <textarea
-                    ref={inputRef}
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    disabled={!isActive || isFinished}
-                    placeholder={isActive ? "Start typing..." : "Click start to begin"}
-                    className={`w-full bg-gray-800/50 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 resize-none ${
-                      currentLevel === 'hard' || currentLevel === 'difficult' ? 'font-mono text-sm h-40' : 'h-32'
-                    }`}
-                    onCopy={(e) => e.preventDefault()}
-                    onPaste={(e) => e.preventDefault()}
-                    onCut={(e) => e.preventDefault()}
-                    onKeyDown={(e) => {
-                      // Prevent common copy/paste shortcuts
-                      if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a')) {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-
-                  <div className="flex gap-4">
-                    {!isActive && !isFinished && (
-                      <Button
-                        onClick={startTest}
-                        className={`bg-gradient-to-r ${colors.button} text-white`}
-                      >
-                        <PlayCircle className="w-4 h-4 mr-2" />
-                        {currentLevel === 'difficult' ? 'Start Expert Test' : 'Start Test'}
-                      </Button>
-                    )}
-
-                    <Button
-                      onClick={resetTest}
-                      variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Reset
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Results */}
-            {isFinished && (
+            {/* Difficulty Selection */}
+            {showDifficultySelection && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
               >
-                <Card className={`glass-card ${colors.border}`}>
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <CheckCircle className={`w-5 h-5 ${colors.icon}`} />
-                      {currentTest.name} Completed!
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Select Your Typing Level</h2>
+                  <p className="text-gray-400">Choose a difficulty level to test your typing speed and accuracy</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {difficulties.map((difficulty, index) => (
+                    <motion.div
+                      key={difficulty.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + (index * 0.1) }}
+                      className="group"
+                    >
+                      <Card 
+                        className="glass-card border-white/10 hover:border-white/20 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden cursor-pointer"
+                        onClick={() => handleDifficultySelect(difficulty.id as DifficultyLevel)}
+                      >
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <CardTitle className="text-xl text-white font-bold">
+                              {difficulty.title}
+                            </CardTitle>
+                            <div className="flex gap-1">
+                              {[...Array(difficulty.stars)].map((_, i) => (
+                                <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-sm">Word Type:</span>
+                              <span className="text-purple-400 font-medium">{difficulty.wordType}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-sm">Test Duration:</span>
+                              <span className="text-blue-400 font-medium">{difficulty.timeLimit}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-sm">Target WPM:</span>
+                              <span className="text-yellow-400 font-medium">{difficulty.speed}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-400 text-sm">Skill Level:</span>
+                              <span className="text-green-400 font-medium">{difficulty.requirement}</span>
+                            </div>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="pt-0">
+                          <Button 
+                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                            onClick={() => handleDifficultySelect(difficulty.id as DifficultyLevel)}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Start Typing Test
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="text-center mt-8">
+                  <Button
+                    onClick={() => router.push('/career-tools/assessments')}
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Menu
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Level Results */}
+            {showLevelResults && levelResults && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Level Complete!</h2>
+                  <p className="text-gray-400">Here are your results for the {levelResults.level}</p>
+                </div>
+
+                <Card className="glass-card border-white/10 max-w-4xl mx-auto">
+                  <CardHeader className="pb-6">
+                    <CardTitle className="text-white text-center flex items-center justify-center gap-3 text-2xl">
+                      {levelResults.passed ? (
+                        <CheckCircle className="w-8 h-8 text-green-400" />
+                      ) : (
+                        <Target className="w-8 h-8 text-orange-400" />
+                      )}
+                      {levelResults.level} Results
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <CardContent className="space-y-8">
+                    <div className="grid grid-cols-2 gap-8">
                       <div className="text-center">
-                        <div className={`text-3xl font-bold ${colors.text}`}>{wpm}</div>
-                        <div className="text-sm text-gray-400">Words Per Minute</div>
-                        <Badge className={
-                          wpm >= currentLevelData.minWpm 
-                            ? 'bg-green-500/20 text-green-400 border-green-500/30' 
-                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                        }>
-                          {wpm >= currentLevelData.minWpm ? 'Passed' : 'Practice More'}
+                        <div className="text-5xl font-bold text-cyan-400 mb-2">{levelResults.wpm}</div>
+                        <div className="text-lg text-gray-400 mb-3">Words Per Minute</div>
+                        <Badge className={`text-sm px-4 py-2 ${levelResults.wpm >= currentLevelData.minWpm ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                          {levelResults.wpm >= currentLevelData.minWpm ? 'Target Met' : 'Below Target'}
                         </Badge>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-cyan-400">{accuracy}%</div>
-                        <div className="text-sm text-gray-400">Accuracy</div>
-                        <Badge className={
-                          accuracy >= currentLevelData.minAccuracy 
-                            ? 'bg-green-500/20 text-green-400 border-green-500/30' 
-                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                        }>
-                          {accuracy >= currentLevelData.minAccuracy ? 'Excellent' : 'Good'}
+                        <div className="text-5xl font-bold text-green-400 mb-2">{levelResults.accuracy}%</div>
+                        <div className="text-lg text-gray-400 mb-3">Accuracy</div>
+                        <Badge className={`text-sm px-4 py-2 ${levelResults.accuracy >= currentLevelData.minAccuracy ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                          {levelResults.accuracy >= currentLevelData.minAccuracy ? 'Target Met' : 'Below Target'}
                         </Badge>
                       </div>
                     </div>
 
-                    <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/20">
-                      <p className="text-sm text-gray-300 text-center">
-                        <strong>{currentLevelData.title} Standard:</strong> {currentLevelData.minWpm}+ WPM with {currentLevelData.minAccuracy}%+ accuracy
+                    <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
+                      <p className="text-lg text-center text-gray-300">
+                        <strong>Status:</strong> {levelResults.passed ? 'Level Passed! 🎉' : 'Level Failed - Keep practicing!'}
                       </p>
-                      {allTestsCompleted && (
-                        <p className="text-xs text-gray-400 text-center mt-1">
-                          🎉 You've completed all typing speed tests!
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex gap-4">
-                      <Button
-                        onClick={resetTest}
-                        variant="outline"
-                        className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Retry Test
-                      </Button>
-
-                      {isTestPassed && hasNextTest && (
-                        <Button
-                          onClick={handleNextTest}
-                          className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
-                        >
-                          <ArrowRight className="w-4 h-4 mr-2" />
-                          Next Test
-                        </Button>
-                      )}
-
-                      {allTestsCompleted && (
-                        <Button
-                          onClick={() => router.push('/career-tools/assessments')}
-                          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                        >
-                          <Trophy className="w-4 h-4 mr-2" />
-                          All Tests Complete!
-                        </Button>
-                      )}
+                      <p className="text-sm text-gray-400 text-center mt-2">
+                        Target: {currentLevelData.minWpm}+ WPM, {currentLevelData.minAccuracy}%+ accuracy
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
+
+                <div className="flex gap-6 max-w-4xl mx-auto">
+                  <Button
+                    onClick={handleBackToDifficultySelection}
+                    className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-4 text-lg font-medium"
+                  >
+                    <ArrowLeft className="w-5 h-5 mr-3" />
+                    Back to Main Menu
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Share functionality
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My Typing Speed Test Results',
+                          text: `I achieved ${levelResults.wpm} WPM with ${levelResults.accuracy}% accuracy on ${levelResults.level}!`,
+                          url: window.location.href
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        navigator.clipboard.writeText(`My Typing Speed Test Results: ${levelResults.wpm} WPM with ${levelResults.accuracy}% accuracy on ${levelResults.level}!`);
+                      }
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg font-medium"
+                  >
+                    <Share className="w-5 h-5 mr-3" />
+                    Share
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowLevelResults(false);
+                      resetTest();
+                    }}
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-4 text-lg font-medium"
+                  >
+                    <Play className="w-5 h-5 mr-3" />
+                    Take Again
+                  </Button>
+                </div>
               </motion.div>
+            )}
+
+            {/* Main Test Content */}
+            {!showDifficultySelection && !showLevelResults && (
+              <>
+                {/* Stats Cards */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                >
+                  <Card className="glass-card border-white/10 text-center">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-center mb-2">
+                        <Clock className="w-5 h-5 text-cyan-400 mr-2" />
+                        <span className="text-2xl font-bold text-white">{timeLeft}s</span>
+                      </div>
+                      <p className="text-xs text-gray-400">Time Left</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-white/10 text-center">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-center mb-2">
+                        <Zap className="w-5 h-5 text-yellow-400 mr-2" />
+                        <span className="text-2xl font-bold text-white">
+                          {wpm === 0 && !isActive ? '--' : wpm}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">WPM</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-white/10 text-center">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-center mb-2">
+                        <Target className="w-5 h-5 text-green-400 mr-2" />
+                        <span className="text-2xl font-bold text-white">
+                          {accuracy === 0 && !isActive ? '--' : `${accuracy}%`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">Accuracy</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-white/10 text-center">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-center mb-2">
+                        <Keyboard className="w-5 h-5 text-cyan-400 mr-2" />
+                        <span className="text-2xl font-bold text-white">{totalChars}</span>
+                      </div>
+                      <p className="text-xs text-gray-400">Characters</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Progress Bar */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card className="glass-card border-white/10">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-300">Progress</span>
+                        <span className="text-sm text-gray-300">{Math.round(typingProgress)}%</span>
+                      </div>
+                      <Progress value={typingProgress} className="h-2" />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Test Text */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card className="glass-card border-white/10">
+                    <CardHeader>
+                      <div className="flex items-center justify-between mb-4">
+                        <Badge className={`${colors.bg} ${colors.text} ${colors.border}`}>
+                          {currentLevelData.title}
+                        </Badge>
+                        <span className="text-xs text-gray-400">
+                          Test {currentTestIndex + 1} of {currentLevelData.tests.length}
+                        </span>
+                      </div>
+                      <CardTitle className={`text-white flex items-center gap-2`}>
+                        <Target className={`w-5 h-5 ${colors.icon}`} />
+                        {currentTest.name} - {currentLevelData.title}
+                      </CardTitle>
+                      {currentLevel === 'difficult' && (
+                        <CardDescription className="text-yellow-400 text-sm">
+                          ⚠️ Expert Level: Contains programming syntax, special symbols, and advanced formatting
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div 
+                        className={`bg-gray-900/50 rounded-lg p-6 text-lg leading-relaxed ${
+                          currentLevel === 'hard' || currentLevel === 'difficult' ? 'font-mono' : ''
+                        } ${currentLevel === 'difficult' ? 'border border-red-500/20 text-base' : ''}`}
+                        onCopy={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
+                        style={{ userSelect: 'none' }}
+                      >
+                        {words.map((word, index) => (
+                          <span
+                            key={index}
+                            className={`${getWordColor(index, word)} transition-colors duration-200`}
+                          >
+                            {word}{index < words.length - 1 ? ' ' : ''}
+                          </span>
+                        ))}
+                      </div>
+
+                      <textarea
+                        ref={inputRef}
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        disabled={!isActive || isFinished}
+                        placeholder={isActive ? "Start typing..." : "Click start to begin"}
+                        className={`w-full bg-gray-800/50 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 resize-none ${
+                          currentLevel === 'hard' || currentLevel === 'difficult' ? 'font-mono text-sm h-40' : 'h-32'
+                        }`}
+                        onCopy={(e) => e.preventDefault()}
+                        onPaste={(e) => e.preventDefault()}
+                        onCut={(e) => e.preventDefault()}
+                        onKeyDown={(e) => {
+                          // Prevent common copy/paste shortcuts
+                          if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a')) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+
+                      <div className="flex gap-4">
+                        {!isActive && !isFinished && (
+                          <Button
+                            onClick={startTest}
+                            className={`bg-gradient-to-r ${colors.button} text-white`}
+                          >
+                            <PlayCircle className="w-4 h-4 mr-2" />
+                            {currentLevel === 'difficult' ? 'Start Expert Test' : 'Start Test'}
+                          </Button>
+                        )}
+
+                        <Button
+                          onClick={resetTest}
+                          variant="outline"
+                          className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Reset
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Results */}
+                {isFinished && allTestsCompleted && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <Card className={`glass-card ${colors.border}`}>
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <CheckCircle className={`w-5 h-5 ${colors.icon}`} />
+                          All Tests Completed!
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className={`text-3xl font-bold ${colors.text}`}>{finalResults?.totalWpm || 0}</div>
+                            <div className="text-sm text-gray-400">Average WPM</div>
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              Completed
+                            </Badge>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-cyan-400">{finalResults?.totalAccuracy || 0}%</div>
+                            <div className="text-sm text-gray-400">Average Accuracy</div>
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              Excellent
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/20">
+                          <p className="text-sm text-gray-300 text-center">
+                            <strong>Final Results:</strong> {finalResults?.testsPassed || 0} of {finalResults?.totalTests || 8} tests passed
+                          </p>
+                          <p className="text-xs text-gray-400 text-center mt-1">
+                            🎉 You've completed all typing speed tests!
+                          </p>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <Button
+                            onClick={() => router.push('/career-tools/assessments')}
+                            variant="outline"
+                            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                          >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Main Menu
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              // Share functionality
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: 'My Typing Speed Test Results',
+                                  text: `I achieved ${finalResults?.totalWpm || 0} WPM with ${finalResults?.totalAccuracy || 0}% accuracy across all tests!`,
+                                  url: window.location.href
+                                });
+                              } else {
+                                // Fallback: copy to clipboard
+                                navigator.clipboard.writeText(`My Typing Speed Test Results: ${finalResults?.totalWpm || 0} WPM with ${finalResults?.totalAccuracy || 0}% accuracy across all tests!`);
+                              }
+                            }}
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                          >
+                            <Share className="w-4 h-4 mr-2" />
+                            Share
+                          </Button>
+                          <Button
+                            onClick={resetTest}
+                            className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Take Again
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -615,4 +891,4 @@ export default function TypingSpeedTestPage() {
       </AlertDialog>
     </div>
   );
-} 
+}

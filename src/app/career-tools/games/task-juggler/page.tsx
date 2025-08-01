@@ -38,7 +38,8 @@ import {
   Timer,
   Flame,
   Award,
-  Brain
+  Brain,
+  Share
 } from 'lucide-react';
 
 type TaskPriority = 'high' | 'medium' | 'low';
@@ -802,26 +803,45 @@ export default function TaskJugglerPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center space-x-6">
-                    <Button
-                      onClick={() => setGameState('menu')}
-                      size="lg"
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg px-8 py-3"
-                    >
-                      <RotateCcw className="h-5 w-5 mr-3" />
-                      Play Again
-                    </Button>
-                    <Button
-                      onClick={() => setShowExitDialog(true)}
-                      variant="outline"
-                      size="lg"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-800 text-lg px-8 py-3"
-                    >
-                      Back to Games
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => setGameState('menu')}
+                  className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Main Menu
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Share functionality
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'My Task Juggler Game Results',
+                        text: `I achieved ${gameStats.score} points with ${gameStats.accuracy}% accuracy in task juggling!`,
+                        url: window.location.href
+                      });
+                    } else {
+                      // Fallback: copy to clipboard
+                      navigator.clipboard.writeText(`My Task Juggler Game Results: ${gameStats.score} points with ${gameStats.accuracy}% accuracy in task juggling!`);
+                    }
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                  onClick={() => setGameState('menu')}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Take Again
+                </Button>
+              </div>
             </motion.div>
           )}
         </div>
@@ -829,7 +849,7 @@ export default function TaskJugglerPage() {
       
       {/* Exit Game Alert Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+                    <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
