@@ -1,38 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { syncUserToDatabaseServer } from '@/lib/user-sync-server'
 
-// POST - Sync user to Railway database
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Get user from Supabase auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const userData = await request.json()
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    console.log('📥 Received user sync request:', {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
+      full_name: userData.full_name,
+      location: userData.location,
+      phone: userData.phone,
+      bio: userData.bio,
+      position: userData.position
+    })
 
-    const { id, email, first_name, last_name, full_name, location, avatar_url } = await req.json()
-
-    // Verify the user is syncing their own data
-    if (id !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Validate required fields
+    if (!userData.id || !userData.email) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     // Sync user to Railway database
-    await syncUserToDatabaseServer({
-      id,
-      email,
-      first_name,
-      last_name,
-      full_name,
-      location,
-      avatar_url
+    const result = await syncUserToDatabaseServer({
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name || '',
+      last_name: userData.last_name || '',
+      full_name: userData.full_name || '',
+      location: userData.location || '',
+      avatar_url: userData.avatar_url,
+      phone: userData.phone,
+      bio: userData.bio,
+      position: userData.position
     })
-    
-    return NextResponse.json({ success: true })
+
+    console.log('✅ User sync completed:', result)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Error syncing user to Railway:', error)
+    console.error('❌ Error in user sync API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

@@ -44,6 +44,21 @@ interface HeaderProps {
   className?: string
 }
 
+interface UserProfile {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  full_name: string
+  location: string
+  avatar_url?: string
+  phone?: string
+  bio?: string
+  position?: string
+  created_at: string
+  updated_at: string
+}
+
 // Component to handle search params with Suspense
 function SearchParamsHandler({ 
   user, 
@@ -70,15 +85,74 @@ export default function Header({}: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
 
-  
   const isAuthenticated = !!user
   
-  // Extract user info from Supabase user object
-  const userDisplayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
-  const userInitials = user?.user_metadata?.full_name 
-    ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-    : user?.email?.slice(0, 2).toUpperCase() || 'U'
+  // Fetch user profile from Railway
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          setProfileLoading(true)
+          console.log('🔄 Fetching user profile for:', user.id)
+          const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log('✅ User profile loaded:', data.user)
+            setUserProfile(data.user)
+          } else {
+            console.error('❌ Failed to fetch user profile:', response.status, response.statusText)
+          }
+        } catch (error) {
+          console.error('❌ Error fetching user profile:', error)
+        } finally {
+          setProfileLoading(false)
+        }
+      } else {
+        console.log('⚠️ No user ID available for profile fetch')
+      }
+    }
+
+    fetchUserProfile()
+  }, [user?.id])
+
+  // Function to refresh user profile (can be called from settings after updates)
+  const refreshUserProfile = async () => {
+    if (user?.id) {
+      try {
+        setProfileLoading(true)
+        const response = await fetch(`/api/user/profile?userId=${user.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setUserProfile(data.user)
+        }
+      } catch (error) {
+        console.error('Error refreshing user profile:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+  }
+
+  // Listen for profile updates from settings
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      refreshUserProfile()
+    }
+
+    window.addEventListener('profileUpdated', handleProfileUpdate)
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate)
+    }
+  }, [user?.id])
+  
+  // Extract user info from Railway data only
+  const userDisplayName = profileLoading ? 'Loading...' : (userProfile?.full_name || 'User')
+  const userInitials = profileLoading ? 'L' : (userProfile?.full_name 
+    ? userProfile.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
+    : 'U')
   
   // Mock level and XP for now - these would come from your app's database
   const userLevel = 12 // This would be fetched from your user profile table
@@ -215,10 +289,18 @@ export default function Header({}: HeaderProps) {
                 {/* User Menu */}
                 <div className="relative group">
                   <button className="flex items-center space-x-2 glass-button px-3 py-2 rounded-lg">
-                    <div className="w-6 h-6 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-black">
-                        {userInitials}
-                      </span>
+                    <div className="w-6 h-6 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center overflow-hidden">
+                      {userProfile?.avatar_url ? (
+                        <img
+                          src={userProfile.avatar_url}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-bold text-black">
+                          {userInitials}
+                        </span>
+                      )}
                     </div>
                     <span className="text-sm font-medium hidden sm:block">{userDisplayName}</span>
                   </button>
@@ -282,10 +364,18 @@ export default function Header({}: HeaderProps) {
                     {isAuthenticated && user && (
                       <div className="glass-card p-4 rounded-lg">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-bold text-black">
-                              {userInitials}
-                            </span>
+                          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center overflow-hidden">
+                            {userProfile?.avatar_url ? (
+                              <img
+                                src={userProfile.avatar_url}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-sm font-bold text-black">
+                                {userInitials}
+                              </span>
+                            )}
                           </div>
                           <div>
                             <p className="font-medium">{userDisplayName}</p>

@@ -1,42 +1,93 @@
 import pool from './database'
 
-// Server-side only function for syncing user to Railway database
-export const syncUserToDatabaseServer = async (userData: {
+interface UserData {
   id: string
   email: string
   first_name: string
   last_name: string
   full_name: string
   location: string
-  avatar_url?: string | null
-}) => {
+  avatar_url?: string
+  phone?: string
+  bio?: string
+  position?: string
+}
+
+export const syncUserToDatabaseServer = async (userData: UserData) => {
+  const client = await pool.connect()
+  
   try {
-    // Insert or update user in Railway database
-    await pool.query(`
-      INSERT INTO users (id, email, first_name, last_name, full_name, location, avatar_url) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) 
-      ON CONFLICT (id) 
-      DO UPDATE SET 
-        email = EXCLUDED.email,
-        first_name = EXCLUDED.first_name,
-        last_name = EXCLUDED.last_name,
-        full_name = EXCLUDED.full_name,
-        location = EXCLUDED.location,
-        avatar_url = EXCLUDED.avatar_url,
-        updated_at = NOW()
-    `, [
-      userData.id,
-      userData.email,
-      userData.first_name,
-      userData.last_name,
-      userData.full_name,
-      userData.location,
-      userData.avatar_url
-    ])
+    console.log('🔄 Syncing user to Railway database:', userData.id)
     
-    console.log('User synced to Railway database:', userData.id)
+    // Generate full_name from first_name and last_name
+    const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim()
+    
+    // Check if user already exists
+    const checkQuery = 'SELECT id FROM users WHERE id = $1'
+    const checkResult = await client.query(checkQuery, [userData.id])
+    
+    if (checkResult.rows.length > 0) {
+      // Update existing user
+      console.log('📝 Updating existing user in Railway')
+      
+      // Get existing user data to preserve avatar_url if not provided
+      const existingUserQuery = 'SELECT avatar_url FROM users WHERE id = $1'
+      const existingUserResult = await client.query(existingUserQuery, [userData.id])
+      const existingAvatarUrl = existingUserResult.rows[0]?.avatar_url
+      
+      // Preserve existing avatar_url if new one is not provided
+      const avatarUrl = userData.avatar_url || existingAvatarUrl
+      
+      const updateQuery = `
+        UPDATE users 
+        SET email = $2, first_name = $3, last_name = $4, full_name = $5, 
+            location = $6, avatar_url = $7, phone = $8, bio = $9, position = $10, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `
+      const updateResult = await client.query(updateQuery, [
+        userData.id,
+        userData.email,
+        userData.first_name,
+        userData.last_name,
+        fullName,
+        userData.location,
+        avatarUrl,
+        userData.phone || null,
+        userData.bio || null,
+        userData.position || null
+      ])
+      
+      console.log('✅ User updated in Railway:', updateResult.rows[0])
+      return { success: true, action: 'updated', user: updateResult.rows[0] }
+    } else {
+      // Insert new user
+      console.log('➕ Inserting new user in Railway')
+      const insertQuery = `
+        INSERT INTO users (id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *
+      `
+      const insertResult = await client.query(insertQuery, [
+        userData.id,
+        userData.email,
+        userData.first_name,
+        userData.last_name,
+        fullName,
+        userData.location,
+        userData.avatar_url || null,
+        userData.phone || null,
+        userData.bio || null,
+        userData.position || null
+      ])
+      
+      console.log('✅ User inserted in Railway:', insertResult.rows[0])
+      return { success: true, action: 'inserted', user: insertResult.rows[0] }
+    }
   } catch (error) {
-    console.error('Error syncing user to Railway:', error)
+    console.error('❌ Error syncing user to Railway:', error)
     throw error
+  } finally {
+    client.release()
   }
 } 

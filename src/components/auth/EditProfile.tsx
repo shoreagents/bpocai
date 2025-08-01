@@ -41,6 +41,7 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
     lastName: '',
     email: '',
     phone: '',
+    position: '',
     location: '',
     jobTitle: '',
     company: '',
@@ -56,6 +57,7 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
         lastName: metadata.last_name || '',
         email: user.email || '',
         phone: metadata.phone || '',
+        position: metadata.position || '',
         location: metadata.location || '',
         jobTitle: metadata.job_title || '',
         company: metadata.company || '',
@@ -116,6 +118,7 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
         last_name: profileData.lastName,
         full_name: `${profileData.firstName} ${profileData.lastName}`,
         phone: profileData.phone,
+        position: profileData.position,
         location: profileData.location,
         job_title: profileData.jobTitle,
         company: profileData.company,
@@ -286,7 +289,7 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                 <p className="text-xs text-gray-400">Email cannot be changed. Contact support if needed.</p>
               </div>
 
-              {/* Phone and Location */}
+              {/* Phone and Position */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="phone" className="text-sm font-medium text-white block">
@@ -312,21 +315,40 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="location" className="text-sm font-medium text-white block">
-                    Location
+                  <label htmlFor="position" className="text-sm font-medium text-white block">
+                    Position
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                      id="location"
+                      id="position"
                       type="text"
-                      placeholder="e.g., Clark, Pampanga"
-                      value={profileData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      placeholder="e.g., Software Engineer"
+                      value={profileData.position}
+                      onChange={(e) => handleInputChange('position', e.target.value)}
                       className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
                       disabled={isLoading}
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <label htmlFor="location" className="text-sm font-medium text-white block">
+                  Location
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="location"
+                    type="text"
+                    placeholder="e.g., Clark, Pampanga"
+                    value={profileData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
             </div>

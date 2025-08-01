@@ -1,72 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import pool from '@/lib/database'
 
-// GET user profile from Railway database
-export async function GET(req: NextRequest) {
+// GET - Fetch user profile from Railway
+export async function GET(request: NextRequest) {
   try {
-    // Get user from Supabase auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    // Get user profile from Railway database
-    const result = await pool.query(
-      'SELECT id, email, first_name, last_name, full_name, location, avatar_url, created_at, updated_at FROM users WHERE id = $1',
-      [user.id]
-    )
+    console.log('🔍 API: Fetching profile for user:', userId)
+
+    const query = `
+      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, created_at, updated_at
+      FROM users 
+      WHERE id = $1
+    `
+    const result = await pool.query(query, [userId])
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      console.log('❌ API: User not found:', userId)
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json(result.rows[0])
+    const user = result.rows[0]
+    console.log('✅ API: User profile loaded:', {
+      id: user.id,
+      full_name: user.full_name,
+      avatar_url: user.avatar_url,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      location: user.location,
+      phone: user.phone,
+      bio: user.bio,
+      position: user.position,
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    })
+    console.log('🔍 API: Raw database result:', user)
+
+    return NextResponse.json({ user })
   } catch (error) {
-    console.error('Error fetching user profile:', error)
+    console.error('❌ API: Error fetching user profile:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// UPDATE user profile in Railway database
-export async function PUT(req: NextRequest) {
+// PUT - Update user profile in Railway
+export async function PUT(request: NextRequest) {
   try {
-    // Get user from Supabase auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId, ...updateData } = await request.json()
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    const { first_name, last_name, full_name, location, avatar_url } = await req.json()
+    console.log('🔄 API: Updating profile for user:', userId)
+    console.log('📊 API: Update data received:', updateData)
 
-    // Update user profile in Railway database
-    const result = await pool.query(`
+    // Generate full_name from first_name and last_name
+    const fullName = `${updateData.first_name || ''} ${updateData.last_name || ''}`.trim()
+
+    const query = `
       UPDATE users 
-      SET first_name = $1, last_name = $2, full_name = $3, location = $4, avatar_url = $5, updated_at = NOW()
-      WHERE id = $6 
+      SET first_name = $2, last_name = $3, full_name = $4, location = $5, 
+          avatar_url = $6, phone = $7, bio = $8, position = $9, updated_at = NOW()
+      WHERE id = $1
       RETURNING *
-    `, [first_name, last_name, full_name, location, avatar_url, user.id])
+    `
+    const result = await pool.query(query, [
+      userId,
+      updateData.first_name,
+      updateData.last_name,
+      fullName,
+      updateData.location,
+      updateData.avatar_url,
+      updateData.phone,
+      updateData.bio,
+      updateData.position
+    ])
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      console.log('❌ API: User not found for update:', userId)
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Also update Supabase user metadata
-    await supabase.auth.updateUser({
-      data: {
-        first_name,
-        last_name,
-        full_name,
-        location,
-        avatar_url
-      }
+    const updatedUser = result.rows[0]
+    console.log('✅ API: User profile updated:', {
+      id: updatedUser.id,
+      full_name: updatedUser.full_name,
+      avatar_url: updatedUser.avatar_url
     })
 
-    return NextResponse.json(result.rows[0])
+    return NextResponse.json({ user: updatedUser })
   } catch (error) {
-    console.error('Error updating user profile:', error)
+    console.error('❌ API: Error updating user profile:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 
