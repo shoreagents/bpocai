@@ -429,7 +429,7 @@ function parseClaudeResponse(responseText: string, resumeData: any): AnalysisRes
           { step: '2', title: 'Quality Analyst', description: 'Monitor service quality' }
         ],
         skillGaps: ['Leadership skills', 'Advanced analytics'],
-        timeline: '2-3 years for promotion',
+        timeline: '  for promotion',
         timelineDetails: 'Focus on developing leadership skills and taking on additional responsibilities'
       },
       sectionAnalysis: parsed.sectionAnalysis || {
