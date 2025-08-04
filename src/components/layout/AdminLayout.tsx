@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   LayoutDashboard,
   Users,
@@ -30,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
 interface SidebarItem {
@@ -121,6 +123,7 @@ export default function AdminLayout({
   description = "Manage BPOC.AI platform",
   adminUser 
 }: AdminLayoutProps) {
+  const { user } = useAuth()
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management', 'settings']))
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
@@ -353,17 +356,24 @@ export default function AdminLayout({
                     "flex items-center",
                     sidebarMinimized ? "justify-center" : "space-x-3"
                   )}>
-                    <UserCircle className={cn(
-                      "text-cyan-400",
+                    <Avatar className={cn(
                       sidebarMinimized ? "w-8 h-8" : "w-10 h-10"
-                    )} />
+                    )}>
+                      <AvatarImage 
+                        src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} 
+                        alt={adminUser?.full_name || 'Admin'}
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white">
+                        <UserCircle className="w-4 h-4" />
+                      </AvatarFallback>
+                    </Avatar>
                     {!sidebarMinimized && (
                       <div className="text-left">
                         <p className="text-sm font-medium text-white">
-                          {adminUser?.full_name || 'Admin'}
+                          {adminUser?.full_name || user?.user_metadata?.full_name || 'Admin'}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {adminUser?.email || 'admin@bpoc.ai'}
+                          {adminUser?.email || user?.email || 'admin@bpoc.ai'}
                         </p>
                         <p className="text-xs text-cyan-400">
                           {adminUser?.admin_level === 'admin' ? 'Admin' : 'User'}
