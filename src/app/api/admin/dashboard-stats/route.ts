@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import pool from '@/lib/database'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Get user ID from query parameter
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
     
-    // Verify admin status
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error } = await supabase.auth.getUser(token)
-    
-    if (error || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
     // Check if user is admin
@@ -27,7 +16,7 @@ export async function GET(request: NextRequest) {
       SELECT id FROM users 
       WHERE id = $1 AND is_admin = true
     `
-    const adminResult = await pool.query(adminQuery, [user.id])
+    const adminResult = await pool.query(adminQuery, [userId])
     
     if (adminResult.rows.length === 0) {
       return NextResponse.json({ error: 'Not admin' }, { status: 403 })

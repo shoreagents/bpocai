@@ -39,7 +39,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const response = await fetch('/api/admin/check-status')
+      // Check admin status directly in Railway database
+      const response = await fetch(`/api/admin/check-status?userId=${user.id}`)
       const data = await response.json()
       
       if (data.isAdmin) {
@@ -59,13 +60,19 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const logAdminAction = async (action: string, details?: string) => {
-    if (!isAdmin) return
+    if (!isAdmin || !user) return
 
     try {
       await fetch('/api/admin/log-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, details })
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          action, 
+          details,
+          userId: user.id 
+        })
       })
     } catch (error) {
       console.error('Error logging admin action:', error)

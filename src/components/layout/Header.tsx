@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   Menu, 
@@ -85,6 +85,7 @@ export default function Header({}: HeaderProps) {
   const { user, signOut, loading } = useAuth()
   const { isAdmin } = useAdmin()
   const pathname = usePathname()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
@@ -92,7 +93,14 @@ export default function Header({}: HeaderProps) {
   const [profileLoading, setProfileLoading] = useState(false)
 
   const isAuthenticated = !!user
-  
+   
+  // Redirect non-admin users away from admin routes
+  useEffect(() => {
+    if (user && !isAdmin && pathname.startsWith('/admin')) {
+      router.push('/home')
+    }
+  }, [isAdmin, user, pathname, router])
+
   // Fetch user profile from Railway
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -168,11 +176,6 @@ export default function Header({}: HeaderProps) {
     { title: 'About', href: '/about', icon: Users }
   ]
 
-  // Add admin navigation items if user is admin
-  const adminNavigationItems = isAdmin ? [
-    { title: 'Admin', href: '/admin', icon: Shield }
-  ] : []
-
   // Check if navigation item is active
   const isActiveRoute = (href: string) => {
     if (href === '/home') {
@@ -201,9 +204,7 @@ export default function Header({}: HeaderProps) {
 
   // Add admin menu items if user is admin
   const adminMenuItems = isAdmin ? [
-    { label: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield, action: null },
-    { label: 'User Management', href: '/admin/users', icon: Users, action: null },
-    { label: 'Analytics', href: '/admin/analytics', icon: Trophy, action: null }
+    { label: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield, action: null }
   ] : []
 
   // Combine regular and admin menu items
@@ -279,27 +280,6 @@ export default function Header({}: HeaderProps) {
                   {/* Active indicator */}
                   <div className={cn(
                     "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-200",
-                    isActive ? "w-full" : "w-0 group-hover:w-full"
-                  )} />
-                </Link>
-              )
-            })}
-            {/* Admin Navigation */}
-            {adminNavigationItems.map((item) => {
-              const isActive = isActiveRoute(item.href)
-              return (
-                <Link
-                  key={item.title}
-                  href={item.href}
-                  className={cn(
-                    "relative font-medium transition-all duration-200 group text-red-400 hover:text-red-300",
-                    isActive && "text-red-300"
-                  )}
-                >
-                  {item.title}
-                  {/* Active indicator */}
-                  <div className={cn(
-                    "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-red-400 to-red-500 transition-all duration-200",
                     isActive ? "w-full" : "w-0 group-hover:w-full"
                   )} />
                 </Link>
@@ -432,30 +412,6 @@ export default function Header({}: HeaderProps) {
                             {/* Active indicator for mobile */}
                             {isActive && (
                               <div className="absolute right-3 w-2 h-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full" />
-                            )}
-                          </Link>
-                        )
-                      })}
-                      {/* Admin Mobile Navigation */}
-                      {adminNavigationItems.map((item) => {
-                        const isActive = isActiveRoute(item.href)
-                        return (
-                          <Link
-                            key={item.title}
-                            href={item.href}
-                            className={cn(
-                              "flex items-center p-3 rounded-lg transition-all duration-200 font-medium relative text-red-400",
-                              isActive 
-                                ? "bg-gradient-to-r from-red-500/20 to-red-600/20 text-red-300 border border-red-500/30" 
-                                : "hover:bg-white/10"
-                            )}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            <item.icon className="w-5 h-5 mr-3" />
-                            {item.title}
-                            {/* Active indicator for mobile */}
-                            {isActive && (
-                              <div className="absolute right-3 w-2 h-2 bg-gradient-to-r from-red-400 to-red-500 rounded-full" />
                             )}
                           </Link>
                         )

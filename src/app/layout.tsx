@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://bpocai-production.up.railway.app'),
+  metadataBase: new URL('https://www.bpoc.io'),
   title: "BPOC.AI - Where BPO Careers Begin",
   description: "The ultimate AI-powered BPO recruitment platform for Filipino professionals. Build your career with FREE resume builder, skill assessments, and career games.",
   keywords: "BPO, career, resume builder, AI, Philippines, job matching, skills assessment, customer service, technical support, sales",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "BPOC.AI - Where BPO Careers Begin",
     description: "Revolutionizing BPO recruitment with AI-powered tools for Filipino professionals",
-    url: "https://bpoc.ai",
+    url: "https://www.bpoc.io",
     siteName: "BPOC.AI",
     images: [
       {
