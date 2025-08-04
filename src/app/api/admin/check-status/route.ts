@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user is admin in the Railway users table
     const query = `
-      SELECT id, email, full_name, is_admin, admin_level 
+      SELECT id, email, full_name, is_admin, admin_level, avatar_url 
       FROM users 
       WHERE id = $1 AND is_admin = true
     `

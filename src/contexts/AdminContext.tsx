@@ -43,9 +43,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       const response = await fetch(`/api/admin/check-status?userId=${user.id}`)
       const data = await response.json()
       
+      console.log('🔍 Admin check response:', data) // Debug log
+      
       if (data.isAdmin) {
         setIsAdmin(true)
         setAdminUser(data.adminUser)
+        console.log('✅ Admin user data:', data.adminUser) // Debug log
       } else {
         setIsAdmin(false)
         setAdminUser(null)

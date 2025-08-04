@@ -112,6 +112,7 @@ interface AdminLayoutProps {
     full_name: string
     is_admin: boolean
     admin_level: 'user' | 'admin'
+    avatar_url?: string
   } | null
 }
 
@@ -125,6 +126,13 @@ export default function AdminLayout({
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   const pathname = usePathname()
+
+  // Get user initials for avatar fallback
+  const getUserInitials = (fullName: string) => {
+    return fullName 
+      ? fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
+      : 'A'
+  }
 
   const toggleExpanded = (itemTitle: string) => {
     const newExpanded = new Set(expandedItems)
@@ -353,10 +361,26 @@ export default function AdminLayout({
                     "flex items-center",
                     sidebarMinimized ? "justify-center" : "space-x-3"
                   )}>
-                    <UserCircle className={cn(
-                      "text-cyan-400",
+                    {/* Avatar */}
+                    <div className={cn(
+                      "bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center overflow-hidden",
                       sidebarMinimized ? "w-8 h-8" : "w-10 h-10"
-                    )} />
+                    )}>
+                      {adminUser?.avatar_url ? (
+                        <img
+                          src={adminUser.avatar_url}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className={cn(
+                          "font-bold text-black",
+                          sidebarMinimized ? "text-xs" : "text-sm"
+                        )}>
+                          {getUserInitials(adminUser?.full_name || 'Admin')}
+                        </span>
+                      )}
+                    </div>
                     {!sidebarMinimized && (
                       <div className="text-left">
                         <p className="text-sm font-medium text-white">
