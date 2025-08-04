@@ -143,7 +143,6 @@ export default function AdminLayout({
     const isActive = pathname === item.href || 
                     (pathname === '/admin/dashboard' && item.title === 'Dashboard') ||
                     (pathname === '/admin/users' && item.title === 'Users')
-    const isActive = pathname === item.href || (pathname === '/admin/dashboard' && item.title === 'Dashboard')
 
     // Define category colors
     const getCategoryColor = (category: string) => {
