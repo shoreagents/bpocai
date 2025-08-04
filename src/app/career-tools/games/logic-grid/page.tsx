@@ -1180,11 +1180,7 @@ export default function LogicGridGame() {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      if (gameState === 'playing') {
-                        setShowExitDialog(true);
-                      } else {
-                        router.back();
-                      }
+                      router.back();
                     }}
                     className="mr-4 text-gray-400 hover:text-white"
                   >

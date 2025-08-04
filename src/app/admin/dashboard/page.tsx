@@ -1,0 +1,169 @@
+'use client'
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Users, 
+  FileText, 
+  Gamepad2, 
+  ClipboardList
+} from 'lucide-react'
+import AdminLayout from '@/components/layout/AdminLayout'
+import { LineChartComponent, PieChartComponent } from '@/components/ui/charts'
+
+// Sample data for system charts
+const systemHealthData = [
+  { name: 'Mon', health: 98.5 },
+  { name: 'Tue', health: 99.2 },
+  { name: 'Wed', health: 99.8 },
+  { name: 'Thu', health: 99.5 },
+  { name: 'Fri', health: 99.9 },
+  { name: 'Sat', health: 99.7 },
+  { name: 'Sun', health: 99.6 }
+]
+
+const serviceDistributionData = [
+  { name: 'Database', value: 35, color: '#3b82f6' },
+  { name: 'AI Services', value: 25, color: '#10b981' },
+  { name: 'File Storage', value: 20, color: '#8b5cf6' },
+  { name: 'Email Service', value: 15, color: '#f59e0b' },
+  { name: 'Other Services', value: 5, color: '#ef4444' }
+]
+
+export default function AdminDashboardPage() {
+  return (
+    <AdminLayout title="Dashboard" description="Platform overview and analytics">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-400">Total Users</CardTitle>
+              <Users className="w-4 h-4 text-cyan-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">12,847</div>
+            <p className="text-xs text-green-400 mt-1">+12.5% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-400">Active Resumes</CardTitle>
+              <FileText className="w-4 h-4 text-purple-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">8,234</div>
+            <p className="text-xs text-green-400 mt-1">+8.2% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-400">Games Played</CardTitle>
+              <Gamepad2 className="w-4 h-4 text-green-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">45,123</div>
+            <p className="text-xs text-green-400 mt-1">+15.3% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-white/10">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-400">Assessments</CardTitle>
+              <ClipboardList className="w-4 h-4 text-yellow-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">23,456</div>
+            <p className="text-xs text-green-400 mt-1">+6.7% from last month</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="glass-card border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white">Recent Activity</CardTitle>
+            <CardDescription className="text-gray-400">Latest platform interactions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                { user: 'Maria Santos', action: 'Completed Logic Grid Game', time: '2 minutes ago' },
+                { user: 'John Dela Cruz', action: 'Updated Resume', time: '5 minutes ago' },
+                { user: 'Ana Rodriguez', action: 'Took DISC Assessment', time: '12 minutes ago' },
+                { user: 'Carlos Garcia', action: 'Started Typing Test', time: '18 minutes ago' }
+              ].map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-black">
+                      {activity.user.split(' ').map(n => n[0]).join('')}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white">{activity.user}</p>
+                    <p className="text-xs text-gray-400">{activity.action}</p>
+                  </div>
+                  <span className="text-xs text-gray-500">{activity.time}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white">System Charts</CardTitle>
+            <CardDescription className="text-gray-400">Performance monitoring with charts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* System Health Chart */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-white">System Health Score</h4>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-white">99.5%</div>
+                    <div className="text-xs text-green-400">Current Score</div>
+                  </div>
+                </div>
+                <div className="h-48 bg-white/5 rounded-lg p-4">
+                  <LineChartComponent 
+                    data={systemHealthData} 
+                    dataKey="health" 
+                    stroke="#10b981"
+                  />
+                </div>
+              </div>
+
+              {/* Service Distribution Chart */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-white">Service Load Distribution</h4>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-white">100%</div>
+                    <div className="text-xs text-blue-400">Total Load</div>
+                  </div>
+                </div>
+                <div className="h-48 bg-white/5 rounded-lg p-4">
+                  <PieChartComponent 
+                    data={serviceDistributionData}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AdminLayout>
+  )
+} 

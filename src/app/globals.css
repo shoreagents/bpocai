@@ -282,4 +282,103 @@
   }
 }
 
+/* Override Recharts tooltip styling */
+.recharts-tooltip-wrapper {
+  background: transparent !important;
+}
+
+.recharts-default-tooltip {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  border-radius: 8px !important;
+  color: #f9fafb !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  padding: 8px 12px !important;
+}
+
+.recharts-tooltip-item {
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.recharts-tooltip-item-list {
+  background: transparent !important;
+}
+
+.recharts-tooltip-label {
+  color: #f9fafb !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+}
+
+.recharts-tooltip-separator {
+  background-color: #374151 !important;
+}
+
+/* Additional tooltip overrides */
+.recharts-tooltip-wrapper * {
+  background: transparent !important;
+}
+
+.recharts-tooltip-content {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  border-radius: 8px !important;
+  color: #f9fafb !important;
+}
+
+/* Ensure tooltip arrow is also styled */
+.recharts-tooltip-cursor {
+  fill: rgba(55, 65, 81, 0.3) !important;
+}
+
+/* Fix for any remaining white backgrounds */
+.recharts-tooltip-wrapper,
+.recharts-tooltip-wrapper *,
+.recharts-default-tooltip,
+.recharts-tooltip-content {
+  background-color: #1f2937 !important;
+  background: #1f2937 !important;
+}
+
+/* Specific override for tooltip items */
+.recharts-tooltip-item-list .recharts-tooltip-item {
+  background: transparent !important;
+  color: #9ca3af !important;
+}
+
+/* Custom scrollbar styles */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.scrollbar-thumb-white\/20 {
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.scrollbar-track-transparent {
+  scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
+}
+
 
