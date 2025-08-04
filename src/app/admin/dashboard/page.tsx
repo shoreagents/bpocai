@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import AdminRouteGuard from '@/components/admin/AdminRouteGuard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+
 import { 
   Users, 
   FileText,
@@ -55,6 +56,8 @@ const recentActivity = [
   { id: 7, user: 'Emma Wilson', initials: 'EW', action: 'Finished Communication Test', time: '45 minutes ago', type: 'assessment' },
   { id: 8, user: 'Mike Chen', initials: 'MC', action: 'Updated Profile', time: '1 hour ago', type: 'profile' }
 ]
+
+
 
 export default function AdminDashboardPage() {
   const { adminUser } = useAdmin()
@@ -170,12 +173,11 @@ export default function AdminDashboardPage() {
                       <div className="text-xs text-green-400">Current Score</div>
                     </div>
                   </div>
-                  <div className="h-48 bg-white/5 rounded-lg p-4">
-                    <LineChartComponent 
-                      data={systemHealthData} 
-                      dataKey="health" 
-                      stroke="#10b981"
-                    />
+                  <div className="h-48 bg-white/5 rounded-lg p-4 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white">99.5%</div>
+                      <div className="text-sm text-gray-400">System Health</div>
+                    </div>
                   </div>
                 </div>
 
@@ -188,10 +190,11 @@ export default function AdminDashboardPage() {
                       <div className="text-xs text-blue-400">Total Load</div>
                     </div>
                   </div>
-                  <div className="h-48 bg-white/5 rounded-lg p-4">
-                    <PieChartComponent 
-                      data={serviceDistributionData}
-                    />
+                  <div className="h-48 bg-white/5 rounded-lg p-4 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white">100%</div>
+                      <div className="text-sm text-gray-400">Service Load</div>
+                    </div>
                   </div>
                 </div>
               </div>
