@@ -18,7 +18,7 @@ import {
 } from 'recharts'
 
 // Line Chart Component
-export function LineChartComponent({ data, dataKey, stroke = "#3b82f6" }: {
+export function LineChartComponent({ data, dataKey, stroke = "#06b6d4" }: {
   data: any[]
   dataKey: string
   stroke?: string
@@ -41,8 +41,8 @@ export function LineChartComponent({ data, dataKey, stroke = "#3b82f6" }: {
           type="monotone" 
           dataKey={dataKey} 
           stroke={stroke} 
-          strokeWidth={2}
-          dot={{ fill: stroke, strokeWidth: 2, r: 4 }}
+          strokeWidth={3}
+          dot={{ fill: stroke, strokeWidth: 2, r: 5 }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -50,7 +50,7 @@ export function LineChartComponent({ data, dataKey, stroke = "#3b82f6" }: {
 }
 
 // Area Chart Component
-export function AreaChartComponent({ data, dataKey, fill = "#3b82f6" }: {
+export function AreaChartComponent({ data, dataKey, fill = "#10b981" }: {
   data: any[]
   dataKey: string
   fill?: string
@@ -58,6 +58,12 @@ export function AreaChartComponent({ data, dataKey, fill = "#3b82f6" }: {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <AreaChart data={data}>
+        <defs>
+          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={fill} stopOpacity={0.8}/>
+            <stop offset="95%" stopColor={fill} stopOpacity={0.1}/>
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis 
           dataKey="name" 
@@ -72,9 +78,9 @@ export function AreaChartComponent({ data, dataKey, fill = "#3b82f6" }: {
         <Area 
           type="monotone" 
           dataKey={dataKey} 
-          fill={fill} 
+          fill="url(#areaGradient)" 
           stroke={fill}
-          strokeWidth={2}
+          strokeWidth={3}
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -82,7 +88,7 @@ export function AreaChartComponent({ data, dataKey, fill = "#3b82f6" }: {
 }
 
 // Bar Chart Component
-export function BarChartComponent({ data, dataKey, fill = "#3b82f6" }: {
+export function BarChartComponent({ data, dataKey, fill = "#8b5cf6" }: {
   data: any[]
   dataKey: string
   fill?: string
@@ -90,6 +96,12 @@ export function BarChartComponent({ data, dataKey, fill = "#3b82f6" }: {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data}>
+        <defs>
+          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={fill} stopOpacity={1}/>
+            <stop offset="95%" stopColor={fill} stopOpacity={0.7}/>
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis 
           dataKey="name" 
@@ -101,7 +113,7 @@ export function BarChartComponent({ data, dataKey, fill = "#3b82f6" }: {
           fontSize={12}
         />
         <Tooltip />
-        <Bar dataKey={dataKey} fill={fill} radius={[4, 4, 0, 0]} />
+        <Bar dataKey={dataKey} fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

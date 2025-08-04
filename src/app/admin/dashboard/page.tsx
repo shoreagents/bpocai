@@ -7,30 +7,53 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { 
   Users, 
-  FileText, 
-  Gamepad2, 
-  ClipboardList
+  FileText,
+  Gamepad2,
+  ClipboardList,
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  ChevronDown
 } from 'lucide-react'
 import AdminLayout from '@/components/layout/AdminLayout'
-import { LineChartComponent, PieChartComponent } from '@/components/ui/charts'
 
-// Sample data for system charts
-const systemHealthData = [
-  { name: 'Mon', health: 98.5 },
-  { name: 'Tue', health: 99.2 },
-  { name: 'Wed', health: 99.8 },
-  { name: 'Thu', health: 99.5 },
-  { name: 'Fri', health: 99.9 },
-  { name: 'Sat', health: 99.7 },
-  { name: 'Sun', health: 99.6 }
+// Dummy data for charts
+const userEngagementData = [
+  { name: 'Mon', users: 65 },
+  { name: 'Tue', users: 72 },
+  { name: 'Wed', users: 85 },
+  { name: 'Thu', users: 78 },
+  { name: 'Fri', users: 90 },
+  { name: 'Sat', users: 95 },
+  { name: 'Sun', users: 87 }
 ]
 
-const serviceDistributionData = [
-  { name: 'Database', value: 35, color: '#3b82f6' },
-  { name: 'AI Services', value: 25, color: '#10b981' },
-  { name: 'File Storage', value: 20, color: '#8b5cf6' },
-  { name: 'Email Service', value: 15, color: '#f59e0b' },
-  { name: 'Other Services', value: 5, color: '#ef4444' }
+const revenueData = [
+  { name: 'Jan', revenue: 28000 },
+  { name: 'Feb', revenue: 32000 },
+  { name: 'Mar', revenue: 35000 },
+  { name: 'Apr', revenue: 42000 },
+  { name: 'May', revenue: 38000 },
+  { name: 'Jun', revenue: 45000 }
+]
+
+const platformUsageData = [
+  { name: 'Resume Builder', usage: 45 },
+  { name: 'Career Tools', usage: 30 },
+  { name: 'Games', usage: 15 },
+  { name: 'Assessments', usage: 10 }
+]
+
+const recentActivity = [
+  { id: 1, user: 'Maria Santos', initials: 'MS', action: 'Completed Logic Grid Game', time: '2 minutes ago', type: 'game' },
+  { id: 2, user: 'John Dela Cruz', initials: 'JDC', action: 'Updated Resume', time: '5 minutes ago', type: 'resume' },
+  { id: 3, user: 'Ana Rodriguez', initials: 'AR', action: 'Took DISC Assessment', time: '12 minutes ago', type: 'assessment' },
+  { id: 4, user: 'Carlos Garcia', initials: 'CG', action: 'Started Typing Test', time: '18 minutes ago', type: 'assessment' },
+  { id: 5, user: 'Lisa Park', initials: 'LP', action: 'Completed Resume Builder', time: '25 minutes ago', type: 'resume' },
+  { id: 6, user: 'David Brown', initials: 'DB', action: 'Played Inbox Zero', time: '32 minutes ago', type: 'game' },
+  { id: 7, user: 'Emma Wilson', initials: 'EW', action: 'Finished Communication Test', time: '45 minutes ago', type: 'assessment' },
+  { id: 8, user: 'Mike Chen', initials: 'MC', action: 'Updated Profile', time: '1 hour ago', type: 'profile' }
 ]
 
 export default function AdminDashboardPage() {

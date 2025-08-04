@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard,
   Users,
@@ -137,9 +137,12 @@ export default function AdminLayout({
   }
 
   const SidebarItem = ({ item, level = 0, category = 'platform' }: { item: SidebarItem; level?: number; category?: string }) => {
+    const router = useRouter()
     const isExpanded = expandedItems.has(item.title)
     const hasChildren = item.children && item.children.length > 0
-    const isActive = pathname === item.href || (pathname === '/admin/dashboard' && item.title === 'Dashboard')
+    const isActive = pathname === item.href || 
+                    (pathname === '/admin/dashboard' && item.title === 'Dashboard') ||
+                    (pathname === '/admin/users' && item.title === 'Users')
 
     // Define category colors
     const getCategoryColor = (category: string) => {
@@ -155,10 +158,18 @@ export default function AdminLayout({
       }
     }
 
+    const handleClick = () => {
+      if (item.href) {
+        router.push(item.href)
+      } else if (hasChildren) {
+        toggleExpanded(item.title)
+      }
+    }
+
     return (
       <div>
         <button
-          onClick={() => hasChildren ? toggleExpanded(item.title) : undefined}
+          onClick={handleClick}
           className={cn(
             "w-full flex items-center rounded-lg transition-all duration-200 group",
             level === 0 ? "font-medium" : "font-normal",
@@ -213,8 +224,15 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="flex">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden cyber-grid">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div className="flex relative z-10">
         {/* Sidebar */}
         <div className={cn(
           "h-screen fixed left-0 top-0 glass-card border-r border-white/10 overflow-y-auto transition-all duration-300",
@@ -240,9 +258,10 @@ export default function AdminLayout({
                   </div>
                   <button
                     onClick={() => setSidebarMinimized(!sidebarMinimized)}
-                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    className="p-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/10"
+                    title="Minimize sidebar"
                   >
-                    <ChevronLeft className="w-4 h-4 text-gray-400" />
+                    <ChevronLeft className="w-4 h-4 text-gray-300 hover:text-white" />
                   </button>
                 </div>
               )}
@@ -253,9 +272,10 @@ export default function AdminLayout({
               <div className="flex justify-center mb-4">
                 <button
                   onClick={() => setSidebarMinimized(!sidebarMinimized)}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/10"
+                  title="Expand sidebar"
                 >
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-gray-300 hover:text-white" />
                 </button>
               </div>
             )}
@@ -282,15 +302,15 @@ export default function AdminLayout({
 
             {/* Management Section */}
             <div className="mb-6">
-              <div className={cn(
-                "flex items-center mb-3",
-                sidebarMinimized ? "justify-center" : "space-x-2"
-              )}>
-                                 <Cog className="w-4 h-4 text-purple-400" />
-                                  {!sidebarMinimized && (
-                    <span className="text-sm font-semibold text-purple-400 uppercase tracking-wider">Career Tools Management</span>
-                  )}
-              </div>
+                             <div className={cn(
+                 "flex items-center mb-3",
+                 sidebarMinimized ? "justify-center" : "space-x-2"
+               )}>
+                                  <Wrench className="w-4 h-4 text-purple-400" />
+                                   {!sidebarMinimized && (
+                     <span className="text-sm font-semibold text-purple-400 uppercase tracking-wider">Career Tools Management</span>
+                   )}
+               </div>
               <div className="space-y-1">
                 {managementItems.map((item) => (
                   <SidebarItem key={item.title} item={item} category="management" />
