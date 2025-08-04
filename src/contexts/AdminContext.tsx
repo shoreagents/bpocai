@@ -24,7 +24,7 @@ export const useAdmin = () => {
 }
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
   const [adminStats, setAdminStats] = useState<AdminDashboardStats | null>(null)
@@ -32,23 +32,24 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAdminStatus = async () => {
     if (!user) {
+      console.log('No user available for admin check')
       setIsAdmin(false)
       setAdminUser(null)
       setLoading(false)
       return
     }
 
+    console.log('Checking admin status for user:', user.id)
     try {
       // Check admin status directly in Railway database
       const response = await fetch(`/api/admin/check-status?userId=${user.id}`)
       const data = await response.json()
       
-      console.log('🔍 Admin check response:', data) // Debug log
+      console.log('Admin check response:', data)
       
       if (data.isAdmin) {
         setIsAdmin(true)
         setAdminUser(data.adminUser)
-        console.log('✅ Admin user data:', data.adminUser) // Debug log
       } else {
         setIsAdmin(false)
         setAdminUser(null)
@@ -83,14 +84,27 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    checkAdminStatus()
-  }, [user])
+    // Wait for auth to finish loading before checking admin status
+    if (authLoading) {
+      return
+    }
+    
+    // Only check admin status if user is available
+    if (user) {
+      checkAdminStatus()
+    } else {
+      // If no user, we're not an admin
+      setIsAdmin(false)
+      setAdminUser(null)
+      setLoading(false)
+    }
+  }, [user, authLoading])
 
   const value = {
     isAdmin,
     adminUser,
     adminStats,
-    loading,
+    loading: loading || authLoading,
     checkAdminStatus,
     logAdminAction
   }

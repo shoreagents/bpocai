@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   LayoutDashboard,
   Users,
@@ -30,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
 interface SidebarItem {
@@ -44,36 +46,14 @@ const platformItems: SidebarItem[] = [
   { title: 'Users', icon: Users, href: '/admin/users' },
   { title: 'Resumes', icon: FileText, href: '/admin/resumes' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
-  { 
-    title: 'Assessments', 
-    icon: ClipboardList, 
-    children: [
-      { title: 'DISC Personality', href: '/admin/assessments/disc-personality' },
-      { title: 'Typing Speed Test', href: '/admin/assessments/typing-speed' },
-      { title: 'Logical Reasoning', href: '/admin/assessments/logical-reasoning' },
-      { title: 'Communication Skills', href: '/admin/assessments/communication-skills' },
-      { title: 'Workplace Judgment', href: '/admin/assessments/workplace-judgment' }
-    ]
-  },
-  { 
-    title: 'Games', 
-    icon: Gamepad2, 
-    children: [
-      { title: 'Broken Briefs', href: '/admin/games/broken-briefs' },
-      { title: 'Call Flow Builder', href: '/admin/games/call-flow-builder' },
-      { title: 'Inbox Zero', href: '/admin/games/inbox-zero' },
-      { title: 'Logic Grid', href: '/admin/games/logic-grid' },
-      { title: 'Right Choice', href: '/admin/games/right-choice' },
-      { title: 'Task Juggler', href: '/admin/games/task-juggler' },
-      { title: 'Typing Hero', href: '/admin/games/typing-hero' }
-    ]
-  },
+  { title: 'Assessments', icon: ClipboardList, href: '/admin/assessments' },
+  { title: 'Games', icon: Gamepad2, href: '/admin/games' },
   { title: 'Leaderboards', icon: Trophy, href: '/admin/leaderboards' }
 ]
 
 const managementItems: SidebarItem[] = [
   { 
-    title: 'Assessment', 
+    title: 'Assessments', 
     icon: TestTube, 
     children: [
       { title: 'DISC Personality', href: '/admin/management/assessments/disc-personality' },
@@ -112,7 +92,6 @@ interface AdminLayoutProps {
     full_name: string
     is_admin: boolean
     admin_level: 'user' | 'admin'
-    avatar_url?: string
   } | null
 }
 
@@ -122,17 +101,11 @@ export default function AdminLayout({
   description = "Manage BPOC.AI platform",
   adminUser 
 }: AdminLayoutProps) {
+  const { user } = useAuth()
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management', 'settings']))
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   const pathname = usePathname()
-
-  // Get user initials for avatar fallback
-  const getUserInitials = (fullName: string) => {
-    return fullName 
-      ? fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-      : 'A'
-  }
 
   const toggleExpanded = (itemTitle: string) => {
     const newExpanded = new Set(expandedItems)
@@ -361,36 +334,27 @@ export default function AdminLayout({
                     "flex items-center",
                     sidebarMinimized ? "justify-center" : "space-x-3"
                   )}>
-                    {/* Avatar */}
-                    <div className={cn(
-                      "bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center overflow-hidden",
+                    <Avatar className={cn(
                       sidebarMinimized ? "w-8 h-8" : "w-10 h-10"
                     )}>
-                      {adminUser?.avatar_url ? (
-                        <img
-                          src={adminUser.avatar_url}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className={cn(
-                          "font-bold text-black",
-                          sidebarMinimized ? "text-xs" : "text-sm"
-                        )}>
-                          {getUserInitials(adminUser?.full_name || 'Admin')}
-                        </span>
-                      )}
-                    </div>
+                      <AvatarImage 
+                        src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} 
+                        alt={adminUser?.full_name || 'Admin'}
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white">
+                        <UserCircle className="w-4 h-4" />
+                      </AvatarFallback>
+                    </Avatar>
                     {!sidebarMinimized && (
                       <div className="text-left">
                         <p className="text-sm font-medium text-white">
-                          {adminUser?.full_name || 'Admin'}
+                          {adminUser?.full_name || user?.user_metadata?.full_name || 'Admin'}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {adminUser?.email || 'admin@bpoc.ai'}
+                          {adminUser?.email || user?.email || 'admin@bpoc.ai'}
                         </p>
                         <p className="text-xs text-cyan-400">
-                          {adminUser?.admin_level === 'admin' ? 'Admin' : 'User'}
+                          Admin
                         </p>
                       </div>
                     )}
