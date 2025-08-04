@@ -46,36 +46,14 @@ const platformItems: SidebarItem[] = [
   { title: 'Users', icon: Users, href: '/admin/users' },
   { title: 'Resumes', icon: FileText, href: '/admin/resumes' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
-  { 
-    title: 'Assessments', 
-    icon: ClipboardList, 
-    children: [
-      { title: 'DISC Personality', href: '/admin/assessments/disc-personality' },
-      { title: 'Typing Speed Test', href: '/admin/assessments/typing-speed' },
-      { title: 'Logical Reasoning', href: '/admin/assessments/logical-reasoning' },
-      { title: 'Communication Skills', href: '/admin/assessments/communication-skills' },
-      { title: 'Workplace Judgment', href: '/admin/assessments/workplace-judgment' }
-    ]
-  },
-  { 
-    title: 'Games', 
-    icon: Gamepad2, 
-    children: [
-      { title: 'Broken Briefs', href: '/admin/games/broken-briefs' },
-      { title: 'Call Flow Builder', href: '/admin/games/call-flow-builder' },
-      { title: 'Inbox Zero', href: '/admin/games/inbox-zero' },
-      { title: 'Logic Grid', href: '/admin/games/logic-grid' },
-      { title: 'Right Choice', href: '/admin/games/right-choice' },
-      { title: 'Task Juggler', href: '/admin/games/task-juggler' },
-      { title: 'Typing Hero', href: '/admin/games/typing-hero' }
-    ]
-  },
+  { title: 'Assessments', icon: ClipboardList, href: '/admin/assessments' },
+  { title: 'Games', icon: Gamepad2, href: '/admin/games' },
   { title: 'Leaderboards', icon: Trophy, href: '/admin/leaderboards' }
 ]
 
 const managementItems: SidebarItem[] = [
   { 
-    title: 'Assessment', 
+    title: 'Assessments', 
     icon: TestTube, 
     children: [
       { title: 'DISC Personality', href: '/admin/management/assessments/disc-personality' },
@@ -376,7 +354,7 @@ export default function AdminLayout({
                           {adminUser?.email || user?.email || 'admin@bpoc.ai'}
                         </p>
                         <p className="text-xs text-cyan-400">
-                          {adminUser?.admin_level === 'admin' ? 'Admin' : 'User'}
+                          Admin
                         </p>
                       </div>
                     )}

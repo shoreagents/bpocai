@@ -16,6 +16,7 @@ interface JobCard {
   companyLogo: string
   title: string
   location: string
+  locationType: 'on-site' | 'remote' | 'hybrid'
   salary: string
   employmentType: string[]
   postedDays: number
@@ -65,6 +66,7 @@ export default function JobsPage() {
          companyLogo: '🛒',
          title: 'Senior Customer Service Rep',
          location: 'Clark, Pampanga',
+         locationType: 'on-site',
          salary: '₱1,750/hr',
          employmentType: ['Full-time', 'Senior level'],
          postedDays: 5,
@@ -78,6 +80,7 @@ export default function JobsPage() {
          companyLogo: '🔍',
          title: 'Technical Support Specialist',
          location: 'Makati, Metro Manila',
+         locationType: 'hybrid',
          salary: '₱1,400/hr',
          employmentType: ['Full-time', 'Mid level'],
          postedDays: 3,
@@ -91,6 +94,7 @@ export default function JobsPage() {
          companyLogo: '🪟',
          title: 'Customer Success Manager',
          location: 'BGC, Taguig',
+         locationType: 'remote',
          salary: '₱1,600/hr',
          employmentType: ['Full-time', 'Senior level'],
          postedDays: 7,
@@ -104,6 +108,7 @@ export default function JobsPage() {
          companyLogo: '🛍️',
          title: 'E-commerce Support Agent',
          location: 'Quezon City',
+         locationType: 'on-site',
          salary: '₱1,100/hr',
          employmentType: ['Full-time', 'Entry level'],
          postedDays: 2,
@@ -150,6 +155,7 @@ export default function JobsPage() {
         companyLogo: '🏢',
         title: newJobData.title,
         location: newJobData.location,
+        locationType: 'on-site',
         salary: newJobData.salary,
         employmentType: ['Full-time'],
         postedDays: 0,
@@ -223,6 +229,24 @@ export default function JobsPage() {
       case 'medium': return 'Medium'
       case 'low': return 'Low'
       default: return 'Unknown'
+    }
+  }
+
+  const getLocationTypeColor = (locationType: string) => {
+    switch (locationType) {
+      case 'on-site': return 'bg-red-500/20 text-red-400 border-red-500/30'
+      case 'remote': return 'bg-green-500/20 text-green-400 border-green-500/30'
+      case 'hybrid': return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    }
+  }
+
+  const getLocationTypeLabel = (locationType: string) => {
+    switch (locationType) {
+      case 'on-site': return 'On-Site'
+      case 'remote': return 'Remote'
+      case 'hybrid': return 'Hybrid'
+      default: return 'On-Site'
     }
   }
 
@@ -346,9 +370,14 @@ export default function JobsPage() {
                             <Badge className={getPriorityColor(job.priority)}>
                               {getPriorityLabel(job.priority)}
                             </Badge>
-                            <Badge className="bg-white/10 text-white border-white/20">
-                              {job.employmentType[0]}
-                            </Badge>
+                            <div className="flex gap-1">
+                              <Badge className={getLocationTypeColor(job.locationType)}>
+                                {getLocationTypeLabel(job.locationType)}
+                              </Badge>
+                              <Badge className="bg-white/10 text-white border-white/20">
+                                {job.employmentType[0]}
+                              </Badge>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -416,7 +445,7 @@ export default function JobsPage() {
                   <select
                     value={newJobData.status}
                     onChange={(e) => setNewJobData(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white [&>option]:bg-gray-800 [&>option]:text-white"
                   >
                     {columns.map(column => (
                       <option key={column.id} value={column.id}>{column.title}</option>
@@ -428,7 +457,7 @@ export default function JobsPage() {
                   <select
                     value={newJobData.priority}
                     onChange={(e) => setNewJobData(prev => ({ ...prev, priority: e.target.value as 'low' | 'medium' | 'high' }))}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white [&>option]:bg-gray-800 [&>option]:text-white"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -479,7 +508,7 @@ export default function JobsPage() {
                 <select
                   value={newStatusData.color}
                   onChange={(e) => setNewStatusData(prev => ({ ...prev, color: e.target.value }))}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white [&>option]:bg-gray-800 [&>option]:text-white"
                 >
                   <option value="bg-blue-500">Blue</option>
                   <option value="bg-green-500">Green</option>
@@ -567,7 +596,7 @@ export default function JobsPage() {
                      <select
                        value={editingJob.status}
                        onChange={(e) => setEditingJob(prev => prev ? { ...prev, status: e.target.value } : null)}
-                       className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                       className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white [&>option]:bg-gray-800 [&>option]:text-white"
                      >
                        {columns.map(column => (
                          <option key={column.id} value={column.id}>{column.title}</option>
@@ -579,7 +608,7 @@ export default function JobsPage() {
                      <select
                        value={editingJob.priority}
                        onChange={(e) => setEditingJob(prev => prev ? { ...prev, priority: e.target.value as 'low' | 'medium' | 'high' } : null)}
-                       className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                       className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white [&>option]:bg-gray-800 [&>option]:text-white"
                      >
                        <option value="low">Low</option>
                        <option value="medium">Medium</option>
