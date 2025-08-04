@@ -17,7 +17,8 @@ import {
   FileText,
   Wrench,
   Briefcase,
-  Users
+  Users,
+  Shield
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,7 @@ import LoginForm from '@/components/auth/LoginForm'
 import SignUpForm from '@/components/auth/SignUpForm'
 
 import { useAuth } from '@/contexts/AuthContext'
+import { useAdmin } from '@/contexts/AdminContext'
 
 interface HeaderProps {
   className?: string
@@ -81,6 +83,7 @@ function SearchParamsHandler({
 
 export default function Header({}: HeaderProps) {
   const { user, signOut, loading } = useAuth()
+  const { isAdmin } = useAdmin()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
@@ -165,6 +168,11 @@ export default function Header({}: HeaderProps) {
     { title: 'About', href: '/about', icon: Users }
   ]
 
+  // Add admin navigation items if user is admin
+  const adminNavigationItems = isAdmin ? [
+    { title: 'Admin', href: '/admin', icon: Shield }
+  ] : []
+
   // Check if navigation item is active
   const isActiveRoute = (href: string) => {
     if (href === '/home') {
@@ -190,6 +198,16 @@ export default function Header({}: HeaderProps) {
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }
   ]
+
+  // Add admin menu items if user is admin
+  const adminMenuItems = isAdmin ? [
+    { label: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield, action: null },
+    { label: 'User Management', href: '/admin/users', icon: Users, action: null },
+    { label: 'Analytics', href: '/admin/analytics', icon: Trophy, action: null }
+  ] : []
+
+  // Combine regular and admin menu items
+  const allMenuItems = [...userMenuItems, ...adminMenuItems]
 
   // Form switching handlers
   const handleSwitchToSignUp = () => {
@@ -266,6 +284,27 @@ export default function Header({}: HeaderProps) {
                 </Link>
               )
             })}
+            {/* Admin Navigation */}
+            {adminNavigationItems.map((item) => {
+              const isActive = isActiveRoute(item.href)
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className={cn(
+                    "relative font-medium transition-all duration-200 group text-red-400 hover:text-red-300",
+                    isActive && "text-red-300"
+                  )}
+                >
+                  {item.title}
+                  {/* Active indicator */}
+                  <div className={cn(
+                    "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-red-400 to-red-500 transition-all duration-200",
+                    isActive ? "w-full" : "w-0 group-hover:w-full"
+                  )} />
+                </Link>
+              )
+            })}
           </nav>
 
           {/* User Section */}
@@ -295,7 +334,7 @@ export default function Header({}: HeaderProps) {
                   
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 top-full mt-2 w-48 glass-card rounded-lg py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                    {userMenuItems.map((item) => (
+                    {allMenuItems.map((item) => (
                       item.href ? (
                         <Link
                           key={item.label}
@@ -397,6 +436,30 @@ export default function Header({}: HeaderProps) {
                           </Link>
                         )
                       })}
+                      {/* Admin Mobile Navigation */}
+                      {adminNavigationItems.map((item) => {
+                        const isActive = isActiveRoute(item.href)
+                        return (
+                          <Link
+                            key={item.title}
+                            href={item.href}
+                            className={cn(
+                              "flex items-center p-3 rounded-lg transition-all duration-200 font-medium relative text-red-400",
+                              isActive 
+                                ? "bg-gradient-to-r from-red-500/20 to-red-600/20 text-red-300 border border-red-500/30" 
+                                : "hover:bg-white/10"
+                            )}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <item.icon className="w-5 h-5 mr-3" />
+                            {item.title}
+                            {/* Active indicator for mobile */}
+                            {isActive && (
+                              <div className="absolute right-3 w-2 h-2 bg-gradient-to-r from-red-400 to-red-500 rounded-full" />
+                            )}
+                          </Link>
+                        )
+                      })}
                     </nav>
 
                     {/* Mobile Auth Buttons */}
@@ -422,7 +485,7 @@ export default function Header({}: HeaderProps) {
                     {/* Mobile User Menu */}
                     {isAuthenticated && (
                       <div className="space-y-2 pt-6 border-t border-white/10">
-                        {userMenuItems.map((item) => (
+                        {allMenuItems.map((item) => (
                           item.href ? (
                             <Link
                               key={item.label}
