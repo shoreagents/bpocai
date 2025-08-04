@@ -31,7 +31,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { MiniStatsChart } from '@/components/ui/charts'
 
 interface SidebarItem {
   title: string
@@ -103,24 +102,25 @@ const settingsItems: SidebarItem[] = [
   { title: 'General Settings', icon: Sliders, href: '/admin/settings/general' }
 ]
 
-// Sample data for the mini stats chart
-const userActivityData = [
-  { name: 'Mon', users: 1200 },
-  { name: 'Tue', users: 1400 },
-  { name: 'Wed', users: 1600 },
-  { name: 'Thu', users: 1800 },
-  { name: 'Fri', users: 2000 },
-  { name: 'Sat', users: 2200 },
-  { name: 'Sun', users: 2400 }
-]
-
 interface AdminLayoutProps {
   children: React.ReactNode
   title?: string
   description?: string
+  adminUser?: {
+    id: string
+    email: string
+    full_name: string
+    is_admin: boolean
+    admin_level: 'user' | 'admin'
+  } | null
 }
 
-export default function AdminLayout({ children, title = "Admin Panel", description = "Manage BPOC.AI platform" }: AdminLayoutProps) {
+export default function AdminLayout({ 
+  children, 
+  title = "Admin Panel", 
+  description = "Manage BPOC.AI platform",
+  adminUser 
+}: AdminLayoutProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management', 'settings']))
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
@@ -143,6 +143,7 @@ export default function AdminLayout({ children, title = "Admin Panel", descripti
     const isActive = pathname === item.href || 
                     (pathname === '/admin/dashboard' && item.title === 'Dashboard') ||
                     (pathname === '/admin/users' && item.title === 'Users')
+    const isActive = pathname === item.href || (pathname === '/admin/dashboard' && item.title === 'Dashboard')
 
     // Define category colors
     const getCategoryColor = (category: string) => {
@@ -359,8 +360,15 @@ export default function AdminLayout({ children, title = "Admin Panel", descripti
                     )} />
                     {!sidebarMinimized && (
                       <div className="text-left">
-                        <p className="text-sm font-medium text-white">Admin</p>
-                        <p className="text-xs text-gray-400">admin@bpoc.ai</p>
+                        <p className="text-sm font-medium text-white">
+                          {adminUser?.full_name || 'Admin'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {adminUser?.email || 'admin@bpoc.ai'}
+                        </p>
+                        <p className="text-xs text-cyan-400">
+                          {adminUser?.admin_level === 'admin' ? 'Admin' : 'User'}
+                        </p>
                       </div>
                     )}
                   </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   Menu, 
@@ -17,7 +17,8 @@ import {
   FileText,
   Wrench,
   Briefcase,
-  Users
+  Users,
+  Shield
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,7 @@ import LoginForm from '@/components/auth/LoginForm'
 import SignUpForm from '@/components/auth/SignUpForm'
 
 import { useAuth } from '@/contexts/AuthContext'
+import { useAdmin } from '@/contexts/AdminContext'
 
 interface HeaderProps {
   className?: string
@@ -81,7 +83,9 @@ function SearchParamsHandler({
 
 export default function Header({}: HeaderProps) {
   const { user, signOut, loading } = useAuth()
+  const { isAdmin } = useAdmin()
   const pathname = usePathname()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
@@ -89,7 +93,14 @@ export default function Header({}: HeaderProps) {
   const [profileLoading, setProfileLoading] = useState(false)
 
   const isAuthenticated = !!user
-  
+   
+  // Redirect non-admin users away from admin routes
+  useEffect(() => {
+    if (user && !isAdmin && pathname.startsWith('/admin')) {
+      router.push('/home')
+    }
+  }, [isAdmin, user, pathname, router])
+
   // Fetch user profile from Railway
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -190,6 +201,14 @@ export default function Header({}: HeaderProps) {
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }
   ]
+
+  // Add admin menu items if user is admin
+  const adminMenuItems = isAdmin ? [
+    { label: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield, action: null }
+  ] : []
+
+  // Combine regular and admin menu items
+  const allMenuItems = [...userMenuItems, ...adminMenuItems]
 
   // Form switching handlers
   const handleSwitchToSignUp = () => {
@@ -295,7 +314,7 @@ export default function Header({}: HeaderProps) {
                   
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 top-full mt-2 w-48 glass-card rounded-lg py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                    {userMenuItems.map((item) => (
+                    {allMenuItems.map((item) => (
                       item.href ? (
                         <Link
                           key={item.label}
@@ -422,7 +441,7 @@ export default function Header({}: HeaderProps) {
                     {/* Mobile User Menu */}
                     {isAuthenticated && (
                       <div className="space-y-2 pt-6 border-t border-white/10">
-                        {userMenuItems.map((item) => (
+                        {allMenuItems.map((item) => (
                           item.href ? (
                             <Link
                               key={item.label}

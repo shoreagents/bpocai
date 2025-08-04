@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminProvider } from "@/contexts/AdminContext";
 import DatabaseStatus from "@/components/debug/DatabaseStatus";
 
 const geistSans = Geist({
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://bpocai-production.up.railway.app'),
+  metadataBase: new URL('https://www.bpoc.io'),
   title: "BPOC.AI - Where BPO Careers Begin",
   description: "The ultimate AI-powered BPO recruitment platform for Filipino professionals. Build your career with FREE resume builder, skill assessments, and career games.",
   keywords: "BPO, career, resume builder, AI, Philippines, job matching, skills assessment, customer service, technical support, sales",
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "BPOC.AI - Where BPO Careers Begin",
     description: "Revolutionizing BPO recruitment with AI-powered tools for Filipino professionals",
-    url: "https://bpoc.ai",
+    url: "https://www.bpoc.io",
     siteName: "BPOC.AI",
     images: [
       {
@@ -75,8 +76,10 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-black text-white`}>
 
         <AuthProvider>
+          <AdminProvider>
             {children}
             <DatabaseStatus />
+          </AdminProvider>
         </AuthProvider>
       </body>
     </html>
