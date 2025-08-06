@@ -86,6 +86,7 @@ interface AdminLayoutProps {
   children: React.ReactNode
   title?: string
   description?: string
+  titleContent?: React.ReactNode
   adminUser?: {
     id: string
     email: string
@@ -99,6 +100,7 @@ export default function AdminLayout({
   children, 
   title = "Admin Panel", 
   description = "Manage BPOC.AI platform",
+  titleContent,
   adminUser 
 }: AdminLayoutProps) {
   const { user } = useAuth()
@@ -392,9 +394,16 @@ export default function AdminLayout({
           >
             {/* Header */}
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold gradient-text">{title}</h1>
-                <p className="text-gray-400 mt-2">{description}</p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold gradient-text">{title}</h1>
+                  <p className="text-gray-400 mt-2">{description}</p>
+                </div>
+                {titleContent && (
+                  <div className="flex items-center gap-3">
+                    {titleContent}
+                  </div>
+                )}
               </div>
             </div>
 
