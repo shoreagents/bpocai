@@ -48,36 +48,6 @@ export default function CareerGamesPage() {
         participants: 2847,
         rating: 4.9
       },
-      {
-        id: 'call-flow-builder',
-        title: 'Call Flow Builder',
-        description: 'Design perfect customer service call flows with drag & drop interface',
-        icon: Phone,
-        difficulty: 'Advanced',
-        category: 'Process Design',
-        duration: '12 minutes',
-        content: 'Unlimited Flows',
-        difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
-        categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-        skillsDeveloped: ['Customer Service Flow', 'Process Design', 'Problem Solving', 'Logical Thinking'],
-        participants: 534,
-        rating: 4.7
-      },
-    {
-      id: 'task-juggler',
-      title: 'Task Juggler',
-      description: 'Master time-sensitive multitasking with real-time priority management',
-      icon: Target,
-      difficulty: 'Advanced',
-      category: 'Time Management',
-      duration: '10 minutes',
-      content: '3 Levels',
-      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
-      categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      skillsDeveloped: ['Time Management', 'Attention to Detail', 'Work Ethic', 'Prioritization'],
-      participants: 1247,
-      rating: 4.8
-    },
     {
       id: 'inbox-zero',
       title: 'Inbox Zero Challenge',
@@ -92,21 +62,6 @@ export default function CareerGamesPage() {
       skillsDeveloped: ['Email Management', 'Time Management', 'Attention to Detail', 'Work Ethic'],
       participants: 892,
       rating: 4.7
-    },
-    {
-      id: 'broken-briefs',
-      title: 'Broken Briefs',
-      description: 'Transform confusing client instructions into clear, actionable task briefs',
-      icon: FileText,
-      difficulty: 'Advanced',
-      category: 'Communication',
-      duration: '8 minutes',
-      content: '5 Briefs',
-      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
-      categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-      skillsDeveloped: ['Written Communication', 'Summarization', 'Instructional Accuracy', 'Clarity'],
-      participants: 634,
-      rating: 4.8
     },
     {
       id: 'logic-grid',
@@ -137,7 +92,23 @@ export default function CareerGamesPage() {
       skillsDeveloped: ['Cultural Awareness', 'Workplace Ethics', 'Social Cues', 'Professional Judgment'],
       participants: 423,
       rating: 4.8
-    }
+    },
+    {
+      id: 'disc-personality',
+      title: 'DISC Personality Game',
+      description: 'Discover your workplace superpower through engaging scenarios',
+      icon: Brain,
+      difficulty: 'Intermediate',
+      category: 'Personality',
+      duration: '5-8 minutes',
+      content: '4 Scenarios',
+      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      skillsDeveloped: ['Self Awareness', 'Team Dynamics', 'Communication Style', 'Leadership Potential'],
+      participants: 156,
+      rating: 4.9
+    },
+
   ];
 
   const handleStartGame = (gameId: string) => {
@@ -146,18 +117,14 @@ export default function CareerGamesPage() {
     // Navigate to specific game pages
     if (gameId === 'typing-hero') {
       router.push('/career-tools/games/typing-hero');
-    } else if (gameId === 'call-flow-builder') {
-      router.push('/career-tools/games/call-flow-builder');
-    } else if (gameId === 'task-juggler') {
-      router.push('/career-tools/games/task-juggler');
     } else if (gameId === 'inbox-zero') {
       router.push('/career-tools/games/inbox-zero');
-    } else if (gameId === 'broken-briefs') {
-      router.push('/career-tools/games/broken-briefs');
     } else if (gameId === 'logic-grid') {
       router.push('/career-tools/games/logic-grid');
     } else if (gameId === 'internship-food') {
       router.push('/career-tools/games/right-choice');
+    } else if (gameId === 'disc-personality') {
+      router.push('/career-tools/games/disc-personality');
     } else {
       // For other games, you can add navigation or modals here
       console.log(`Starting game: ${gameId}`);

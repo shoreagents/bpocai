@@ -35,8 +35,8 @@ interface StatusColumn {
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobCard[]>([])
   const [columns, setColumns] = useState<StatusColumn[]>([
-    { id: 'on-hold', title: 'On Hold', color: 'bg-yellow-500', icon: Pause },
-    { id: 'needs-approval', title: 'Needs Approval', color: 'bg-orange-500', icon: AlertCircle },
+    { id: 'job-request', title: 'Job Request', color: 'bg-yellow-500', icon: Pause },
+    { id: 'approved', title: 'Approved', color: 'bg-orange-500', icon: AlertCircle },
     { id: 'hiring', title: 'Hiring', color: 'bg-green-500', icon: CheckCircle },
     { id: 'closed', title: 'Closed', color: 'bg-gray-500', icon: X }
   ])
@@ -50,7 +50,7 @@ export default function JobsPage() {
     title: '',
     location: '',
     salary: '',
-    status: 'on-hold',
+    status: 'job-request',
     priority: 'medium' as 'low' | 'medium' | 'high'
   })
   const [newStatusData, setNewStatusData] = useState({
@@ -85,7 +85,7 @@ export default function JobsPage() {
          employmentType: ['Full-time', 'Mid level'],
          postedDays: 3,
          applicants: 18,
-         status: 'needs-approval',
+         status: 'approved',
          priority: 'medium'
        },
        {
@@ -99,7 +99,7 @@ export default function JobsPage() {
          employmentType: ['Full-time', 'Senior level'],
          postedDays: 7,
          applicants: 31,
-         status: 'on-hold',
+         status: 'job-request',
          priority: 'low'
        },
        {
@@ -251,31 +251,33 @@ export default function JobsPage() {
   }
 
   return (
-    <AdminLayout title="Job Management" description="Manage job postings and applications">
-      <div className="space-y-6">
-        {/* Action Buttons */}
-        <div className="flex justify-end">
-          <div className="flex gap-3">
-            <Button
-              onClick={() => setIsAddStatusDialogOpen(true)}
-              variant="outline"
-              className="border-white/10 text-white hover:bg-white/10"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Group
-            </Button>
-            <Button
-              onClick={() => setIsAddJobDialogOpen(true)}
-              className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Job
-            </Button>
-          </div>
+    <AdminLayout 
+      title="Job Management" 
+      description="Manage job postings and applications"
+      titleContent={
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setIsAddStatusDialogOpen(true)}
+            variant="outline"
+            className="border-white/10 text-white hover:bg-white/10"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Group
+          </Button>
+          <Button
+            onClick={() => setIsAddJobDialogOpen(true)}
+            className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Job
+          </Button>
         </div>
+      }
+    >
+      <div className="space-y-8">
 
         {/* Kanban Board */}
-        <div className="flex gap-6 overflow-x-auto pb-4">
+        <div className="flex gap-6 overflow-x-auto pb-4 mt-12">
           {columns.map((column) => {
             const columnJobs = jobs.filter(job => job.status === column.id)
             const IconComponent = column.icon
@@ -288,7 +290,7 @@ export default function JobsPage() {
                  onDrop={(e) => handleDrop(e, column.id)}
                >
                 {/* Column Header */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${column.color}`}></div>
                     <h3 className="text-lg font-semibold text-white">{column.title}</h3>
@@ -302,13 +304,13 @@ export default function JobsPage() {
                 {/* Job Cards */}
                 <div className="space-y-3">
                   {columnJobs.map((job) => (
-                                         <div
-                       key={job.id}
-                       draggable
-                       onDragStart={(e) => handleDragStart(e, job.id)}
-                       className="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
-                     >
-                      <Card className="glass-card border-white/10 hover:border-white/20 transition-all duration-200">
+                                                             <div
+                      key={job.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, job.id)}
+                      className="cursor-grab active:cursor-grabbing hover:scale-102 transition-transform"
+                    >
+                      <Card className="glass-card border-white/10 hover:border-white/15 transition-all duration-200">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center space-x-3">
