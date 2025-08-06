@@ -25,6 +25,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import LoadingScreen from '@/components/ui/loading-screen';
 import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
+import { getSessionToken } from '@/lib/auth-helpers';
 
 interface ResumeTemplate {
   id: string;
@@ -150,6 +152,7 @@ const resumeTemplates: ResumeTemplate[] = [
 
 export default function ResumeBuilderPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(resumeTemplates[0]);
   const [customColors, setCustomColors] = useState({
     primary: resumeTemplates[0].primaryColor,
@@ -214,7 +217,10 @@ export default function ResumeBuilderPage() {
       if (data.success) {
         setProgressValue(100);
         setTimeout(() => {
-        setImprovedResume(data.improvedResume);
+          setImprovedResume(data.improvedResume);
+          
+          // Save the generated resume data to database
+          saveGeneratedResumeToDatabase(data.improvedResume, resumeData);
         }, 500);
       } else {
         setError(data.error || 'Failed to improve resume');
@@ -225,8 +231,52 @@ export default function ResumeBuilderPage() {
     } finally {
       clearInterval(progressInterval);
       setTimeout(() => {
-      setIsLoading(false);
+        setIsLoading(false);
       }, 1000);
+    }
+  };
+
+  // Function to save generated resume data to database
+  const saveGeneratedResumeToDatabase = async (generatedResumeData: any, originalResumeData: any) => {
+    try {
+      // Get session token for authentication
+      const sessionToken = await getSessionToken();
+      
+      if (!sessionToken) {
+        console.warn('⚠️ No session token available, skipping database save');
+        return;
+      }
+
+      console.log('💾 Saving generated resume to database...');
+      
+      const saveResponse = await fetch('/api/save-generated-resume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
+        body: JSON.stringify({
+          generatedResumeData,
+          originalResumeId: null, // We'll link this later if needed
+          templateUsed: selectedTemplate.id,
+          generationMetadata: {
+            originalResumeData: originalResumeData,
+            generationTimestamp: new Date().toISOString(),
+            templateUsed: selectedTemplate.id,
+            userAgent: navigator.userAgent
+          }
+        }),
+      });
+
+      if (saveResponse.ok) {
+        const saveResult = await saveResponse.json();
+        console.log('✅ Generated resume saved to database:', saveResult.generatedResumeId);
+      } else {
+        const errorData = await saveResponse.json();
+        console.warn('⚠️ Failed to save generated resume to database:', errorData.error);
+      }
+    } catch (error) {
+      console.error('❌ Error saving generated resume to database:', error);
     }
   };
 

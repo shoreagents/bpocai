@@ -12,10 +12,13 @@ import { PacmanLoader } from 'react-spinners';
 import PlatformIcon from '@/components/ui/platform-icon';
 import { isValidFileType, categorizeFile, isValidUrl, categorizePortfolioLink, saveToLocalStorage, generateSessionId, fileToBase64, formatFileSize, processResumeFile, ProcessedResume, validateProcessedResume } from '@/lib/utils';
 import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
+import { getSessionToken } from '@/lib/auth-helpers';
 
 export default function ResumeBuilderPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
   
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [portfolioLinks, setPortfolioLinks] = useState<string[]>([]);
@@ -224,6 +227,8 @@ export default function ResumeBuilderPage() {
 
   // Process a single resume file with logs
   const processResumeFileWithLogs = async (file: File, openaiApiKey: string, cloudConvertApiKey: string, log: (message: string) => void): Promise<ProcessedResume> => {
+    // Get session token for database storage
+    const sessionToken = await getSessionToken();
     try {
       const fileType = file.type.toLowerCase();
       const needsCloudConvert = fileType.includes('pdf') || fileType.includes('wordprocessingml') || fileType.includes('msword');
@@ -259,7 +264,7 @@ export default function ResumeBuilderPage() {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Call the actual processing function directly with API keys (no circular calls)
-      const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey);
+      const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey, sessionToken);
       
       // Complete
       log(`✅ Processing complete: Resume data extracted successfully!`);

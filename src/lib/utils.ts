@@ -424,41 +424,46 @@ export function formatFileSize(bytes: number): string {
 
 // Resume Processing Types - Updated to support clean DOCX-only JSON
 export interface ProcessedResume {
-  // Clean resume fields (from DOCX content) - top level
+  // Standardized resume fields (from DOCX content) - top level
   name?: string;
-  title?: string;
   email?: string;
   phone?: string;
   location?: string;
-  linkedin?: string;
-  website?: string;
   summary?: string;
-  objective?: string;
   
   experience?: Array<{
     company?: string;
     position?: string;
-    duration?: string;
     location?: string;
-    responsibilities?: string[];
+    duration?: string;
     description?: string;
+    responsibilities?: string[];
     achievements?: string[];
   }>;
   
   education?: Array<{
     institution?: string;
     degree?: string;
-    year?: string;
+    major?: string;
     location?: string;
+    year?: string;
     gpa?: string;
     honors?: string;
-    details?: string;
-    coursework?: string[];
   }>;
   
-  skills?: string[];
-  certifications?: string[];
-  languages?: string[];
+  skills?: {
+    technical?: string[];
+    soft_skills?: string[];
+    tools?: string[];
+    languages?: string[];
+  };
+  
+  certifications?: Array<{
+    name?: string;
+    issuer?: string;
+    year?: string;
+    expiry?: string;
+  }>;
   
   projects?: Array<{
     name?: string;
@@ -468,12 +473,45 @@ export interface ProcessedResume {
     url?: string;
   }>;
   
+  volunteer_work?: Array<{
+    organization?: string;
+    position?: string;
+    duration?: string;
+    description?: string;
+  }>;
+  
+  internships?: Array<{
+    company?: string;
+    position?: string;
+    location?: string;
+    duration?: string;
+    description?: string;
+  }>;
+  
+  achievements?: string[];
+  
+  references?: Array<{
+    name?: string;
+    position?: string;
+    company?: string;
+    phone?: string;
+    email?: string;
+  }>;
+  
+  additional_info?: {
+    websites?: string[];
+    linkedin?: string;
+    portfolio?: string;
+    github?: string;
+  };
+  
+  // Legacy fields for backward compatibility
   sections?: Array<{
     title: string;
     content: string;
   }>;
   
-  // Comprehensive content fields
+  // Additional content fields
   additionalInfo?: string[];
 
   
@@ -825,7 +863,7 @@ async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloud
 }
 
 // Main resume processing function - Updated with CloudConvert Integration
-export async function processResumeFile(file: File, openaiApiKey?: string, cloudConvertApiKey?: string): Promise<ProcessedResume> {
+export async function processResumeFile(file: File, openaiApiKey?: string, cloudConvertApiKey?: string, sessionToken?: string): Promise<ProcessedResume> {
   console.log('🚀 Starting CloudConvert + GPT OCR pipeline for:', file.name);
   console.log('📋 New Process: File → CloudConvert to JPEG → GPT OCR → DOCX → JSON');
   console.log('🎯 CloudConvert handles document conversion, GPT handles OCR and structuring');
@@ -865,7 +903,7 @@ export async function processResumeFile(file: File, openaiApiKey?: string, cloud
     
     // Step 5: Build final resume object
     console.log('🏗️ Step 5: Building final resume with CloudConvert pipeline...');
-    const finalResume = buildResumeWithCloudConvertPipeline(file, extractedText, docxFile, docxPreview, jsonData, jpegImages);
+    const finalResume = await buildResumeWithCloudConvertPipeline(file, extractedText, docxFile, docxPreview, jsonData, jpegImages, sessionToken);
     console.log('✅ Pipeline Complete: CloudConvert + GPT OCR processing successful!');
     
     // Final session cost summary
@@ -1120,14 +1158,15 @@ async function performGPTOCROnImages(jpegImages: string[], openaiApiKey: string)
 }
 
 // Build final resume object with CloudConvert pipeline metadata
-function buildResumeWithCloudConvertPipeline(
+async function buildResumeWithCloudConvertPipeline(
   originalFile: File,
   extractedText: string,
   docxFile: File,
   docxPreview: string,
   jsonData: any,
-  jpegImages: string[]
-): ProcessedResume {
+  jpegImages: string[],
+  sessionToken?: string
+): Promise<ProcessedResume> {
   // Return pure resume content only
   const pureResumeData = {
     // Pure resume content (flexible structure based on actual content)
@@ -1141,6 +1180,14 @@ function buildResumeWithCloudConvertPipeline(
     docxPreview: docxPreview,
     contentSource: 'CloudConvert + GPT Pipeline'
   };
+  
+  // Save JSON file to public folder
+  try {
+    const savedFilePath = await saveJSONToFile(jsonData, originalFile.name, sessionToken);
+    console.log(`💾 JSON file saved: ${savedFilePath}`);
+  } catch (error) {
+    console.warn('⚠️ Could not save JSON file:', error);
+  }
   
   return pureResumeData;
 }
@@ -2061,54 +2108,118 @@ async function parseResumeWithOpenAI(text: string, fileName: string, apiKey: str
 // Create the prompt for OpenAI resume parsing
 function createResumeParsingPrompt(text: string, fileName: string): string {
   return `
-Extract information from this resume and return a JSON object with the following exact structure:
+Extract information from this resume and return a JSON object with the following EXACT standardized structure:
 
 {
-  "personalInfo": {
-    "name": "Full name",
-    "email": "email@example.com", 
-    "phone": "phone number",
-    "title": "job title/position",
-    "location": "city, country",
-    "linkedin": "linkedin URL",
-    "website": "personal website URL"
-  },
-  "sections": [
-    {
-      "title": "SECTION_NAME",
-      "content": "full section content"
-    }
-  ],
-  "skills": ["skill1", "skill2", "skill3"],
-  "emails": ["email1@example.com"],
-  "phones": ["+1234567890"],
-  "urls": ["https://example.com"],
+  "name": "Full name",
+  "email": "email@example.com",
+  "phone": "phone number",
+  "location": "city, state/province, country",
+  "summary": "Professional summary or objective",
+  
   "experience": [
     {
       "company": "Company Name",
-      "position": "Job Title", 
-      "duration": "Start - End",
-      "description": "Job description"
+      "position": "Job Title",
+      "location": "City, State/Country",
+      "duration": "Start Date - End Date (or Present)",
+      "description": "Job description as a single string",
+      "responsibilities": ["Responsibility 1", "Responsibility 2"],
+      "achievements": ["Achievement 1", "Achievement 2"]
     }
   ],
+  
   "education": [
     {
-      "institution": "School Name",
+      "institution": "School/University Name",
       "degree": "Degree Name",
-      "year": "Year/Duration"
+      "major": "Major/Field of Study",
+      "location": "City, State/Country",
+      "year": "Start Year - End Year",
+      "gpa": "GPA if mentioned",
+      "honors": "Honors/Awards if any"
     }
   ],
-  "summary": "Professional summary or objective"
+  
+  "skills": {
+    "technical": ["Technical Skill 1", "Technical Skill 2"],
+    "soft_skills": ["Soft Skill 1", "Soft Skill 2"],
+    "tools": ["Tool 1", "Tool 2"],
+    "languages": ["Language 1", "Language 2"]
+  },
+  
+  "certifications": [
+    {
+      "name": "Certification Name",
+      "issuer": "Issuing Organization",
+      "year": "Year obtained",
+      "expiry": "Expiry date if applicable"
+    }
+  ],
+  
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Project description",
+      "technologies": ["Tech 1", "Tech 2"],
+      "duration": "Project duration",
+      "url": "Project URL if available"
+    }
+  ],
+  
+  "volunteer_work": [
+    {
+      "organization": "Organization Name",
+      "position": "Position/Role",
+      "duration": "Start - End",
+      "description": "Description of work"
+    }
+  ],
+  
+  "internships": [
+    {
+      "company": "Company Name",
+      "position": "Intern Position",
+      "location": "Location",
+      "duration": "Start - End",
+      "description": "Description of internship work"
+    }
+  ],
+  
+  "achievements": [
+    "Achievement 1",
+    "Achievement 2"
+  ],
+  
+  "references": [
+    {
+      "name": "Reference Name",
+      "position": "Job Title",
+      "company": "Company Name",
+      "phone": "Phone number",
+      "email": "Email address"
+    }
+  ],
+  
+  "additional_info": {
+    "websites": ["Website URL 1", "Website URL 2"],
+    "linkedin": "LinkedIn URL",
+    "portfolio": "Portfolio URL",
+    "github": "GitHub URL"
+  }
 }
 
 IMPORTANT RULES:
 1. Return ONLY valid JSON, no other text
 2. If a field is not found, use empty string "" or empty array []
-3. Extract ALL email addresses, phone numbers, and URLs found
-4. Include ALL skills mentioned (technical, soft skills, tools, languages)
-5. Parse experience entries with company, position, duration, description
-6. Extract education with institution, degree, and year
-7. Identify clear sections like EXPERIENCE, EDUCATION, SKILLS, etc.
+3. For experience: Always include company, position, duration. Add location if available.
+4. For education: Always include institution, degree, year. Add major, location, gpa, honors if available.
+5. For skills: Categorize into technical, soft_skills, tools, languages arrays
+6. For certifications: Include name, issuer, year. Add expiry if mentioned.
+7. For projects: Include name, description, technologies. Add duration, url if available.
+8. Standardize dates as "YYYY - YYYY" or "YYYY - Present" format
+9. Extract ALL contact information, skills, and achievements mentioned
+10. Categorize skills appropriately (technical vs soft skills vs tools vs languages)
 
 Resume filename: ${fileName}
 
@@ -2118,13 +2229,14 @@ ${text}
 }
 
 // Build resume with DOCX preview 
-function buildResumeWithDOCXPreview(
+async function buildResumeWithDOCXPreview(
   file: File, 
   organizedText: string, 
   docxFile: File, 
   docxPreview: string, 
-  jsonData: any
-): ProcessedResume {
+  jsonData: any,
+  sessionToken?: string
+): Promise<ProcessedResume> {
   console.log('🏗️ Building clean resume JSON from DOCX content...');
   
   // Create clean resume structure with ONLY DOCX content
@@ -2142,6 +2254,14 @@ function buildResumeWithDOCXPreview(
     }
   };
   
+  // Save JSON file to public folder
+  try {
+    const savedFilePath = await saveJSONToFile(jsonData, file.name, sessionToken);
+    console.log(`💾 JSON file saved: ${savedFilePath}`);
+  } catch (error) {
+    console.warn('⚠️ Could not save JSON file:', error);
+  }
+  
   console.log('📊 Clean DOCX Content Statistics:');
   console.log(`   📄 DOCX source: ${docxFile.name} (${(docxFile.size / 1024).toFixed(1)}KB)`);
   console.log(`   📖 DOCX preview: ${docxPreview.length} characters`);
@@ -2158,7 +2278,7 @@ function buildResumeWithDOCXPreview(
 }
 
 // Legacy function for compatibility
-function buildFinalResumeJSON(file: File, extractedText: string, aiParsedData: any): ProcessedResume {
+async function buildFinalResumeJSON(file: File, extractedText: string, aiParsedData: any, sessionToken?: string): Promise<ProcessedResume> {
   console.log('🏗️ Building final resume JSON with pipeline metadata...');
   
   const currentTime = new Date().toISOString();
@@ -2194,7 +2314,12 @@ function buildFinalResumeJSON(file: File, extractedText: string, aiParsedData: a
     extractedText: extractedText,
     confidence: 95,
     certifications: [],
-    languages: [],
+    skills: {
+      technical: [],
+      soft_skills: [],
+      tools: [],
+      languages: []
+    },
     
     // New pipeline metadata
     pipelineMetadata: {
@@ -2217,6 +2342,14 @@ function buildFinalResumeJSON(file: File, extractedText: string, aiParsedData: a
       pipelineVersion: '2.0'
     }
   };
+  
+  // Save JSON file to public folder
+  try {
+    const savedFilePath = await saveJSONToFile(aiParsedData, file.name, sessionToken);
+    console.log(`💾 JSON file saved: ${savedFilePath}`);
+  } catch (error) {
+    console.warn('⚠️ Could not save JSON file:', error);
+  }
   
   console.log('📊 Pipeline Statistics:');
   console.log(`   📄 Original file: ${file.name} (${fileTypeDisplay})`);
@@ -2524,12 +2657,13 @@ async function performAdvancedOCR(jpegDataUrl: string): Promise<{ text: string; 
 }
 
 // Build comprehensive resume JSON following the specification
-function buildComprehensiveResumeJSON(
+async function buildComprehensiveResumeJSON(
   file: File, 
   fullText: string, 
   jpegImages: string[], 
-  averageConfidence: number
-): ProcessedResume {
+  averageConfidence: number,
+  sessionToken?: string
+): Promise<ProcessedResume> {
   console.log('🏗️ Building comprehensive resume JSON...');
   
   // Extract data using new comprehensive approach
@@ -2573,8 +2707,21 @@ function buildComprehensiveResumeJSON(
     extractedText: fullText,
     confidence: averageConfidence,
     certifications: [],
-    languages: []
+    skills: {
+      technical: [],
+      soft_skills: [],
+      tools: [],
+      languages: []
+    }
   };
+  
+  // Save JSON file to public folder
+  try {
+    const savedFilePath = await saveJSONToFile(resumeJSON, file.name, sessionToken);
+    console.log(`💾 JSON file saved: ${savedFilePath}`);
+  } catch (error) {
+    console.warn('⚠️ Could not save JSON file:', error);
+  }
   
   console.log('✅ Resume JSON built successfully');
   return resumeJSON;
@@ -3594,12 +3741,19 @@ export function validateResumeProcessing(resume: ProcessedResume): {
   }
 
   // Check skills section
-  if (!resume.skills || resume.skills.length === 0) {
+  const allSkills = [
+    ...(resume.skills?.technical || []),
+    ...(resume.skills?.soft_skills || []),
+    ...(resume.skills?.tools || []),
+    ...(resume.skills?.languages || [])
+  ];
+  
+  if (!resume.skills || allSkills.length === 0) {
     issues.push('No skills listed');
     score -= 10;
     suggestions.push('Add relevant technical and soft skills');
   } else {
-    strengths.push(`Found ${resume.skills.length} skills`);
+    strengths.push(`Found ${allSkills.length} skills`);
   }
 
   // Check summary
@@ -3628,7 +3782,7 @@ export function validateResumeProcessing(resume: ProcessedResume): {
     suggestions.push('Consider adding relevant certifications');
   }
 
-  if (!resume.languages || resume.languages.length === 0) {
+  if (!resume.skills?.languages || resume.skills.languages.length === 0) {
     suggestions.push('Add language proficiencies if applicable');
   }
 
@@ -3652,7 +3806,8 @@ export function validateResumeProcessing(resume: ProcessedResume): {
 export async function processResumeWithQualityChecks(
   file: File, 
   openaiApiKey?: string, 
-  cloudConvertApiKey?: string
+  cloudConvertApiKey?: string,
+  sessionToken?: string
 ): Promise<{
   resume: ProcessedResume;
   quality: {
@@ -3670,7 +3825,7 @@ export async function processResumeWithQualityChecks(
     console.log('🚀 Starting enhanced resume processing with quality checks...');
     
     // Process the resume
-    const resume = await processResumeFile(file, openaiApiKey, cloudConvertApiKey);
+    const resume = await processResumeFile(file, openaiApiKey, cloudConvertApiKey, sessionToken);
     
     // Perform quality validation
     const quality = validateResumeProcessing(resume);
@@ -3707,15 +3862,22 @@ export function extractResumeInsights(resume: ProcessedResume): {
     linkedin?: string;
   };
 } {
+  const allSkills = [
+    ...(resume.skills?.technical || []),
+    ...(resume.skills?.soft_skills || []),
+    ...(resume.skills?.tools || []),
+    ...(resume.skills?.languages || [])
+  ];
+  
   const insights = {
-    keySkills: resume.skills || [],
+    keySkills: allSkills,
     experienceYears: 0,
     educationLevel: 'Unknown',
     industryFocus: [] as string[],
     contactInfo: {
       email: resume.email || resume.parsed?.personalInfo?.email,
       phone: resume.phone || resume.parsed?.personalInfo?.phone,
-      linkedin: resume.linkedin || resume.parsed?.personalInfo?.linkedin
+      linkedin: resume.additional_info?.linkedin || resume.parsed?.personalInfo?.linkedin
     }
   };
 
@@ -3750,7 +3912,7 @@ export function extractResumeInsights(resume: ProcessedResume): {
   const allText = [
     resume.summary || '',
     resume.parsed?.sections?.map(s => s.content).join(' ') || '',
-    resume.skills?.join(' ') || ''
+    allSkills.join(' ') || ''
   ].join(' ').toLowerCase();
 
   const industryKeywords = {
@@ -3770,4 +3932,90 @@ export function extractResumeInsights(resume: ProcessedResume): {
   }
 
   return insights;
+}
+
+// Save JSON file to public folder and database
+export async function saveJSONToFile(jsonData: any, fileName: string, sessionToken?: string): Promise<string> {
+  try {
+    // First, save to file system
+    const fileResponse = await fetch('/api/save-json', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonData,
+        fileName
+      })
+    });
+
+    if (!fileResponse.ok) {
+      const errorData = await fileResponse.json();
+      throw new Error(errorData.error || 'Failed to save JSON file');
+    }
+
+    const fileResult = await fileResponse.json();
+    console.log(`💾 JSON file saved: ${fileResult.fileName}`);
+    console.log(`📁 File path: ${fileResult.filePath}`);
+
+    // Then, save to database (only if session token is provided)
+    if (sessionToken) {
+      const dbResponse = await fetch('/api/save-resume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
+        body: JSON.stringify({
+          resumeData: jsonData,
+          originalFilename: fileName
+        })
+      });
+
+      if (!dbResponse.ok) {
+        const errorData = await dbResponse.json();
+        console.warn('⚠️ Failed to save to database:', errorData.error);
+        // Don't throw error here, just log warning
+      } else {
+        const dbResult = await dbResponse.json();
+        console.log(`💾 Resume saved to database: ${dbResult.resumeId}`);
+      }
+    } else {
+      console.log('⚠️ No session token provided, skipping database save');
+    }
+    
+    return fileResult.filePath;
+  } catch (error) {
+    console.error('❌ Error saving JSON file:', error);
+    throw new Error(`Failed to save JSON file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Save JSON data to server-side file system (for Node.js environment)
+export async function saveJSONToServer(jsonData: any, fileName: string): Promise<string> {
+  try {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    
+    // Create a unique filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const baseFileName = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
+    const jsonFileName = `${baseFileName}_${timestamp}.json`;
+    const filePath = path.join(process.cwd(), 'public', 'extracted-json', jsonFileName);
+    
+    // Ensure directory exists
+    await fs.mkdir(path.join(process.cwd(), 'public', 'extracted-json'), { recursive: true });
+    
+    // Convert JSON to formatted string and save
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    await fs.writeFile(filePath, jsonString, 'utf8');
+    
+    console.log(`💾 JSON file saved to server: ${jsonFileName}`);
+    console.log(`📁 File path: ${filePath}`);
+    
+    return `/extracted-json/${jsonFileName}`;
+  } catch (error) {
+    console.error('❌ Error saving JSON file to server:', error);
+    throw new Error(`Failed to save JSON file to server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
