@@ -8,9 +8,7 @@ import {
   Filter, 
   MoreHorizontal,
   Mail,
-  Phone,
   Calendar,
-  MapPin,
   UserCheck,
   UserX,
   Edit,
@@ -48,8 +46,6 @@ interface User {
   avatar_url?: string
   created_at: string
   last_sign_in_at?: string
-  status: 'active' | 'inactive' | 'pending'
-  role: 'user' | 'admin' | 'moderator'
   location?: string
   bio?: string
   position?: string
@@ -91,71 +87,7 @@ export default function UsersPage() {
     fetchUsers()
   }, [])
 
-  // Mock data for development
-  const mockUsers: User[] = [
-    {
-      id: '1',
-      email: 'john.doe@example.com',
-      full_name: 'John Doe',
-      phone: '+1 (555) 123-4567',
-      avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      created_at: '2024-01-15T10:30:00Z',
-      last_sign_in_at: '2024-03-20T14:22:00Z',
-      status: 'active',
-      role: 'user',
-      location: 'New York, NY',
-      bio: 'Software developer with 5 years of experience'
-    },
-    {
-      id: '2',
-      email: 'sarah.wilson@example.com',
-      full_name: 'Sarah Wilson',
-      phone: '+1 (555) 987-6543',
-      avatar_url: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-      created_at: '2024-02-10T09:15:00Z',
-      last_sign_in_at: '2024-03-19T16:45:00Z',
-      status: 'active',
-      role: 'admin',
-      location: 'San Francisco, CA',
-      bio: 'Product manager passionate about user experience'
-    },
-    {
-      id: '3',
-      email: 'mike.chen@example.com',
-      full_name: 'Mike Chen',
-      phone: '+1 (555) 456-7890',
-      created_at: '2024-03-05T11:20:00Z',
-      last_sign_in_at: '2024-03-18T13:10:00Z',
-      status: 'inactive',
-      role: 'user',
-      location: 'Austin, TX',
-      bio: 'Data scientist specializing in machine learning'
-    },
-    {
-      id: '4',
-      email: 'emma.rodriguez@example.com',
-      full_name: 'Emma Rodriguez',
-      phone: '+1 (555) 321-0987',
-      avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-      created_at: '2024-01-25T15:45:00Z',
-      last_sign_in_at: '2024-03-20T10:30:00Z',
-      status: 'active',
-      role: 'moderator',
-      location: 'Chicago, IL',
-      bio: 'Community manager and content creator'
-    },
-    {
-      id: '5',
-      email: 'alex.kumar@example.com',
-      full_name: 'Alex Kumar',
-      phone: '+1 (555) 654-3210',
-      created_at: '2024-02-28T08:30:00Z',
-      status: 'pending',
-      role: 'user',
-      location: 'Seattle, WA',
-      bio: 'UX designer focused on accessibility'
-    }
-  ]
+
 
           const filteredUsers = users.filter(user => {
      const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -181,23 +113,7 @@ export default function UsersPage() {
       setCurrentPage(1)
     }, [searchTerm, positionFilter])
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      active: 'bg-green-500/20 text-green-400 border-green-500/30',
-      inactive: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-      pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-    }
-    return variants[status as keyof typeof variants] || variants.inactive
-  }
 
-  const getRoleBadge = (role: string) => {
-    const variants = {
-      admin: 'bg-red-500/20 text-red-400 border-red-500/30',
-      moderator: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      user: 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-    }
-    return variants[role as keyof typeof variants] || variants.user
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -207,16 +123,7 @@ export default function UsersPage() {
     })
   }
 
-  const formatTimeAgo = (dateString: string) => {
-    const now = new Date()
-    const date = new Date(dateString)
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`
-    return formatDate(dateString)
-  }
+
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -250,7 +157,7 @@ export default function UsersPage() {
                 <div>
                   <p className="text-sm text-gray-400">Active Users</p>
                   <p className="text-2xl font-bold text-white">
-                    {users.filter(u => u.status === 'active').length}
+                    {users.filter(u => u.last_sign_in_at).length}
                   </p>
                 </div>
               </div>
@@ -266,7 +173,7 @@ export default function UsersPage() {
                 <div>
                   <p className="text-sm text-gray-400">Inactive Users</p>
                   <p className="text-2xl font-bold text-white">
-                    {users.filter(u => u.status === 'inactive').length}
+                    {users.filter(u => !u.last_sign_in_at).length}
                   </p>
                 </div>
               </div>
@@ -282,7 +189,7 @@ export default function UsersPage() {
                 <div>
                   <p className="text-sm text-gray-400">Pending</p>
                   <p className="text-2xl font-bold text-white">
-                    {users.filter(u => u.status === 'pending').length}
+                    {users.filter(u => !u.full_name).length}
                   </p>
                 </div>
               </div>
