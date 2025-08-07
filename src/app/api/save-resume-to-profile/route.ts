@@ -127,18 +127,27 @@ export async function POST(request: NextRequest) {
 
       console.log('🔗 Generated unique slug:', finalSlug)
 
+      // Get the most recent generated resume ID for this user
+      const generatedResumeResult = await client.query(
+        'SELECT id FROM resumes_generated WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1',
+        [userId]
+      )
+      
+      const originalResumeId = generatedResumeResult.rows.length > 0 ? generatedResumeResult.rows[0].id : null
+      
       // Insert the saved resume data into the database
       console.log('💾 Saving resume to profile...')
       const insertResult = await client.query(
-        `INSERT INTO saved_resumes (user_id, resume_slug, resume_title, resume_data, template_used, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        `INSERT INTO saved_resumes (user_id, resume_slug, resume_title, resume_data, template_used, original_resume_id, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
          RETURNING id, resume_slug`,
         [
           userId,
           finalSlug,
           resumeTitle,
           JSON.stringify(resumeData),
-          templateUsed
+          templateUsed,
+          originalResumeId
         ]
       )
 
