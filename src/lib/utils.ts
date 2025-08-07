@@ -3991,31 +3991,5 @@ export async function saveJSONToFile(jsonData: any, fileName: string, sessionTok
   }
 }
 
-// Save JSON data to server-side file system (for Node.js environment)
-export async function saveJSONToServer(jsonData: any, fileName: string): Promise<string> {
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    
-    // Create a unique filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const baseFileName = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
-    const jsonFileName = `${baseFileName}_${timestamp}.json`;
-    const filePath = path.join(process.cwd(), 'public', 'extracted-json', jsonFileName);
-    
-    // Ensure directory exists
-    await fs.mkdir(path.join(process.cwd(), 'public', 'extracted-json'), { recursive: true });
-    
-    // Convert JSON to formatted string and save
-    const jsonString = JSON.stringify(jsonData, null, 2);
-    await fs.writeFile(filePath, jsonString, 'utf8');
-    
-    console.log(`💾 JSON file saved to server: ${jsonFileName}`);
-    console.log(`📁 File path: ${filePath}`);
-    
-    return `/extracted-json/${jsonFileName}`;
-  } catch (error) {
-    console.error('❌ Error saving JSON file to server:', error);
-    throw new Error(`Failed to save JSON file to server: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
+// Note: saveJSONToServer function removed - use saveJSONToFile instead for client-side operations
+// Server-side file operations should be handled through API routes
