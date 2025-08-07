@@ -124,8 +124,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Force the correct redirect URL based on current environment
     const isProduction = process.env.NODE_ENV === 'production'
     const baseUrl = isProduction 
-      ? (process.env.NEXT_PUBLIC_SITE_URL || 'https://bpocai-production.up.railway.app')
+      ? (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.bpoc.io')
       : 'http://localhost:3000'
+    
+    console.log('🔗 Google OAuth redirect URL:', `${baseUrl}/auth/callback`)
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
