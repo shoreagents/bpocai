@@ -27,10 +27,17 @@ export const signIn = async (email: string, password: string) => {
 }
 
 export const signInWithGoogle = async () => {
+  const isProduction = process.env.NODE_ENV === 'production'
+  const baseUrl = isProduction 
+    ? (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.bpoc.io')
+    : 'http://localhost:3000'
+  
+  console.log('🔗 Google OAuth redirect URL (supabase.ts):', `${baseUrl}/auth/callback`)
+  
   return await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`
+      redirectTo: `${baseUrl}/auth/callback`
     }
   })
 }
