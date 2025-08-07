@@ -36,6 +36,7 @@ export interface AdminUser {
   full_name: string
   is_admin: boolean
   admin_level: 'user' | 'admin'
+  avatar_url?: string
 }
 
 export interface AdminActivityLog {

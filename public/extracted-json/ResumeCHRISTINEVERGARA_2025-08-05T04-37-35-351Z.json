@@ -1,0 +1,99 @@
+{
+  "name": "Christine Joy A. Vergara",
+  "email": "jyvrgr@gmail.com",
+  "phone": "+639352125425",
+  "location": "Blk 23 Lot 11BC Sta. Lucia Resettlement, Magalang, Pampanga 2011",
+  "summary": "A passionate and hardworking fresh graduate student seeking an accounting related position to apply and develop my experience and skills.",
+  "skills": [
+    "Microsoft Excel Literate",
+    "Flexible",
+    "Teamwork",
+    "Time Management",
+    "Attentive to detail"
+  ],
+  "experience": [
+    {
+      "company": "Dornier Technologyy Inc.",
+      "position": "Finance Assistant",
+      "location": "Airport Clark Freeport Zone, Mabalacat, Pampanga",
+      "duration": "July 2024 - Present",
+      "description": [
+        "Creating journal entries for payroll and accounts payable in QuickBooks",
+        "Processing payments, reimbursements, petty cash, and other related tasks",
+        "Processing employee salaries, 1601c forms, final pay, and 13th month pay",
+        "Preparing monthly government-required reports"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Don Honorio Ventura State University",
+      "degree": "Bachelor of Science in Accounting Information System",
+      "location": "Bacolor, Pampanga",
+      "year": "2020-2024"
+    },
+    {
+      "institution": "Magalang Christian Ecumenical School, Inc.",
+      "degree": "Accountancy, Business, and Management",
+      "location": "Magalang, Pampanga",
+      "year": "2018-2020"
+    },
+    {
+      "institution": "Magalang Christian Ecumenical School, Inc.",
+      "location": "Magalang, Pampanga",
+      "year": "2014-2018"
+    },
+    {
+      "institution": "Cabalantian Elementary School",
+      "location": "Magalang, Pampanga",
+      "year": "2009-2014"
+    }
+  ],
+  "volunteer_work": [
+    {
+      "position": "President",
+      "organization": "Rotaract Club of Magalang",
+      "duration": "July 2023 – June 2024"
+    },
+    {
+      "position": "Finance Service Director",
+      "organization": "Rotaract Club of Magalang",
+      "duration": "July 2022 – June 2023"
+    }
+  ],
+  "achievements": [
+    {
+      "title": "Dean’s List",
+      "duration": "2020-2022"
+    }
+  ],
+  "internship": {
+    "company": "Department of Public Works and Highways",
+    "location": "Sindalan, City of San Fernando, Pampanga",
+    "duration": "February – May 2024",
+    "hours": "320 hours (32 hours/week)",
+    "description": [
+      "Preparation of Journal Entry Vouchers for Payroll and Accounts Payable using eNGAS and eBudget",
+      "Approval of Journal Entry Vouchers"
+    ]
+  },
+  "references": [
+    {
+      "name": "John Reymar P. Franco",
+      "position": "Administrative Assistant III",
+      "company": "Department of Public Works and Highways",
+      "location": "San Fernando, Pampanga",
+      "phone": "09678506160",
+      "email": "johnreymar88@gmail.com"
+    },
+    {
+      "name": "Zsara Janerhee A. Sabado",
+      "position": "Finance Staff",
+      "company": "V.L Makabali Memorial Hospital",
+      "location": "San Fernando, Pampanga",
+      "phone": "09054102617",
+      "email": "zsarajanerheesabado@gmail.com"
+    }
+  ],
+  "additional_information": ""
+}
