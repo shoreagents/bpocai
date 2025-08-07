@@ -851,14 +851,14 @@ export default function TaskJugglerPage() {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
                     <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">Leave Task Juggler?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
               Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
-              Cancel
+              Continue Playing
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => router.back()}

@@ -1787,14 +1787,14 @@ export default function LogicGridGame() {
           <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
             <AlertDialogContent className="bg-black border-gray-700">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
+                <AlertDialogTitle className="text-white">Leave Logic Grid?</AlertDialogTitle>
                 <AlertDialogDescription className="text-gray-300">
                   Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
-                  Cancel
+                  Continue Playing
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
