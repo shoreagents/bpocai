@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-
-
-
+  // Disable ESLint and TypeScript checking during builds for Railway
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -21,11 +19,14 @@ const nextConfig: NextConfig = {
         fs: false,
         net: false,
         tls: false,
+        path: false,
+        crypto: false,
       };
     }
     return config;
   },
-
+  // Ensure proper output for Railway
+  output: 'standalone',
 };
 
 export default nextConfig;

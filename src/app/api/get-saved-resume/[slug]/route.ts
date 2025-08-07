@@ -52,6 +52,7 @@ export async function GET(
           sr.resume_title,
           sr.resume_data,
           sr.template_used,
+          sr.original_resume_id,
           sr.is_public,
           sr.view_count,
           sr.created_at,
@@ -89,6 +90,7 @@ export async function GET(
           title: resume.resume_title,
           data: resume.resume_data,
           template: resume.template_used,
+          originalResumeId: resume.original_resume_id,
           isPublic: resume.is_public,
           viewCount: resume.view_count + 1, // Return incremented count
           createdAt: resume.created_at,

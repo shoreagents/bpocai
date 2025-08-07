@@ -52,11 +52,20 @@ CREATE TABLE saved_resumes (
   resume_title TEXT NOT NULL, -- Display title like "John Doe's Resume"
   resume_data JSONB NOT NULL, -- Stores the complete resume data (content + template)
   template_used TEXT NOT NULL, -- Template ID used for styling
+  original_resume_id UUID, -- References the resumes_generated table
   is_public BOOLEAN DEFAULT true, -- Whether the resume is publicly accessible
   view_count INTEGER DEFAULT 0, -- Track how many times the resume has been viewed
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Add foreign key constraint to connect saved_resumes to resumes_generated
+ALTER TABLE saved_resumes 
+ADD CONSTRAINT saved_resumes_original_resume_id_fkey 
+FOREIGN KEY (original_resume_id) REFERENCES resumes_generated(id) ON DELETE SET NULL;
+
+-- Add a comment to document the relationship
+COMMENT ON COLUMN saved_resumes.original_resume_id IS 'References the resumes_generated table to track which AI-generated resume was used to create this saved resume';
 
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON users(email);

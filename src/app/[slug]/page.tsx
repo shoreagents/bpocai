@@ -39,6 +39,7 @@ interface SavedResume {
     headerInfo: any;
   };
   template: string;
+  originalResumeId: string | null;
   isPublic: boolean;
   viewCount: number;
   createdAt: string;
