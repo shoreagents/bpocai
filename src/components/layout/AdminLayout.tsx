@@ -67,13 +67,12 @@ const managementItems: SidebarItem[] = [
     title: 'Games', 
     icon: Puzzle, 
     children: [
-      { title: 'Broken Briefs', href: '/admin/management/games/broken-briefs' },
-      { title: 'Call Flow Builder', href: '/admin/management/games/call-flow-builder' },
+      { title: 'Typing Hero', href: '/admin/management/games/typing-hero' },
       { title: 'Inbox Zero', href: '/admin/management/games/inbox-zero' },
       { title: 'Logic Grid', href: '/admin/management/games/logic-grid' },
       { title: 'Right Choice', href: '/admin/management/games/right-choice' },
-      { title: 'Task Juggler', href: '/admin/management/games/task-juggler' },
-      { title: 'Typing Hero', href: '/admin/management/games/typing-hero' }
+      { title: 'BPOC DISC', href: '/admin/management/games/disc-personality' },
+      { title: 'BPOC Ultimate', href: '/admin/management/games/ultimate' }
     ]
   }
 ]
@@ -185,7 +184,7 @@ export default function AdminLayout({
         </button>
         
         {hasChildren && isExpanded && !sidebarMinimized && (
-          <div className="ml-6 mt-2 space-y-1">
+          <div className="ml-6 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400/30 hover:scrollbar-thumb-gray-400/50">
             {item.children?.map((child) => {
               const isChildActive = pathname === child.href
               return (
