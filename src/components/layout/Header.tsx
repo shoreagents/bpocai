@@ -84,7 +84,7 @@ function SearchParamsHandler({
 }
 
 export default function Header({}: HeaderProps) {
-  const { user, signOut, loading } = useAuth()
+  const { user, signOut, loading, session } = useAuth()
   const { isAdmin } = useAdmin()
   const pathname = usePathname()
   const router = useRouter()
@@ -221,11 +221,24 @@ export default function Header({}: HeaderProps) {
 
   const handleSignOut = async () => {
     try {
+      console.log('🔘 Sign out button clicked')
+      console.log('👤 Current user:', user?.email)
+      console.log('🔑 Auth state before sign out:', !!user)
+      
       await signOut()
+      console.log('✅ Sign out completed successfully')
+      
       setIsMobileMenuOpen(false) // Close mobile menu if open
       setShowSignOutDialog(false)
+      
+      // Force a page refresh to ensure all state is cleared
+      console.log('🔄 Redirecting to home page...')
+      window.location.href = '/'
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('❌ Sign out error:', error)
+      // Still close the dialog even if there's an error
+      setShowSignOutDialog(false)
+      alert('Sign out failed. Please try again.')
     }
   }
 

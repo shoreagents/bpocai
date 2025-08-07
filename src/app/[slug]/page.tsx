@@ -304,7 +304,7 @@ export default function SavedResumePage() {
         >
           <div 
             id="resume-content"
-            className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto"
+            className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
             style={{
               fontFamily: template.fontFamily,
               color: '#1f2937'
@@ -313,14 +313,14 @@ export default function SavedResumePage() {
             {/* Header */}
             <div className="text-center mb-8">
               <h1 
-                className="text-3xl font-bold mb-2"
-                style={{ color: template.primaryColor }}
+                className="text-3xl font-bold mb-2 text-gray-900"
+                style={{ color: template.primaryColor || '#1f2937' }}
               >
                 {headerInfo.name}
               </h1>
               <p 
-                className="text-xl font-semibold mb-4"
-                style={{ color: template.secondaryColor }}
+                className="text-xl font-semibold mb-4 text-gray-800"
+                style={{ color: template.secondaryColor || '#374151' }}
               >
                 {headerInfo.title}
               </p>
@@ -352,8 +352,8 @@ export default function SavedResumePage() {
             {resumeData.summary && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Professional Summary
                 </h2>
@@ -365,14 +365,14 @@ export default function SavedResumePage() {
             {resumeData.experience && resumeData.experience.length > 0 && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Work Experience
                 </h2>
                 <div className="space-y-4">
                   {resumeData.experience.map((exp: any, index: number) => (
-                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor }}>
+                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900">{exp.title}</h3>
                         <span className="text-sm text-gray-500">{exp.duration}</span>
@@ -393,8 +393,8 @@ export default function SavedResumePage() {
             {resumeData.skills && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Skills
                 </h2>
@@ -407,7 +407,7 @@ export default function SavedResumePage() {
                           <Badge 
                             key={index} 
                             variant="secondary" 
-                            style={{ backgroundColor: template.secondaryColor, color: 'white' }}
+                            style={{ backgroundColor: template.secondaryColor || '#6b7280', color: 'white' }}
                             className="text-xs px-2 py-1"
                           >
                             {skill}
@@ -456,14 +456,14 @@ export default function SavedResumePage() {
             {resumeData.education && resumeData.education.length > 0 && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Education
                 </h2>
                 <div className="space-y-4">
                   {resumeData.education.map((edu: any, index: number) => (
-                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor }}>
+                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900">{edu.degree}</h3>
                         <span className="text-sm text-gray-500">{edu.year}</span>
@@ -486,8 +486,8 @@ export default function SavedResumePage() {
             {resumeData.certifications && resumeData.certifications.length > 0 && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Certifications
                 </h2>
@@ -506,14 +506,14 @@ export default function SavedResumePage() {
             {resumeData.projects && resumeData.projects.length > 0 && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Projects
                 </h2>
                 <div className="space-y-4">
                   {resumeData.projects.map((project: any, index: number) => (
-                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor }}>
+                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
                       <h3 className="font-semibold text-gray-900 mb-2">{project.title}</h3>
                       <p className="text-gray-600 mb-2">{project.description}</p>
                       {project.technologies && project.technologies.length > 0 && (
@@ -521,7 +521,7 @@ export default function SavedResumePage() {
                           <span className="text-sm font-medium text-gray-700">Technologies: </span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {project.technologies.map((tech: string, idx: number) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
+                              <Badge key={idx} variant="outline" className="text-gray-700 border-gray-300 text-xs">
                                 {tech}
                               </Badge>
                             ))}
@@ -545,8 +545,8 @@ export default function SavedResumePage() {
             {resumeData.achievements && resumeData.achievements.length > 0 && (
               <div className="mb-6">
                 <h2 
-                  className="text-lg font-semibold mb-3"
-                  style={{ color: template.primaryColor }}
+                  className="text-lg font-semibold mb-3 text-gray-900"
+                  style={{ color: template.primaryColor || '#1f2937' }}
                 >
                   Achievements
                 </h2>

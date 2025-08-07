@@ -105,28 +105,6 @@ export async function POST(request: NextRequest) {
         return slug
       }
 
-      const baseSlug = generateSlug(user.full_name)
-      let finalSlug = baseSlug
-      let counter = 1
-
-      // Check if slug already exists and generate a unique one
-      while (true) {
-        const slugCheck = await client.query(
-          'SELECT id FROM saved_resumes WHERE resume_slug = $1',
-          [finalSlug]
-        )
-        
-        if (slugCheck.rows.length === 0) {
-          break // Slug is unique
-        }
-        
-        // Add counter to make it unique
-        finalSlug = `${baseSlug}-${counter}`
-        counter++
-      }
-
-      console.log('🔗 Generated unique slug:', finalSlug)
-
       // Get the most recent generated resume ID for this user
       const generatedResumeResult = await client.query(
         'SELECT id FROM resumes_generated WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1',
@@ -135,35 +113,92 @@ export async function POST(request: NextRequest) {
       
       const originalResumeId = generatedResumeResult.rows.length > 0 ? generatedResumeResult.rows[0].id : null
       
-      // Insert the saved resume data into the database
-      console.log('💾 Saving resume to profile...')
-      const insertResult = await client.query(
-        `INSERT INTO saved_resumes (user_id, resume_slug, resume_title, resume_data, template_used, original_resume_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-         RETURNING id, resume_slug`,
-        [
-          userId,
-          finalSlug,
-          resumeTitle,
-          JSON.stringify(resumeData),
-          templateUsed,
-          originalResumeId
-        ]
+      // Check if user already has a saved resume
+      const existingResumeCheck = await client.query(
+        'SELECT id, resume_slug FROM saved_resumes WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1',
+        [userId]
       )
 
-      const savedResumeId = insertResult.rows[0].id
-      const resumeSlug = insertResult.rows[0].resume_slug
-      
+      let finalSlug: string
+      let savedResumeId: string
+
+      if (existingResumeCheck.rows.length > 0) {
+        // User already has a saved resume - update it
+        const existingResume = existingResumeCheck.rows[0]
+        finalSlug = existingResume.resume_slug
+        savedResumeId = existingResume.id
+        
+        console.log('🔄 Updating existing saved resume:', savedResumeId)
+        
+        // Update the existing saved resume
+        const updateResult = await client.query(
+          `UPDATE saved_resumes 
+           SET resume_title = $1, resume_data = $2, template_used = $3, original_resume_id = $4, updated_at = NOW()
+           WHERE id = $5
+           RETURNING id, resume_slug`,
+          [
+            resumeTitle,
+            JSON.stringify(resumeData),
+            templateUsed,
+            originalResumeId,
+            savedResumeId
+          ]
+        )
+        
+        console.log('✅ Existing resume updated successfully')
+      } else {
+        // User doesn't have a saved resume - create new one
+        const baseSlug = generateSlug(user.full_name)
+        let counter = 1
+
+        // Check if slug already exists and generate a unique one
+        while (true) {
+          const slugCheck = await client.query(
+            'SELECT id FROM saved_resumes WHERE resume_slug = $1',
+            [baseSlug]
+          )
+          
+          if (slugCheck.rows.length === 0) {
+            break // Slug is unique
+          }
+          
+          // Add counter to make it unique
+          finalSlug = `${baseSlug}-${counter}`
+          counter++
+        }
+
+        finalSlug = baseSlug
+        console.log('🆕 Creating new saved resume with slug:', finalSlug)
+        
+        // Insert new saved resume
+        const insertResult = await client.query(
+          `INSERT INTO saved_resumes (user_id, resume_slug, resume_title, resume_data, template_used, original_resume_id, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+           RETURNING id, resume_slug`,
+          [
+            userId,
+            finalSlug,
+            resumeTitle,
+            JSON.stringify(resumeData),
+            templateUsed,
+            originalResumeId
+          ]
+        )
+
+        savedResumeId = insertResult.rows[0].id
+        console.log('✅ New resume created successfully')
+      }
+
       console.log(`💾 Resume saved to profile: ${savedResumeId}`)
-      console.log(`🔗 Resume slug: ${resumeSlug}`)
+      console.log(`🔗 Resume slug: ${finalSlug}`)
       console.log(`👤 User ID: ${userId}`)
       console.log(`📁 Resume title: ${resumeTitle}`)
 
       return NextResponse.json({
         success: true,
         savedResumeId: savedResumeId,
-        resumeSlug: resumeSlug,
-        resumeUrl: `/${resumeSlug}`,
+        resumeSlug: finalSlug,
+        resumeUrl: `/${finalSlug}`,
         message: 'Resume saved to profile successfully'
       })
 
