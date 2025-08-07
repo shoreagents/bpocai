@@ -710,14 +710,14 @@ export default function LogicalReasoningPage() {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent className="glass-card border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Exit Assessment</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">Leave Logical Reasoning Test?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
-              Are you sure you want to exit the assessment? This will take you back to the main menu and you'll lose your current progress.
+              Are you sure you want to exit? Your progress will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
-              Cancel
+              Continue Answering
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => router.back()}
