@@ -1712,20 +1712,20 @@ export default function WorkplaceJudgmentAssessment() {
 
           {/* Exit Dialog */}
           <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-            <AlertDialogContent className="bg-black border-gray-700">
+            <AlertDialogContent className="glass-card border-white/10">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-white">Exit Assessment</AlertDialogTitle>
+                <AlertDialogTitle className="text-white">Leave Workplace Judgment Assessment?</AlertDialogTitle>
                 <AlertDialogDescription className="text-gray-300">
-                  Are you sure you want to exit the assessment? This will take you back to the main menu and you'll lose your current progress.
+                  Are you sure you want to exit? Your progress will be lost.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-800">
-                  Cancel
+                <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+                  Continue Answering
                 </AlertDialogCancel>
                 <AlertDialogAction 
                   onClick={() => router.replace('/career-tools/assessments')}
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
                 >
                   Exit Assessment
                 </AlertDialogAction>

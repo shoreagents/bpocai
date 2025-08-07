@@ -46,10 +46,10 @@ const DISC_SCENARIOS = [
     description: 'Your manager just announced a HUGE project with an impossible deadline. The whole team looks overwhelmed and panicked. What is your superhero move?',
     visual: 'conference-room',
     options: [
-      { id: 'A', text: 'Challenge accepted! I will take point and get this organized!', disc: 'D', reaction: 'Bold leader energy!' },
-      { id: 'B', text: 'Team huddle! We are stronger together - let us break this down!', disc: 'I', reaction: 'Team spirit activated!' },
-      { id: 'C', text: 'Let me review the requirements and create a realistic timeline.', disc: 'S', reaction: 'Steady approach chosen!' },
-      { id: 'D', text: 'I need to analyze the scope and identify potential roadblocks first.', disc: 'C', reaction: 'Strategic thinking engaged!' }
+      { id: 'A', text: '💪 Challenge accepted! I will take point and get this organized!', disc: 'D', reaction: 'Bold leader energy!' },
+      { id: 'B', text: '🤝 Team huddle! We are stronger together - let us break this down!', disc: 'I', reaction: 'Team spirit activated!' },
+      { id: 'C', text: '📋 Let me review the requirements and create a realistic timeline.', disc: 'S', reaction: 'Steady approach chosen!' },
+      { id: 'D', text: '🔍 I need to analyze the scope and identify potential roadblocks first.', disc: 'C', reaction: 'Strategic thinking engaged!' }
     ]
   },
   {
@@ -59,10 +59,10 @@ const DISC_SCENARIOS = [
     description: 'A critical client decision needs to be made immediately. Your team is looking to you for direction. How do you handle this moment of truth?',
     visual: 'decision-making',
     options: [
-      { id: 'A', text: 'I will make the call now and take full responsibility for the outcome!', disc: 'D', reaction: 'Decisive leader mode!' },
-      { id: 'B', text: 'Let me gather input from the team and build consensus!', disc: 'I', reaction: 'Collaborative decision maker!' },
-      { id: 'C', text: 'I will carefully consider all options before making a decision.', disc: 'S', reaction: 'Thoughtful approach chosen!' },
-      { id: 'D', text: 'I need to analyze all the data and risks before deciding.', disc: 'C', reaction: 'Analytical decision process!' }
+      { id: 'A', text: '⚡ I will make the call now and take full responsibility for the outcome!', disc: 'D', reaction: 'Decisive leader mode!' },
+      { id: 'B', text: '👥 Let me gather input from the team and build consensus!', disc: 'I', reaction: 'Collaborative decision maker!' },
+      { id: 'C', text: '🤔 I will carefully consider all options before making a decision.', disc: 'S', reaction: 'Thoughtful approach chosen!' },
+      { id: 'D', text: '📊 I need to analyze all the data and risks before deciding.', disc: 'C', reaction: 'Analytical decision process!' }
     ]
   },
   {
@@ -72,10 +72,10 @@ const DISC_SCENARIOS = [
     description: 'Your company is considering a bold new strategy that could revolutionize the business. What is your stance on this high-risk opportunity?',
     visual: 'risk-assessment',
     options: [
-      { id: 'A', text: 'Let us go for it! High risk means high reward - I am all in!', disc: 'D', reaction: 'Risk taker extraordinaire!' },
-      { id: 'B', text: 'This could be amazing! Let me rally the team behind this vision!', disc: 'I', reaction: 'Visionary motivator!' },
-      { id: 'C', text: 'I will support this if we have a solid backup plan in place.', disc: 'S', reaction: 'Cautious supporter!' },
-      { id: 'D', text: 'I need to thoroughly evaluate all potential outcomes first.', disc: 'C', reaction: 'Risk analyst mode!' }
+      { id: 'A', text: '🎯 Let us go for it! High risk means high reward - I am all in!', disc: 'D', reaction: 'Risk taker extraordinaire!' },
+      { id: 'B', text: '🌟 This could be amazing! Let me rally the team behind this vision!', disc: 'I', reaction: 'Visionary motivator!' },
+      { id: 'C', text: '🛡️ I will support this if we have a solid backup plan in place.', disc: 'S', reaction: 'Cautious supporter!' },
+      { id: 'D', text: '🔬 I need to thoroughly evaluate all potential outcomes first.', disc: 'C', reaction: 'Risk analyst mode!' }
     ]
   },
   {
@@ -85,10 +85,10 @@ const DISC_SCENARIOS = [
     description: 'Your team is struggling with a complex project. You have the expertise to take control, but you also want to develop their skills. What do you do?',
     visual: 'team-leadership',
     options: [
-      { id: 'A', text: 'I will take charge and show them how it is done - we need results now!', disc: 'D', reaction: 'Take charge leader!' },
-      { id: 'B', text: 'Let me inspire them and guide them through this challenge!', disc: 'I', reaction: 'Inspirational mentor!' },
-      { id: 'C', text: 'I will support them step by step and help them learn.', disc: 'S', reaction: 'Patient teacher!' },
-      { id: 'D', text: 'I will create a detailed plan and monitor their progress closely.', disc: 'C', reaction: 'Structured supervisor!' }
+      { id: 'A', text: '👑 I will take charge and show them how it is done - we need results now!', disc: 'D', reaction: 'Take charge leader!' },
+      { id: 'B', text: '✨ Let me inspire them and guide them through this challenge!', disc: 'I', reaction: 'Inspirational mentor!' },
+      { id: 'C', text: '🤲 I will support them step by step and help them learn.', disc: 'S', reaction: 'Patient teacher!' },
+      { id: 'D', text: '📋 I will create a detailed plan and monitor their progress closely.', disc: 'C', reaction: 'Structured supervisor!' }
     ]
   },
   {
@@ -98,10 +98,10 @@ const DISC_SCENARIOS = [
     description: 'You discover that a colleague has been undermining your work to senior management. How do you handle this power play?',
     visual: 'power-struggle',
     options: [
-      { id: 'A', text: 'I will confront them directly and establish my position clearly!', disc: 'D', reaction: 'Direct confrontation mode!' },
-      { id: 'B', text: 'Let me address this diplomatically and turn them into an ally!', disc: 'I', reaction: 'Diplomatic negotiator!' },
-      { id: 'C', text: 'I will document everything and handle this through proper channels.', disc: 'S', reaction: 'Process follower!' },
-      { id: 'D', text: 'I need to gather evidence and present a comprehensive case.', disc: 'C', reaction: 'Evidence-based approach!' }
+      { id: 'A', text: '⚔️ I will confront them directly and establish my position clearly!', disc: 'D', reaction: 'Direct confrontation mode!' },
+      { id: 'B', text: '🤝 Let me address this diplomatically and turn them into an ally!', disc: 'I', reaction: 'Diplomatic negotiator!' },
+      { id: 'C', text: '📝 I will document everything and handle this through proper channels.', disc: 'S', reaction: 'Process follower!' },
+      { id: 'D', text: '🔍 I need to gather evidence and present a comprehensive case.', disc: 'C', reaction: 'Evidence-based approach!' }
     ]
   },
   // I - Influence (5 scenarios)
@@ -112,10 +112,10 @@ const DISC_SCENARIOS = [
     description: 'Company networking event with potential new clients and partners. You walk into a room full of strangers. What is your natural approach?',
     visual: 'office-mixer',
     options: [
-      { id: 'A', text: 'Time to identify the key decision makers and make connections.', disc: 'D', reaction: 'Strategic networker mode!' },
-      { id: 'B', text: 'This is exciting! Let me introduce myself to everyone!', disc: 'I', reaction: 'Social butterfly power!' },
-      { id: 'C', text: 'I will find a few people to have meaningful conversations with.', disc: 'S', reaction: 'Meaningful connector activated!' },
-      { id: 'D', text: 'Let me observe the room dynamics and plan my approach.', disc: 'C', reaction: 'Good observer!' }
+      { id: 'A', text: '🎯 Time to identify the key decision makers and make connections.', disc: 'D', reaction: 'Strategic networker mode!' },
+      { id: 'B', text: '🦋 This is exciting! Let me introduce myself to everyone!', disc: 'I', reaction: 'Social butterfly power!' },
+      { id: 'C', text: '💬 I will find a few people to have meaningful conversations with.', disc: 'S', reaction: 'Meaningful connector activated!' },
+      { id: 'D', text: '👁️ Let me observe the room dynamics and plan my approach.', disc: 'C', reaction: 'Good observer!' }
     ]
   },
   {
@@ -125,10 +125,10 @@ const DISC_SCENARIOS = [
     description: 'You need to present a new idea to your team. The concept is complex but exciting. How do you approach this communication challenge?',
     visual: 'presentation',
     options: [
-      { id: 'A', text: 'I will deliver a powerful, direct presentation that commands attention!', disc: 'D', reaction: 'Commanding presenter!' },
-      { id: 'B', text: 'I will make this fun and engaging - let me tell a story that inspires!', disc: 'I', reaction: 'Inspirational storyteller!' },
-      { id: 'C', text: 'I will explain this step by step and answer all questions patiently.', disc: 'S', reaction: 'Patient educator!' },
-      { id: 'D', text: 'I will provide detailed documentation and clear logical structure.', disc: 'C', reaction: 'Structured communicator!' }
+      { id: 'A', text: '🎤 I will deliver a powerful, direct presentation that commands attention!', disc: 'D', reaction: 'Commanding presenter!' },
+      { id: 'B', text: '📖 I will make this fun and engaging - let me tell a story that inspires!', disc: 'I', reaction: 'Inspirational storyteller!' },
+      { id: 'C', text: '📚 I will explain this step by step and answer all questions patiently.', disc: 'S', reaction: 'Patient educator!' },
+      { id: 'D', text: '📋 I will provide detailed documentation and clear logical structure.', disc: 'C', reaction: 'Structured communicator!' }
     ]
   },
   {
@@ -327,6 +327,7 @@ export default function DISCPersonalityGame() {
   const [encouragingMessage, setEncouragingMessage] = useState<string>('');
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showAchievement, setShowAchievement] = useState<string | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
 
   const currentScenario = DISC_SCENARIOS[gameState.currentQuestion];
 
@@ -336,6 +337,7 @@ export default function DISCPersonalityGame() {
 
   const handleOptionSelect = (optionId: string, disc: string, reaction: string) => {
     setSelectedOption(optionId);
+    setSelectedChoice(optionId);
     setShowReaction(reaction);
     
     // Set encouraging message based on DISC type
@@ -397,63 +399,63 @@ export default function DISCPersonalityGame() {
     }
     
     // Streak achievements
-    if (newStreak === 3 && !newBadges.includes('Streak Master')) {
+    if (newStreak === 8 && !newBadges.includes('Streak Master')) {
       newBadges.push('Streak Master');
       newAchievements.push('Streak Master');
       newAchievement = 'Streak Master';
     }
-    if (newStreak === 5 && !newBadges.includes('Fire Starter')) {
+    if (newStreak === 12 && !newBadges.includes('Fire Starter')) {
       newBadges.push('Fire Starter');
       newAchievements.push('Fire Starter');
       newAchievement = 'Fire Starter';
     }
-    if (newStreak === 10 && !newBadges.includes('Unstoppable')) {
+    if (newStreak === 18 && !newBadges.includes('Unstoppable')) {
       newBadges.push('Unstoppable');
       newAchievements.push('Unstoppable');
       newAchievement = 'Unstoppable';
     }
     
     // Combo achievements
-    if (newCombo === 3 && !newBadges.includes('Combo King')) {
+    if (newCombo === 6 && !newBadges.includes('Combo King')) {
       newBadges.push('Combo King');
       newAchievements.push('Combo King');
       newAchievement = 'Combo King';
     }
-    if (newCombo === 5 && !newBadges.includes('Combo Master')) {
+    if (newCombo === 10 && !newBadges.includes('Combo Master')) {
       newBadges.push('Combo Master');
       newAchievements.push('Combo Master');
       newAchievement = 'Combo Master';
     }
     
     // XP milestones
-    if (gameState.xpPoints + xpGain >= 100 && !newBadges.includes('Experience Collector')) {
+    if (gameState.xpPoints + xpGain >= 300 && !newBadges.includes('Experience Collector')) {
       newBadges.push('Experience Collector');
       newAchievements.push('Experience Collector');
       newAchievement = 'Experience Collector';
     }
-    if (gameState.xpPoints + xpGain >= 250 && !newBadges.includes('Knowledge Seeker')) {
+    if (gameState.xpPoints + xpGain >= 600 && !newBadges.includes('Knowledge Seeker')) {
       newBadges.push('Knowledge Seeker');
       newAchievements.push('Knowledge Seeker');
       newAchievement = 'Knowledge Seeker';
     }
-    if (gameState.xpPoints + xpGain >= 500 && !newBadges.includes('Wisdom Master')) {
+    if (gameState.xpPoints + xpGain >= 1000 && !newBadges.includes('Wisdom Master')) {
       newBadges.push('Wisdom Master');
       newAchievements.push('Wisdom Master');
       newAchievement = 'Wisdom Master';
     }
     
     // Question milestones
-    if (gameState.currentQuestion + 1 === 5 && !newBadges.includes('Scenario Explorer')) {
+    if (gameState.currentQuestion + 1 === 8 && !newBadges.includes('Scenario Explorer')) {
       newBadges.push('Scenario Explorer');
       newAchievements.push('Scenario Explorer');
       newAchievement = 'Scenario Explorer';
     }
-    if (gameState.currentQuestion + 1 === 10 && !newBadges.includes('Assessment Veteran')) {
+    if (gameState.currentQuestion + 1 === 15 && !newBadges.includes('Assessment Veteran')) {
       newBadges.push('Assessment Veteran');
       newAchievements.push('Assessment Veteran');
       newAchievement = 'Assessment Veteran';
     }
-    if (gameState.currentQuestion + 1 === 15 && !newBadges.includes('Personality Expert')) {
+    if (gameState.currentQuestion + 1 === 18 && !newBadges.includes('Personality Expert')) {
       newBadges.push('Personality Expert');
       newAchievements.push('Personality Expert');
       newAchievement = 'Personality Expert';
@@ -527,6 +529,7 @@ export default function DISCPersonalityGame() {
           lastAnswer: disc
         }));
         setSelectedOption(null);
+        setSelectedChoice(null);
         setShowReaction(null);
       } else {
         setGameState(prev => ({
@@ -585,6 +588,7 @@ export default function DISCPersonalityGame() {
       lastAnswer: ''
     });
     setSelectedOption(null);
+    setSelectedChoice(null);
     setShowResults(false);
     setDiscResult(null);
     setShowReaction(null);
@@ -608,7 +612,7 @@ export default function DISCPersonalityGame() {
     const personality = {
       D: {
         title: "The Action Hero",
-        icon: "âš¡",
+        icon: "⚡",
         description: "You turn challenges into victories and get things done when everyone else is still planning!",
         traits: ["Natural Leader", "Results-Focused", "Decisive", "Direct"],
         bpoRoles: ["Team Lead", "Operations Manager", "Escalation Specialist", "Performance Coach"],
@@ -671,7 +675,7 @@ export default function DISCPersonalityGame() {
                 <div className="flex items-center">
                   <Brain className="h-12 w-12 text-green-400 mr-4" />
                   <div>
-                    <h1 className="text-4xl font-bold gradient-text">DISC Personality Game</h1>
+                    <h1 className="text-4xl font-bold gradient-text">BPOC DISC</h1>
                     <p className="text-gray-400">Master workplace dynamics with interactive personality scenarios</p>
                   </div>
                 </div>
@@ -691,10 +695,10 @@ export default function DISCPersonalityGame() {
                 <div className="flex items-center justify-center gap-4 mb-4">
                   <div className="text-4xl">🏆</div>
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
-                    Challenge Complete!
+                    Game Complete!
                   </h1>
                 </div>
-                <p className="text-gray-400 text-lg">Here's how you performed</p>
+                <p className="text-gray-400 text-lg">Your BPOC DISC Results</p>
               </motion.div>
 
               {/* Main Results Card */}
@@ -713,14 +717,84 @@ export default function DISCPersonalityGame() {
                 <div className="mb-8">
                   <h3 className="text-xl font-semibold text-white mb-4">Overall Performance</h3>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-green-400 mb-2">
-                      {discResult.primaryType === 'D' ? 'EXCELLENT' : 
-                       discResult.primaryType === 'I' ? 'OUTSTANDING' : 
-                       discResult.primaryType === 'S' ? 'GREAT' : 'EXCEPTIONAL'}
-                    </div>
-                    <div className="text-xl text-gray-300">
-                      Score: {Math.max(...Object.values(discResult.scores).map(Number))}
-                    </div>
+                    {(() => {
+                      const maxScore = Math.max(...Object.values(discResult.scores).map(Number));
+                      const primaryType = discResult.primaryType;
+                      
+                      const getPerformanceRating = (score: number, type: string) => {
+                        // Define personality-specific performance ratings
+                        const typeDescriptions = {
+                          'D': {
+                            high: 'Exceptional leadership and decision-making!',
+                            good: 'Strong action-oriented performance',
+                            developing: 'Good leadership foundation, build confidence'
+                          },
+                          'I': {
+                            high: 'Outstanding communication and team building!',
+                            good: 'Excellent people skills and enthusiasm',
+                            developing: 'Great interpersonal foundation, develop consistency'
+                          },
+                          'S': {
+                            high: 'Exceptional stability and team support!',
+                            good: 'Strong reliability and collaboration',
+                            developing: 'Solid team player, build assertiveness'
+                          },
+                          'C': {
+                            high: 'Outstanding analytical and quality focus!',
+                            good: 'Excellent attention to detail and accuracy',
+                            developing: 'Strong analytical foundation, build speed'
+                          }
+                        };
+                        
+                        const descriptions = typeDescriptions[type as keyof typeof typeDescriptions] || typeDescriptions['D'];
+                        
+                        if (score >= 80) return { 
+                          rating: 'EXCEPTIONAL', 
+                          color: 'text-yellow-400', 
+                          description: descriptions.high 
+                        };
+                        if (score >= 65) return { 
+                          rating: 'EXCELLENT', 
+                          color: 'text-green-400', 
+                          description: descriptions.good 
+                        };
+                        if (score >= 50) return { 
+                          rating: 'GREAT', 
+                          color: 'text-blue-400', 
+                          description: descriptions.good 
+                        };
+                        if (score >= 35) return { 
+                          rating: 'GOOD', 
+                          color: 'text-cyan-400', 
+                          description: descriptions.developing 
+                        };
+                        if (score >= 20) return { 
+                          rating: 'DEVELOPING', 
+                          color: 'text-orange-400', 
+                          description: descriptions.developing 
+                        };
+                        return { 
+                          rating: 'NEEDS IMPROVEMENT', 
+                          color: 'text-red-400', 
+                          description: 'Consider additional BPOC training and practice' 
+                        };
+                      };
+                      
+                      const performance = getPerformanceRating(maxScore, primaryType);
+                      return (
+                        <>
+                          <div className={`text-4xl font-bold ${performance.color} mb-2`}>
+                            {performance.rating}
+                          </div>
+                          <div className="text-xl text-gray-300 mb-2">
+                            Score: {maxScore} • {primaryType}-Type
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            {performance.description}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -736,33 +810,121 @@ export default function DISCPersonalityGame() {
                   </div>
                 </div>
 
-                {/* Individual Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {Object.entries(discResult.scores).map(([type, score]) => (
-                    <div key={type} className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-                      <div className="text-center mb-3">
-                        <div className="text-2xl font-bold text-purple-400 mb-1">{String(score)}</div>
-                        <div className="text-sm text-gray-400 font-medium">{type}-Type</div>
+                {/* DISC Progress */}
+
+
+
+
+                {/* XP and Progress Summary */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold text-white mb-4">Experience & Progress</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="glass-card border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-6"
+                    >
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">💎</div>
+                        <div className="text-3xl font-bold text-cyan-400 mb-2">{gameState.totalXP}</div>
+                        <div className="text-sm text-gray-400">Total XP Earned</div>
                       </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${(Number(score) / Math.max(...Object.values(discResult.scores).map(Number))) * 100}%` }}
-                        ></div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="glass-card border-green-500/20 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-6"
+                    >
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">🏆</div>
+                        <div className="text-3xl font-bold text-green-400 mb-2">{gameState.badges.length}</div>
+                        <div className="text-sm text-gray-400">Badges Unlocked</div>
                       </div>
-                    </div>
-                  ))}
+                    </motion.div>
+
+
+                  </div>
+                </div>
+
+                {/* Individual DISC Metrics */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold text-white mb-4">BPOC DISC Type Breakdown</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {Object.entries(gameState.scores).map(([type, score]) => {
+                      const numScore = Number(score);
+                      const level = Math.floor(numScore / 20) + 1; // Level 1-6 based on score
+                      const xpInLevel = numScore % 20;
+                      const nextLevelXP = 20;
+                      
+                      const getTypeColor = (type: string) => {
+                        switch(type) {
+                          case 'D': return { bg: 'from-red-500/10 to-red-600/10', border: 'border-red-500/20', text: 'text-red-400' };
+                          case 'I': return { bg: 'from-blue-500/10 to-blue-600/10', border: 'border-blue-500/20', text: 'text-blue-400' };
+                          case 'S': return { bg: 'from-purple-500/10 to-purple-600/10', border: 'border-purple-500/20', text: 'text-purple-400' };
+                          case 'C': return { bg: 'from-green-500/10 to-green-600/10', border: 'border-green-500/20', text: 'text-green-400' };
+                          default: return { bg: 'from-purple-500/10 to-blue-500/10', border: 'border-purple-500/20', text: 'text-purple-400' };
+                        }
+                      };
+                      
+                      const colors = getTypeColor(type);
+                      
+                      return (
+                        <motion.div 
+                          key={type} 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Object.keys(discResult.scores).indexOf(type) * 0.1 }}
+                          className={`glass-card ${colors.border} bg-gradient-to-br ${colors.bg} rounded-lg p-4`}
+                        >
+                          <div className="text-center mb-3">
+                            <div className={`text-2xl font-bold ${colors.text} mb-1`}>{String(score)}</div>
+                            <div className="text-sm text-gray-400 font-medium mb-2">{type}-Type</div>
+                            <div className="text-xs text-cyan-400 font-bold">{numScore >= 20 ? 'MAX LEVEL' : `Level ${numScore + 1}`}</div>
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${(numScore / Math.max(...Object.values(gameState.scores).map(Number))) * 100}%` }}
+                            ></div>
+                          </div>
+                          
+                          {/* Level Progress */}
+                          <div className="text-xs text-gray-500 text-center">
+                            {numScore >= 20 ? 'MAXED' : `${xpInLevel}/${nextLevelXP} to Level ${numScore + 2}`}
+                          </div>
+                          <div className="w-full bg-gray-800 rounded-full h-1 mt-1">
+                            <div 
+                              className="bg-gradient-to-r from-cyan-400 to-blue-400 h-1 rounded-full transition-all duration-500"
+                              style={{ width: `${(xpInLevel / nextLevelXP) * 100}%` }}
+                            ></div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
                 
                 {/* Achievement Badges */}
                 {gameState.achievements.length > 0 && (
                   <div className="mt-8">
                     <h3 className="text-xl font-semibold text-white mb-4">🏆 Achievements Unlocked</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {gameState.achievements.map((achievement, index) => (
-                        <div key={index} className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg p-3 text-center border border-yellow-400 shadow-lg">
-                          <div className="text-sm font-bold text-white">{achievement}</div>
-                        </div>
+                        <motion.div 
+                          key={index} 
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="glass-card border-yellow-400/30 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl p-4 text-center shadow-lg hover:scale-105 transition-transform duration-200"
+                        >
+                          <div className="text-2xl mb-2">🏆</div>
+                          <div className="text-sm font-bold text-yellow-100 leading-relaxed">{achievement}</div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
@@ -830,7 +992,7 @@ export default function DISCPersonalityGame() {
                 <div className="flex items-center">
                   <Brain className="h-12 w-12 text-green-400 mr-4" />
                   <div>
-                    <h1 className="text-4xl font-bold gradient-text">DISC Personality Game</h1>
+                    <h1 className="text-4xl font-bold gradient-text">BPOC DISC</h1>
                     <p className="text-gray-400">Master workplace dynamics with interactive personality scenarios</p>
                   </div>
                 </div>
@@ -850,10 +1012,10 @@ export default function DISCPersonalityGame() {
                     </div>
                     <div>
                       <CardTitle className="text-3xl font-bold gradient-text mb-2">
-                        Welcome to DISC Personality Game!
+                        Welcome to BPOC DISC!
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-lg">
-                        Master workplace dynamics with interactive personality scenarios
+                        Master workplace dynamics with interactive BPO personality scenarios
                       </CardDescription>
                     </div>
                   </div>
@@ -871,19 +1033,16 @@ export default function DISCPersonalityGame() {
                         </li>
                         <li className="flex items-start">
                           <Target className="w-5 h-5 text-blue-400 mr-3 mt-0.5" />
-                          <span>Each choice reveals your DISC personality preferences (D-I-S-C)</span>
+                          <span>Each choice reveals your BPOC DISC personality preferences (D-I-S-C)</span>
                         </li>
                         <li className="flex items-start">
                           <span className="text-purple-400 mr-3 mt-0.5 text-lg">🌟</span>
                           <span>Earn 10-25 XP per question (bonus XP for consistent choices)</span>
                         </li>
-                        <li className="flex items-start">
-                          <span className="text-red-400 mr-3 mt-0.5 text-lg">🔥</span>
-                          <span>Build streaks by choosing the same personality type consecutively</span>
-                        </li>
+
                         <li className="flex items-start">
                           <span className="text-cyan-400 mr-3 mt-0.5 text-lg">💫</span>
-                          <span>Create combos and unlock achievements: Quick Decider, Social Butterfly, Steady Eddie, Detail Master, Streak Master, Fire Starter, Combo King, Experience Collector, and many more!</span>
+                          <span>Unlock achievements: Quick Decider, Social Butterfly, Steady Eddie, Detail Master, Experience Collector, Assessment Veteran, and many more!</span>
                         </li>
                         <li className="flex items-start">
                           <span className="text-orange-400 mr-3 mt-0.5 text-lg">💼</span>
@@ -963,75 +1122,107 @@ export default function DISCPersonalityGame() {
                   <Brain className="h-12 w-12 text-green-400 mr-4" />
                 </motion.div>
                 <div>
-                  <h1 className="text-4xl font-bold gradient-text">DISC Personality Game</h1>
-                  <p className="text-gray-400">Master workplace dynamics with interactive personality scenarios</p>
+                  <h1 className="text-4xl font-bold gradient-text">BPOC DISC</h1>
+                  <p className="text-gray-400">The Complete Candidate Revelation</p>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* XP and Achievements Bar - Move to top for better visibility */}
+                    {/* DISC Progress Cards - Separate from XP Card */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card border-white/10 rounded-xl p-4 mb-6 shadow-xl max-w-4xl mx-auto"
+            className="max-w-4xl mx-auto mb-6"
           >
-              <div className="flex justify-center items-center gap-6 flex-wrap">
-                <motion.div 
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl px-8 py-4 shadow-lg border border-green-400"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className="flex items-center gap-3">
-                  <Zap className="w-6 h-6 text-yellow-400" />
-                    <span className="text-white font-bold text-xl">XP: {gameState.totalXP}</span>
-                  </div>
-                </motion.div>
-                
-                {gameState.streak > 1 && (
+            <div className="flex gap-4">
+              <Card className="glass-card border-green-500/20 flex-1">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-green-400">{gameState.scores.D || 0}</div>
+                  <div className="text-sm text-green-300">D-Type</div>
+                  <div className="text-xs text-green-400 mt-1">{(gameState.scores.D || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.D || 0) + 1}`}</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-blue-500/20 flex-1">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-400">{gameState.scores.I || 0}</div>
+                  <div className="text-sm text-blue-300">I-Type</div>
+                  <div className="text-xs text-blue-400 mt-1">{(gameState.scores.I || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.I || 0) + 1}`}</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-purple-500/20 flex-1">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-purple-400">{gameState.scores.S || 0}</div>
+                  <div className="text-sm text-purple-300">S-Type</div>
+                  <div className="text-xs text-purple-400 mt-1">{(gameState.scores.S || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.S || 0) + 1}`}</div>
+                </CardContent>
+              </Card>
+              <Card className="glass-card border-orange-500/20 flex-1">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-orange-400">{gameState.scores.C || 0}</div>
+                  <div className="text-sm text-orange-300">C-Type</div>
+                  <div className="text-xs text-orange-400 mt-1">{(gameState.scores.C || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.C || 0) + 1}`}</div>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+
+          {/* XP and Achievements Bar - Separate Card */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto mb-8"
+          >
+            <Card className="glass-card border-white/10 mb-8">
+              <CardContent className="p-6">
+                <div className="flex justify-center items-center gap-6 flex-wrap">
                   <motion.div 
-                    className="bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl px-8 py-4 shadow-lg border border-red-400"
+                    className="glass-card border-white/10 rounded-2xl px-8 py-4 shadow-lg"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <div className="flex items-center gap-3">
+                    <Zap className="w-6 h-6 text-yellow-400" />
+                      <span className="text-white font-bold text-xl">XP: {gameState.totalXP}</span>
+                    </div>
+                  </motion.div>
+                  
+                  <div 
+                    className="glass-card border-red-500/30 rounded-2xl px-8 py-4 shadow-lg"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">🔥</span>
-                      <span className="text-white font-bold text-xl">Streak: {gameState.streak}</span>
+                      <span className="text-red-400 font-bold text-xl">Streak: {gameState.streak || 0}</span>
                     </div>
-                  </motion.div>
-                )}
-                
-                {gameState.combo > 2 && (
-                  <motion.div 
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl px-8 py-4 shadow-lg border border-purple-400"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={{ rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                  </div>
+                  
+                  <div 
+                    className="glass-card border-purple-500/30 rounded-2xl px-8 py-4 shadow-lg"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">💫</span>
-                      <span className="text-white font-bold text-xl">Combo: {gameState.combo}</span>
+                      <span className="text-purple-400 font-bold text-xl">Combo: {gameState.combo || 0}</span>
                     </div>
-                  </motion.div>
-                )}
-                
-                {gameState.achievements.length > 0 && (
+                  </div>
+                  
                   <motion.div 
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl px-8 py-4 shadow-lg border border-yellow-400"
+                    className="glass-card border-yellow-500/30 rounded-2xl px-8 py-4 shadow-lg"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">🏆</span>
-                      <span className="text-white font-bold text-xl">{gameState.achievements.length} Achievements</span>
+                      <span className="text-yellow-400 font-bold text-xl">{gameState.achievements.length || 0} Achievements</span>
                     </div>
                   </motion.div>
-                )}
+                
               </div>
-            </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
           {/* Main Game Content Area */}
           <div className="max-w-4xl mx-auto">
@@ -1039,178 +1230,91 @@ export default function DISCPersonalityGame() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-card border-white/10 rounded-xl p-4 mb-6 shadow-xl"
+              className="max-w-4xl mx-auto mb-8"
             >
-              {/* Progress Header */}
-              <div className="mb-6">
-                <div className="flex justify-center items-center mb-4">
-                  <span className="text-gray-400 bg-gray-800 px-4 py-2 rounded-full border border-gray-700">
-                    Question {gameState.currentQuestion + 1} of {DISC_SCENARIOS.length}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-4 border border-gray-700 overflow-hidden relative">
-                  <motion.div 
-                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-4 rounded-full shadow-lg"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(gameState.currentQuestion / DISC_SCENARIOS.length) * 100}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                  />
-                  {/* Progress Milestones */}
-                  {[25, 50, 75, 100].map((milestone) => (
-                    <div
-                      key={milestone}
-                      className="absolute top-0 w-1 h-4 bg-white/30 rounded-full"
-                      style={{ left: `${milestone}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-            </motion.div>
-
-
-
-            {/* Scenario Card - More prominent and spacious */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="glass-card border-white/10 rounded-xl p-6 mb-6 shadow-xl"
-            >
-              <div className="text-center">
-                <motion.div 
-                  className="glass-card border-white/10 rounded-2xl p-6 mb-6 shadow-xl bg-white/5"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <motion.div 
-                    className="text-6xl mb-4"
-                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {currentScenario.category === 'D' ? '⚡' : 
-                     currentScenario.category === 'I' ? '🌟' : 
-                     currentScenario.category === 'S' ? '🛡️' : '🎯'}
-                  </motion.div>
-                  <p className="text-gray-300 text-lg font-medium uppercase tracking-wide">{currentScenario.visual}</p>
-                </motion.div>
-                <motion.h3 
-                  className="text-2xl font-bold text-white mb-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  {currentScenario.title}
-                </motion.h3>
-                <motion.p 
-                  className="text-lg leading-relaxed text-gray-200 mb-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  {currentScenario.description}
-                </motion.p>
-              </div>
-            </motion.div>
-
-            {/* Options Card - More spacious layout */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="glass-card border-white/10 rounded-xl p-6 mb-6 shadow-xl"
-            >
-              <h3 className="text-xl font-bold text-white mb-6 text-center">Choose Your Response</h3>
-              <div className="space-y-4 md:space-y-6">
-                {currentScenario.options.map((option, index) => (
-                  <motion.button
-                    key={option.id}
-                    onClick={() => handleOptionSelect(option.id, option.disc, option.reaction)}
-                    disabled={selectedOption !== null}
-                    initial={{ opacity: 0, x: -50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className={`w-full glass-card border-white/10 hover:border-white/20 rounded-xl p-4 md:p-6 text-left transition-all duration-300 hover:scale-[1.02] shadow-xl ${
-                      selectedOption === option.id 
-                        ? 'bg-gradient-to-r from-green-600 to-green-500 border-green-400 shadow-green-500/25 scale-105' 
-                        : 'hover:shadow-2xl'
-                    }`}
-                    whileHover={{ 
-                      y: selectedOption === null ? -5 : 0
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-center">
-                      <motion.div 
-                        className={`w-14 h-14 rounded-full flex items-center justify-center mr-6 transition-all duration-300 ${
-                          selectedOption === option.id 
-                            ? 'bg-green-500 shadow-lg scale-110' 
-                            : 'bg-gray-600 hover:bg-gray-500'
-                        }`}
-                        animate={selectedOption === option.id ? { 
-                          scale: [1, 1.2, 1],
-                          rotate: [0, 360]
-                        } : {}}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <span className="text-white font-bold text-xl">{option.id}</span>
-                      </motion.div>
-                      <span className="text-white text-xl font-medium">{option.text}</span>
+              <Card className="glass-card border-white/10 mb-8">
+                <CardContent className="p-6">
+                  {/* Progress Header */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="text-gray-300">
+                        Question {gameState.currentQuestion + 1} of {DISC_SCENARIOS.length}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-gray-300 text-sm">Progress</div>
+                        <div className="text-white font-bold text-lg">
+                          {Math.round((gameState.currentQuestion / DISC_SCENARIOS.length) * 100)}%
+                        </div>
+                      </div>
                     </div>
-                  </motion.button>
-                ))}
-              </div>
-
-            </motion.div>
-
-            {/* Score Display Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="glass-card border-white/10 rounded-xl p-6 mb-6 shadow-xl"
-            >
-              <h3 className="text-xl font-bold text-white mb-6 text-center">Your Progress</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                {Object.entries(gameState.scores).map(([type, score], index) => (
-                  <motion.div 
-                    key={type} 
-                    className="glass-card border-white/10 rounded-xl p-4 text-center shadow-xl"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.05, y: -5 }}
-                  >
-                    <motion.div 
-                      className="text-4xl font-bold text-white mb-2"
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    >
-                      {score}
-                    </motion.div>
-                    <div className="text-gray-300 text-lg font-medium mb-3">{type}-Type</div>
-                    <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div className="w-full bg-gray-800 rounded-full h-4 border border-gray-700 overflow-hidden relative">
                       <motion.div 
-                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full shadow-lg"
+                        className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-4 rounded-full shadow-lg"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(score / Math.max(...Object.values(gameState.scores))) * 100}%` }}
-                        transition={{ duration: 1, delay: index * 0.1 }}
+                        animate={{ width: `${(gameState.currentQuestion / DISC_SCENARIOS.length) * 100}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
                       />
+                      {/* Progress Milestones */}
+                      {[25, 50, 75, 100].map((milestone) => (
+                        <div
+                          key={milestone}
+                          className="absolute top-0 w-1 h-4 bg-white/30 rounded-full"
+                          style={{ left: `${milestone}%` }}
+                        />
+                      ))}
                     </div>
-                    {/* Level Indicator */}
-                    <motion.div 
-                      className="mt-3 text-xs text-gray-400"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 1 + index * 0.1 }}
-                    >
-                      Level {score + 1}
-                    </motion.div>
-                  </motion.div>
-                ))}
-              </div>
-
-
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
+
+
+
+            {/* Combined Scenario and Options Card */}
+            <motion.div
+              key={gameState.currentQuestion}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="max-w-4xl mx-auto"
+            >
+              <Card className="glass-card border-white/10 mb-8">
+                <CardContent className="p-6">
+                  <div className="text-center mb-6">
+                    <h2 className="text-3xl font-bold gradient-text mb-2">{currentScenario.title}</h2>
+                    <p className="text-lg text-gray-300">{currentScenario.visual}</p>
+                  </div>
+
+                  <div className="mb-6">
+                    <p className="text-xl text-gray-200 mb-4">{currentScenario.description}</p>
+                    <div className="bg-red-900/50 border border-red-700 rounded-lg p-4">
+                      <p className="text-red-100 font-semibold">Choose your DISC personality response</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-center mb-6 text-white">How do you respond?</h3>
+                    {currentScenario.options.map((choice, index) => (
+                      <motion.button
+                        key={choice.id}
+                        onClick={() => handleOptionSelect(choice.id, choice.disc, choice.reaction)}
+                        disabled={selectedOption !== null}
+                        className={`w-full glass-card border-white/10 hover:border-blue-500/50 rounded-lg p-4 text-left transition-all ${
+                          selectedChoice === choice.id 
+                            ? 'bg-gradient-to-r from-green-600 to-green-500 border-green-400 shadow-green-500/25' 
+                            : ''
+                        }`}
+                        whileHover={{ scale: selectedOption === null ? 1.02 : 1 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className="text-lg text-white">{choice.text}</div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+
           </div>
         </div>
       </div>
@@ -1263,17 +1367,17 @@ export default function DISCPersonalityGame() {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent className="bg-black border-gray-800 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave Assessment?</AlertDialogTitle>
+            <AlertDialogTitle>Leave BPOC DISC?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
               Your progress will be lost if you leave now. Are you sure you want to exit?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
-              Stay
+              Continue Playing
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmExit} className="bg-red-600 hover:bg-red-700">
-              Leave
+              Exit Game
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

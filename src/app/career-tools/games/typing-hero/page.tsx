@@ -880,8 +880,8 @@ export default function TypingHeroPage() {
               <Card className="glass-card border-white/10">
                 <CardHeader className="pb-6">
                   <div className="flex items-center justify-center mb-6">
-                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-full flex items-center justify-center mr-4">
-                      <Guitar className="w-8 h-8 text-orange-400" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mr-4">
+                      <Guitar className="w-8 h-8 text-green-400" />
                     </div>
                     <div>
                       <CardTitle className="text-3xl font-bold gradient-text mb-2">
@@ -1441,14 +1441,14 @@ export default function TypingHeroPage() {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
                     <AlertDialogContent className="bg-black border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Exit Game</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">Leave Typing Hero?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
               Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
-              Cancel
+              Continue Playing
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => router.back()}

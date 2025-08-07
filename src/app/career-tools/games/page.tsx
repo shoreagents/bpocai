@@ -24,7 +24,8 @@ import {
   Mail,
   FileText,
   Utensils,
-  Scale
+  Scale,
+  Crown
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -95,7 +96,7 @@ export default function CareerGamesPage() {
     },
     {
       id: 'disc-personality',
-      title: 'DISC Personality Game',
+      title: 'BPOC DISC',
       description: 'Discover your workplace superpower through engaging scenarios',
       icon: Brain,
       difficulty: 'Intermediate',
@@ -107,6 +108,21 @@ export default function CareerGamesPage() {
       skillsDeveloped: ['Self Awareness', 'Team Dynamics', 'Communication Style', 'Leadership Potential'],
       participants: 156,
       rating: 4.9
+    },
+    {
+      id: 'ultimate',
+      title: 'BPOC Ultimate',
+      description: 'Master the ultimate BPO challenge with real workplace scenarios',
+      icon: Crown,
+      difficulty: 'Advanced',
+      category: 'Assessment',
+      duration: '10-15 minutes',
+      content: 'Multiple Scenarios',
+      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      skillsDeveloped: ['Business Acumen', 'Crisis Management', 'Leadership', 'Integrity'],
+      participants: 89,
+      rating: 4.8
     },
 
   ];
@@ -125,6 +141,8 @@ export default function CareerGamesPage() {
       router.push('/career-tools/games/right-choice');
     } else if (gameId === 'disc-personality') {
       router.push('/career-tools/games/disc-personality');
+    } else if (gameId === 'ultimate') {
+      router.push('/career-tools/games/ultimate');
     } else {
       // For other games, you can add navigation or modals here
       console.log(`Starting game: ${gameId}`);
