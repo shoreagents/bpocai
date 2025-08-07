@@ -52,7 +52,6 @@ CREATE TABLE saved_resumes (
   resume_title TEXT NOT NULL, -- Display title like "John Doe's Resume"
   resume_data JSONB NOT NULL, -- Stores the complete resume data (content + template)
   template_used TEXT NOT NULL, -- Template ID used for styling
-  original_resume_id UUID REFERENCES resumes_generated(id) ON DELETE SET NULL, -- Connection to generated resume
   is_public BOOLEAN DEFAULT true, -- Whether the resume is publicly accessible
   view_count INTEGER DEFAULT 0, -- Track how many times the resume has been viewed
   created_at TIMESTAMP DEFAULT NOW(),

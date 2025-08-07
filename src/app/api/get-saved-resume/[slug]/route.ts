@@ -44,7 +44,7 @@ export async function GET(
       const testResult = await client.query('SELECT NOW()')
       console.log('✅ Database connection successful:', testResult.rows[0])
 
-      // Get the saved resume with user info and original resume data
+      // Get the saved resume with user info
       const resumeResult = await client.query(
         `SELECT 
           sr.id,
@@ -52,17 +52,14 @@ export async function GET(
           sr.resume_title,
           sr.resume_data,
           sr.template_used,
-          sr.original_resume_id,
           sr.is_public,
           sr.view_count,
           sr.created_at,
           sr.updated_at,
           u.full_name,
-          u.avatar_url,
-          rg.generated_resume_data as original_resume_data
+          u.avatar_url
          FROM saved_resumes sr
          JOIN users u ON sr.user_id = u.id
-         LEFT JOIN resumes_generated rg ON sr.original_resume_id = rg.id
          WHERE sr.resume_slug = $1`,
         [slug]
       )
@@ -92,8 +89,6 @@ export async function GET(
           title: resume.resume_title,
           data: resume.resume_data,
           template: resume.template_used,
-          originalResumeId: resume.original_resume_id,
-          originalResumeData: resume.original_resume_data,
           isPublic: resume.is_public,
           viewCount: resume.view_count + 1, // Return incremented count
           createdAt: resume.created_at,
