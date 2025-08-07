@@ -36,7 +36,7 @@ export default function CareerToolsPage() {
             
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Boost your BPO career with our specialized tools designed for Filipino professionals. 
-              Test your skills, calculate your worth, and level up through gamification.
+              Test your skills, calculate your worth, and level up through gamification!
             </p>
           </motion.div>
 
