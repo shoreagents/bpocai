@@ -19,14 +19,14 @@ const nextConfig: NextConfig = {
         fs: false,
         net: false,
         tls: false,
+        path: false,
+        crypto: false,
       };
     }
     return config;
   },
   // Ensure proper output for Railway
   output: 'standalone',
-  // Disable telemetry
-  telemetry: false,
 };
 
 export default nextConfig;
