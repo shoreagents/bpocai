@@ -47,6 +47,8 @@ interface ResumeSection {
 }
 
 interface ImprovedResumeContent {
+  name: string;
+  bestJobTitle: string;
   summary: string;
   experience: Array<{
     title: string;
@@ -161,6 +163,7 @@ export default function ResumeBuilderPage() {
   const [improvedResume, setImprovedResume] = useState<ImprovedResumeContent | null>(null);
   const [originalResumeData, setOriginalResumeData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedResumeId, setGeneratedResumeId] = useState<string | null>(null);
   const [sections, setSections] = useState<ResumeSection[]>([]);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -271,6 +274,7 @@ export default function ResumeBuilderPage() {
       if (saveResponse.ok) {
         const saveResult = await saveResponse.json();
         console.log('✅ Generated resume saved to database:', saveResult.generatedResumeId);
+        setGeneratedResumeId(saveResult.generatedResumeId);
       } else {
         const errorData = await saveResponse.json();
         console.warn('⚠️ Failed to save generated resume to database:', errorData.error);
@@ -457,13 +461,15 @@ export default function ResumeBuilderPage() {
     };
 
     const headerInfo = {
-      name: findField(originalResumeData, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) ||
+      name: (improvedResume && improvedResume.name) ||
+            findField(originalResumeData, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) ||
             combineFields(originalResumeData, ['first_name', 'last_name']) ||
             extractFromContact(originalResumeData, 'name') ||
             (firstProcessedResume ? findField(firstProcessedResume, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) : null) ||
             'Name not found',
       
-      title: extractTitleFromJSON(originalResumeData) ||
+      title: (improvedResume && improvedResume.bestJobTitle) ||
+             extractTitleFromJSON(originalResumeData) ||
              (firstProcessedResume ? extractTitleFromJSON(firstProcessedResume) : null) ||
              improvedTitle ||
              'Title not found',
@@ -688,9 +694,93 @@ export default function ResumeBuilderPage() {
     }
   };
 
+  // Function to save resume to profile
+  const saveResumeToProfile = async () => {
+    if (!improvedResume) {
+      alert('Please generate a resume first before saving to profile.');
+      return;
+    }
+
+    try {
+      // Get session token for authentication
+      const sessionToken = await getSessionToken();
+      
+      if (!sessionToken) {
+        alert('Please log in to save your resume to profile.');
+        return;
+      }
+
+      console.log('💾 Saving resume to profile...');
+      
+      // Prepare the complete resume data (content + template)
+      const completeResumeData = {
+        content: improvedResume,
+        template: selectedTemplate,
+        sections: sections,
+        headerInfo: getHeaderInfo()
+      };
+
+      // Generate a title for the resume
+      const resumeTitle = `${improvedResume.name || 'My'}'s Resume`;
+      
+      const saveResponse = await fetch('/api/save-resume-to-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
+        body: JSON.stringify({
+          resumeData: completeResumeData,
+          templateUsed: selectedTemplate.id,
+          resumeTitle: resumeTitle,
+          originalResumeId: generatedResumeId
+        }),
+      });
+
+      if (saveResponse.ok) {
+        const saveResult = await saveResponse.json();
+        console.log('✅ Resume saved to profile:', saveResult.resumeUrl);
+        
+        // Show success message and provide the URL
+        alert(`Resume saved successfully! Your resume is now available at: ${saveResult.resumeUrl}`);
+        
+        // Optionally redirect to the saved resume page
+        // router.push(saveResult.resumeUrl);
+      } else {
+        const errorData = await saveResponse.json();
+        console.error('❌ Failed to save resume to profile:', errorData.error);
+        alert(`Failed to save resume to profile: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error saving resume to profile:', error);
+      alert('Error saving resume to profile. Please try again.');
+    }
+  };
+
   const renderSectionContent = (section: ResumeSection) => {
+    // Helper function to check if content is empty
+    const isEmptyContent = (content: any): boolean => {
+      if (!content) return true;
+      if (Array.isArray(content)) return content.length === 0;
+      if (typeof content === 'object') {
+        return Object.values(content).every(val => isEmptyContent(val));
+      }
+      if (typeof content === 'string') return content.trim() === '';
+      return false;
+    };
+
+    // Helper function to check if skills section has any content
+    const hasSkillsContent = (skills: any): boolean => {
+      if (!skills) return false;
+      const technical = Array.isArray(skills.technical) ? skills.technical.length > 0 : false;
+      const soft = Array.isArray(skills.soft) ? skills.soft.length > 0 : false;
+      const languages = Array.isArray(skills.languages) ? skills.languages.length > 0 : false;
+      return technical || soft || languages;
+    };
+
     switch (section.id) {
       case 'summary':
+        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
@@ -701,6 +791,7 @@ export default function ResumeBuilderPage() {
         );
 
       case 'experience':
+        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
@@ -731,17 +822,18 @@ export default function ResumeBuilderPage() {
         );
 
       case 'skills':
+        if (!hasSkillsContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Skills
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Technical Skills</h4>
-                <div className="flex flex-wrap gap-2">
-                  {Array.isArray(section.content?.technical) ? 
-                    section.content.technical.map((skill: string, index: number) => (
+              {Array.isArray(section.content?.technical) && section.content.technical.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Technical Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {section.content.technical.map((skill: string, index: number) => (
                       <Badge 
                         key={index} 
                         variant="secondary" 
@@ -750,16 +842,15 @@ export default function ResumeBuilderPage() {
                       >
                         {skill}
                       </Badge>
-                    )) : 
-                    <p className="text-gray-500 text-sm">No technical skills available</p>
-                  }
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Soft Skills</h4>
-                <div className="flex flex-wrap gap-2">
-                  {Array.isArray(section.content?.soft) ? 
-                    section.content.soft.map((skill: string, index: number) => (
+              )}
+              {Array.isArray(section.content?.soft) && section.content.soft.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Soft Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {section.content.soft.map((skill: string, index: number) => (
                       <Badge 
                         key={index} 
                         variant="outline" 
@@ -767,16 +858,15 @@ export default function ResumeBuilderPage() {
                       >
                         {skill}
                       </Badge>
-                    )) : 
-                    <p className="text-gray-500 text-sm">No soft skills available</p>
-                  }
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Languages</h4>
-                <div className="flex flex-wrap gap-2">
-                  {Array.isArray(section.content?.languages) ? 
-                    section.content.languages.map((language: string, index: number) => (
+              )}
+              {Array.isArray(section.content?.languages) && section.content.languages.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Languages</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {section.content.languages.map((language: string, index: number) => (
                       <Badge 
                         key={index} 
                         variant="outline" 
@@ -784,16 +874,16 @@ export default function ResumeBuilderPage() {
                       >
                         {language}
                       </Badge>
-                    )) : 
-                    <p className="text-gray-500 text-sm">No languages available</p>
-                  }
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         );
 
       case 'education':
+        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
@@ -823,6 +913,7 @@ export default function ResumeBuilderPage() {
         );
 
       case 'certifications':
+        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
@@ -842,6 +933,7 @@ export default function ResumeBuilderPage() {
         );
 
       case 'projects':
+        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
@@ -879,6 +971,7 @@ export default function ResumeBuilderPage() {
         );
 
       case 'achievements':
+        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
@@ -1003,14 +1096,21 @@ export default function ResumeBuilderPage() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-          <Button
-            onClick={exportToPDF}
+              <Button
+                onClick={exportToPDF}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export PDF
-          </Button>
-        </div>
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+              <Button
+                onClick={saveResumeToProfile}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save to Profile
+              </Button>
+            </div>
           </motion.div>
 
         <div className="space-y-8">

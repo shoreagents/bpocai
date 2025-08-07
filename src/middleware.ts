@@ -1,10 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, apiRateLimiter, authRateLimiter } from '@/lib/rate-limit'
 
 export async function middleware(request: NextRequest) {
-  // Only apply middleware to API routes that need authentication
+  // Security: Block suspicious requests
+  const userAgent = request.headers.get('user-agent') || ''
+  const suspiciousPatterns = [
+    /bot/i, /crawler/i, /spider/i, /scraper/i,
+    /sqlmap/i, /nikto/i, /nmap/i, /wget/i, /curl/i
+  ]
+  
+  if (suspiciousPatterns.some(pattern => pattern.test(userAgent))) {
+    console.log('🚫 Blocked suspicious user agent:', userAgent)
+    return NextResponse.json(
+      { error: 'Access denied' },
+      { status: 403 }
+    )
+  }
+
+  // Rate limiting for API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const rateLimitResponse = rateLimit(request, apiRateLimiter)
+    if (rateLimitResponse) {
+      return rateLimitResponse
+    }
+  }
+
+  // Enhanced authentication for protected routes
   if (request.nextUrl.pathname.startsWith('/api/save-resume') || 
-      request.nextUrl.pathname.startsWith('/api/save-generated-resume')) {
+      request.nextUrl.pathname.startsWith('/api/save-generated-resume') ||
+      request.nextUrl.pathname.startsWith('/api/save-resume-to-profile') ||
+      request.nextUrl.pathname.startsWith('/api/user/saved-resumes') ||
+      request.nextUrl.pathname.startsWith('/api/admin/')) {
+    
     console.log('🔍 Middleware: Processing authenticated API request')
     
     try {
@@ -22,6 +50,15 @@ export async function middleware(request: NextRequest) {
 
       const token = authHeader.replace('Bearer ', '')
       console.log('🎫 Token length:', token.length)
+      
+      // Validate token format (basic check)
+      if (token.length < 50) {
+        console.log('❌ Middleware: Token too short')
+        return NextResponse.json(
+          { error: 'Invalid token format' },
+          { status: 401 }
+        )
+      }
       
       // Check environment variables
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -86,9 +123,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Admin route protection
+  if (request.nextUrl.pathname.startsWith('/admin/')) {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.redirect(new URL('/?error=admin_access_denied', request.url))
+    }
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/api/save-resume', '/api/save-generated-resume'],
+  matcher: [
+    '/api/save-resume', 
+    '/api/save-generated-resume', 
+    '/api/save-resume-to-profile', 
+    '/api/user/saved-resumes',
+    '/api/admin/:path*',
+    '/admin/:path*'
+  ],
 } 

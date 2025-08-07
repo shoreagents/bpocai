@@ -18,7 +18,8 @@ import {
   Wrench,
   Briefcase,
   Users,
-  Shield
+  Shield,
+  FileText as FileTextIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ import SignUpForm from '@/components/auth/SignUpForm'
 
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdmin } from '@/contexts/AdminContext'
+import { getSessionToken } from '@/lib/auth-helpers'
 
 interface HeaderProps {
   className?: string
@@ -91,6 +93,7 @@ export default function Header({}: HeaderProps) {
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [savedResumeInfo, setSavedResumeInfo] = useState<{ hasSavedResume: boolean; resumeUrl: string } | null>(null)
 
   const isAuthenticated = !!user
    
@@ -158,6 +161,36 @@ export default function Header({}: HeaderProps) {
       window.removeEventListener('profileUpdated', handleProfileUpdate)
     }
   }, [user?.id])
+
+  // Check for saved resumes
+  useEffect(() => {
+    const checkSavedResumes = async () => {
+      if (user?.id) {
+        try {
+          const sessionToken = await getSessionToken()
+          if (!sessionToken) return
+
+          const response = await fetch('/api/user/saved-resumes', {
+            headers: {
+              'Authorization': `Bearer ${sessionToken}`
+            }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setSavedResumeInfo({
+              hasSavedResume: data.hasSavedResume,
+              resumeUrl: data.resumeUrl
+            })
+          }
+        } catch (error) {
+          console.error('Error checking saved resumes:', error)
+        }
+      }
+    }
+
+    checkSavedResumes()
+  }, [user?.id])
   
   // Extract user info from Railway data only
   const userDisplayName = profileLoading ? 'Loading...' : (userProfile?.full_name || 'User')
@@ -198,6 +231,7 @@ export default function Header({}: HeaderProps) {
 
   const userMenuItems = [
     { label: 'Profile', href: '/profile', icon: User, action: null },
+    { label: 'My Resume', href: savedResumeInfo?.resumeUrl || '/resume-builder', icon: FileTextIcon, action: null },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }
   ]

@@ -6,6 +6,8 @@ interface ImproveResumeRequest {
 }
 
 interface ImprovedResumeContent {
+  name: string;
+  bestJobTitle: string;
   summary: string;
   experience: Array<{
     title: string;
@@ -109,88 +111,104 @@ function createImprovementPrompt(resumeData: any): string {
 
   return `You are an expert resume writer specializing in creating compelling, professional resumes for the BPO industry in the Philippines.
 
-IMPORTANT: Create an improved version of the resume based on the provided data. Enhance the content to be more impactful, professional, and optimized for BPO roles.
+CRITICAL INSTRUCTIONS:
+- ONLY use information that is explicitly present in the provided resume data
+- DO NOT add, invent, or suggest any information that is not in the original resume
+- DO NOT add certifications, projects, or achievements that are not mentioned in the original data
+- Focus on improving the presentation and wording of existing information
+- Make the content more impactful and professional while staying 100% factual
 
 ORIGINAL RESUME DATA:
 ${JSON.stringify(resumeData, null, 2)}
 
 IMPROVEMENT REQUIREMENTS:
-1. Create a compelling professional summary that highlights key strengths
-2. Enhance work experience descriptions with quantifiable achievements
-3. Organize skills into technical, soft skills, and languages
-4. Improve education section with relevant highlights
-5. Add certifications if mentioned or suggest relevant ones
-6. Create impactful project descriptions if applicable
-7. Generate notable achievements section
-8. Use action verbs and quantifiable metrics
-9. Optimize for ATS (Applicant Tracking Systems)
-10. Focus on BPO industry relevance
+1. Use the candidate's actual name: ${candidateName}
+2. Analyze the existing experience and suggest the best job title based on actual roles and responsibilities
+3. Enhance existing work experience descriptions with better wording and action verbs
+4. Organize existing skills into technical, soft skills, and languages (only use skills mentioned in the resume)
+5. Improve existing education section with better presentation
+6. Only include certifications that are explicitly mentioned in the original resume
+7. Only include projects that are explicitly mentioned in the original resume
+8. Only include achievements that are explicitly mentioned in the original resume
+9. Create a compelling professional summary based on actual experience and skills
+10. Optimize for ATS (Applicant Tracking Systems) using existing keywords
 
-Please provide an improved resume in the following JSON structure:
+PROFESSIONAL SUMMARY GUIDELINES:
+- Create a compelling 3-4 sentence summary that highlights the candidate's key strengths
+- Focus on their most relevant experience, skills, and career achievements
+- Use strong action verbs and industry-specific keywords
+- Emphasize their unique value proposition and career objectives
+- Make it engaging and professional while staying factual
+- Include their years of experience if available
+- Mention their key technical skills or specializations if relevant
+- End with their career goals or what they're seeking
+
+Please provide an improved resume in the following JSON structure, using ONLY information from the provided resume data:
 
 {
-  "summary": "[Create a compelling 3-4 sentence professional summary that highlights key strengths and career objectives]",
+  "name": "${candidateName}",
+  "bestJobTitle": "[Analyze the resume and suggest the most appropriate job title based on actual experience and skills]",
+  "summary": "[Create a compelling 3-4 sentence professional summary that highlights key strengths, experience, skills, and career objectives. Focus on their most relevant achievements and what makes them unique. Use strong action verbs and industry keywords. Example format: 'Experienced [role] with [X] years of expertise in [key areas]. Demonstrated success in [specific achievements]. Skilled in [key technical skills]. Seeking [career goal or next step].']",
   "experience": [
     {
-      "title": "[Enhanced job title]",
-      "company": "[Company name]",
-      "duration": "[Duration]",
+      "title": "[Use actual job title or suggest better title based on responsibilities]",
+      "company": "[Actual company name]",
+      "duration": "[Actual duration]",
       "achievements": [
-        "[Quantified achievement 1]",
-        "[Quantified achievement 2]",
-        "[Quantified achievement 3]"
+        "[Enhance actual achievements with better wording and action verbs]"
       ]
     }
   ],
   "skills": {
     "technical": [
-      "[List 5-8 technical skills relevant to BPO]"
+      "[Only include technical skills that are explicitly mentioned in the resume]"
     ],
     "soft": [
-      "[List 4-6 soft skills]"
+      "[Only include soft skills that are explicitly mentioned in the resume]"
     ],
     "languages": [
-      "[List languages with proficiency levels]"
+      "[Only include languages that are explicitly mentioned in the resume]"
     ]
   },
   "education": [
     {
-      "degree": "[Degree name]",
-      "institution": "[Institution name]",
-      "year": "[Year]",
+      "degree": "[Actual degree name]",
+      "institution": "[Actual institution name]",
+      "year": "[Actual year]",
       "highlights": [
-        "[Relevant coursework or achievement 1]",
-        "[Relevant coursework or achievement 2]"
+        "[Only include highlights that are explicitly mentioned in the resume]"
       ]
     }
   ],
   "certifications": [
-    "[List relevant certifications]"
+    "[Only include certifications that are explicitly mentioned in the resume]"
   ],
   "projects": [
     {
-      "title": "[Project title]",
-      "description": "[Brief project description]",
+      "title": "[Only include projects that are explicitly mentioned in the resume]",
+      "description": "[Use actual project description with enhanced wording]",
       "technologies": [
-        "[Technologies used]"
+        "[Only include technologies that are explicitly mentioned]"
       ],
       "impact": [
-        "[Quantified impact or results]"
+        "[Only include impact that is explicitly mentioned]"
       ]
     }
   ],
   "achievements": [
-    "[List 3-5 notable achievements with quantifiable results]"
+    "[Only include achievements that are explicitly mentioned in the resume, enhanced with better wording]"
   ]
 }
 
-CRITICAL: 
-- Base all improvements on the actual resume data provided
-- Use quantifiable metrics and specific achievements
-- Make content more impactful and professional
-- Focus on BPO industry relevance
-- Use action verbs and strong language
-- Ensure all content is factual and based on provided data`;
+CRITICAL RULES:
+- NEVER invent or add information that is not in the original resume
+- ONLY enhance the wording and presentation of existing information
+- If a section is empty in the original resume, leave it empty or use an empty array
+- Focus on making existing content more impactful and professional
+- Use action verbs and strong language to improve existing descriptions
+- Ensure all content is 100% factual and based on provided data
+- The goal is to present existing information in a more compelling way, not to add new information
+- For the professional summary, focus on their actual experience and achievements, not generic statements`;
 }
 
 function parseClaudeImprovementResponse(responseText: string, resumeData: any): ImprovedResumeContent {
@@ -205,6 +223,8 @@ function parseClaudeImprovementResponse(responseText: string, resumeData: any): 
     
     // Validate and provide defaults if needed
     return {
+      name: parsed.name || 'Candidate',
+      bestJobTitle: parsed.bestJobTitle || 'Professional',
       summary: parsed.summary || 'Professional summary will be generated based on your experience.',
       experience: parsed.experience || [],
       skills: parsed.skills || {
@@ -222,6 +242,8 @@ function parseClaudeImprovementResponse(responseText: string, resumeData: any): 
     
     // Return default improved content if parsing fails
     return {
+      name: 'Candidate',
+      bestJobTitle: 'Professional',
       summary: 'Professional summary will be generated based on your experience.',
       experience: [],
       skills: {
