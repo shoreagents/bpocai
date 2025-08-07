@@ -59,7 +59,7 @@ export function containsSqlInjection(input: string): boolean {
     /(--|\/\*|\*\/)/, // Comments
     /(\b(xp_|sp_)\b)/i, // Stored procedures
     /(\b(cast|convert)\b)/i,
-    /(\b(sys\.|information_schema\.)/i
+    /(\b(sys\.|information_schema\.)\b)/i
   ]
   
   return sqlPatterns.some(pattern => pattern.test(input))
