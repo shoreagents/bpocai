@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
     const { 
       resumeData, 
       templateUsed, 
-      resumeTitle,
-      originalResumeId 
+      resumeTitle 
     } = await request.json()
     
     console.log('📥 Received data:', { 
@@ -131,16 +130,15 @@ export async function POST(request: NextRequest) {
       // Insert the saved resume data into the database
       console.log('💾 Saving resume to profile...')
       const insertResult = await client.query(
-        `INSERT INTO saved_resumes (user_id, resume_slug, resume_title, resume_data, template_used, original_resume_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        `INSERT INTO saved_resumes (user_id, resume_slug, resume_title, resume_data, template_used, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
          RETURNING id, resume_slug`,
         [
           userId,
           finalSlug,
           resumeTitle,
           JSON.stringify(resumeData),
-          templateUsed,
-          originalResumeId || null
+          templateUsed
         ]
       )
 

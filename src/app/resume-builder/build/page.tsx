@@ -163,7 +163,6 @@ export default function ResumeBuilderPage() {
   const [improvedResume, setImprovedResume] = useState<ImprovedResumeContent | null>(null);
   const [originalResumeData, setOriginalResumeData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedResumeId, setGeneratedResumeId] = useState<string | null>(null);
   const [sections, setSections] = useState<ResumeSection[]>([]);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -274,7 +273,6 @@ export default function ResumeBuilderPage() {
       if (saveResponse.ok) {
         const saveResult = await saveResponse.json();
         console.log('✅ Generated resume saved to database:', saveResult.generatedResumeId);
-        setGeneratedResumeId(saveResult.generatedResumeId);
       } else {
         const errorData = await saveResponse.json();
         console.warn('⚠️ Failed to save generated resume to database:', errorData.error);
@@ -732,8 +730,7 @@ export default function ResumeBuilderPage() {
         body: JSON.stringify({
           resumeData: completeResumeData,
           templateUsed: selectedTemplate.id,
-          resumeTitle: resumeTitle,
-          originalResumeId: generatedResumeId
+          resumeTitle: resumeTitle
         }),
       });
 
