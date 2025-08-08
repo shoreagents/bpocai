@@ -102,6 +102,103 @@
     box-shadow: 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor;
   }
 
+  /* Admin table row - completely disable hover effects */
+  .admin-table-row {
+    transform: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+    transform-origin: center !important;
+    will-change: auto !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .admin-table-row:hover {
+    transform: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+    background: transparent !important;
+    transform-origin: center !important;
+    will-change: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Also target any potential parent hover effects */
+  .admin-table-row:hover * {
+    transform: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+  }
+
+  /* Target the table container as well */
+  .admin-table-row {
+    position: static !important;
+  }
+  
+  .admin-table-row:hover {
+    position: static !important;
+  }
+
+  /* Disable any potential Framer Motion or other animation effects */
+  .admin-table-row,
+  .admin-table-row * {
+    animation: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Ensure no z-index changes on hover */
+  .admin-table-row:hover {
+    z-index: auto !important;
+  }
+
+  /* Disable any potential CSS transforms from Tailwind or other libraries */
+  .admin-table-row,
+  .admin-table-row:hover {
+    --tw-translate-x: 0 !important;
+    --tw-translate-y: 0 !important;
+    --tw-rotate: 0 !important;
+    --tw-skew-x: 0 !important;
+    --tw-skew-y: 0 !important;
+    --tw-scale-x: 1 !important;
+    --tw-scale-y: 1 !important;
+  }
+
+  /* Global disable for admin table area */
+  [data-admin-table="true"] * {
+    transform: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+    animation: none !important;
+  }
+
+  [data-admin-table="true"] *:hover {
+    transform: none !important;
+    transition: none !important;
+    scale: 1 !important;
+    translate: none !important;
+    animation: none !important;
+  }
+
   /* Resume Builder specific styles */
   .upload-zone {
     @apply relative p-8 border-2 border-dashed rounded-xl transition-all duration-300 cursor-pointer;
