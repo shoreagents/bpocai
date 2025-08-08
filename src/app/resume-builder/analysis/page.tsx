@@ -34,7 +34,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getFromLocalStorage } from '@/lib/utils';
+import { getFromLocalStorage, cleanupLocalStorageAfterSave } from '@/lib/utils';
+import { getSessionToken } from '@/lib/auth-helpers';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -56,6 +57,7 @@ export default function AnalysisPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [resumeData, setResumeData] = useState<any>(null);
   const [mappedResumeData, setMappedResumeData] = useState<any>(null);
+  const [aggregatedResumeData, setAggregatedResumeData] = useState<any>(null);
   const [improvedSummary, setImprovedSummary] = useState<string | null>(null);
   const [isImprovingSummary, setIsImprovingSummary] = useState(false);
 
@@ -143,36 +145,154 @@ export default function AnalysisPage() {
     return null;
   };
 
+  // Aggregate data across all files for robust Overview tab fallbacks
   useEffect(() => {
-    // Load data from localStorage
-    const sessionId = getFromLocalStorage('bpoc_session_id', '');
-    const uploadedFiles = getFromLocalStorage('bpoc_uploaded_files', []);
-    const portfolioLinks = getFromLocalStorage('bpoc_portfolio_links', []);
-    const processedFiles = getFromLocalStorage('bpoc_processed_files', []);
-    const debugProcessedResumes = getFromLocalStorage('bpoc_processed_resumes', []);
-
-    console.log('🔍 DEBUG: Analysis page localStorage data:');
-    console.log('  - sessionId:', sessionId);
-    console.log('  - uploadedFiles:', uploadedFiles);
-    console.log('  - portfolioLinks:', portfolioLinks);
-    console.log('  - processedFiles:', processedFiles);
-    console.log('  - processedResumes:', debugProcessedResumes);
-
-    if (!sessionId && (!uploadedFiles.length && !portfolioLinks.length)) {
-      // No data found, redirect to upload
-      router.push('/resume-builder');
+    if (!resumeData || !Array.isArray(resumeData.files)) {
+      setAggregatedResumeData(null);
       return;
     }
 
-    setAnalysisData({
-      sessionId,
-      uploadedFiles,
-      portfolioLinks,
-      processedFiles
-    });
+    try {
+      const allSkills: string[] = [];
+      const allExperience: any[] = [];
+      const allEducation: any[] = [];
 
-    // Start real AI analysis process
-    performAIAnalysis(sessionId, uploadedFiles, portfolioLinks, processedFiles);
+      for (const file of resumeData.files) {
+        const data = file?.data;
+        if (!data) continue;
+
+        if (Array.isArray(data.skills)) {
+          for (const s of data.skills) {
+            if (typeof s === 'string') allSkills.push(s);
+          }
+        }
+
+        if (Array.isArray(data.experience)) {
+          for (const e of data.experience) {
+            allExperience.push(e);
+          }
+        }
+
+        if (Array.isArray(data.education)) {
+          for (const ed of data.education) {
+            allEducation.push(ed);
+          }
+        }
+      }
+
+      // Deduplicate skills (case-insensitive)
+      const dedupedSkills = Array.from(
+        new Set(
+          allSkills
+            .map((s) => (typeof s === 'string' ? s.trim() : s))
+            .filter(Boolean)
+            .map((s) => (typeof s === 'string' ? s.toLowerCase() : s))
+        )
+      );
+
+      setAggregatedResumeData({
+        skills: dedupedSkills,
+        experience: allExperience,
+        education: allEducation,
+      });
+    } catch (e) {
+      console.warn('⚠️ Failed to aggregate resume data for overview fallback:', e);
+      setAggregatedResumeData(null);
+    }
+  }, [resumeData]);
+
+  useEffect(() => {
+    const init = async () => {
+      // Load data from localStorage
+      const sessionId = getFromLocalStorage('bpoc_session_id', '');
+      const uploadedFiles = getFromLocalStorage('bpoc_uploaded_files', []);
+      const portfolioLinks = getFromLocalStorage('bpoc_portfolio_links', []);
+      const processedFiles = getFromLocalStorage('bpoc_processed_files', []);
+      const debugProcessedResumes = getFromLocalStorage('bpoc_processed_resumes', []);
+
+      console.log('🔍 DEBUG: Analysis page localStorage data:');
+      console.log('  - sessionId:', sessionId);
+      console.log('  - uploadedFiles:', uploadedFiles);
+      console.log('  - portfolioLinks:', portfolioLinks);
+      console.log('  - processedFiles:', processedFiles);
+      console.log('  - processedResumes:', debugProcessedResumes);
+
+      if (!sessionId && (!uploadedFiles.length && !portfolioLinks.length)) {
+        // No data found, redirect to upload
+        router.push('/resume-builder');
+        return;
+      }
+
+      setAnalysisData({
+        sessionId,
+        uploadedFiles,
+        portfolioLinks,
+        processedFiles
+      });
+
+      // Try to load existing analysis from DB first
+      try {
+        const token = await getSessionToken();
+        if (token) {
+          const url = `/api/user/analysis-results${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`;
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.found && data.analysis) {
+              console.log('✅ Loaded existing analysis from DB');
+              setAnalysisResults(data.analysis);
+              setIsAnalyzing(false);
+              setAnalysisComplete(true);
+              // Populate overview fallbacks from DB snapshots if present
+              const prof = data.analysis.candidateProfile;
+              const skills = data.analysis.skillsSnapshot;
+              const exp = data.analysis.experienceSnapshot;
+              const edu = data.analysis.educationSnapshot;
+              if (prof || skills || exp || edu) {
+                setAggregatedResumeData({
+                  skills: Array.isArray(skills) ? skills : [],
+                  experience: Array.isArray(exp) ? exp : [],
+                  education: Array.isArray(edu) ? edu : [],
+                });
+                // If mapped missing, set minimal mapped fields from profile
+                setMappedResumeData((prev: any) => ({
+                  ...(prev || {}),
+                  name: (prev?.name ?? prof?.name) || prev?.name,
+                  email: (prev?.email ?? prof?.email) || prev?.email,
+                  phone: (prev?.phone ?? prof?.phone) || prev?.phone,
+                  location: (prev?.location ?? prof?.location) || prev?.location,
+                }));
+                  // Ensure resumeData is available for Generate New Resume
+                  setResumeData((prev: any) => {
+                    if (prev) return prev;
+                    return {
+                      name: prof?.name,
+                      email: prof?.email,
+                      phone: prof?.phone,
+                      location: prof?.location,
+                      summary: data.analysis.improvedSummary || '',
+                      skills: Array.isArray(skills) ? skills : [],
+                      experience: Array.isArray(exp) ? exp : [],
+                      education: Array.isArray(edu) ? edu : [],
+                    };
+                  });
+              }
+              return; // Skip running analysis again
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to preload analysis from DB:', e);
+      }
+
+      // Start real AI analysis process
+      performAIAnalysis(sessionId, uploadedFiles, portfolioLinks, processedFiles);
+    };
+
+    init();
 
     // Cleanup function
     return () => {
@@ -250,10 +370,12 @@ export default function AnalysisPage() {
         title: link.title
       }));
 
+      const token = await getSessionToken();
       const analysisResponse = await fetch('/api/analyze-resume', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           resumeData: combinedResumeData, // Send all files
@@ -281,6 +403,11 @@ export default function AnalysisPage() {
       setTimeout(() => {
         setIsAnalyzing(false);
         setAnalysisComplete(true);
+        
+        // Clean up localStorage after analysis is complete
+        // Note: We keep the data for now since user might want to generate resume
+        // Cleanup will happen when they save the generated resume
+        console.log('✅ Analysis complete - data ready for resume generation');
       }, 1000);
 
     } catch (error) {
@@ -362,6 +489,48 @@ export default function AnalysisPage() {
       setIsImprovingSummary(false);
     }
   };
+
+  // Function to cleanup localStorage when user completes the workflow
+  const cleanupWorkflowData = () => {
+    console.log('🧹 Cleaning up workflow data from localStorage...');
+    
+    try {
+      // Remove workflow-specific data after completion
+      const keysToRemove = [
+        'bpoc_session_id',        // Session complete
+        'bpoc_uploaded_files',    // Files processed
+        'bpoc_portfolio_links',   // Links processed
+        'bpoc_processed_files',   // Files processed
+        'bpoc_processed_resumes'  // Analysis complete
+      ];
+      
+      keysToRemove.forEach(key => {
+        if (localStorage.getItem(key)) {
+          localStorage.removeItem(key);
+          console.log(`✅ Removed workflow data: ${key}`);
+        }
+      });
+      
+      console.log('🧹 Workflow cleanup completed');
+    } catch (error) {
+      console.error('❌ Error during workflow cleanup:', error);
+    }
+  };
+
+  // Auto-cleanup when user navigates away from analysis page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (analysisComplete) {
+        cleanupWorkflowData();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [analysisComplete]);
 
   if (!analysisData) {
     return (
@@ -923,8 +1092,13 @@ export default function AnalysisPage() {
                           </CardHeader>
                           <CardContent className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(34, 211, 238, 0.3) transparent' }}>
                             <div className="flex flex-wrap gap-2">
-                              {(Array.isArray(mappedResumeData?.skills) && mappedResumeData.skills.length > 0) ? 
-                                mappedResumeData.skills.map((skill: string, index: number) => (
+                              {(() => {
+                                const skills = Array.isArray(mappedResumeData?.skills) && mappedResumeData.skills.length > 0
+                                  ? mappedResumeData.skills
+                                  : Array.isArray(aggregatedResumeData?.skills) && aggregatedResumeData.skills.length > 0
+                                    ? aggregatedResumeData.skills
+                                    : [];
+                                return skills.length > 0 ? skills.map((skill: string, index: number) => (
                                   <motion.div
                                     key={index}
                                     initial={{ opacity: 0, scale: 0.8 }}
@@ -938,11 +1112,12 @@ export default function AnalysisPage() {
                                       {skill}
                                     </Badge>
                                   </motion.div>
-                                )) : 
-                                <div className="text-center py-8 w-full">
-                                  <div className="text-gray-400 text-sm">No skills data available</div>
-                                </div>
-                              }
+                                )) : (
+                                  <div className="text-center py-8 w-full">
+                                    <div className="text-gray-400 text-sm">No skills data available</div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </CardContent>
                         </Card>
@@ -1024,8 +1199,13 @@ export default function AnalysisPage() {
                           </CardHeader>
                           <CardContent className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(34, 197, 94, 0.3) transparent' }}>
                             <div className="space-y-4">
-                              {(Array.isArray(mappedResumeData?.experience) && mappedResumeData.experience.length > 0) ? 
-                                mappedResumeData.experience.map((exp: any, index: number) => (
+                              {(() => {
+                                const experiences = Array.isArray(mappedResumeData?.experience) && mappedResumeData.experience.length > 0
+                                  ? mappedResumeData.experience
+                                  : Array.isArray(aggregatedResumeData?.experience) && aggregatedResumeData.experience.length > 0
+                                    ? aggregatedResumeData.experience
+                                    : [];
+                                return experiences.length > 0 ? experiences.map((exp: any, index: number) => (
                                   <motion.div
                                     key={index}
                                     initial={{ opacity: 0, y: 20 }}
@@ -1039,11 +1219,12 @@ export default function AnalysisPage() {
                                       {exp.description || exp.responsibilities?.join(', ') || 'No description available'}
                                     </p>
                                   </motion.div>
-                                )) :
-                                <div className="text-center py-12">
-                                  <div className="text-gray-400 text-sm">No work experience data available</div>
-                                </div>
-                              }
+                                )) : (
+                                  <div className="text-center py-12">
+                                    <div className="text-gray-400 text-sm">No work experience data available</div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </CardContent>
                         </Card>
@@ -1069,8 +1250,13 @@ export default function AnalysisPage() {
                           </CardHeader>
                           <CardContent>
                             <div className="space-y-4">
-                              {(Array.isArray(mappedResumeData?.education) && mappedResumeData.education.length > 0) ? 
-                                mappedResumeData.education.map((edu: any, index: number) => (
+                              {(() => {
+                                const education = Array.isArray(mappedResumeData?.education) && mappedResumeData.education.length > 0
+                                  ? mappedResumeData.education
+                                  : Array.isArray(aggregatedResumeData?.education) && aggregatedResumeData.education.length > 0
+                                    ? aggregatedResumeData.education
+                                    : [];
+                                return education.length > 0 ? education.map((edu: any, index: number) => (
                                   <motion.div
                                     key={index}
                                     initial={{ opacity: 0, y: 20 }}
@@ -1093,11 +1279,12 @@ export default function AnalysisPage() {
                                       }
                                     </p>
                                   </motion.div>
-                                )) :
-                                <div className="text-center py-12">
-                                  <div className="text-gray-400 text-sm">No education data available</div>
-                                </div>
-                              }
+                                )) : (
+                                  <div className="text-center py-12">
+                                    <div className="text-gray-400 text-sm">No education data available</div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </CardContent>
                         </Card>
@@ -2102,6 +2289,8 @@ export default function AnalysisPage() {
                           onClick={() => {
                             if (resumeData) {
                               localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                              // Clean up workflow data before moving to build page
+                              cleanupWorkflowData();
                               router.push('/resume-builder/build');
                             }
                           }}

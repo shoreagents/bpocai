@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Starting save-resume-to-profile API call...')
     
-    const { 
+    let { 
       resumeData, 
       templateUsed, 
       resumeTitle 
@@ -69,6 +69,65 @@ export async function POST(request: NextRequest) {
       // Test the connection
       const testResult = await client.query('SELECT NOW()')
       console.log('✅ Database connection successful:', testResult.rows[0])
+
+      // Helper to safely extract header info from extracted JSON
+      const pickFirst = (obj: any, keys: string[]): any => {
+        if (!obj) return undefined
+        for (const k of keys) {
+          if (obj[k]) return obj[k]
+        }
+        return undefined
+      }
+      const combine = (obj: any, keys: string[]): string | undefined => {
+        const vals = keys.map(k => obj?.[k]).filter(Boolean)
+        return vals.length ? vals.join(' ') : undefined
+      }
+      const fromContact = (obj: any, key: string): any => obj?.contact?.[key]
+
+      const computeHeaderFromExtracted = (extracted: any) => {
+        const data = extracted || {}
+        return {
+          name:
+            pickFirst(data, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) ||
+            (data.first_name && data.last_name ? `${data.first_name} ${data.last_name}` : undefined) ||
+            fromContact(data, 'name') || 'Name not found',
+          title:
+            pickFirst(data, ['title', 'job_title', 'current_title']) ||
+            (Array.isArray(data.experience) && data.experience[0]?.title) || 'Title not found',
+          location:
+            pickFirst(data, ['location', 'address', 'city', 'residence', 'current_location']) ||
+            combine(data, ['city', 'country']) ||
+            fromContact(data, 'location') || 'Location not found',
+          email:
+            pickFirst(data, ['email', 'email_address', 'contact_email', 'primary_email']) ||
+            fromContact(data, 'email') || 'Email not found',
+          phone:
+            pickFirst(data, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
+            fromContact(data, 'phone') || 'Phone not found',
+        }
+      }
+
+      // If header info missing or incomplete, use resumes_extracted to enrich
+      let needsHeaderEnrichment = !resumeData.headerInfo ||
+        !resumeData.headerInfo.name || !resumeData.headerInfo.email || !resumeData.headerInfo.phone || !resumeData.headerInfo.location
+
+      if (needsHeaderEnrichment) {
+        const extractedRes = await client.query(
+          'SELECT resume_data FROM resumes_extracted WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1',
+          [userId]
+        )
+        if (extractedRes.rows.length > 0) {
+          const extracted = extractedRes.rows[0].resume_data
+          const computedHeader = computeHeaderFromExtracted(extracted)
+          resumeData = {
+            ...resumeData,
+            headerInfo: {
+              ...(resumeData.headerInfo || {}),
+              ...computedHeader
+            }
+          }
+        }
+      }
 
       // Check if user exists and get user info
       const userCheck = await client.query(

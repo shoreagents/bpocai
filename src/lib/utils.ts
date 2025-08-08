@@ -3993,3 +3993,58 @@ export async function saveJSONToFile(jsonData: any, fileName: string, sessionTok
 
 // Note: saveJSONToServer function removed - use saveJSONToFile instead for client-side operations
 // Server-side file operations should be handled through API routes
+
+export function cleanupLocalStorageAfterSave() {
+  console.log('🧹 Cleaning up localStorage after successful database save...');
+  
+  try {
+    // Remove completed data that's now stored in database
+    const keysToRemove = [
+      'bpoc_processed_resumes',    // AI-extracted data now in database
+      'resumeData',                // Generated resume data now in database
+      'bpoc_uploaded_files',       // File metadata now tracked in database
+      'bpoc_portfolio_links'       // Portfolio links should be in database
+    ];
+    
+    keysToRemove.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        console.log(`✅ Removed from localStorage: ${key}`);
+      }
+    });
+    
+    // Keep session management data
+    const sessionId = localStorage.getItem('bpoc_session_id');
+    if (sessionId) {
+      console.log('✅ Kept session data: bpoc_session_id');
+    }
+    
+    console.log('🧹 localStorage cleanup completed');
+  } catch (error) {
+    console.error('❌ Error during localStorage cleanup:', error);
+  }
+}
+
+export function cleanupLocalStorageOnSignOut() {
+  console.log('🧹 Cleaning up localStorage on sign out...');
+  
+  try {
+    // Remove all BPOC-related data
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('bpoc_') || key === 'resumeData')) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`✅ Removed from localStorage: ${key}`);
+    });
+    
+    console.log('🧹 Sign out cleanup completed');
+  } catch (error) {
+    console.error('❌ Error during sign out cleanup:', error);
+  }
+}

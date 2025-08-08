@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getSessionToken } from '@/lib/auth-helpers';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useParams } from 'next/navigation';
@@ -58,6 +60,9 @@ export default function SavedResumePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [analysis, setAnalysis] = useState<any | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -84,6 +89,39 @@ export default function SavedResumePage() {
       fetchResume();
     }
   }, [slug]);
+
+  // Try to fetch AI analysis results for the authenticated user
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        setAnalysisLoading(true);
+        const token = await getSessionToken();
+        if (!token) {
+          setAnalysis(null);
+          return;
+        }
+        const res = await fetch('/api/user/analysis-results', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to load analysis');
+        }
+        const data = await res.json();
+        if (data?.found && data?.analysis) {
+          setAnalysis(data.analysis);
+        } else {
+          setAnalysis(null);
+        }
+      } catch (e) {
+        setAnalysisError(e instanceof Error ? e.message : 'Failed to load analysis');
+      } finally {
+        setAnalysisLoading(false);
+      }
+    };
+    fetchAnalysis();
+  }, []);
 
   const exportToPDF = async () => {
     const element = document.getElementById('resume-content');
@@ -295,21 +333,31 @@ export default function SavedResumePage() {
           </div>
         </motion.div>
 
-        {/* Resume Content */}
+        {/* Tabs: Resume and AI Analysis */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="flex justify-center"
         >
-          <div 
-            id="resume-content"
-            className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
-            style={{
-              fontFamily: template.fontFamily,
-              color: '#1f2937'
-            }}
-          >
+          <div className="max-w-5xl w-full mx-auto">
+            <Tabs defaultValue="resume" className="space-y-6">
+              <div className="flex justify-center">
+                <TabsList className="glass-card border-white/20 p-1 bg-black/20">
+                  <TabsTrigger value="resume">Resume</TabsTrigger>
+                  <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="resume">
+                <div 
+                  id="resume-content"
+                  className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
+                  style={{
+                    fontFamily: template.fontFamily,
+                    color: '#1f2937'
+                  }}
+                >
             {/* Header */}
             <div className="text-center mb-8">
               <h1 
@@ -560,6 +608,112 @@ export default function SavedResumePage() {
                 </div>
               </div>
             )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="analysis">
+                <div className="max-w-4xl w-full mx-auto">
+                  {analysisLoading && (
+                    <div className="text-center text-gray-300 py-12">Loading analysis...</div>
+                  )}
+                  {!analysisLoading && !analysis && !analysisError && (
+                    <div className="text-center text-gray-300 py-12">
+                      No analysis found. Login and run an analysis to see results here.
+                    </div>
+                  )}
+                  {analysisError && (
+                    <div className="text-center text-red-400 py-12">{analysisError}</div>
+                  )}
+                  {analysis && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <Card className="glass-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
+                        <CardHeader>
+                          <CardTitle className="text-cyan-400">Overall Score</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-4xl font-bold text-white">{analysis.overallScore ?? 'N/A'}</div>
+                          <div className="grid grid-cols-2 gap-2 mt-4 text-sm text-gray-300">
+                            <div>ATS: <span className="text-white font-semibold">{analysis.atsCompatibility ?? '—'}</span></div>
+                            <div>Content: <span className="text-white font-semibold">{analysis.contentQuality ?? '—'}</span></div>
+                            <div>Presentation: <span className="text-white font-semibold">{analysis.professionalPresentation ?? '—'}</span></div>
+                            <div>Alignment: <span className="text-white font-semibold">{analysis.skillsAlignment ?? '—'}</span></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="glass-card border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+                        <CardHeader>
+                          <CardTitle className="text-purple-400">Improved Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-gray-300 text-sm">
+                          {analysis.improvedSummary || '—'}
+                        </CardContent>
+                      </Card>
+
+                      <Card className="glass-card border-green-500/30">
+                        <CardHeader>
+                          <CardTitle className="text-green-400">Key Strengths</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {Array.isArray(analysis.keyStrengths) && analysis.keyStrengths.length > 0 ? (
+                            <div className="space-y-2">
+                              {analysis.keyStrengths.map((s: string, i: number) => (
+                                <div
+                                  key={i}
+                                  className="p-3 rounded-lg bg-green-500/10 border border-green-400/20 text-sm text-gray-200 leading-relaxed"
+                                >
+                                  {s}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-gray-400 text-sm">—</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card className="glass-card border-blue-500/30">
+                          <CardHeader>
+                            <CardTitle className="text-blue-400">Salary & Career</CardTitle>
+                          </CardHeader>
+                          <CardContent className="text-sm text-gray-300 space-y-2">
+                            <div>Level: <span className="text-white">{analysis.salaryAnalysis?.currentLevel || '—'}</span></div>
+                            <div>Range: <span className="text-white">{analysis.salaryAnalysis?.recommendedSalaryRange || '—'}</span></div>
+                            {Array.isArray(analysis.careerPath?.nextCareerSteps) && analysis.careerPath.nextCareerSteps.length > 0 && (
+                              <div>
+                                <div className="text-white font-medium mb-1">Next Steps</div>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {analysis.careerPath.nextCareerSteps.map((step: any, i: number) => (
+                                    <li key={i} className="text-gray-300">{step.title}: {step.description}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card className="glass-card border-white/20">
+                          <CardHeader>
+                            <CardTitle className="text-white">Section Analysis</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                              {['contact','summary','experience','education','skills'].map((sec) => (
+                                <div key={sec} className="p-3 rounded-lg border border-white/10">
+                                  <div className="text-white font-medium capitalize mb-1">{sec}</div>
+                                  <div className="text-gray-300">Score: <span className="text-white">{analysis.sectionAnalysis?.[sec]?.score ?? '—'}</span></div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </motion.div>
       </div>
