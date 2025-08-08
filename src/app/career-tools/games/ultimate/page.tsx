@@ -1105,7 +1105,7 @@ export default function BPOCUltimateGame() {
                   <CardContent className="p-8">
                     <div className="text-center mb-6">
                       <h2 className="text-2xl font-bold text-white">Game Complete</h2>
-                    </div>
+                </div>
                     <div className="flex items-center justify-center mb-6">
                       <div className="text-6xl mr-4">{selectedAvatar}</div>
                       <div>
@@ -1113,7 +1113,7 @@ export default function BPOCUltimateGame() {
                         <div className={`text-xl font-bold ${playerTier.color} flex items-center gap-2`}>
                           <IconComponent className="w-6 h-6" />
                           {playerTier.tier}
-                </div>
+              </div>
                         <p className="text-gray-300 mt-3 text-sm leading-relaxed">
                           {playerTier.description}
                         </p>
@@ -1121,16 +1121,16 @@ export default function BPOCUltimateGame() {
                           <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                             <div className="text-blue-400 font-semibold text-sm mb-1">📋 Recommendation:</div>
                             <div className="text-blue-300 text-sm">{playerTier.recommendation}</div>
-              </div>
+                </div>
                         )}
                         {playerTier.clientValue && (
                           <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                             <div className="text-green-400 font-semibold text-sm mb-1">💰 Client Value:</div>
                             <div className="text-green-300 text-sm">{playerTier.clientValue}</div>
-                </div>
-                        )}
               </div>
+                        )}
                 </div>
+              </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1179,14 +1179,14 @@ export default function BPOCUltimateGame() {
                                   <div 
                                     className={`bg-${competency.color}-400 h-1 rounded-full transition-all duration-1000`}
                                     style={{ width: `${percentage}%` }}
-                                  />
-                                </div>
+                  />
+                </div>
                               </CardContent>
                             </Card>
                           </motion.div>
                         );
                       })}
-                    </div>
+              </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1219,7 +1219,7 @@ export default function BPOCUltimateGame() {
                         <div key={index} className="flex items-center gap-2 text-green-300">
                           <Star className="w-4 h-4 text-green-400" />
                           <span className="text-sm">{strength}</span>
-                </div>
+            </div>
                       ))}
                       {[
                         scores.smart >= 120,

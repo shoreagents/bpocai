@@ -56,23 +56,23 @@ const managementItems: SidebarItem[] = [
     title: 'Assessments', 
     icon: TestTube, 
     children: [
-      { title: 'DISC Personality', href: '/admin/management/assessments/disc-personality' },
-      { title: 'Typing Speed Test', href: '/admin/management/assessments/typing-speed' },
-      { title: 'Logical Reasoning', href: '/admin/management/assessments/logical-reasoning' },
-      { title: 'Communication Skills', href: '/admin/management/assessments/communication-skills' },
-      { title: 'Workplace Judgment', href: '/admin/management/assessments/workplace-judgment' }
+      { title: 'DISC Personality', href: '/admin/career-tools-management/assessments/disc-personality/manage' },
+      { title: 'Typing Speed Test', href: '/admin/career-tools-management/assessments/typing-speed-test/manage' },
+      { title: 'Logical Reasoning', href: '/admin/career-tools-management/assessments/logical-reasoning/manage' },
+      { title: 'Communication Skills', href: '/admin/career-tools-management/assessments/communication-skills/manage' },
+      { title: 'Workplace Judgment', href: '/admin/career-tools-management/assessments/workplace-judgment/manage' }
     ]
   },
   { 
     title: 'Games', 
     icon: Puzzle, 
     children: [
-      { title: 'Typing Hero', href: '/admin/management/games/typing-hero' },
-      { title: 'Inbox Zero', href: '/admin/management/games/inbox-zero' },
-      { title: 'Logic Grid', href: '/admin/management/games/logic-grid' },
-      { title: 'Right Choice', href: '/admin/management/games/right-choice' },
-      { title: 'BPOC DISC', href: '/admin/management/games/disc-personality' },
-      { title: 'BPOC Ultimate', href: '/admin/management/games/ultimate' }
+      { title: 'Typing Hero', href: '/admin/career-tools-management/games/typing-hero/manage' },
+      { title: 'Inbox Zero', href: '/admin/career-tools-management/games/inbox-zero/manage' },
+      { title: 'Logic Grid', href: '/admin/career-tools-management/games/logic-grid/manage' },
+      { title: 'Right Choice', href: '/admin/career-tools-management/games/right-choice/manage' },
+      { title: 'BPOC DISC', href: '/admin/career-tools-management/games/disc-personality/manage' },
+      { title: 'BPOC Ultimate', href: '/admin/career-tools-management/games/ultimate/manage' }
     ]
   }
 ]
@@ -190,6 +190,7 @@ export default function AdminLayout({
               return (
                 <button
                   key={child.href}
+                  onClick={() => router.push(child.href)}
                   className={cn(
                     "w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg transition-all duration-200",
                     isChildActive ? "bg-white/10 text-white" : "hover:bg-white/5 text-gray-300 hover:text-white"

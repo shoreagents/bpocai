@@ -36,6 +36,17 @@ export async function middleware(request: NextRequest) {
 
       if (!supabaseUrl || !supabaseKey) {
         console.log('❌ Middleware: Missing Supabase environment variables')
+        // For development, you can temporarily bypass this check
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ Development mode: Bypassing authentication check')
+          const requestHeaders = new Headers(request.headers)
+          requestHeaders.set('x-user-id', 'dev-user-id')
+          return NextResponse.next({
+            request: {
+              headers: requestHeaders,
+            },
+          })
+        }
         return NextResponse.json(
           { error: 'Authentication configuration error' },
           { status: 500 }

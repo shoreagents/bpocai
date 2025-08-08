@@ -16,7 +16,8 @@ import {
   Globe,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import LoadingScreen from '@/components/ui/loading-screen';
 import Header from '@/components/layout/Header';
+import { PacmanLoader } from 'react-spinners';
 
 interface SavedResume {
   id: string;
@@ -206,21 +208,123 @@ export default function SavedResumePage() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <div className="min-h-screen bg-black relative overflow-hidden">
+        {/* Futuristic Space Background */}
+        <div className="absolute inset-0">
+          {/* Nebula Effect */}
+          <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-cyan-900/20"></div>
+          <div className="absolute inset-0 bg-gradient-radial from-blue-900/15 via-transparent to-pink-900/15"></div>
+          
+          {/* Starfield */}
+          <div className="absolute inset-0">
+            {[...Array(50)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`,
+                  opacity: 0.3 + Math.random() * 0.7
+                }}
+              ></div>
+            ))}
+          </div>
+          
+          {/* Floating Space Debris */}
+          <div className="absolute top-20 left-10 w-3 h-3 bg-cyan-400/40 rounded-full animate-bounce"></div>
+          <div className="absolute top-40 right-20 w-2 h-2 bg-purple-400/50 rounded-full animate-ping"></div>
+          <div className="absolute top-60 left-1/4 w-2.5 h-2.5 bg-blue-400/40 rounded-full animate-pulse"></div>
+          <div className="absolute top-80 right-1/3 w-1.5 h-1.5 bg-green-400/60 rounded-full animate-bounce"></div>
+          <div className="absolute top-32 left-2/3 w-2 h-2 bg-pink-400/50 rounded-full animate-ping"></div>
+          <div className="absolute top-72 right-1/6 w-1.5 h-1.5 bg-yellow-400/40 rounded-full animate-pulse"></div>
+          
+          {/* Energy Orbs */}
+          <div className="absolute top-1/4 left-1/6 w-6 h-6 bg-gradient-to-r from-cyan-400/30 to-blue-400/30 rounded-full animate-spin opacity-40"></div>
+          <div className="absolute top-1/3 right-1/4 w-8 h-8 bg-gradient-to-r from-purple-400/25 to-pink-400/25 rounded-full animate-pulse opacity-30"></div>
+          <div className="absolute top-2/3 left-1/3 w-5 h-5 bg-gradient-to-r from-green-400/35 to-cyan-400/35 rounded-full animate-bounce opacity-50"></div>
+          <div className="absolute top-1/2 right-1/6 w-4 h-4 bg-gradient-to-r from-yellow-400/30 to-orange-400/30 rounded-full animate-spin opacity-40" style={{ animationDirection: 'reverse' }}></div>
+          
+          {/* Cosmic Grid */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/8 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/8 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-500/5 to-transparent"></div>
+          
+          {/* Wormhole Effect */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="w-40 h-40 border border-cyan-400/15 rounded-full animate-spin"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-purple-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '4s' }}></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-blue-400/15 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-pink-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
+          </div>
+          
+          {/* Energy Waves */}
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent animate-pulse"></div>
+          <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-purple-500/10 via-transparent to-transparent animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+        
+        <Header />
+        <div className="pt-16 relative z-10">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center relative">
+                {/* Pac-Man Loader */}
+                <div className="relative mb-8">
+                  <div className="flex justify-center">
+                    <PacmanLoader 
+                      color="#fbbf24" 
+                      size={60}
+                      margin={4}
+                      speedMultiplier={1.2}
+                    />
+                  </div>
+                  
+                  {/* Floating energy particles */}
+                  <div className="absolute -top-4 -left-4 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                  <div className="absolute -top-4 -right-4 w-3 h-3 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                  <div className="absolute -bottom-4 -left-4 w-3 h-3 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+                  <div className="absolute -bottom-4 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+                </div>
+                
+                {/* Enhanced Text with Glow Effect */}
+                <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg" style={{ textShadow: '0 0 20px rgba(34, 211, 238, 0.5)' }}>
+                  Loading Resume
+                </h2>
+                <p className="text-gray-300 mb-6 text-lg">Fetching your resume data...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="relative min-h-screen overflow-hidden cyber-grid">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+        </div>
+        
         <Header />
-        <div className="container mx-auto px-4 py-8 pt-24">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">Resume Not Found</h1>
-            <p className="text-gray-400 mb-8">{error}</p>
-            <Button onClick={() => window.history.back()}>
-              Go Back
-            </Button>
-          </div>
+        <div className="container mx-auto px-4 py-8 pt-24 relative z-10">
+          <Card className="glass-card border-white/10 max-w-2xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <h1 className="text-4xl font-bold text-white mb-4">Resume Not Found</h1>
+              <p className="text-gray-300 mb-8">{error}</p>
+              <Button 
+                onClick={() => window.history.back()}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+              >
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -228,16 +332,28 @@ export default function SavedResumePage() {
 
   if (!resume) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="relative min-h-screen overflow-hidden cyber-grid">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+        </div>
+        
         <Header />
-        <div className="container mx-auto px-4 py-8 pt-24">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">Resume Not Found</h1>
-            <p className="text-gray-400 mb-8">The resume you're looking for doesn't exist.</p>
-            <Button onClick={() => window.history.back()}>
-              Go Back
-            </Button>
-          </div>
+        <div className="container mx-auto px-4 py-8 pt-24 relative z-10">
+          <Card className="glass-card border-white/10 max-w-2xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <h1 className="text-4xl font-bold text-white mb-4">Resume Not Found</h1>
+              <p className="text-gray-300 mb-8">The resume you're looking for doesn't exist.</p>
+              <Button 
+                onClick={() => window.history.back()}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+              >
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -248,54 +364,106 @@ export default function SavedResumePage() {
   const headerInfo = resume.data.headerInfo;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="relative min-h-screen overflow-hidden cyber-grid">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+      
       <Header />
       
-      <div className="container mx-auto px-4 py-8 pt-24">
-        {/* Header */}
+      <div className="container mx-auto px-4 py-8 pt-24 relative z-10">
+        {/* Enhanced Header with Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex-1">
-              <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">{resume.title}</h1>
-              <p className="text-gray-400 mb-3">by {resume.user.fullName}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                <div className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" />
-                  {resume.viewCount} views
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(resume.createdAt).toLocaleDateString()}
+          <div className="space-y-6">
+            {/* Main Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30">
+                    <FileText className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl lg:text-4xl font-bold text-white mb-1">{resume.title}</h1>
+                    <p className="text-gray-300">by {resume.user.fullName}</p>
+                  </div>
                 </div>
               </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10 transition-all duration-200"
+                  onClick={shareResume}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+                <Button
+                  onClick={exportToPDF}
+                  disabled={exporting}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25 transition-all duration-200"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {exporting ? 'Exporting...' : 'Export PDF'}
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                className="border-white/20 text-gray-300 hover:bg-white/10"
-                onClick={shareResume}
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button
-                onClick={exportToPDF}
-                disabled={exporting}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {exporting ? 'Exporting...' : 'Export PDF'}
-              </Button>
-            </div>
+
+                         {/* Stats Cards */}
+             <div className="flex flex-wrap gap-4 justify-center">
+               <Card className="glass-card border-white/10 hover:border-purple-500/30 transition-all duration-200 w-auto min-w-[320px] max-w-[380px]">
+                 <CardContent className="p-4">
+                   <div className="flex items-center gap-3">
+                     <div className="p-2 bg-purple-500/20 rounded-lg">
+                       <Eye className="h-5 w-5 text-purple-400" />
+                     </div>
+                     <div className="min-w-0 flex-1">
+                       <p className="text-sm text-gray-400 truncate">Total Views</p>
+                       <p className="text-2xl font-bold text-white">{resume.viewCount}</p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+
+               <Card className="glass-card border-white/10 hover:border-blue-500/30 transition-all duration-200 w-auto min-w-[320px] max-w-[380px]">
+                 <CardContent className="p-4">
+                   <div className="flex items-center gap-3">
+                     <div className="p-2 bg-blue-500/20 rounded-lg">
+                       <Calendar className="h-5 w-5 text-blue-400" />
+                     </div>
+                     <div className="min-w-0 flex-1">
+                       <p className="text-sm text-gray-400 truncate">Created</p>
+                       <p className="text-lg font-semibold text-white truncate">{new Date(resume.createdAt).toLocaleDateString()}</p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+
+               <Card className="glass-card border-white/10 hover:border-green-500/30 transition-all duration-200 w-auto min-w-[320px] max-w-[380px]">
+                 <CardContent className="p-4">
+                   <div className="flex items-center gap-3">
+                     <div className="p-2 bg-green-500/20 rounded-lg">
+                       <Star className="h-5 w-5 text-green-400" />
+                     </div>
+                     <div className="min-w-0 flex-1">
+                       <p className="text-sm text-gray-400 truncate">Template</p>
+                       <p className="text-lg font-semibold text-white truncate capitalize">{resume.template}</p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             </div>
           </div>
         </motion.div>
 
-        {/* Resume Content */}
+        {/* Enhanced Resume Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -304,14 +472,14 @@ export default function SavedResumePage() {
         >
           <div 
             id="resume-content"
-            className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
+            className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900 hover:shadow-3xl transition-all duration-300"
             style={{
               fontFamily: template.fontFamily,
               color: '#1f2937'
             }}
           >
-            {/* Header */}
-            <div className="text-center mb-8">
+            {/* Enhanced Header with Gradient Border */}
+            <div className="text-center mb-8 pb-6 border-b-2 border-gradient-to-r from-purple-500 to-blue-500">
               <h1 
                 className="text-3xl font-bold mb-2 text-gray-900"
                 style={{ color: template.primaryColor || '#1f2937' }}
@@ -326,19 +494,19 @@ export default function SavedResumePage() {
               </p>
               <div className="flex flex-wrap justify-center gap-3 sm:gap-4 text-sm text-gray-600">
                 {headerInfo.email && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 hover:text-purple-600 transition-colors">
                     <Mail className="h-4 w-4" />
                     <span className="break-all">{headerInfo.email}</span>
                   </div>
                 )}
                 {headerInfo.phone && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 hover:text-blue-600 transition-colors">
                     <Phone className="h-4 w-4" />
                     <span className="break-all">{headerInfo.phone}</span>
                   </div>
                 )}
                 {headerInfo.location && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 hover:text-green-600 transition-colors">
                     <MapPin className="h-4 w-4" />
                     <span className="break-all">{headerInfo.location}</span>
                   </div>
@@ -346,41 +514,45 @@ export default function SavedResumePage() {
               </div>
             </div>
 
-            <Separator className="mb-6" />
-
-            {/* Summary */}
+            {/* Enhanced Section Headers */}
             {resumeData.summary && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Professional Summary
-                </h2>
-                <p className="text-gray-700 leading-relaxed">{resumeData.summary}</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Professional Summary
+                  </h2>
+                </div>
+                <p className="text-gray-700 leading-relaxed pl-3 border-l-2 border-gray-200">{resumeData.summary}</p>
               </div>
             )}
 
-            {/* Experience */}
+            {/* Enhanced Experience Section */}
             {resumeData.experience && resumeData.experience.length > 0 && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Work Experience
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-blue-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Work Experience
+                  </h2>
+                </div>
                 <div className="space-y-4">
                   {resumeData.experience.map((exp: any, index: number) => (
-                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
+                    <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-purple-500 transition-all duration-200" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900">{exp.title}</h3>
-                        <span className="text-sm text-gray-500">{exp.duration}</span>
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{exp.duration}</span>
                       </div>
-                      <p className="text-gray-600 mb-2">{exp.company}</p>
+                      <p className="text-gray-600 mb-2 font-medium">{exp.company}</p>
                       <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
                         {exp.achievements.map((achievement: string, idx: number) => (
-                          <li key={idx}>{achievement}</li>
+                          <li key={idx} className="hover:text-gray-900 transition-colors">{achievement}</li>
                         ))}
                       </ul>
                     </div>
@@ -392,12 +564,15 @@ export default function SavedResumePage() {
             {/* Skills */}
             {resumeData.skills && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Skills
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-yellow-500 to-orange-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Skills
+                  </h2>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {resumeData.skills.technical && resumeData.skills.technical.length > 0 && (
                     <div>
@@ -455,24 +630,27 @@ export default function SavedResumePage() {
             {/* Education */}
             {resumeData.education && resumeData.education.length > 0 && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Education
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Education
+                  </h2>
+                </div>
                 <div className="space-y-4">
                   {resumeData.education.map((edu: any, index: number) => (
-                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
+                    <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-indigo-500 transition-all duration-200" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900">{edu.degree}</h3>
-                        <span className="text-sm text-gray-500">{edu.year}</span>
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{edu.year}</span>
                       </div>
-                      <p className="text-gray-600 mb-2">{edu.institution}</p>
+                      <p className="text-gray-600 mb-2 font-medium">{edu.institution}</p>
                       {edu.highlights && edu.highlights.length > 0 && (
                         <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
                           {edu.highlights.map((highlight: string, idx: number) => (
-                            <li key={idx}>{highlight}</li>
+                            <li key={idx} className="hover:text-gray-900 transition-colors">{highlight}</li>
                           ))}
                         </ul>
                       )}
@@ -485,15 +663,18 @@ export default function SavedResumePage() {
             {/* Certifications */}
             {resumeData.certifications && resumeData.certifications.length > 0 && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Certifications
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-yellow-500 to-orange-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Certifications
+                  </h2>
+                </div>
                 <div className="space-y-2">
                   {resumeData.certifications.map((cert: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
+                    <div key={index} className="flex items-center gap-2 hover:bg-gray-50 p-2 rounded-lg transition-colors">
                       <Award className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-700">{cert}</span>
                     </div>
@@ -505,15 +686,18 @@ export default function SavedResumePage() {
             {/* Projects */}
             {resumeData.projects && resumeData.projects.length > 0 && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Projects
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-teal-500 to-green-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Projects
+                  </h2>
+                </div>
                 <div className="space-y-4">
                   {resumeData.projects.map((project: any, index: number) => (
-                    <div key={index} className="border-l-4 pl-4" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
+                    <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-teal-500 transition-all duration-200" style={{ borderColor: template.secondaryColor || '#6b7280' }}>
                       <h3 className="font-semibold text-gray-900 mb-2">{project.title}</h3>
                       <p className="text-gray-600 mb-2">{project.description}</p>
                       {project.technologies && project.technologies.length > 0 && (
@@ -531,7 +715,7 @@ export default function SavedResumePage() {
                       {project.impact && project.impact.length > 0 && (
                         <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
                           {project.impact.map((impact: string, idx: number) => (
-                            <li key={idx}>{impact}</li>
+                            <li key={idx} className="hover:text-gray-900 transition-colors">{impact}</li>
                           ))}
                         </ul>
                       )}
@@ -544,15 +728,18 @@ export default function SavedResumePage() {
             {/* Achievements */}
             {resumeData.achievements && resumeData.achievements.length > 0 && (
               <div className="mb-6">
-                <h2 
-                  className="text-lg font-semibold mb-3 text-gray-900"
-                  style={{ color: template.primaryColor || '#1f2937' }}
-                >
-                  Achievements
-                </h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-6 bg-gradient-to-b from-pink-500 to-red-500 rounded-full"></div>
+                  <h2 
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ color: template.primaryColor || '#1f2937' }}
+                  >
+                    Achievements
+                  </h2>
+                </div>
                 <div className="space-y-2">
                   {resumeData.achievements.map((achievement: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
+                    <div key={index} className="flex items-center gap-2 hover:bg-gray-50 p-2 rounded-lg transition-colors">
                       <Star className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-700">{achievement}</span>
                     </div>
@@ -562,6 +749,23 @@ export default function SavedResumePage() {
             )}
           </div>
         </motion.div>
+
+        {/* Export Progress Overlay */}
+        {exporting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          >
+            <Card className="glass-card border-white/10 max-w-md w-full mx-4">
+              <CardContent className="p-6 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <h3 className="text-xl font-semibold text-white mb-2">Generating PDF</h3>
+                <p className="text-gray-300">Please wait while we prepare your resume...</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );
