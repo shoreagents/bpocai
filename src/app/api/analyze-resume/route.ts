@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Pool } from 'pg';
 
 interface AnalysisRequest {
   resumeData: any;
@@ -49,6 +50,64 @@ interface AnalysisResult {
   };
 }
 
+function extractCandidateProfile(resumeData: any): { name?: string; email?: string; phone?: string; location?: string } {
+  const getFirst = (obj: any, keys: string[]): string | undefined => {
+    for (const k of keys) {
+      if (obj && typeof obj === 'object' && obj[k]) return obj[k];
+    }
+    return undefined;
+  };
+
+  const fromSingle = (data: any) => ({
+    name: getFirst(data, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) ||
+          (data?.first_name && data?.last_name ? `${data.first_name} ${data.last_name}` : undefined) ||
+          data?.contact?.name,
+    email: getFirst(data, ['email', 'email_address', 'contact_email']) || data?.contact?.email,
+    phone: getFirst(data, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) || data?.contact?.phone,
+    location: getFirst(data, ['location', 'address', 'city']) || data?.contact?.location,
+  });
+
+  try {
+    if (resumeData?.files && Array.isArray(resumeData.files)) {
+      for (const f of resumeData.files) {
+        const prof = fromSingle(f?.data || {});
+        if (prof.name || prof.email || prof.phone || prof.location) return prof;
+      }
+      return {};
+    }
+    return fromSingle(resumeData || {});
+  } catch {
+    return {};
+  }
+}
+
+function aggregateArrays(resumeData: any): { skills: string[]; experience: any[]; education: any[] } {
+  const result = { skills: [] as string[], experience: [] as any[], education: [] as any[] };
+  try {
+    const addFrom = (data: any) => {
+      if (Array.isArray(data?.skills)) result.skills.push(...data.skills.filter((x: any) => typeof x === 'string'));
+      if (Array.isArray(data?.experience)) result.experience.push(...data.experience);
+      if (Array.isArray(data?.education)) result.education.push(...data.education);
+    };
+    if (resumeData?.files && Array.isArray(resumeData.files)) {
+      for (const f of resumeData.files) addFrom(f?.data || {});
+    } else {
+      addFrom(resumeData || {});
+    }
+    // Dedup skills (case-insensitive)
+    const seen = new Set<string>();
+    result.skills = result.skills.filter(s => {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return result;
+  } catch {
+    return result;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { resumeData, portfolioLinks = [], sessionId }: AnalysisRequest = await request.json();
@@ -58,6 +117,31 @@ export async function POST(request: NextRequest) {
     console.log('  - resumeData keys:', Object.keys(resumeData || {}));
     console.log('  - portfolioLinks count:', portfolioLinks.length);
     console.log('  - sessionId:', sessionId);
+
+    // Auth: user comes from middleware
+    const userId = request.headers.get('x-user-id');
+    if (!userId) {
+      console.error('❌ Missing userId in headers');
+      return NextResponse.json(
+        { success: false, error: 'User not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    // Prepare DB connection
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      console.error('❌ Missing DATABASE_URL');
+      return NextResponse.json(
+        { success: false, error: 'Database configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const pool = new Pool({
+      connectionString: databaseUrl,
+      ssl: { rejectUnauthorized: false }
+    });
 
     // Get Claude API key from environment
     const claudeApiKey = process.env.CLAUDE_API_KEY;
@@ -126,11 +210,144 @@ export async function POST(request: NextRequest) {
     const analysisResult = parseClaudeResponse(analysisText, resumeData);
     console.log('🔍 DEBUG: Analysis parsing complete');
 
-    return NextResponse.json({
-      success: true,
-      analysis: analysisResult,
-      sessionId
-    });
+    // Persist analysisResult to ai_analysis_results (UPSERT by user_id + session_id)
+    const filesAnalyzed = (() => {
+      try {
+        const isMultiple = Array.isArray((resumeData as any)?.files);
+        if (isMultiple) {
+          return {
+            totalFiles: (resumeData as any).totalFiles,
+            fileTypes: (resumeData as any).fileTypes,
+            fileNames: (resumeData as any).fileNames,
+          };
+        }
+        return { totalFiles: 1, fileTypes: ['resume'], fileNames: ['Resume'] };
+      } catch {
+        return null;
+      }
+    })();
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Ensure user exists (optional safety)
+      const userExists = await client.query('SELECT 1 FROM users WHERE id = $1', [userId]);
+      if (userExists.rowCount === 0) {
+        console.warn('⚠️ User not found in users table, proceeding to save analysis with FK constraint');
+      }
+
+      const upsertSql = `
+        INSERT INTO ai_analysis_results (
+          user_id,
+          session_id,
+          original_resume_id,
+          overall_score,
+          ats_compatibility_score,
+          content_quality_score,
+          professional_presentation_score,
+          skills_alignment_score,
+          key_strengths,
+          strengths_analysis,
+          improvements,
+          recommendations,
+          improved_summary,
+          salary_analysis,
+          career_path,
+          section_analysis,
+          analysis_metadata,
+          portfolio_links,
+          files_analyzed,
+          candidate_profile,
+          skills_snapshot,
+          experience_snapshot,
+          education_snapshot,
+          updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8,
+          $9, $10, $11, $12, $13, $14, $15, $16,
+          $17, $18, $19, $20, $21, $22, $23, NOW()
+        )
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          session_id = EXCLUDED.session_id,
+          original_resume_id = EXCLUDED.original_resume_id,
+          overall_score = EXCLUDED.overall_score,
+          ats_compatibility_score = EXCLUDED.ats_compatibility_score,
+          content_quality_score = EXCLUDED.content_quality_score,
+          professional_presentation_score = EXCLUDED.professional_presentation_score,
+          skills_alignment_score = EXCLUDED.skills_alignment_score,
+          key_strengths = EXCLUDED.key_strengths,
+          strengths_analysis = EXCLUDED.strengths_analysis,
+          improvements = EXCLUDED.improvements,
+          recommendations = EXCLUDED.recommendations,
+          improved_summary = EXCLUDED.improved_summary,
+          salary_analysis = EXCLUDED.salary_analysis,
+          career_path = EXCLUDED.career_path,
+          section_analysis = EXCLUDED.section_analysis,
+          analysis_metadata = EXCLUDED.analysis_metadata,
+          portfolio_links = EXCLUDED.portfolio_links,
+          files_analyzed = EXCLUDED.files_analyzed,
+          candidate_profile = EXCLUDED.candidate_profile,
+          skills_snapshot = EXCLUDED.skills_snapshot,
+          experience_snapshot = EXCLUDED.experience_snapshot,
+          education_snapshot = EXCLUDED.education_snapshot,
+          updated_at = NOW()
+        RETURNING id`;
+
+      const snapshots = aggregateArrays(resumeData);
+      const profile = extractCandidateProfile(resumeData);
+
+      const params = [
+        userId,
+        sessionId,
+        null, // original_resume_id (not available in request yet)
+        analysisResult.overallScore,
+        analysisResult.atsCompatibility,
+        analysisResult.contentQuality,
+        analysisResult.professionalPresentation,
+        analysisResult.skillsAlignment,
+        JSON.stringify(analysisResult.keyStrengths || []),
+        JSON.stringify(analysisResult.strengthsAnalysis || {}),
+        JSON.stringify(analysisResult.improvements || []),
+        JSON.stringify(analysisResult.recommendations || []),
+        analysisResult.improvedSummary || '',
+        JSON.stringify(analysisResult.salaryAnalysis || {}),
+        JSON.stringify(analysisResult.careerPath || {}),
+        JSON.stringify(analysisResult.sectionAnalysis || {}),
+        JSON.stringify({ source: 'claude-3-5-sonnet-20241022' }),
+        JSON.stringify(portfolioLinks || []),
+        filesAnalyzed ? JSON.stringify(filesAnalyzed) : null,
+        JSON.stringify(profile || {}),
+        JSON.stringify(snapshots.skills || []),
+        JSON.stringify(snapshots.experience || []),
+        JSON.stringify(snapshots.education || []),
+      ];
+
+      const upsertResult = await client.query(upsertSql, params);
+      const analysisId = upsertResult.rows[0]?.id;
+      await client.query('COMMIT');
+
+      return NextResponse.json({
+        success: true,
+        analysis: analysisResult,
+        sessionId,
+        analysisId,
+        saved: true
+      });
+    } catch (dbError) {
+      await client.query('ROLLBACK');
+      console.error('❌ Error saving analysis results:', dbError);
+      // Return analysis result even if DB save failed
+      return NextResponse.json({
+        success: true,
+        analysis: analysisResult,
+        sessionId,
+        saved: false
+      });
+    } finally {
+      client.release();
+    }
 
   } catch (error) {
     console.error('❌ Resume analysis error:', error);

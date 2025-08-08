@@ -42,6 +42,29 @@ export default function ResumeBuilderPage() {
   // Individual file progress tracking
   const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
 
+  // Redirect users who already have a saved resume
+  useEffect(() => {
+    const checkSavedResume = async () => {
+      try {
+        const token = await getSessionToken();
+        if (!token) return; // not logged in; allow builder
+
+        const res = await fetch('/api/user/saved-resumes', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.success && data?.hasSavedResume && data?.resumeSlug) {
+          router.replace(`/${data.resumeSlug}`);
+        }
+      } catch (e) {
+        // Fail open: do nothing
+      }
+    };
+    checkSavedResume();
+  }, [router]);
+
   // Handle file drag and drop
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -264,7 +287,7 @@ export default function ResumeBuilderPage() {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Call the actual processing function directly with API keys (no circular calls)
-      const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey, sessionToken);
+      const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey, sessionToken ?? undefined);
       
       // Complete
       log(`✅ Processing complete: Resume data extracted successfully!`);

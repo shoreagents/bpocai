@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { syncUserToDatabase } from '@/lib/user-sync'
+import { cleanupLocalStorageOnSignOut } from '@/lib/utils'
 
 interface AuthContextType {
   user: User | null
@@ -144,7 +145,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Clear browser storage
       if (typeof window !== 'undefined') {
-        // Clear localStorage items
+        // Clean up BPOC-related localStorage data
+        cleanupLocalStorageOnSignOut()
+        
+        // Clear Supabase auth items
         const keysToRemove = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)

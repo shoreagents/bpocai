@@ -27,6 +27,7 @@ import LoadingScreen from '@/components/ui/loading-screen';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
+import { cleanupLocalStorageAfterSave } from '@/lib/utils';
 
 interface ResumeTemplate {
   id: string;
@@ -238,6 +239,195 @@ export default function ResumeBuilderPage() {
     }
   };
 
+  // Helper: set a deep value on an object given a path like "summary" or "experience[0].achievements[1]"
+  const setDeepValue = (target: any, path: string, value: unknown): any => {
+    if (!path) return target;
+    const normalized = path
+      .replace(/\[(\d+)\]/g, '.$1')
+      .split('.')
+      .filter(Boolean);
+    let cursor: any = target;
+    for (let i = 0; i < normalized.length - 1; i++) {
+      const key = isNaN(Number(normalized[i])) ? normalized[i] : Number(normalized[i]);
+      if (cursor[key] === undefined || cursor[key] === null) {
+        // Create missing container (object or array)
+        const nextKey = normalized[i + 1];
+        cursor[key] = isNaN(Number(nextKey)) ? {} : [];
+      }
+      cursor = cursor[key];
+    }
+    const lastKey = normalized[normalized.length - 1];
+    cursor[isNaN(Number(lastKey)) ? lastKey : Number(lastKey)] = value;
+    return target;
+  };
+
+  // Public function: update resume text inline in the preview
+  // Usage example: updateResumeText('summary', 'New professional summary...')
+  //                updateResumeText('experience[0].title', 'Senior Developer')
+  const updateResumeText = (fieldPath: string, newValue: string) => {
+    if (!improvedResume) return;
+
+    // 1) Update the improved resume content (source of truth for saving)
+    const updatedResume = JSON.parse(JSON.stringify(improvedResume));
+    setDeepValue(updatedResume, fieldPath, newValue);
+    // Defer state update slightly to avoid interrupting contentEditable typing
+    window.requestAnimationFrame(() => setImprovedResume(updatedResume));
+
+    // 2) Keep the visible preview sections in sync for immediate UI feedback
+    const getSectionIdFromPath = (path: string): string | null => {
+      if (path.startsWith('summary')) return 'summary';
+      if (path.startsWith('experience')) return 'experience';
+      if (path.startsWith('skills')) return 'skills';
+      if (path.startsWith('education')) return 'education';
+      if (path.startsWith('certifications')) return 'certifications';
+      if (path.startsWith('projects')) return 'projects';
+      if (path.startsWith('achievements')) return 'achievements';
+      return null;
+    };
+
+    const sectionId = getSectionIdFromPath(fieldPath);
+    if (sectionId) {
+      window.requestAnimationFrame(() => {
+        setSections(prevSections => prevSections.map(section => {
+          if (section.id !== sectionId) return section;
+          const updatedContent = (updatedResume as any)[sectionId];
+          return { ...section, content: updatedContent };
+        }));
+      });
+    }
+  };
+
+  // Highlight state for newly added fields
+  const [highlightPath, setHighlightPath] = useState<string | null>(null);
+  const isHighlighted = (path: string) => highlightPath === path;
+  const getHighlightClass = (path: string) => (isHighlighted(path) ? 'ring-2 ring-cyan-400 rounded-sm bg-cyan-50' : '');
+  const isGroupHighlighted = (rootPath: string) => !!highlightPath && (highlightPath === rootPath || highlightPath.startsWith(rootPath + '.'));
+  const getGroupHighlightClass = (rootPath: string) => (isGroupHighlighted(rootPath) ? 'ring-2 ring-cyan-400 rounded-sm bg-cyan-50' : '');
+  useEffect(() => {
+    if (!highlightPath) return;
+    // Focus the newly added element if present
+    try {
+      const target = document.querySelector<HTMLElement>(`[data-path="${highlightPath}"]`);
+      if (target) {
+        target.focus();
+        if ((target as any).isContentEditable) {
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          range.collapse(false);
+          const sel = window.getSelection();
+          if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        } else if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+          const len = (target as HTMLInputElement | HTMLTextAreaElement).value?.length ?? 0;
+          (target as HTMLInputElement | HTMLTextAreaElement).setSelectionRange?.(len, len);
+        }
+      }
+    } catch {}
+    const timer = setTimeout(() => setHighlightPath(null), 2500);
+    return () => clearTimeout(timer);
+  }, [highlightPath]);
+
+  // Add / Remove item helpers
+  const addListItem = (containerPath: string, defaultValue: any, highlightSubField?: string) => {
+    if (!improvedResume) return;
+    const updated = JSON.parse(JSON.stringify(improvedResume));
+    const path = containerPath.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+    let cursor: any = updated;
+    for (let i = 0; i < path.length; i++) {
+      const key = isNaN(Number(path[i])) ? path[i] : Number(path[i]);
+      if (i === path.length - 1) {
+        if (!Array.isArray(cursor[key])) cursor[key] = [];
+        cursor[key].push(defaultValue);
+        const newIndex = cursor[key].length - 1;
+        const basePath = `${containerPath}[${newIndex}]`;
+        const targetPath = highlightSubField ? `${basePath}.${highlightSubField}` : basePath;
+        setHighlightPath(targetPath);
+      } else {
+        if (cursor[key] == null) cursor[key] = {};
+        cursor = cursor[key];
+      }
+    }
+    window.requestAnimationFrame(() => setImprovedResume(updated));
+    const rootId = path[0];
+    window.requestAnimationFrame(() => setSections(prev => prev.map(s => s.id === rootId ? { ...s, content: (updated as any)[rootId] } : s)));
+  };
+
+  const removeListItem = (containerPath: string, index: number) => {
+    if (!improvedResume) return;
+    const updated = JSON.parse(JSON.stringify(improvedResume));
+    const path = containerPath.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+    let cursor: any = updated;
+    for (let i = 0; i < path.length; i++) {
+      const key = isNaN(Number(path[i])) ? path[i] : Number(path[i]);
+      if (i === path.length - 1) {
+        if (Array.isArray(cursor[key])) cursor[key].splice(index, 1);
+      } else {
+        if (cursor[key] == null) return;
+        cursor = cursor[key];
+      }
+    }
+    window.requestAnimationFrame(() => setImprovedResume(updated));
+    const rootId = path[0];
+    window.requestAnimationFrame(() => setSections(prev => prev.map(s => s.id === rootId ? { ...s, content: (updated as any)[rootId] } : s)));
+  };
+
+  // Lightweight inline editor that preserves visual presentation
+  type EditableProps = {
+    as?: any;
+    value: string;
+    onChange: (val: string) => void;
+    className?: string;
+    multiline?: boolean;
+    placeholder?: string;
+  };
+
+  const Editable = ({ as = 'span', value, onChange, className = '', multiline = false, placeholder = '' }: EditableProps) => {
+    const Tag: any = as;
+    const ref = React.useRef<HTMLElement | null>(null);
+    const [isFocused, setIsFocused] = React.useState(false);
+    const latestTextRef = React.useRef<string>(value || '');
+
+    // Keep DOM in sync only when not focused to avoid caret jump
+    React.useEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      if (!isFocused && (el.textContent || '') !== (value || '')) {
+        el.textContent = value || '';
+      }
+    }, [value, isFocused]);
+
+    return (
+      <Tag
+        ref={ref as any}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        spellCheck
+        className={`editable focus:outline-none focus:ring-2 focus:ring-cyan-300/40 rounded-sm ${className}`}
+        onFocus={() => setIsFocused(true)}
+        onBlur={(e: any) => {
+          setIsFocused(false);
+          const text = e.currentTarget.textContent || latestTextRef.current || '';
+          onChange(text);
+        }}
+        onInput={(e: any) => {
+          // Don't trigger React state updates while typing to preserve focus
+          latestTextRef.current = e.currentTarget.textContent || '';
+        }}
+        onKeyDown={(e: any) => {
+          if (!multiline && e.key === 'Enter') {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).blur();
+          }
+        }}
+        data-placeholder={placeholder}
+        tabIndex={0}
+      />
+    );
+  };
+
   // Function to save generated resume data to database
   const saveGeneratedResumeToDatabase = async (generatedResumeData: any, originalResumeData: any) => {
     try {
@@ -273,6 +463,9 @@ export default function ResumeBuilderPage() {
       if (saveResponse.ok) {
         const saveResult = await saveResponse.json();
         console.log('✅ Generated resume saved to database:', saveResult.generatedResumeId);
+        
+        // Clean up localStorage after successful database save
+        cleanupLocalStorageAfterSave();
       } else {
         const errorData = await saveResponse.json();
         console.warn('⚠️ Failed to save generated resume to database:', errorData.error);
@@ -777,68 +970,117 @@ export default function ResumeBuilderPage() {
 
     switch (section.id) {
       case 'summary':
-        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Professional Summary
             </h3>
-            <p className="text-gray-700 leading-relaxed">{section.content}</p>
+            <Editable
+              as="p"
+              data-path="summary"
+              className={`text-gray-700 leading-relaxed ${getHighlightClass('summary')} ${isHighlighted('summary') ? 'p-2 -m-2' : ''}`}
+              value={section.content || ''}
+              onChange={(val) => updateResumeText('summary', val)}
+              multiline
+              placeholder="Add your professional summary..."
+            />
           </div>
         );
 
       case 'experience':
-        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Work Experience
             </h3>
-            {Array.isArray(section.content) ? (
+            <div className="mb-3">
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('experience', { title: 'New Role', company: '', duration: '', achievements: [''] }, 'title')}>
+                + Add experience
+              </Button>
+            </div>
+            {Array.isArray(section.content) && section.content.length > 0 ? (
               section.content.map((exp: any, index: number) => (
                 <div key={index} className="mb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-gray-900">{exp.title}</h4>
-                    <span className="text-sm text-gray-500">{exp.duration}</span>
+                  <div className="flex justify-between items-start mb-2 gap-3">
+                    <Editable
+                      as="h4"
+                      data-path={`experience[${index}].title`}
+                      className={`font-medium text-gray-900 ${getHighlightClass(`experience[${index}].title`)}`}
+                      value={exp.title || ''}
+                      onChange={(val) => updateResumeText(`experience[${index}].title`, val)}
+                      placeholder="Job Title"
+                    />
+                    <Editable
+                      as="span"
+                      data-path={`experience[${index}].duration`}
+                      className={`text-sm text-gray-500 ${getHighlightClass(`experience[${index}].duration`)}`}
+                      value={exp.duration || ''}
+                      onChange={(val) => updateResumeText(`experience[${index}].duration`, val)}
+                      placeholder="Duration"
+                    />
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">{exp.company}</p>
+                  <Editable
+                    as="p"
+                    data-path={`experience[${index}].company`}
+                    className={`text-sm text-gray-600 mb-2 ${getHighlightClass(`experience[${index}].company`)}`}
+                    value={exp.company || ''}
+                    onChange={(val) => updateResumeText(`experience[${index}].company`, val)}
+                    placeholder="Company"
+                  />
                   <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                    {Array.isArray(exp.achievements) ? 
+                    {Array.isArray(exp.achievements) ? (
                       exp.achievements.map((achievement: string, idx: number) => (
-                        <li key={idx}>{achievement}</li>
-                      )) : 
-                      <li>No achievements listed</li>
-                    }
+                        <Editable
+                          key={idx}
+                          as="li"
+                          data-path={`experience[${index}].achievements[${idx}]`}
+                          className={`${getHighlightClass(`experience[${index}].achievements[${idx}]`)}`}
+                          value={achievement || ''}
+                          onChange={(val) => updateResumeText(`experience[${index}].achievements[${idx}]`, val)}
+                          placeholder={`Achievement ${idx + 1}`}
+                        />
+                      ))
+                    ) : (
+                      <li className="text-gray-500">No achievements listed</li>
+                    )}
                   </ul>
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => addListItem(`experience[${index}].achievements`, '', '')}>+ Add achievement</Button>
+                    <Button variant="ghost" size="sm" className="text-xs text-red-400" onClick={() => removeListItem('experience', index)}>Remove role</Button>
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">No work experience data available</p>
+              <p className="text-gray-500 text-sm">No work experience yet. Use "+ Add experience" to add your first role.</p>
             )}
           </div>
         );
 
       case 'skills':
-        if (!hasSkillsContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Skills
             </h3>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('skills.technical', '', '')}>+ Tech</Button>
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('skills.soft', '', '')}>+ Soft</Button>
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('skills.languages', '', '')}>+ Language</Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {Array.isArray(section.content?.technical) && section.content.technical.length > 0 && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Technical Skills</h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {section.content.technical.map((skill: string, index: number) => (
-                      <Badge 
-                        key={index} 
-                        variant="secondary" 
-                        style={{ backgroundColor: customColors.secondary, color: 'white' }}
-                        className="text-xs px-2 py-1 whitespace-normal break-words"
-                      >
-                        {skill}
-                      </Badge>
+                      <input
+                        key={index}
+                        data-path={`skills.technical[${index}]`}
+                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.technical[${index}]`)}`}
+                        value={skill || ''}
+                        onChange={(e) => updateResumeText(`skills.technical[${index}]`, e.target.value)}
+                        placeholder={`Technical skill ${index + 1}`}
+                      />
                     ))}
                   </div>
                 </div>
@@ -846,15 +1088,16 @@ export default function ResumeBuilderPage() {
               {Array.isArray(section.content?.soft) && section.content.soft.length > 0 && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Soft Skills</h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {section.content.soft.map((skill: string, index: number) => (
-                      <Badge 
-                        key={index} 
-                        variant="outline" 
-                        className="text-gray-700 border-gray-300 text-xs px-2 py-1 whitespace-normal break-words"
-                      >
-                        {skill}
-                      </Badge>
+                      <input
+                        key={index}
+                        data-path={`skills.soft[${index}]`}
+                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.soft[${index}]`)}`}
+                        value={skill || ''}
+                        onChange={(e) => updateResumeText(`skills.soft[${index}]`, e.target.value)}
+                        placeholder={`Soft skill ${index + 1}`}
+                      />
                     ))}
                   </div>
                 </div>
@@ -862,126 +1105,222 @@ export default function ResumeBuilderPage() {
               {Array.isArray(section.content?.languages) && section.content.languages.length > 0 && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Languages</h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {section.content.languages.map((language: string, index: number) => (
-                      <Badge 
-                        key={index} 
-                        variant="outline" 
-                        className="text-gray-700 border-gray-300 text-xs px-2 py-1 whitespace-normal break-words"
-                      >
-                        {language}
-                      </Badge>
+                      <input
+                        key={index}
+                        data-path={`skills.languages[${index}]`}
+                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.languages[${index}]`)}`}
+                        value={language || ''}
+                        onChange={(e) => updateResumeText(`skills.languages[${index}]`, e.target.value)}
+                        placeholder={`Language ${index + 1}`}
+                      />
                     ))}
                   </div>
                 </div>
               )}
             </div>
+            {!hasSkillsContent(section.content) && (
+              <p className="text-gray-500 text-sm mt-2">No skills yet. Use the buttons above to add skills.</p>
+            )}
           </div>
         );
 
       case 'education':
-        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Education
             </h3>
-            {Array.isArray(section.content) ? (
+            <div className="mb-3">
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('education', { degree: 'New Degree', institution: '', year: '', highlights: [''] }, 'degree')}>
+                + Add education
+              </Button>
+            </div>
+            {Array.isArray(section.content) && section.content.length > 0 ? (
               section.content.map((edu: any, index: number) => (
                 <div key={index} className="mb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-gray-900">{edu.degree}</h4>
-                    <span className="text-sm text-gray-500">{edu.year}</span>
+                  <div className="flex justify-between items-start mb-2 gap-3">
+                    <Editable
+                      as="h4"
+                      data-path={`education[${index}].degree`}
+                      className={`font-medium text-gray-900 ${getHighlightClass(`education[${index}].degree`)}`}
+                      value={edu.degree || ''}
+                      onChange={(val) => updateResumeText(`education[${index}].degree`, val)}
+                      placeholder="Degree"
+                    />
+                    <Editable
+                      as="span"
+                      data-path={`education[${index}].year`}
+                      className={`text-sm text-gray-500 ${getHighlightClass(`education[${index}].year`)}`}
+                      value={edu.year || ''}
+                      onChange={(val) => updateResumeText(`education[${index}].year`, val)}
+                      placeholder="Year"
+                    />
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">{edu.institution}</p>
+                  <Editable
+                    as="p"
+                    data-path={`education[${index}].institution`}
+                    className={`text-sm text-gray-600 mb-2 ${getHighlightClass(`education[${index}].institution`)}`}
+                    value={edu.institution || ''}
+                    onChange={(val) => updateResumeText(`education[${index}].institution`, val)}
+                    placeholder="Institution"
+                  />
                   {Array.isArray(edu.highlights) && edu.highlights.length > 0 && (
                     <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                       {edu.highlights.map((highlight: string, idx: number) => (
-                        <li key={idx}>{highlight}</li>
+                        <Editable
+                          key={idx}
+                          as="li"
+                          data-path={`education[${index}].highlights[${idx}]`}
+                          className={`${getHighlightClass(`education[${index}].highlights[${idx}]`)}`}
+                          value={highlight || ''}
+                          onChange={(val) => updateResumeText(`education[${index}].highlights[${idx}]`, val)}
+                          placeholder={`Highlight ${idx + 1}`}
+                        />
                       ))}
                     </ul>
                   )}
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => addListItem(`education[${index}].highlights`, '', '')}>+ Add highlight</Button>
+                    <Button variant="ghost" size="sm" className="text-xs text-red-400" onClick={() => removeListItem('education', index)}>Remove education</Button>
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">No education data available</p>
+              <p className="text-gray-500 text-sm">No education yet. Use "+ Add education" to add your first entry.</p>
             )}
           </div>
         );
 
       case 'certifications':
-        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Certifications
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {Array.isArray(section.content) ? 
-                section.content.map((cert: string, index: number) => (
-                  <Badge key={index} variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }}>
-                    {cert}
-                  </Badge>
-                )) : 
-                <p className="text-gray-500">No certifications available</p>
-              }
+            <div className="mb-3">
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('certifications', '', '')}>+ Add certification</Button>
             </div>
+            {Array.isArray(section.content) && section.content.length > 0 ? (
+              <div className="space-y-2">
+                {section.content.map((cert: string, index: number) => (
+                  <input
+                    key={index}
+                    data-path={`certifications[${index}]`}
+                    className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`certifications[${index}]`)}`}
+                    value={cert || ''}
+                    onChange={(e) => updateResumeText(`certifications[${index}]`, e.target.value)}
+                    placeholder={`Certification ${index + 1}`}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No certifications yet. Use "+ Add certification" to add one.</p>
+            )}
           </div>
         );
 
       case 'projects':
-        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Projects
             </h3>
-            {Array.isArray(section.content) ? (
+            <div className="mb-3">
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('projects', { title: 'New Project', description: '', technologies: [''], impact: [''] }, 'title')}>+ Add project</Button>
+            </div>
+            {Array.isArray(section.content) && section.content.length > 0 ? (
               section.content.map((project: any, index: number) => (
-                <div key={index} className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">{project.title}</h4>
-                  <p className="text-sm text-gray-700 mb-2">{project.description}</p>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {Array.isArray(project.technologies) ? 
+                <div key={index} className="mb-6">
+                  <input
+                    data-path={`projects[${index}].title`}
+                    className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2 ${getHighlightClass(`projects[${index}].title`)}`}
+                    value={project.title || ''}
+                    onChange={(e) => updateResumeText(`projects[${index}].title`, e.target.value)}
+                    placeholder="Project Title"
+                  />
+                  <textarea
+                    data-path={`projects[${index}].description`}
+                    className={`w-full border border-gray-300 rounded-md p-3 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2 ${getHighlightClass(`projects[${index}].description`)}`}
+                    rows={4}
+                    value={project.description || ''}
+                    onChange={(e) => updateResumeText(`projects[${index}].description`, e.target.value)}
+                    placeholder="Project Description"
+                  />
+                  <div className="space-y-2 mb-2">
+                    {Array.isArray(project.technologies) ? (
                       project.technologies.map((tech: string, idx: number) => (
-                        <Badge key={idx} variant="outline" className="text-xs text-gray-700 border-gray-300">
-                          {tech}
-                        </Badge>
-                      )) : 
+                        <Editable
+                          key={idx}
+                          as="div"
+                          data-path={`projects[${index}].technologies[${idx}]`}
+                          className={`text-sm text-gray-700 ${getHighlightClass(`projects[${index}].technologies[${idx}]`)}`}
+                          value={tech || ''}
+                          onChange={(val) => updateResumeText(`projects[${index}].technologies[${idx}]`, val)}
+                          placeholder={`Technology ${idx + 1}`}
+                        />
+                      ))
+                    ) : (
                       <p className="text-gray-500 text-sm">No technologies listed</p>
-                    }
+                    )}
                   </div>
-                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                    {Array.isArray(project.impact) ? 
+                  <div className="space-y-2">
+                    {Array.isArray(project.impact) ? (
                       project.impact.map((impact: string, idx: number) => (
-                        <li key={idx}>{impact}</li>
-                      )) : 
-                      <li>No impact details available</li>
-                    }
-                  </ul>
+                        <Editable
+                          key={idx}
+                          as="li"
+                          data-path={`projects[${index}].impact[${idx}]`}
+                          className={`list-disc list-inside text-sm text-gray-700 ${getHighlightClass(`projects[${index}].impact[${idx}]`)}`}
+                          value={impact || ''}
+                          onChange={(val) => updateResumeText(`projects[${index}].impact[${idx}]`, val)}
+                          placeholder={`Impact ${idx + 1}`}
+                        />
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">No impact details available</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => addListItem(`projects[${index}].technologies`, '', '')}>+ Add technology</Button>
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => addListItem(`projects[${index}].impact`, '', '')}>+ Add impact</Button>
+                    <Button variant="ghost" size="sm" className="text-xs text-red-400" onClick={() => removeListItem('projects', index)}>Remove project</Button>
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">No projects data available</p>
+              <p className="text-gray-500 text-sm">No projects yet. Use "+ Add project" to add one.</p>
             )}
           </div>
         );
 
       case 'achievements':
-        if (isEmptyContent(section.content)) return null;
         return (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Achievements
             </h3>
-            <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-              {Array.isArray(section.content) ? 
-                section.content.map((achievement: string, index: number) => (
-                  <li key={index}>{achievement}</li>
-                )) : 
-                <li>No achievements available</li>
-              }
-            </ul>
+            <div className="mb-3">
+              <Button variant="outline" className="text-xs" onClick={() => addListItem('achievements', '', '')}>+ Add achievement</Button>
+            </div>
+            {Array.isArray(section.content) && section.content.length > 0 ? (
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                {section.content.map((achievement: string, index: number) => (
+                  <Editable
+                    key={index}
+                    as="li"
+                    data-path={`achievements[${index}]`}
+                    className={getHighlightClass(`achievements[${index}]`)}
+                    value={achievement || ''}
+                    onChange={(val) => updateResumeText(`achievements[${index}]`, val)}
+                    placeholder={`Achievement ${index + 1}`}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No achievements yet. Use "+ Add achievement" to add one.</p>
+            )}
           </div>
         );
 
@@ -1079,8 +1418,20 @@ export default function ResumeBuilderPage() {
               <div className="flex items-center">
                 <Type className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
-                  <h1 className="text-4xl font-bold gradient-text">Generated Resume</h1>
-                  <p className="text-gray-400">Your AI-enhanced professional resume</p>
+                  <Editable
+                    as="h1"
+                    className="text-4xl font-bold gradient-text"
+                    value={improvedResume?.name || originalResumeData?.name || 'Your Name'}
+                    onChange={(val) => updateResumeText('name', val)}
+                    placeholder="Your Name"
+                  />
+                  <Editable
+                    as="p"
+                    className="text-gray-400"
+                    value={improvedResume?.bestJobTitle || originalResumeData?.title || ''}
+                    onChange={(val) => updateResumeText('bestJobTitle', val)}
+                    placeholder="Your Title"
+                  />
                 </div>
               </div>
           </div>
@@ -1346,22 +1697,44 @@ export default function ResumeBuilderPage() {
                           })
                         }}
                       >
-                        <h1 
+                        <Editable
+                          as="h1"
                           className="text-3xl font-bold text-gray-900 mb-2"
-                          style={{
-                            ...(selectedTemplate.id === 'executive' && { color: '#1e293b' }),
-                            ...(selectedTemplate.id === 'tech-innovator' && { color: '#6366f1' }),
-                            ...(selectedTemplate.id === 'creative-artist' && { color: '#f59e0b' }),
-                            ...(selectedTemplate.id === 'corporate-chic' && { color: '#059669' }),
-                            ...(selectedTemplate.id === 'startup-energy' && { color: '#dc2626' }),
-                            ...(selectedTemplate.id === 'academic-scholar' && { color: '#1e40af' }),
-                            ...(selectedTemplate.id === 'freelance-charm' && { color: '#7c2d12' })
-                          }}
-                        >
-                          {getHeaderInfo().name}
-                        </h1>
-                        <p className="text-gray-600">{getHeaderInfo().title} • {getHeaderInfo().location}</p>
-                        <p className="text-gray-600">{getHeaderInfo().email} • {getHeaderInfo().phone}</p>
+                          value={getHeaderInfo().name}
+                          onChange={(val) => updateResumeText('name', val)}
+                          multiline
+                        />
+                        <p className="text-gray-600">
+                          <Editable
+                            as="span"
+                            value={getHeaderInfo().title}
+                            onChange={(val) => updateResumeText('bestJobTitle', val)}
+                          multiline
+                          />
+                          {' '}
+                          •{' '}
+                          <Editable
+                            as="span"
+                            value={getHeaderInfo().location}
+                            onChange={(val) => updateResumeText('location', val)}
+                          multiline
+                          />
+                        </p>
+                        <p className="text-gray-600">
+                          <Editable
+                            as="span"
+                            value={getHeaderInfo().email}
+                            onChange={(val) => updateResumeText('email', val)}
+                          multiline
+                          />
+                          {' '}
+                          •{' '}
+                          <Editable
+                            as="span"
+                            value={getHeaderInfo().phone}
+                            onChange={(val) => updateResumeText('phone', val)}
+                          />
+                        </p>
                       </div>
 
                       {/* Sections */}

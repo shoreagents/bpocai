@@ -6,7 +6,9 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/api/save-resume') || 
       request.nextUrl.pathname.startsWith('/api/save-generated-resume') ||
       request.nextUrl.pathname.startsWith('/api/save-resume-to-profile') ||
-      request.nextUrl.pathname.startsWith('/api/user/saved-resumes')) {
+      request.nextUrl.pathname.startsWith('/api/user/saved-resumes') ||
+      request.nextUrl.pathname.startsWith('/api/analyze-resume') ||
+      request.nextUrl.pathname.startsWith('/api/user/analysis-results')) {
     console.log('🔍 Middleware: Processing authenticated API request')
     
     try {
@@ -103,5 +105,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/save-resume', '/api/save-generated-resume', '/api/save-resume-to-profile', '/api/user/saved-resumes'],
+  matcher: [
+    '/api/save-resume',
+    '/api/save-generated-resume',
+    '/api/save-resume-to-profile',
+    '/api/user/saved-resumes',
+    '/api/analyze-resume',
+    '/api/user/analysis-results'
+  ],
 } 
