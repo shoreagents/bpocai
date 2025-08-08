@@ -44,25 +44,25 @@ const BPO_VOCABULARY = {
     words: ['help', 'call', 'chat', 'work', 'home', 'time', 'good', 'best', 'nice', 'easy', 'fast', 'slow', 'high', 'free', 'safe', 'open', 'cool', 'warm', 'date', 'team', 'user', 'game', 'play', 'view', 'save', 'edit', 'send', 'read', 'find', 'sell'],
     timeLimit: 30, // 30 seconds
     speed: 1.0,
-    spawnRate: 1800
+    spawnRate: 1500 // Consistent spawn rate across all difficulties
   },
   medium: {
     words: ['tasks', 'goals', 'plans', 'costs', 'files', 'codes', 'deals', 'teams', 'users', 'games', 'sites', 'forms', 'cards', 'rates', 'types', 'modes', 'tests', 'loads', 'syncs', 'moves', 'links', 'mails', 'infos', 'pages', 'items', 'roles', 'desks', 'bills', 'notes', 'tools'],
     timeLimit: 30, // 30 seconds
     speed: 1.0,
-    spawnRate: 1500
+    spawnRate: 1500 // Consistent spawn rate across all difficulties
   },
   hard: {
     words: ['customer', 'service', 'support', 'billing', 'account', 'payment', 'problem', 'solution', 'request', 'feedback', 'process', 'system', 'update', 'manage', 'handle', 'call back', 'send email', 'fix issue', 'new task', 'team lead', 'data sync', 'user info', 'web page', 'file size', 'test mode', 'load time', 'sync data', 'copy text', 'push code', 'link site'],
     timeLimit: 30, // 30 seconds
     speed: 1.0,
-    spawnRate: 1200
+    spawnRate: 1500 // Consistent spawn rate across all difficulties
   },
   expert: {
     words: ['troubleshoot', 'escalation', 'resolution', 'representative', 'professional', 'assistance', 'communication', 'documentation', 'verification', 'authorization', 'schedule meeting', 'update system', 'process payment', 'customer feedback', 'technical support', 'quality assurance', 'data management', 'system integration', 'performance review', 'project timeline', 'client requirements', 'workflow automation', 'security protocols', 'backup procedures', 'error handling', 'user experience', 'database query', 'network config', 'server maintenance', 'code deployment'],
     timeLimit: 30, // 30 seconds
     speed: 1.0,
-    spawnRate: 900
+    spawnRate: 1500 // Consistent spawn rate across all difficulties
   }
 };
 
@@ -595,6 +595,7 @@ export default function TypingHeroPage() {
           fires: prev.fires + 1,
           combo: newCombo,
           correctWords: prev.correctWords + 1,
+          totalWords: prev.totalWords + 1,
           charactersTyped: prev.charactersTyped + word.word.length
         };
       });
@@ -672,7 +673,20 @@ export default function TypingHeroPage() {
         if (newTimeLeft <= 0) {
           // Time's up - check if passed
           const accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
-          const passed = accuracy >= 70 && prev.correctWords >= 10; // Pass criteria
+          const elapsedSeconds = getCurrentConfig().timeLimit;
+          const wordsTyped = prev.charactersTyped / 5;
+          const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
+          
+          // WPM requirements for each difficulty
+          const wpmRequirements = {
+            easy: 25,
+            medium: 35,
+            hard: 50,
+            expert: 70
+          };
+          
+          const requiredWpm = wpmRequirements[currentDifficulty];
+          const passed = accuracy >= 70 && prev.correctWords >= 10 && wpm >= requiredWpm; // Pass criteria
           
           setTimeout(() => endGame(passed), 100);
           return { ...prev, timeLeft: 0 };
@@ -1319,7 +1333,7 @@ export default function TypingHeroPage() {
                       />
                     </div>
                     <div className="text-sm text-gray-400">
-                      <div>Pass: <span className="text-green-400">70% accuracy + 10 words</span></div>
+                      <div>Pass: <span className="text-green-400">70% accuracy + 10 words + {currentDifficulty === 'easy' ? '25' : currentDifficulty === 'medium' ? '35' : currentDifficulty === 'hard' ? '50' : '70'} WPM</span></div>
                       <div className="mt-1 text-xs">
                         Timing bonuses: <span className="text-green-400">Perfect +50</span> | <span className="text-yellow-400">Great +25</span> | <span className="text-purple-400">Good +10</span>
                       </div>
@@ -1381,7 +1395,7 @@ export default function TypingHeroPage() {
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
                       <p className="text-red-400 font-medium mb-2">Requirements Not Met</p>
                       <p className="text-gray-300 text-sm">
-                        Need: 70% accuracy and 10+ correct words
+                        Need: 70% accuracy, 10+ correct words, and {currentDifficulty === 'easy' ? '25' : currentDifficulty === 'medium' ? '35' : currentDifficulty === 'hard' ? '50' : '70'}+ WPM
                       </p>
                     </div>
                   )}
@@ -1389,7 +1403,7 @@ export default function TypingHeroPage() {
                     <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
                       <p className="text-green-400 font-medium mb-2">Challenge Passed! 🎉</p>
                       <p className="text-gray-300 text-sm">
-                        You met all requirements: 70%+ accuracy and 10+ correct words
+                        You met all requirements: 70%+ accuracy, 10+ correct words, and {currentDifficulty === 'easy' ? '25' : currentDifficulty === 'medium' ? '35' : currentDifficulty === 'hard' ? '50' : '70'}+ WPM
                       </p>
                     </div>
                   )}
