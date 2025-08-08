@@ -5,32 +5,45 @@ export async function GET(request: NextRequest) {
   try {
     console.log('API: Starting to fetch resumes...')
     
-    const result = await pool.query(
-      'SELECT * FROM resumes ORDER BY created_at DESC'
-    )
+    // Query saved_resumes with user information
+                   const result = await pool.query(`
+                 SELECT 
+                   sr.id,
+                   sr.user_id,
+                   sr.resume_title,
+                   sr.template_used,
+                   sr.view_count,
+                   sr.created_at,
+                   sr.updated_at,
+                   u.full_name as user_name,
+                   u.email as user_email,
+                   u.avatar_url as user_avatar
+                 FROM saved_resumes sr
+                 LEFT JOIN users u ON sr.user_id = u.id
+                 ORDER BY sr.created_at DESC
+               `)
 
     console.log('API: Raw resumes data:', result.rows)
     console.log('API: Number of resumes found:', result.rows.length)
 
-    const transformedResumes = result.rows.map((resume: any) => ({
-      id: resume.id,
-      user_id: resume.user_id,
-      title: resume.title,
-      status: resume.status || 'active',
-      created_at: resume.created_at,
-      updated_at: resume.updated_at,
-      file_url: resume.file_url,
-      file_size: resume.file_size,
-      file_type: resume.file_type,
-      user_name: resume.user_name || 'Unknown User',
-      user_email: resume.user_email || 'No email'
-    }))
+                   const transformedResumes = result.rows.map((resume: any) => ({
+                 id: resume.id,
+                 user_id: resume.user_id,
+                 resume_title: resume.resume_title || 'Untitled Resume',
+                 template_used: resume.template_used || 'Default',
+                 view_count: resume.view_count || 0,
+                 created_at: resume.created_at,
+                 updated_at: resume.updated_at,
+                 user_name: resume.user_name || 'Unknown User',
+                 user_email: resume.user_email || 'No email',
+                 user_avatar: resume.user_avatar
+               }))
 
     return NextResponse.json({
       resumes: transformedResumes,
       total: transformedResumes.length,
-      active: transformedResumes.filter((r: any) => r.status === 'active').length,
-      draft: transformedResumes.filter((r: any) => r.status === 'draft').length
+      totalViews: transformedResumes.reduce((sum: number, r: any) => sum + r.view_count, 0),
+      uniqueTemplates: new Set(transformedResumes.map((r: any) => r.template_used)).size
     })
 
   } catch (error) {
