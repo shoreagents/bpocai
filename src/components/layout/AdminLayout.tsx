@@ -15,18 +15,16 @@ import {
   ChevronDown,
   Brain,
   Sparkles,
-  Settings,
   LogOut,
   ChevronUp,
   Home,
-  Cog,
   UserCircle,
   ChevronLeft,
   ChevronRight,
   Wrench,
   TestTube,
   Puzzle,
-  Sliders
+  BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,6 +43,7 @@ const platformItems: SidebarItem[] = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
   { title: 'Users', icon: Users, href: '/admin/users' },
   { title: 'Resumes', icon: FileText, href: '/admin/resumes' },
+  { title: 'Analysis', icon: BarChart3, href: '/admin/analysis' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
   { title: 'Assessments', icon: ClipboardList, href: '/admin/assessments' },
   { title: 'Games', icon: Gamepad2, href: '/admin/games' },
@@ -77,9 +76,7 @@ const managementItems: SidebarItem[] = [
   }
 ]
 
-const settingsItems: SidebarItem[] = [
-  { title: 'General Settings', icon: Sliders, href: '/admin/settings/general' }
-]
+
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -103,7 +100,7 @@ export default function AdminLayout({
   adminUser 
 }: AdminLayoutProps) {
   const { user } = useAuth()
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management', 'settings']))
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management']))
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   const pathname = usePathname()
@@ -133,8 +130,6 @@ export default function AdminLayout({
           return 'text-cyan-400'
         case 'management':
           return 'text-purple-400'
-        case 'settings':
-          return 'text-yellow-400'
         default:
           return 'text-cyan-400'
       }
@@ -301,25 +296,7 @@ export default function AdminLayout({
               </div>
             </div>
 
-            <Separator className="my-6 bg-white/10" />
 
-            {/* Settings Section */}
-            <div className="mb-4">
-              <div className={cn(
-                "flex items-center mb-2",
-                sidebarMinimized ? "justify-center" : "space-x-2"
-              )}>
-                <Cog className="w-4 h-4 text-yellow-400" />
-                {!sidebarMinimized && (
-                  <span className="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Settings</span>
-                )}
-              </div>
-              <div className="space-y-1">
-                {settingsItems.map((item) => (
-                  <SidebarItem key={item.title} item={item} category="settings" />
-                ))}
-              </div>
-            </div>
 
             {/* User Profile Section */}
             <div className="mt-auto pt-6">
