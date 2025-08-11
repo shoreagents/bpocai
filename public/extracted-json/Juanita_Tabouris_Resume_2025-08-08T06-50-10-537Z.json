@@ -1,0 +1,111 @@
+{
+  "name": "Juanita G. Tabouris",
+  "email": "tabourisjuanita@gmail.com",
+  "phone": "0905-850-9568",
+  "location": "Model Community, Porac, Pampanga, 2008",
+  "summary": "A detail-oriented professional with strong leadership, organizational, and communication skills developed through diverse experiences in academic and professional settings. My background in managing and coaching teams, facilitating meetings, and handling complex processes has equipped me with the ability to mentor, guide, and inspire learners. I honed my ability to manage group dynamics, delegate tasks, and foster collaboration. My professional experience includes coaching teammates as a Subject Matter Expert and providing client support, where I developed my ability to explain complex topics in clear, engaging ways. I am also fluent in Filipino and English, enabling me to connect effectively with diverse audiences.",
+  "skills": [
+    "Interpersonal Skills",
+    "Adaptability",
+    "Research and Development",
+    "Mentorship and Guidance",
+    "Problem-Solving",
+    "Fixing Technical Issues of the Customers",
+    "Sales Pitching",
+    "Building Rapport"
+  ],
+  "experience": [
+    {
+      "company": "TaskUs",
+      "position": "Subject Matter Expert | Clinical Review Team",
+      "duration": "September 2024 - March 2025",
+      "description": [
+        "Assisting teammates with work process concerns",
+        "Handling supervisor calls",
+        "Coaching teammates and facilitating team meetings",
+        "In charge with suggesting process improvements to clients"
+      ]
+    },
+    {
+      "company": "TaskUs",
+      "position": "Teammate | Clinical Review Team",
+      "duration": "2023 - September 2024",
+      "description": [
+        "Creating Authorization for Member's Procedure",
+        "Scheduling their Providers and our Clinicians",
+        "Call Handling"
+      ]
+    },
+    {
+      "company": "TaskUs",
+      "position": "Teammate | Provider Service Specialist",
+      "duration": "2022 - 2023",
+      "description": [
+        "Verifying Providers Information",
+        "Email Management",
+        "Checking if Providers are In-Network with the Health Plan",
+        "Outbound calls"
+      ]
+    },
+    {
+      "company": "Concentrix CVG",
+      "position": "Customer Service Specialist",
+      "duration": "June 2022 - August 2022",
+      "description": [
+        "Call Handling"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Holy Angel University",
+      "degree": "Bachelor of Science in Management Accounting",
+      "year": "2020 - 2024"
+    },
+    {
+      "institution": "Holy Angel University",
+      "degree": "Accounting, Business and Management",
+      "year": "2018 - 2020"
+    }
+  ],
+  "expertise": [
+    "Bookkeeping",
+    "Public Speaking"
+  ],
+  "achievements": [
+    "With Honors (Grade 12 | 2019 - 2020)",
+    "Dean’s Lister (1st Year 2nd Semester)",
+    "Dean’s Lister (3rd Year 1st Semester)",
+    "Dean’s Lister (4th Year 1st Semester)"
+  ],
+  "internship": {
+    "company": "Viskase Asia Pacific Corp.",
+    "position": "Accounting Intern",
+    "duration": "April 2023 - July 2023",
+    "description": [
+      "Encoding Sales Invoice",
+      "Releasing Cheques",
+      "Physical Inventory Count",
+      "Filing Annual Income Tax Return"
+    ]
+  },
+  "references": [
+    {
+      "name": "Jerika Laxamana",
+      "position": "Senior Team Leader | TaskUs",
+      "contact_number": "09084939241"
+    },
+    {
+      "name": "Tisha Marie Manalo",
+      "position": "Team Leader | Task Us",
+      "contact_number": "09171073048"
+    }
+  ],
+  "certifications": [
+    "National Certificate III in Bookkeeping | 2020"
+  ],
+  "languages": [
+    "English",
+    "Filipino"
+  ]
+}

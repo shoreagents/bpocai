@@ -8,7 +8,9 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/api/save-resume-to-profile') ||
       request.nextUrl.pathname.startsWith('/api/user/saved-resumes') ||
       request.nextUrl.pathname.startsWith('/api/analyze-resume') ||
-      request.nextUrl.pathname.startsWith('/api/user/analysis-results')) {
+      request.nextUrl.pathname.startsWith('/api/user/analysis-results') ||
+      request.nextUrl.pathname.startsWith('/api/user/extracted-resume') ||
+      request.nextUrl.pathname.startsWith('/api/user/saved-resume/')) {
     console.log('🔍 Middleware: Processing authenticated API request')
     
     try {
@@ -111,6 +113,8 @@ export const config = {
     '/api/save-resume-to-profile',
     '/api/user/saved-resumes',
     '/api/analyze-resume',
-    '/api/user/analysis-results'
+    '/api/user/analysis-results',
+    '/api/user/extracted-resume',
+    '/api/user/saved-resume/:path*'
   ],
 } 

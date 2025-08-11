@@ -17,7 +17,9 @@ import {
   Mail,
   Phone,
   MapPin,
-  FileText
+  FileText,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +67,7 @@ export default function SavedResumePage() {
   const [analysis, setAnalysis] = useState<any | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -242,6 +245,43 @@ export default function SavedResumePage() {
         // Fallback to showing the URL
         alert(`Resume URL: ${url}`);
       }
+    }
+  };
+
+  const editResume = async () => {
+    try {
+      // Put current resume content back to localStorage and go to builder
+      if (resume?.data) {
+        localStorage.setItem('resumeData', JSON.stringify(resume.data.content));
+      }
+      window.location.href = '/resume-builder/build';
+    } catch (e) {}
+  };
+
+  const deleteResume = async () => {
+    if (!confirm('Delete this resume? This action cannot be undone.')) return;
+    try {
+      setDeleting(true);
+      const token = await getSessionToken();
+      if (!token) {
+        alert('Please log in to delete your resume.');
+        setDeleting(false);
+        return;
+      }
+      const res = await fetch(`/api/user/saved-resume/${slug}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete resume');
+      }
+      alert('Resume deleted');
+      window.location.href = '/resume-builder';
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to delete resume');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -438,6 +478,14 @@ export default function SavedResumePage() {
                 <Button
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 transition-all duration-200"
+                  onClick={editResume}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Resume
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10 transition-all duration-200"
                   onClick={shareResume}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
@@ -450,6 +498,15 @@ export default function SavedResumePage() {
                 >
                   <Download className="h-4 w-4 mr-2" />
                   {exporting ? 'Exporting...' : 'Export PDF'}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={deleteResume}
+                  disabled={deleting}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 transition-all duration-200"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {deleting ? 'Deleting...' : 'Delete'}
                 </Button>
               </div>
             </div>
