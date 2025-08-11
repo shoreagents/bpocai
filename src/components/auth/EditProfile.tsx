@@ -210,15 +210,17 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
           {/* Edit Profile Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
+            <div className="space-y-4 p-4 bg-white/5 rounded-lg border border-white/10">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2 flex items-center gap-2">
+                <User className="w-5 h-5 text-cyan-400" />
                 Basic Information
               </h3>
               
               {/* Name Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="firstName" className="text-sm font-medium text-white block">
+                  <label htmlFor="firstName" className="text-sm font-semibold text-white block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
                     First Name *
                   </label>
                   <div className="relative">
@@ -226,11 +228,11 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     <Input
                       id="firstName"
                       type="text"
-                      placeholder="First name"
+                      placeholder="Enter your first name"
                       value={profileData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                        errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                      className={`pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200 ${
+                        errors.firstName ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''
                       }`}
                       disabled={isLoading}
                     />
@@ -241,7 +243,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="lastName" className="text-sm font-medium text-white block">
+                  <label htmlFor="lastName" className="text-sm font-semibold text-white block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
                     Last Name *
                   </label>
                   <div className="relative">
@@ -249,11 +252,11 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     <Input
                       id="lastName"
                       type="text"
-                      placeholder="Last name"
+                      placeholder="Enter your last name"
                       value={profileData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                        errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                      className={`pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200 ${
+                        errors.lastName ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''
                       }`}
                       disabled={isLoading}
                     />
@@ -266,7 +269,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-white block">
+                <label htmlFor="email" className="text-sm font-semibold text-white block flex items-center gap-2">
+                  <span className="w-2 h-2 bg-cyan-400 rounded-full"></span>
                   Email Address *
                 </label>
                 <div className="relative">
@@ -277,8 +281,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     placeholder="your.email@example.com"
                     value={profileData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                      errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                    className={`pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200 ${
+                      errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''
                     }`}
                     disabled={true} // Email usually can't be changed
                   />
@@ -292,7 +296,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
               {/* Phone and Position */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-medium text-white block">
+                  <label htmlFor="phone" className="text-sm font-semibold text-white block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
                     Phone Number
                   </label>
                   <div className="relative">
@@ -303,8 +308,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                       placeholder="+63 912 345 6789"
                       value={profileData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                        errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+                      className={`pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200 ${
+                        errors.phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''
                       }`}
                       disabled={isLoading}
                     />
@@ -315,7 +320,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="position" className="text-sm font-medium text-white block">
+                  <label htmlFor="position" className="text-sm font-semibold text-white block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
                     Position
                   </label>
                   <div className="relative">
@@ -323,10 +329,10 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     <Input
                       id="position"
                       type="text"
-                      placeholder="e.g., Software Engineer"
+                      placeholder="e.g., Software Engineer, Customer Service Rep"
                       value={profileData.position}
                       onChange={(e) => handleInputChange('position', e.target.value)}
-                      className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
+                      className="pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200"
                       disabled={isLoading}
                     />
                   </div>
@@ -335,7 +341,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
 
               {/* Location */}
               <div className="space-y-2">
-                <label htmlFor="location" className="text-sm font-medium text-white block">
+                <label htmlFor="location" className="text-sm font-semibold text-white block flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                   Location
                 </label>
                 <div className="relative">
@@ -343,10 +350,10 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                   <Input
                     id="location"
                     type="text"
-                    placeholder="e.g., Clark, Pampanga"
+                    placeholder="e.g., Clark, Pampanga, Metro Manila"
                     value={profileData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
+                    className="pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200"
                     disabled={isLoading}
                   />
                 </div>
@@ -356,14 +363,16 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
             <Separator className="bg-white/10" />
 
             {/* Professional Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
+            <div className="space-y-4 p-4 bg-white/5 rounded-lg border border-white/10">
+              <h3 className="text-lg font-semibold text-white border-b border-white/20 pb-2 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-cyan-400" />
                 Professional Information
               </h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="jobTitle" className="text-sm font-medium text-white block">
+                  <label htmlFor="jobTitle" className="text-sm font-semibold text-white block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
                     Job Title
                   </label>
                   <div className="relative">
@@ -371,17 +380,18 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     <Input
                       id="jobTitle"
                       type="text"
-                      placeholder="e.g., Customer Service Representative"
+                      placeholder="e.g., Customer Service Representative, Team Lead"
                       value={profileData.jobTitle}
                       onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                      className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
+                      className="pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200"
                       disabled={isLoading}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="company" className="text-sm font-medium text-white block">
+                  <label htmlFor="company" className="text-sm font-semibold text-white block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
                     Company
                   </label>
                   <div className="relative">
@@ -389,10 +399,10 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     <Input
                       id="company"
                       type="text"
-                      placeholder="e.g., Accenture"
+                      placeholder="e.g., Accenture, Amazon, Google"
                       value={profileData.company}
                       onChange={(e) => handleInputChange('company', e.target.value)}
-                      className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
+                      className="pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200"
                       disabled={isLoading}
                     />
                   </div>
@@ -400,7 +410,8 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="dateOfBirth" className="text-sm font-medium text-white block">
+                <label htmlFor="dateOfBirth" className="text-sm font-semibold text-white block flex items-center gap-2">
+                  <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
                   Date of Birth
                 </label>
                 <div className="relative">
@@ -410,7 +421,7 @@ export default function EditProfile({ open, onOpenChange }: EditProfileProps) {
                     type="date"
                     value={profileData.dateOfBirth}
                     onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200"
+                    className="pl-10 h-12 bg-white/10 border-white/30 text-white placeholder:text-gray-300 focus:bg-white/15 focus:border-cyan-400 focus:ring-cyan-400/20 transition-all duration-200"
                     disabled={isLoading}
                   />
                 </div>
