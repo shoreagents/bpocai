@@ -163,6 +163,7 @@ export default function ResumeBuilderPage() {
   });
   const [improvedResume, setImprovedResume] = useState<ImprovedResumeContent | null>(null);
   const [originalResumeData, setOriginalResumeData] = useState<any>(null);
+  const [extractedFallback, setExtractedFallback] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sections, setSections] = useState<ResumeSection[]>([]);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
@@ -177,9 +178,25 @@ export default function ResumeBuilderPage() {
       setOriginalResumeData(parsedData);
       generateImprovedResume(parsedData);
     } else {
-      // No resume data available, show error
+      // No resume data available locally, still attempt to fetch extracted fallback from server
       setError('No resume data found. Please upload a resume first.');
     }
+
+    // Also fetch latest extracted resume as a fallback for header info (email/phone/location)
+    (async () => {
+      try {
+        const sessionToken = await getSessionToken();
+        if (!sessionToken) return;
+        const res = await fetch('/api/user/extracted-resume', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.hasData) setExtractedFallback(data.resumeData);
+        }
+      } catch {}
+    })();
   }, []);
 
   useEffect(() => {
@@ -669,18 +686,28 @@ export default function ResumeBuilderPage() {
                 extractFromContact(originalResumeData, 'location') ||
                 combineFields(originalResumeData, ['city', 'state']) ||
                 combineFields(originalResumeData, ['city', 'country']) ||
+                (extractedFallback ? (findField(extractedFallback, ['location', 'address', 'city', 'residence', 'current_location']) ||
+                                      extractFromContact(extractedFallback, 'location') ||
+                                      combineFields(extractedFallback, ['city', 'state']) ||
+                                      combineFields(extractedFallback, ['city', 'country'])) : null) ||
                 (firstProcessedResume ? findField(firstProcessedResume, ['location', 'address', 'city', 'residence', 'current_location']) : null) ||
                 'Location not found',
       
       email: findField(originalResumeData, ['email', 'email_address', 'contact_email', 'primary_email']) ||
              extractFromContact(originalResumeData, 'email') ||
              extractFromArray(originalResumeData, ['emails', 'contact_emails']) ||
+              (extractedFallback ? (findField(extractedFallback, ['email', 'email_address', 'contact_email', 'primary_email']) ||
+                                    extractFromContact(extractedFallback, 'email') ||
+                                    extractFromArray(extractedFallback, ['emails', 'contact_emails'])) : null) ||
              (firstProcessedResume ? findField(firstProcessedResume, ['email', 'email_address', 'contact_email', 'primary_email']) : null) ||
              'Email not found',
       
       phone: findField(originalResumeData, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
              extractFromContact(originalResumeData, 'phone') ||
              extractFromArray(originalResumeData, ['phones', 'phone_numbers']) ||
+              (extractedFallback ? (findField(extractedFallback, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
+                                    extractFromContact(extractedFallback, 'phone') ||
+                                    extractFromArray(extractedFallback, ['phones', 'phone_numbers'])) : null) ||
              (firstProcessedResume ? findField(firstProcessedResume, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) : null) ||
              'Phone not found'
     };
@@ -1421,14 +1448,14 @@ export default function ResumeBuilderPage() {
                   <Editable
                     as="h1"
                     className="text-4xl font-bold gradient-text"
-                    value={improvedResume?.name || originalResumeData?.name || 'Your Name'}
+                    value={getHeaderInfo().name || 'Your Name'}
                     onChange={(val) => updateResumeText('name', val)}
                     placeholder="Your Name"
                   />
                   <Editable
                     as="p"
                     className="text-gray-400"
-                    value={improvedResume?.bestJobTitle || originalResumeData?.title || ''}
+                    value={getHeaderInfo().title || ''}
                     onChange={(val) => updateResumeText('bestJobTitle', val)}
                     placeholder="Your Title"
                   />
