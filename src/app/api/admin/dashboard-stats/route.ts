@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
         (SELECT COUNT(*) FROM users) as total_users,
         (SELECT COUNT(*) FROM resumes) as total_resumes,
         (SELECT COUNT(*) FROM typing_hero_results) + 
-        (SELECT COUNT(*) FROM task_juggler_results) + 
         (SELECT COUNT(*) FROM logic_grid_results) as total_games,
         (SELECT COUNT(*) FROM disc_personality_results) + 
         (SELECT COUNT(*) FROM communication_skills_results) as total_assessments
