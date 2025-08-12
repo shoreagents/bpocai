@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom scrollbars for job modal */
+.job-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+.job-modal-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.job-modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.job-modal-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, rgba(148,163,184,0.6), rgba(99,102,241,0.6));
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.job-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(148,163,184,0.8), rgba(99,102,241,0.8));
+}
+
+/* Better dropdown contrast for dark modals */
+.job-select {
+  color: #e5e7eb;               /* Tailwind gray-200 */
+  background-color: rgba(255,255,255,0.06);
+}
+.job-select:focus {
+  background-color: rgba(255,255,255,0.1);
+}
+.job-select option {
+  background-color: #0b0b0d;    /* same as modal bg */
+  color: #e5e7eb;
+}
+.job-select optgroup {
+  background-color: #0b0b0d;
+  color: #e5e7eb;
+}
+
 /* Custom shimmer animation for loading progress bar */
 @keyframes shimmer {
   0% {

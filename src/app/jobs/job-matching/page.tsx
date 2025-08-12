@@ -40,11 +40,13 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getSessionToken } from '@/lib/auth-helpers';
 
 export default function JobMatchingPage() {
   const router = useRouter();
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
+  const [selectedJobDetails, setSelectedJobDetails] = useState<any | null>(null);
   const [shareJobId, setShareJobId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterWorkType, setFilterWorkType] = useState('all');
@@ -88,273 +90,58 @@ export default function JobMatchingPage() {
     };
   }, []);
 
-  // Mock job data with detailed information
-  const jobs = [
-    {
-      id: '1',
-      company: 'Amazon',
-      companyLogo: '🛒',
-      postedDays: 5,
-      title: 'Senior Customer Service Rep',
-      employmentType: ['Full-time', 'Senior level'],
-      salary: '$35/hr',
-      location: 'Clark, Pampanga',
-      matchPercentage: 95,
-      description: 'Join Amazon\'s customer service team and help millions of customers worldwide. As a Senior Customer Service Representative, you\'ll handle complex customer inquiries and provide exceptional support.',
-      responsibilities: [
-        'Handle escalated customer inquiries via chat, email, and phone',
-        'Provide product recommendations and technical support',
-        'Mentor junior team members and assist with training',
-        'Maintain customer satisfaction metrics above 95%',
-        'Collaborate with cross-functional teams to resolve issues'
-      ],
-      qualifications: [
-        '3+ years of customer service experience',
-        'Excellent communication and problem-solving skills',
-        'Proficiency in CRM systems and customer support tools',
-        'Ability to work in a fast-paced environment',
-        'Strong attention to detail and analytical thinking'
-      ],
-      perks: [
-        'Competitive salary with performance bonuses',
-        'Comprehensive health insurance coverage',
-        'Professional development and training programs',
-        'Flexible work arrangements',
-        'Employee discount on Amazon products'
-      ]
-    },
-    {
-      id: '2',
-      company: 'Google',
-      companyLogo: '🔍',
-      postedDays: 3,
-      title: 'Technical Support Specialist',
-      employmentType: ['Full-time', 'Mid level'],
-      salary: '$28/hr',
-      location: 'Makati, Metro Manila',
-      matchPercentage: 88,
-      description: 'Provide technical support for Google products and services. Help users troubleshoot issues and optimize their experience with Google\'s ecosystem.',
-      responsibilities: [
-        'Resolve technical issues for Google products',
-        'Provide step-by-step guidance to users',
-        'Document common issues and solutions',
-        'Collaborate with engineering teams on bug reports',
-        'Maintain high customer satisfaction scores'
-      ],
-      qualifications: [
-        '2+ years of technical support experience',
-        'Strong knowledge of Google products and services',
-        'Excellent troubleshooting and problem-solving skills',
-        'Ability to explain technical concepts clearly',
-        'Experience with customer support tools and systems'
-      ],
-      perks: [
-        'Competitive salary with stock options',
-        'Comprehensive benefits package',
-        'Access to Google\'s learning resources',
-        'Modern office with great amenities',
-        'Opportunities for career growth'
-      ]
-    },
-    {
-      id: '3',
-      company: 'Microsoft',
-      companyLogo: '🪟',
-      postedDays: 7,
-      title: 'Customer Success Manager',
-      employmentType: ['Full-time', 'Senior level'],
-      salary: '$32/hr',
-      location: 'BGC, Taguig',
-      matchPercentage: 92,
-      description: 'Drive customer success and satisfaction for Microsoft products. Build strong relationships with clients and ensure they achieve their goals.',
-      responsibilities: [
-        'Manage customer relationships and success metrics',
-        'Onboard new customers and provide training',
-        'Identify upsell and cross-sell opportunities',
-        'Gather customer feedback and relay to product teams',
-        'Create success plans and track progress'
-      ],
-      qualifications: [
-        '4+ years of customer success or account management',
-        'Experience with Microsoft products and services',
-        'Strong relationship-building and communication skills',
-        'Data-driven approach to customer success',
-        'Project management and strategic thinking abilities'
-      ],
-      perks: [
-        'Competitive salary with performance bonuses',
-        'Comprehensive health and wellness benefits',
-        'Professional development opportunities',
-        'Flexible work arrangements',
-        'Access to Microsoft\'s technology stack'
-      ]
-    },
-    {
-      id: '4',
-      company: 'Shopee',
-      companyLogo: '🛍️',
-      postedDays: 2,
-      title: 'E-commerce Support Agent',
-      employmentType: ['Full-time', 'Entry level'],
-      salary: '$22/hr',
-      location: 'Quezon City',
-      matchPercentage: 85,
-      description: 'Support Shopee sellers and buyers with their e-commerce needs. Help resolve issues and ensure smooth transactions.',
-      responsibilities: [
-        'Handle customer inquiries about orders and products',
-        'Assist sellers with platform-related issues',
-        'Process refunds and resolve disputes',
-        'Provide guidance on platform features and policies',
-        'Maintain accurate records of customer interactions'
-      ],
-      qualifications: [
-        '1+ year of customer service experience',
-        'Familiarity with e-commerce platforms',
-        'Strong communication and problem-solving skills',
-        'Ability to work in shifts',
-        'Attention to detail and accuracy'
-      ],
-      perks: [
-        'Competitive salary with performance incentives',
-        'Health insurance and benefits',
-        'Training and development programs',
-        'Employee discounts on Shopee',
-        'Career growth opportunities'
-      ]
-    },
-    {
-      id: '5',
-      company: 'Accenture',
-      companyLogo: '🏢',
-      postedDays: 1,
-      title: 'BPO Team Lead',
-      employmentType: ['Full-time', 'Senior level'],
-      salary: '$40/hr',
-      location: 'Cebu City',
-      matchPercentage: 90,
-      description: 'Lead a team of BPO professionals and ensure high-quality service delivery. Manage performance and drive continuous improvement.',
-      responsibilities: [
-        'Lead and mentor a team of 15-20 agents',
-        'Monitor team performance and provide coaching',
-        'Handle escalated customer issues',
-        'Develop and implement process improvements',
-        'Collaborate with clients and stakeholders'
-      ],
-      qualifications: [
-        '5+ years of BPO experience with 2+ years in leadership',
-        'Strong leadership and people management skills',
-        'Experience with performance management and coaching',
-        'Excellent communication and stakeholder management',
-        'Knowledge of BPO processes and best practices'
-      ],
-      perks: [
-        'Competitive salary with leadership bonuses',
-        'Comprehensive benefits package',
-        'Professional development and training',
-        'Opportunities for international assignments',
-        'Access to Accenture\'s global network'
-      ]
-    },
-    {
-      id: '6',
-      company: 'Concentrix',
-      companyLogo: '📞',
-      postedDays: 4,
-      title: 'Customer Experience Specialist',
-      employmentType: ['Full-time', 'Mid level'],
-      salary: '$25/hr',
-      location: 'Davao City',
-      matchPercentage: 87,
-      description: 'Deliver exceptional customer experiences across multiple channels. Help customers resolve issues and build brand loyalty.',
-      responsibilities: [
-        'Handle customer inquiries via phone, chat, and email',
-        'Resolve complex customer issues efficiently',
-        'Provide product information and recommendations',
-        'Escalate issues when necessary',
-        'Maintain customer satisfaction metrics'
-      ],
-      qualifications: [
-        '2+ years of customer service experience',
-        'Excellent communication and interpersonal skills',
-        'Ability to handle multiple channels simultaneously',
-        'Strong problem-solving and critical thinking',
-        'Experience with customer service tools and systems'
-      ],
-      perks: [
-        'Competitive salary with performance bonuses',
-        'Health and wellness benefits',
-        'Training and career development',
-        'Employee recognition programs',
-        'Work-life balance initiatives'
-      ]
-    },
-    {
-      id: '7',
-      company: 'Netflix',
-      companyLogo: '📺',
-      postedDays: 1,
-      title: 'Content Support Specialist',
-      employmentType: ['Full-time', 'Mid level'],
-      salary: '$30/hr',
-      location: 'Manila, Metro Manila',
-      matchPercentage: 89,
-      description: 'Support Netflix users with content-related inquiries and technical issues. Help customers discover and enjoy their favorite shows and movies.',
-      responsibilities: [
-        'Assist customers with content recommendations',
-        'Troubleshoot streaming and playback issues',
-        'Handle billing and subscription inquiries',
-        'Provide technical support for various devices',
-        'Maintain high customer satisfaction scores'
-      ],
-      qualifications: [
-        '2+ years of customer service experience',
-        'Strong knowledge of streaming platforms',
-        'Excellent communication and problem-solving skills',
-        'Ability to work in shifts',
-        'Familiarity with various devices and platforms'
-      ],
-      perks: [
-        'Competitive salary with performance bonuses',
-        'Netflix subscription benefits',
-        'Comprehensive health insurance',
-        'Professional development opportunities',
-        'Flexible work arrangements'
-      ]
-    },
-    {
-      id: '8',
-      company: 'Spotify',
-      companyLogo: '🎵',
-      postedDays: 2,
-      title: 'Music Support Agent',
-      employmentType: ['Full-time', 'Entry level'],
-      salary: '$24/hr',
-      location: 'Cebu City',
-      matchPercentage: 86,
-      description: 'Help Spotify users with music-related inquiries and technical support. Assist with playlist creation, account management, and app issues.',
-      responsibilities: [
-        'Handle music and playlist-related inquiries',
-        'Assist with account and subscription issues',
-        'Provide technical support for the Spotify app',
-        'Help users discover new music and features',
-        'Resolve payment and billing concerns'
-      ],
-      qualifications: [
-        '1+ year of customer service experience',
-        'Passion for music and streaming services',
-        'Strong communication and interpersonal skills',
-        'Ability to work in a fast-paced environment',
-        'Familiarity with music streaming platforms'
-      ],
-      perks: [
-        'Competitive salary with performance incentives',
-        'Spotify Premium subscription',
-        'Health and wellness benefits',
-        'Training and development programs',
-        'Employee recognition programs'
-      ]
-    }
-  ];
+  const [jobs, setJobs] = useState<any[]>([])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await getSessionToken()
+        const headers: any = token ? { Authorization: `Bearer ${token}` } : {}
+        const res = await fetch('/api/admin/jobs', { cache: 'no-store', headers })
+        if (!res.ok) throw new Error('Failed to load jobs')
+        const data = await res.json()
+        const active = (data.jobs || []).filter((j: any) => j.status === 'hiring' || j.status === 'active')
+        const mapped = active.map((row: any) => ({
+          id: row.id,
+          company: row.company,
+          companyLogo: row.companyLogo || '🏢',
+          postedDays: row.postedDays ?? 0,
+          title: row.title,
+          employmentType: row.employmentType || [],
+          salary: row.salary || '',
+          location: '',
+          matchPercentage: 85,
+          // details will be loaded on demand
+          description: '',
+          responsibilities: [],
+          qualifications: [],
+          perks: []
+        }))
+        setJobs(mapped)
+      } catch (e) {
+        setJobs([])
+      }
+    })()
+  }, [])
+
+  // Load full job details from processed_job_requests when a job is selected
+  useEffect(() => {
+    (async () => {
+      if (!selectedJob) { setSelectedJobDetails(null); return }
+      try {
+        const token = await getSessionToken()
+        if (!token) throw new Error('Not authenticated')
+        const res = await fetch(`/api/admin/processed-jobs/${selectedJob}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to load job details')
+        const data = await res.json()
+        setSelectedJobDetails(data.job || null)
+      } catch (e) {
+        setSelectedJobDetails(null)
+      }
+    })()
+  }, [selectedJob])
+
+  // No placeholder fallback; show message when empty
 
   const handleSaveJob = (jobId: string) => {
     setSavedJobs(prev => 
@@ -440,8 +227,10 @@ export default function JobMatchingPage() {
     setIsGetStartedDialogOpen(true);
   };
 
+  const list = jobs
+
   const filteredJobs = useMemo(() => {
-    return jobs.filter(job => {
+    return list.filter(job => {
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -453,7 +242,7 @@ export default function JobMatchingPage() {
       
       return matchesSearch && matchesWorkType;
     });
-  }, [searchTerm, filterWorkType, jobs]);
+  }, [searchTerm, filterWorkType, list]);
 
   const totalPages = useMemo(() => {
     return Math.ceil(filteredJobs.length / itemsPerPage);
@@ -465,7 +254,7 @@ export default function JobMatchingPage() {
     return filteredJobs.slice(start, end);
   }, [currentPage, filteredJobs, itemsPerPage]);
 
-  const selectedJobData = selectedJob ? jobs.find(job => job.id === selectedJob) : null;
+  const selectedJobData = selectedJob ? list.find(job => job.id === selectedJob) : null;
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -573,6 +362,9 @@ export default function JobMatchingPage() {
           </motion.div>
 
           {/* Job Cards */}
+          {filteredJobs.length === 0 ? (
+            <div className="py-16 text-center text-gray-400">No active jobs</div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedJobs.map((job, index) => (
               <motion.div
@@ -731,6 +523,7 @@ export default function JobMatchingPage() {
               </motion.div>
             ))}
           </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -1012,7 +805,7 @@ export default function JobMatchingPage() {
                           <FileText className="h-6 w-6 text-cyan-400" />
                           Job Description
                         </h3>
-                        <p className="text-gray-300 leading-relaxed text-lg">{selectedJobData.description}</p>
+                        <p className="text-gray-300 leading-relaxed text-lg">{selectedJobDetails?.job_description || selectedJobData.description}</p>
                       </div>
 
                       {/* Responsibilities */}
@@ -1022,7 +815,7 @@ export default function JobMatchingPage() {
                           Responsibilities
                         </h3>
                         <ul className="space-y-4">
-                          {selectedJobData.responsibilities.map((responsibility, idx) => (
+                          {(selectedJobDetails?.responsibilities || selectedJobData.responsibilities).map((responsibility: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-4 text-gray-300">
                               <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 flex-shrink-0"></div>
                               <span className="text-lg">{responsibility}</span>
@@ -1038,7 +831,7 @@ export default function JobMatchingPage() {
                           Qualifications & Requirements
                         </h3>
                         <ul className="space-y-4">
-                          {selectedJobData.qualifications.map((qualification, idx) => (
+                          {(selectedJobDetails?.requirements || selectedJobData.qualifications).map((qualification: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-4 text-gray-300">
                               <div className="w-2 h-2 bg-cyan-400 rounded-full mt-3 flex-shrink-0"></div>
                               <span className="text-lg">{qualification}</span>
@@ -1054,7 +847,7 @@ export default function JobMatchingPage() {
                           Perks & Benefits
                         </h3>
                         <ul className="space-y-4">
-                          {selectedJobData.perks.map((perk, idx) => (
+                          {(selectedJobDetails?.benefits || selectedJobData.perks).map((perk: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-4 text-gray-300">
                               <div className="w-2 h-2 bg-green-400 rounded-full mt-3 flex-shrink-0"></div>
                               <span className="text-lg">{perk}</span>
