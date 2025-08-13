@@ -19,23 +19,11 @@ import {
   MapPin,
   FileText,
   Pencil,
-  Trash2,
-  RefreshCw
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { getSessionToken } from '@/lib/auth-helpers';
 import { supabase } from '@/lib/supabase'
 import { Badge } from '@/components/ui/badge';
@@ -81,9 +69,18 @@ export default function SavedResumePage() {
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
-
   const [isOwner, setIsOwner] = useState<boolean>(false);
 
+  // Ensure global edit flag exists for any legacy template code expecting it
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = window as any
+      if (typeof w.isEditMode === 'undefined') {
+        w.isEditMode = false
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -97,33 +94,6 @@ export default function SavedResumePage() {
         }
 
         const data = await response.json();
-        // Clean up any existing empty strings in the data
-        if (data.resume?.data?.content) {
-          data.resume.data.content = sanitizeResumeData(data.resume.data.content);
-          
-          // If we found and cleaned empty strings, update the database immediately
-          const hasEmptyStrings = JSON.stringify(data.resume.data.content).includes('""');
-          if (hasEmptyStrings) {
-            console.log('Found empty strings in loaded data, cleaning up...');
-            try {
-              const token = await getSessionToken();
-              if (token) {
-                const cleanContent = sanitizeResumeData(data.resume.data.content);
-                await fetch(`/api/user/saved-resume/${slug}`, {
-                  method: 'PUT',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
-                  },
-                  body: JSON.stringify(cleanContent)
-                });
-                console.log('Database cleaned up automatically');
-              }
-            } catch (e) {
-              console.error('Failed to auto-clean database:', e);
-            }
-          }
-        }
         setResume(data.resume);
         // Determine ownership via Supabase client
         const { data: userData } = await supabase.auth.getUser()
@@ -297,8 +267,6 @@ export default function SavedResumePage() {
 
   const editResume = async () => {
     try {
-      // Set edit mode to true to show delete icons
-      setIsEditMode(true);
       // Put current resume content back to localStorage and go to builder
       if (resume?.data) {
         localStorage.setItem('resumeData', JSON.stringify(resume.data.content));
@@ -308,6 +276,7 @@ export default function SavedResumePage() {
   };
 
   const deleteResume = async () => {
+    if (!confirm('Delete this resume? This action cannot be undone.')) return;
     try {
       setDeleting(true);
       const token = await getSessionToken();
@@ -330,298 +299,6 @@ export default function SavedResumePage() {
       alert(e instanceof Error ? e.message : 'Failed to delete resume');
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const handleDeleteItem = (type: 'skill' | 'certification' | 'achievement' | 'experience-achievement', 
-                           index: number,
-                           value: string,
-                           category?: 'technical' | 'soft' | 'languages', 
-                           experienceIndex?: number) => {
-    setDeleteItem({ type, category, index, experienceIndex, value });
-    setShowDeleteDialog(true);
-  };
-
-  // Function to completely sanitize resume data
-  const sanitizeResumeData = (data: any) => {
-    // Create a completely new object to avoid reference issues
-    const cleanedData = JSON.parse(JSON.stringify(data));
-    
-    if (cleanedData.skills) {
-      Object.keys(cleanedData.skills).forEach(category => {
-        if (Array.isArray(cleanedData.skills[category])) {
-          // Completely rebuild the array without any empty values
-          const originalArray = [...cleanedData.skills[category]];
-          cleanedData.skills[category] = originalArray
-            .filter((item: any) => {
-              const isValid = item !== null && item !== undefined && item !== '' && item.toString().trim() !== '';
-              if (!isValid) {
-                console.log(`Removing invalid item from ${category}:`, item);
-              }
-              return isValid;
-            });
-          
-          if (originalArray.length !== cleanedData.skills[category].length) {
-            console.log(`Sanitized ${category}: removed ${originalArray.length - cleanedData.skills[category].length} invalid entries`);
-          }
-        }
-      });
-    }
-    
-    if (cleanedData.certifications && Array.isArray(cleanedData.certifications)) {
-      const originalArray = [...cleanedData.certifications];
-      cleanedData.certifications = originalArray
-        .filter((item: any) => {
-          const isValid = item !== null && item !== undefined && item !== '' && item.toString().trim() !== '';
-          if (!isValid) {
-            console.log('Removing invalid certification:', item);
-          }
-          return isValid;
-        });
-      
-      if (originalArray.length !== cleanedData.certifications.length) {
-        console.log(`Sanitized certifications: removed ${originalArray.length - cleanedData.certifications.length} invalid entries`);
-      }
-    }
-    
-    if (cleanedData.achievements && Array.isArray(cleanedData.achievements)) {
-      const originalArray = [...cleanedData.achievements];
-      cleanedData.achievements = originalArray
-        .filter((item: any) => {
-          const isValid = item !== null && item !== undefined && item !== '' && item.toString().trim() !== '';
-          if (!isValid) {
-            console.log('Removing invalid achievement:', item);
-          }
-          return isValid;
-        });
-      
-      if (originalArray.length !== cleanedData.achievements.length) {
-        console.log(`Sanitized achievements: removed ${originalArray.length - cleanedData.achievements.length} invalid entries`);
-      }
-    }
-    
-    if (cleanedData.experience && Array.isArray(cleanedData.experience)) {
-      cleanedData.experience.forEach((exp: any, expIndex: number) => {
-        if (exp.achievements && Array.isArray(exp.achievements)) {
-          const originalArray = [...exp.achievements];
-          exp.achievements = originalArray
-            .filter((item: any) => {
-              const isValid = item !== null && item !== undefined && item !== '' && item.toString().trim() !== '';
-              if (!isValid) {
-                console.log(`Removing invalid experience achievement from index ${expIndex}:`, item);
-              }
-              return isValid;
-            });
-          
-          if (originalArray.length !== exp.achievements.length) {
-            console.log(`Sanitized experience ${expIndex} achievements: removed ${originalArray.length - exp.achievements.length} invalid entries`);
-          }
-        }
-      });
-    }
-    
-    return cleanedData;
-  };
-
-  // Force cleanup function for testing
-  const forceCleanup = async () => {
-    if (!resume) return;
-    
-    try {
-      const token = await getSessionToken();
-      if (!token) {
-        alert('Please log in to clean up data.');
-        return;
-      }
-      
-      console.log('Original data:', JSON.stringify(resume.data.content.skills, null, 2));
-      
-      // Create completely clean data
-      const cleanContent = sanitizeResumeData(resume.data.content);
-      
-      console.log('Cleaned data:', JSON.stringify(cleanContent.skills, null, 2));
-      
-      // Update the database with clean data
-      const res = await fetch(`/api/user/saved-resume/${slug}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify(cleanContent)
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to clean up data');
-      }
-      
-      // Update local state
-      setResume({ ...resume, data: { ...resume.data, content: cleanContent } });
-      alert('Data cleaned up successfully!');
-      
-      // Reload the page to see the changes
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to clean up data');
-    }
-  };
-
-  const confirmDeleteItem = async () => {
-    if (!deleteItem || !resume) return;
-
-    try {
-      const token = await getSessionToken();
-      if (!token) {
-        alert('Please log in to delete items.');
-        return;
-      }
-
-      // Create a deep copy of the resume data
-      const updatedResume = JSON.parse(JSON.stringify(resume));
-      
-      // Log the data before deletion for debugging
-      console.log('Before deletion:', JSON.stringify(updatedResume.data.content.skills, null, 2));
-      
-      switch (deleteItem.type) {
-        case 'skill':
-          if (deleteItem.category && updatedResume.data.content.skills[deleteItem.category]) {
-            // Instead of splice, rebuild the array without the deleted item and any empty values
-            const originalArray = [...updatedResume.data.content.skills[deleteItem.category]];
-            updatedResume.data.content.skills[deleteItem.category] = originalArray
-              .filter((skill: string, idx: number) => {
-                // Skip the deleted item and any empty/invalid items
-                if (idx === deleteItem.index) return false;
-                if (!skill || skill.trim() === '') return false;
-                return true;
-              });
-            console.log('After deletion and cleanup:', JSON.stringify(updatedResume.data.content.skills[deleteItem.category], null, 2));
-          }
-          break;
-        case 'certification':
-          if (updatedResume.data.content.certifications) {
-            updatedResume.data.content.certifications.splice(deleteItem.index, 1);
-            updatedResume.data.content.certifications = updatedResume.data.content.certifications
-              .filter((cert: string) => cert && cert.trim() !== '');
-          }
-          break;
-        case 'achievement':
-          if (updatedResume.data.content.achievements) {
-            updatedResume.data.content.achievements.splice(deleteItem.index, 1);
-            updatedResume.data.content.achievements = updatedResume.data.content.achievements
-              .filter((achievement: string) => achievement && achievement.trim() !== '');
-          }
-          break;
-        case 'experience-achievement':
-          if (deleteItem.experienceIndex !== undefined && 
-              updatedResume.data.content.experience[deleteItem.experienceIndex]?.achievements) {
-            updatedResume.data.content.experience[deleteItem.experienceIndex].achievements.splice(deleteItem.index, 1);
-            updatedResume.data.content.experience[deleteItem.experienceIndex].achievements = 
-              updatedResume.data.content.experience[deleteItem.experienceIndex].achievements
-                .filter((achievement: string) => achievement && achievement.trim() !== '');
-          }
-          break;
-      }
-
-      // Comprehensive cleanup of ALL arrays to remove empty strings and invalid entries
-      if (updatedResume.data.content.skills) {
-        Object.keys(updatedResume.data.content.skills).forEach(category => {
-          if (Array.isArray(updatedResume.data.content.skills[category])) {
-            const originalLength = updatedResume.data.content.skills[category].length;
-            updatedResume.data.content.skills[category] = updatedResume.data.content.skills[category]
-              .filter((item: string) => item && item.trim() !== '');
-            const newLength = updatedResume.data.content.skills[category].length;
-            if (originalLength !== newLength) {
-              console.log(`Cleaned ${category} skills: removed ${originalLength - newLength} empty entries`);
-            }
-          }
-        });
-      }
-      
-      if (updatedResume.data.content.certifications && Array.isArray(updatedResume.data.content.certifications)) {
-        const originalLength = updatedResume.data.content.certifications.length;
-        updatedResume.data.content.certifications = updatedResume.data.content.certifications
-          .filter((cert: string) => cert && cert.trim() !== '');
-        const newLength = updatedResume.data.content.certifications.length;
-        if (originalLength !== newLength) {
-          console.log(`Cleaned certifications: removed ${originalLength - newLength} empty entries`);
-        }
-      }
-      
-      if (updatedResume.data.content.achievements && Array.isArray(updatedResume.data.content.achievements)) {
-        const originalLength = updatedResume.data.content.achievements.length;
-        updatedResume.data.content.achievements = updatedResume.data.content.achievements
-          .filter((achievement: string) => achievement && achievement.trim() !== '');
-        const newLength = updatedResume.data.content.achievements.length;
-        if (originalLength !== newLength) {
-          console.log(`Cleaned achievements: removed ${originalLength - newLength} empty entries`);
-        }
-      }
-      
-      if (updatedResume.data.content.experience && Array.isArray(updatedResume.data.content.experience)) {
-        updatedResume.data.content.experience.forEach((exp: any) => {
-          if (exp.achievements && Array.isArray(exp.achievements)) {
-            const originalLength = exp.achievements.length;
-            exp.achievements = exp.achievements.filter((achievement: string) => achievement && achievement.trim() !== '');
-            const newLength = exp.achievements.length;
-            if (originalLength !== newLength) {
-              console.log(`Cleaned experience achievements: removed ${originalLength - newLength} empty entries`);
-            }
-          }
-        });
-      }
-
-      // Log the final cleaned data
-      console.log('Final cleaned data:', JSON.stringify(updatedResume.data.content.skills, null, 2));
-
-      // Apply final sanitization to ensure no empty values remain
-      const sanitizedContent = sanitizeResumeData(updatedResume.data.content);
-      console.log('After sanitization:', JSON.stringify(sanitizedContent.skills, null, 2));
-      
-      // Double-check: if any empty strings still exist, force remove them
-      if (sanitizedContent.skills) {
-        Object.keys(sanitizedContent.skills).forEach(category => {
-          if (Array.isArray(sanitizedContent.skills[category])) {
-            sanitizedContent.skills[category] = sanitizedContent.skills[category]
-              .filter((item: any) => item && item !== '' && item.toString().trim() !== '');
-            console.log(`Final ${category} skills after double-check:`, sanitizedContent.skills[category]);
-          }
-        });
-      }
-      
-      // Log the exact data being sent to the database
-      console.log('Data being sent to database:', JSON.stringify(sanitizedContent, null, 2));
-      console.log('Skills being sent:', JSON.stringify(sanitizedContent.skills, null, 2));
-
-      // Update the resume in the database
-      const res = await fetch(`/api/user/saved-resume/${slug}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify(sanitizedContent)
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to update resume');
-      }
-
-      // Update local state
-      setResume(updatedResume);
-      setShowDeleteDialog(false);
-      setDeleteItem(null);
-      
-      // Force refresh the resume data to ensure consistency
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-      
-      alert('Item deleted successfully');
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete item');
     }
   };
 
@@ -824,9 +501,7 @@ export default function SavedResumePage() {
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Resume
                 </Button>
-
                 ) : null}
-
                 <Button
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 transition-all duration-200"
@@ -843,7 +518,6 @@ export default function SavedResumePage() {
                   <Download className="h-4 w-4 mr-2" />
                   {exporting ? 'Exporting...' : 'Export PDF'}
                 </Button>
-
                 {isOwner ? (
                 <Button
                   variant="destructive"
@@ -855,7 +529,6 @@ export default function SavedResumePage() {
                   {deleting ? 'Deleting...' : 'Delete'}
                 </Button>
                 ) : null}
-
               </div>
             </div>
 
@@ -1007,7 +680,6 @@ export default function SavedResumePage() {
                         <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{exp.duration}</span>
                       </div>
                       <p className="text-gray-600 mb-2 font-medium">{exp.company}</p>
-
                       {Array.isArray(exp.achievements) && exp.achievements.length > 0 && (
                         <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
                           {exp.achievements.map((achievement: string, idx: number) => (
@@ -1015,7 +687,6 @@ export default function SavedResumePage() {
                           ))}
                         </ul>
                       )}
-
                     </div>
                   ))}
                 </div>
@@ -1040,24 +711,14 @@ export default function SavedResumePage() {
                       <h3 className="font-medium text-gray-900 mb-3">Technical Skills</h3>
                       <div className="flex flex-wrap gap-2">
                         {resumeData.skills.technical.map((skill: string, index: number) => (
-                          <div key={index} className="flex items-center gap-1 group">
-                            <Badge 
-                              variant="secondary" 
-                              style={{ backgroundColor: template.secondaryColor || '#6b7280', color: 'white' }}
-                              className="text-xs px-2 py-1"
-                            >
-                              {skill}
-                            </Badge>
-                            {isEditMode && (
-                              <button
-                                onClick={() => handleDeleteItem('skill', index, skill, 'technical')}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 text-xs"
-                                title="Delete skill"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            style={{ backgroundColor: template.secondaryColor || '#6b7280', color: 'white' }}
+                            className="text-xs px-2 py-1"
+                          >
+                            {skill}
+                          </Badge>
                         ))}
                       </div>
                     </div>
@@ -1067,23 +728,13 @@ export default function SavedResumePage() {
                       <h3 className="font-medium text-gray-900 mb-3">Soft Skills</h3>
                       <div className="flex flex-wrap gap-2">
                         {resumeData.skills.soft.map((skill: string, index: number) => (
-                          <div key={index} className="flex items-center gap-1 group">
-                            <Badge 
-                              variant="outline" 
-                              className="text-gray-700 border-gray-300 text-xs px-2 py-1"
-                            >
-                              {skill}
-                            </Badge>
-                            {isEditMode && (
-                              <button
-                                onClick={() => handleDeleteItem('skill', index, skill, 'soft')}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 text-xs"
-                                title="Delete skill"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
+                          <Badge 
+                            key={index} 
+                            variant="outline" 
+                            className="text-gray-700 border-gray-300 text-xs px-2 py-1"
+                          >
+                            {skill}
+                          </Badge>
                         ))}
                       </div>
                     </div>
@@ -1093,23 +744,13 @@ export default function SavedResumePage() {
                       <h3 className="font-medium text-gray-900 mb-3">Languages</h3>
                       <div className="flex flex-wrap gap-2">
                         {resumeData.skills.languages.map((language: string, index: number) => (
-                          <div key={index} className="flex items-center gap-1 group">
-                            <Badge 
-                              variant="outline" 
-                              className="text-gray-700 border-gray-300 text-xs px-2 py-1"
-                            >
-                              {language}
-                            </Badge>
-                            {isEditMode && (
-                              <button
-                                onClick={() => handleDeleteItem('skill', index, language, 'languages')}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 text-xs"
-                                title="Delete language"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
+                          <Badge 
+                            key={index} 
+                            variant="outline" 
+                            className="text-gray-700 border-gray-300 text-xs px-2 py-1"
+                          >
+                            {language}
+                          </Badge>
                         ))}
                       </div>
                     </div>
@@ -1165,20 +806,9 @@ export default function SavedResumePage() {
                 </div>
                 <div className="space-y-2">
                   {resumeData.certifications.map((cert: string, index: number) => (
-                    <div key={index} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg transition-colors group">
-                      <div className="flex items-center gap-2">
-                        <Award className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{cert}</span>
-                      </div>
-                      {isEditMode && (
-                        <button
-                          onClick={() => handleDeleteItem('certification', index, cert)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 text-sm"
-                          title="Delete certification"
-                        >
-                          ×
-                        </button>
-                      )}
+                    <div key={index} className="flex items-center gap-2 hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                      <Award className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-700">{cert}</span>
                     </div>
                   ))}
                 </div>
@@ -1241,20 +871,9 @@ export default function SavedResumePage() {
                 </div>
                 <div className="space-y-2">
                   {resumeData.achievements.map((achievement: string, index: number) => (
-                    <div key={index} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg transition-colors group">
-                      <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{achievement}</span>
-                      </div>
-                      {isEditMode && (
-                        <button
-                          onClick={() => handleDeleteItem('achievement', index, achievement)}
-                          className="opacity-100 text-red-500 hover:text-red-700 text-sm"
-                          title="Delete achievement"
-                        >
-                          ×
-                        </button>
-                      )}
+                    <div key={index} className="flex items-center gap-2 hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                      <Star className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-700">{achievement}</span>
                     </div>
                   ))}
                 </div>
@@ -1277,48 +896,38 @@ export default function SavedResumePage() {
                     <div className="text-center text-red-400 py-12">{analysisError}</div>
                   )}
                   {analysis && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                      <Card className="glass-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 h-80">
-                        <CardHeader className="pb-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <Card className="glass-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
+                        <CardHeader>
                           <CardTitle className="text-cyan-400">Overall Score</CardTitle>
                         </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-400/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-cyan-400/20">
-                          <div className="text-4xl font-bold text-white mb-4">{analysis.overallScore ?? 'N/A'}</div>
-                          <div className="grid grid-cols-2 gap-3 text-sm text-gray-300">
-                            <div className="p-2 rounded bg-cyan-500/10 border border-cyan-400/20">
-                              ATS: <span className="text-white font-semibold">{analysis.atsCompatibility ?? '—'}</span>
-                            </div>
-                            <div className="p-2 rounded bg-cyan-500/10 border border-cyan-400/20">
-                              Content: <span className="text-white font-semibold">{analysis.contentQuality ?? '—'}</span>
-                            </div>
-                            <div className="p-2 rounded bg-cyan-500/10 border border-cyan-400/20">
-                              Presentation: <span className="text-white font-semibold">{analysis.professionalPresentation ?? '—'}</span>
-                            </div>
-                            <div className="p-2 rounded bg-cyan-500/10 border border-cyan-400/20">
-                              Alignment: <span className="text-white font-semibold">{analysis.skillsAlignment ?? '—'}</span>
-                            </div>
+                        <CardContent>
+                          <div className="text-4xl font-bold text-white">{analysis.overallScore ?? 'N/A'}</div>
+                          <div className="grid grid-cols-2 gap-2 mt-4 text-sm text-gray-300">
+                            <div>ATS: <span className="text-white font-semibold">{analysis.atsCompatibility ?? '—'}</span></div>
+                            <div>Content: <span className="text-white font-semibold">{analysis.contentQuality ?? '—'}</span></div>
+                            <div>Presentation: <span className="text-white font-semibold">{analysis.professionalPresentation ?? '—'}</span></div>
+                            <div>Alignment: <span className="text-white font-semibold">{analysis.skillsAlignment ?? '—'}</span></div>
                           </div>
                         </CardContent>
                       </Card>
 
-                      <Card className="glass-card border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-80">
-                        <CardHeader className="pb-3">
+                      <Card className="glass-card border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+                        <CardHeader>
                           <CardTitle className="text-purple-400">Improved Summary</CardTitle>
                         </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-purple-400/20">
-                          <div className="text-gray-300 text-sm leading-relaxed">
-                            {analysis.improvedSummary || '—'}
-                          </div>
+                        <CardContent className="text-gray-300 text-sm">
+                          {analysis.improvedSummary || '—'}
                         </CardContent>
                       </Card>
 
-                      <Card className="glass-card border-green-500/30 h-80">
-                        <CardHeader className="pb-3">
+                      <Card className="glass-card border-green-500/30">
+                        <CardHeader>
                           <CardTitle className="text-green-400">Key Strengths</CardTitle>
                         </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-green-400/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-green-400/20">
+                        <CardContent>
                           {Array.isArray(analysis.keyStrengths) && analysis.keyStrengths.length > 0 ? (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                               {analysis.keyStrengths.map((s: string, i: number) => (
                                 <div
                                   key={i}
@@ -1334,130 +943,43 @@ export default function SavedResumePage() {
                         </CardContent>
                       </Card>
 
-                      <Card className="glass-card border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-red-500/5 h-80">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-orange-400">Career Path</CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-orange-400/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-orange-400/20 text-sm text-gray-300 space-y-3">
-                          {analysis.careerPath ? (
-                            <>
-                              {analysis.careerPath.currentRole && (
-                                <div className="p-2 rounded bg-orange-500/10 border border-orange-400/20">
-                                  <span className="text-white font-medium">Current:</span> {analysis.careerPath.currentRole}
-                                </div>
-                              )}
-                              {analysis.careerPath.targetRole && (
-                                <div className="p-2 rounded bg-orange-500/10 border border-orange-400/20">
-                                  <span className="text-white font-medium">Target:</span> {analysis.careerPath.targetRole}
-                                </div>
-                              )}
-                              {Array.isArray(analysis.careerPath.nextCareerSteps) && analysis.careerPath.nextCareerSteps.length > 0 && (
-                                <div className="space-y-2">
-                                  <div className="text-white font-medium">Next Steps</div>
-                                  <ul className="space-y-2">
-                                    {analysis.careerPath.nextCareerSteps.map((step: any, i: number) => (
-                                      <li key={i} className="p-2 rounded bg-orange-500/10 border border-orange-400/20 text-gray-300">
-                                        <span className="text-white font-medium">{step.title}:</span> {step.description}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              {analysis.careerPath.timeline && (
-                                <div className="p-2 rounded bg-orange-500/10 border border-orange-400/20">
-                                  <span className="text-white font-medium">Timeline:</span> {analysis.careerPath.timeline}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-gray-400 text-sm">—</div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      <Card className="glass-card border-teal-500/30 bg-gradient-to-br from-teal-500/5 to-cyan-500/5 h-80">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-teal-400">Strengths Analysis</CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-teal-400/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-teal-400/20 text-sm text-gray-300 space-y-3">
-                          {analysis.strengthsAnalysis ? (
-                            <>
-                              {Array.isArray(analysis.strengthsAnalysis.topStrengths) && analysis.strengthsAnalysis.topStrengths.length > 0 && (
-                                <div className="space-y-2">
-                                  <div className="text-white font-medium">Top Strengths</div>
-                                  <ul className="space-y-2">
-                                    {analysis.strengthsAnalysis.topStrengths.map((strength: string, i: number) => (
-                                      <li key={i} className="p-2 rounded bg-teal-500/10 border border-teal-400/20 text-gray-300">
-                                        {strength}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              {analysis.strengthsAnalysis.uniqueValue && (
-                                <div className="p-2 rounded bg-teal-500/10 border border-teal-400/20">
-                                  <span className="text-white font-medium">Unique Value:</span>
-                                  <div className="text-gray-300 mt-1">{analysis.strengthsAnalysis.uniqueValue}</div>
-                                </div>
-                              )}
-                              {analysis.strengthsAnalysis.areasToHighlight && (
-                                <div className="space-y-2">
-                                  <div className="text-white font-medium">Highlight Areas</div>
-                                  <ul className="space-y-2">
-                                    {analysis.strengthsAnalysis.areasToHighlight.map((area: string, i: number) => (
-                                      <li key={i} className="p-2 rounded bg-teal-500/10 border border-teal-400/20 text-gray-300">
-                                        {area}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-gray-400 text-sm">—</div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      <Card className="glass-card border-blue-500/30 h-80">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-blue-400">Salary Analysis</CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-blue-400/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-blue-400/20 text-sm text-gray-300 space-y-3">
-                          <div className="p-2 rounded bg-blue-500/10 border border-blue-400/20">
-                            <span className="text-white font-medium">Level:</span> {analysis.salaryAnalysis?.currentLevel || '—'}
-                          </div>
-                          <div className="p-2 rounded bg-blue-500/10 border border-blue-400/20">
-                            <span className="text-white font-medium">Range:</span> {analysis.salaryAnalysis?.recommendedSalaryRange || '—'}
-                          </div>
-                          {analysis.salaryAnalysis?.marketPosition && (
-                            <div className="p-2 rounded bg-blue-500/10 border border-blue-400/20">
-                              <span className="text-white font-medium">Market Position:</span> {analysis.salaryAnalysis.marketPosition}
-                            </div>
-                          )}
-                          {analysis.salaryAnalysis?.growthPotential && (
-                            <div className="p-2 rounded bg-blue-500/10 border border-blue-400/20">
-                              <span className="text-white font-medium">Growth Potential:</span> {analysis.salaryAnalysis.growthPotential}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      <Card className="glass-card border-white/20 h-80 lg:col-span-2 xl:col-span-3">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-white">Section Analysis</CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-64 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-white/20">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            {['contact','summary','experience','education','skills'].map((sec) => (
-                              <div key={sec} className="p-3 rounded-lg border border-white/10 bg-white/5">
-                                <div className="text-white font-medium capitalize mb-1">{sec}</div>
-                                <div className="text-gray-300">Score: <span className="text-white">{analysis.sectionAnalysis?.[sec]?.score ?? '—'}</span></div>
+                      <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card className="glass-card border-blue-500/30">
+                          <CardHeader>
+                            <CardTitle className="text-blue-400">Salary & Career</CardTitle>
+                          </CardHeader>
+                          <CardContent className="text-sm text-gray-300 space-y-2">
+                            <div>Level: <span className="text-white">{analysis.salaryAnalysis?.currentLevel || '—'}</span></div>
+                            <div>Range: <span className="text-white">{analysis.salaryAnalysis?.recommendedSalaryRange || '—'}</span></div>
+                            {Array.isArray(analysis.careerPath?.nextCareerSteps) && analysis.careerPath.nextCareerSteps.length > 0 && (
+                              <div>
+                                <div className="text-white font-medium mb-1">Next Steps</div>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {analysis.careerPath.nextCareerSteps.map((step: any, i: number) => (
+                                    <li key={i} className="text-gray-300">{step.title}: {step.description}</li>
+                                  ))}
+                                </ul>
                               </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card className="glass-card border-white/20">
+                          <CardHeader>
+                            <CardTitle className="text-white">Section Analysis</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                              {['contact','summary','experience','education','skills'].map((sec) => (
+                                <div key={sec} className="p-3 rounded-lg border border-white/10">
+                                  <div className="text-white font-medium capitalize mb-1">{sec}</div>
+                                  <div className="text-gray-300">Score: <span className="text-white">{analysis.sectionAnalysis?.[sec]?.score ?? '—'}</span></div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1481,37 +1003,6 @@ export default function SavedResumePage() {
               </CardContent>
             </Card>
           </motion.div>
-        )}
-
-        {/* Delete Item Confirmation Dialog */}
-        {showDeleteDialog && deleteItem && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Item</h3>
-                <p className="text-gray-600 mb-4">
-                  Are you sure you want to delete "{deleteItem.value}"? This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDeleteDialog(false);
-                      setDeleteItem(null);
-                    }}
-                    className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDeleteItem}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>
