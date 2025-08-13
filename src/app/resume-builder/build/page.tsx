@@ -1002,14 +1002,13 @@ export default function ResumeBuilderPage() {
             <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
               Professional Summary
             </h3>
-            <Editable
-              as="p"
+            <textarea
               data-path="summary"
-              className={`text-gray-700 leading-relaxed ${getHighlightClass('summary')} ${isHighlighted('summary') ? 'p-2 -m-2' : ''}`}
+              className={`w-full border border-gray-300 rounded-md p-4 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 leading-relaxed resize-none ${getHighlightClass('summary')}`}
               value={section.content || ''}
-              onChange={(val) => updateResumeText('summary', val)}
-              multiline
+              onChange={(e) => updateResumeText('summary', e.target.value)}
               placeholder="Add your professional summary..."
+              rows={6}
             />
           </div>
         );
@@ -1029,48 +1028,57 @@ export default function ResumeBuilderPage() {
               section.content.map((exp: any, index: number) => (
                 <div key={index} className="mb-4">
                   <div className="flex justify-between items-start mb-2 gap-3">
-                    <Editable
-                      as="h4"
+                    <input
                       data-path={`experience[${index}].title`}
-                      className={`font-medium text-gray-900 ${getHighlightClass(`experience[${index}].title`)}`}
+                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`experience[${index}].title`)}`}
                       value={exp.title || ''}
-                      onChange={(val) => updateResumeText(`experience[${index}].title`, val)}
+                      onChange={(e) => updateResumeText(`experience[${index}].title`, e.target.value)}
                       placeholder="Job Title"
                     />
-                    <Editable
-                      as="span"
+                    <input
                       data-path={`experience[${index}].duration`}
-                      className={`text-sm text-gray-500 ${getHighlightClass(`experience[${index}].duration`)}`}
+                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`experience[${index}].duration`)}`}
                       value={exp.duration || ''}
-                      onChange={(val) => updateResumeText(`experience[${index}].duration`, val)}
-                      placeholder="Duration"
+                      onChange={(e) => updateResumeText(`experience[${index}].duration`, e.target.value)}
+                      placeholder="Duration (e.g., 2020-2024)"
                     />
                   </div>
-                  <Editable
-                    as="p"
+                  <input
                     data-path={`experience[${index}].company`}
-                    className={`text-sm text-gray-600 mb-2 ${getHighlightClass(`experience[${index}].company`)}`}
+                    className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 mb-2 ${getHighlightClass(`experience[${index}].company`)}`}
                     value={exp.company || ''}
-                    onChange={(val) => updateResumeText(`experience[${index}].company`, val)}
+                    onChange={(e) => updateResumeText(`experience[${index}].company`, e.target.value)}
                     placeholder="Company"
                   />
-                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                    {Array.isArray(exp.achievements) ? (
-                      exp.achievements.map((achievement: string, idx: number) => (
-                        <Editable
-                          key={idx}
-                          as="li"
-                          data-path={`experience[${index}].achievements[${idx}]`}
-                          className={`${getHighlightClass(`experience[${index}].achievements[${idx}]`)}`}
-                          value={achievement || ''}
-                          onChange={(val) => updateResumeText(`experience[${index}].achievements[${idx}]`, val)}
-                          placeholder={`Achievement ${idx + 1}`}
-                        />
-                      ))
-                    ) : (
-                      <li className="text-gray-500">No achievements listed</li>
-                    )}
-                  </ul>
+                  <div className="mb-2">
+                    <h5 className="font-medium text-gray-700 mb-2">Key Achievements:</h5>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      {Array.isArray(exp.achievements) ? (
+                        exp.achievements.map((achievement: string, idx: number) => (
+                        <li key={idx} className="flex items-center gap-2 group">
+                          <input
+                            data-path={`experience[${index}].achievements[${idx}]`}
+                            className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`experience[${index}].achievements[${idx}]`)}`}
+                            value={achievement || ''}
+                            onChange={(e) => updateResumeText(`experience[${index}].achievements[${idx}]`, e.target.value)}
+                            placeholder={`Achievement ${idx + 1}`}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeListItem(`experience[${index}].achievements`, idx)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Remove achievement"
+                          >
+                            ×
+                          </Button>
+                        </li>
+                                              ))
+                      ) : (
+                        <li className="text-gray-500">No achievements listed</li>
+                      )}
+                    </ul>
+                  </div>
                   <div className="flex gap-2 mt-2">
                     <Button variant="outline" size="sm" className="text-xs" onClick={() => addListItem(`experience[${index}].achievements`, '', '')}>+ Add achievement</Button>
                     <Button variant="ghost" size="sm" className="text-xs text-red-400" onClick={() => removeListItem('experience', index)}>Remove role</Button>
@@ -1098,52 +1106,82 @@ export default function ResumeBuilderPage() {
               {Array.isArray(section.content?.technical) && section.content.technical.length > 0 && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Technical Skills</h4>
-                  <div className="space-y-2">
+                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                     {section.content.technical.map((skill: string, index: number) => (
-                      <input
-                        key={index}
-                        data-path={`skills.technical[${index}]`}
-                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.technical[${index}]`)}`}
-                        value={skill || ''}
-                        onChange={(e) => updateResumeText(`skills.technical[${index}]`, e.target.value)}
-                        placeholder={`Technical skill ${index + 1}`}
-                      />
+                      <li key={index} className="flex items-center gap-2">
+                        <input
+                          data-path={`skills.technical[${index}]`}
+                          className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.technical[${index}]`)}`}
+                          value={skill || ''}
+                          onChange={(e) => updateResumeText(`skills.technical[${index}]`, e.target.value)}
+                          placeholder={`Technical skill ${index + 1}`}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeListItem('skills.technical', index)}
+                          className="px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="Remove skill"
+                        >
+                          ×
+                        </Button>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
               {Array.isArray(section.content?.soft) && section.content.soft.length > 0 && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Soft Skills</h4>
-                  <div className="space-y-2">
+                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                     {section.content.soft.map((skill: string, index: number) => (
-                      <input
-                        key={index}
-                        data-path={`skills.soft[${index}]`}
-                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.soft[${index}]`)}`}
-                        value={skill || ''}
-                        onChange={(e) => updateResumeText(`skills.soft[${index}]`, e.target.value)}
-                        placeholder={`Soft skill ${index + 1}`}
-                      />
+                      <li key={index} className="flex items-center gap-2">
+                        <input
+                          data-path={`skills.soft[${index}]`}
+                          className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.soft[${index}]`)}`}
+                          value={skill || ''}
+                          onChange={(e) => updateResumeText(`skills.soft[${index}]`, e.target.value)}
+                          placeholder={`Soft skill ${index + 1}`}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeListItem('skills.soft', index)}
+                          className="px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="Remove skill"
+                        >
+                          ×
+                        </Button>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
               {Array.isArray(section.content?.languages) && section.content.languages.length > 0 && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Languages</h4>
-                  <div className="space-y-2">
+                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                     {section.content.languages.map((language: string, index: number) => (
-                      <input
-                        key={index}
-                        data-path={`skills.languages[${index}]`}
-                        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.languages[${index}]`)}`}
-                        value={language || ''}
-                        onChange={(e) => updateResumeText(`skills.languages[${index}]`, e.target.value)}
-                        placeholder={`Language ${index + 1}`}
-                      />
+                      <li key={index} className="flex items-center gap-2">
+                        <input
+                          data-path={`skills.languages[${index}]`}
+                          className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.languages[${index}]`)}`}
+                          value={language || ''}
+                          onChange={(e) => updateResumeText(`skills.languages[${index}]`, e.target.value)}
+                          placeholder={`Language ${index + 1}`}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeListItem('skills.languages', index)}
+                          className="px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="Remove language"
+                        >
+                          ×
+                        </Button>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
             </div>
@@ -1168,45 +1206,54 @@ export default function ResumeBuilderPage() {
               section.content.map((edu: any, index: number) => (
                 <div key={index} className="mb-4">
                   <div className="flex justify-between items-start mb-2 gap-3">
-                    <Editable
-                      as="h4"
+                    <input
                       data-path={`education[${index}].degree`}
-                      className={`font-medium text-gray-900 ${getHighlightClass(`education[${index}].degree`)}`}
+                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`education[${index}].degree`)}`}
                       value={edu.degree || ''}
-                      onChange={(val) => updateResumeText(`education[${index}].degree`, val)}
+                      onChange={(e) => updateResumeText(`education[${index}].degree`, e.target.value)}
                       placeholder="Degree"
                     />
-                    <Editable
-                      as="span"
+                    <input
                       data-path={`education[${index}].year`}
-                      className={`text-sm text-gray-500 ${getHighlightClass(`education[${index}].year`)}`}
+                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`education[${index}].year`)}`}
                       value={edu.year || ''}
-                      onChange={(val) => updateResumeText(`education[${index}].year`, val)}
-                      placeholder="Year"
+                      onChange={(e) => updateResumeText(`education[${index}].year`, e.target.value)}
+                      placeholder="Year (e.g., 2020-2024)"
                     />
                   </div>
-                  <Editable
-                    as="p"
+                  <input
                     data-path={`education[${index}].institution`}
-                    className={`text-sm text-gray-600 mb-2 ${getHighlightClass(`education[${index}].institution`)}`}
+                    className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 mb-2 ${getHighlightClass(`education[${index}].institution`)}`}
                     value={edu.institution || ''}
-                    onChange={(val) => updateResumeText(`education[${index}].institution`, val)}
+                    onChange={(e) => updateResumeText(`education[${index}].institution`, e.target.value)}
                     placeholder="Institution"
                   />
                   {Array.isArray(edu.highlights) && edu.highlights.length > 0 && (
-                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                      {edu.highlights.map((highlight: string, idx: number) => (
-                        <Editable
-                          key={idx}
-                          as="li"
-                          data-path={`education[${index}].highlights[${idx}]`}
-                          className={`${getHighlightClass(`education[${index}].highlights[${idx}]`)}`}
-                          value={highlight || ''}
-                          onChange={(val) => updateResumeText(`education[${index}].highlights[${idx}]`, val)}
-                          placeholder={`Highlight ${idx + 1}`}
-                        />
-                      ))}
-                    </ul>
+                    <div className="mb-2">
+                      <h5 className="font-medium text-gray-700 mb-2">Key Highlights:</h5>
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                        {edu.highlights.map((highlight: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-2 group">
+                            <input
+                              data-path={`education[${index}].highlights[${idx}]`}
+                              className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`education[${index}].highlights[${idx}]`)}`}
+                              value={highlight || ''}
+                              onChange={(e) => updateResumeText(`education[${index}].highlights[${idx}]`, e.target.value)}
+                              placeholder={`Highlight ${idx + 1}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeListItem(`education[${index}].highlights`, idx)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              title="Remove highlight"
+                            >
+                              ×
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   <div className="flex gap-2 mt-2">
                     <Button variant="outline" size="sm" className="text-xs" onClick={() => addListItem(`education[${index}].highlights`, '', '')}>+ Add highlight</Button>
@@ -1230,18 +1277,28 @@ export default function ResumeBuilderPage() {
               <Button variant="outline" className="text-xs" onClick={() => addListItem('certifications', '', '')}>+ Add certification</Button>
             </div>
             {Array.isArray(section.content) && section.content.length > 0 ? (
-              <div className="space-y-2">
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                 {section.content.map((cert: string, index: number) => (
-                  <input
-                    key={index}
-                    data-path={`certifications[${index}]`}
-                    className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`certifications[${index}]`)}`}
-                    value={cert || ''}
-                    onChange={(e) => updateResumeText(`certifications[${index}]`, e.target.value)}
-                    placeholder={`Certification ${index + 1}`}
-                  />
+                  <li key={index} className="flex items-center gap-2">
+                    <input
+                      data-path={`certifications[${index}]`}
+                      className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`certifications[${index}]`)}`}
+                      value={cert || ''}
+                      onChange={(e) => updateResumeText(`certifications[${index}]`, e.target.value)}
+                      placeholder={`Certification ${index + 1}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeListItem('certifications', index)}
+                      className="px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      title="Remove certification"
+                    >
+                      ×
+                    </Button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
               <p className="text-gray-500 text-sm">No certifications yet. Use "+ Add certification" to add one.</p>
             )}
@@ -1275,36 +1332,59 @@ export default function ResumeBuilderPage() {
                     onChange={(e) => updateResumeText(`projects[${index}].description`, e.target.value)}
                     placeholder="Project Description"
                   />
-                  <div className="space-y-2 mb-2">
+                  <div className="mb-2">
+                    <h5 className="font-medium text-gray-700 mb-2">Technologies Used:</h5>
                     {Array.isArray(project.technologies) ? (
-                      project.technologies.map((tech: string, idx: number) => (
-                        <Editable
-                          key={idx}
-                          as="div"
-                          data-path={`projects[${index}].technologies[${idx}]`}
-                          className={`text-sm text-gray-700 ${getHighlightClass(`projects[${index}].technologies[${idx}]`)}`}
-                          value={tech || ''}
-                          onChange={(val) => updateResumeText(`projects[${index}].technologies[${idx}]`, val)}
-                          placeholder={`Technology ${idx + 1}`}
-                        />
-                      ))
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                        {project.technologies.map((tech: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-2 group">
+                            <input
+                              data-path={`projects[${index}].technologies[${idx}]`}
+                              className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`projects[${index}].technologies[${idx}]`)}`}
+                              value={tech || ''}
+                              onChange={(e) => updateResumeText(`projects[${index}].technologies[${idx}]`, e.target.value)}
+                              placeholder={`Technology ${idx + 1}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeListItem(`projects[${index}].technologies`, idx)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              title="Remove technology"
+                            >
+                              ×
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
                     ) : (
                       <p className="text-gray-500 text-sm">No technologies listed</p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="mb-2">
+                    <h5 className="font-medium text-gray-700 mb-2">Impact & Results:</h5>
                     {Array.isArray(project.impact) ? (
-                      project.impact.map((impact: string, idx: number) => (
-                        <Editable
-                          key={idx}
-                          as="li"
-                          data-path={`projects[${index}].impact[${idx}]`}
-                          className={`list-disc list-inside text-sm text-gray-700 ${getHighlightClass(`projects[${index}].impact[${idx}]`)}`}
-                          value={impact || ''}
-                          onChange={(val) => updateResumeText(`projects[${index}].impact[${idx}]`, val)}
-                          placeholder={`Impact ${idx + 1}`}
-                        />
-                      ))
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                        {project.impact.map((impact: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-2 group">
+                            <input
+                              data-path={`projects[${index}].impact[${idx}]`}
+                              className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`projects[${index}].impact[${idx}]`)}`}
+                              value={impact || ''}
+                              onChange={(e) => updateResumeText(`projects[${index}].impact[${idx}]`, e.target.value)}
+                              placeholder={`Impact ${idx + 1}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeListItem(`projects[${index}].impact`, idx)}
+                              title="Remove impact"
+                            >
+                              ×
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
                     ) : (
                       <p className="text-gray-500 text-sm">No impact details available</p>
                     )}
@@ -1334,15 +1414,24 @@ export default function ResumeBuilderPage() {
             {Array.isArray(section.content) && section.content.length > 0 ? (
               <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                 {section.content.map((achievement: string, index: number) => (
-                  <Editable
-                    key={index}
-                    as="li"
-                    data-path={`achievements[${index}]`}
-                    className={getHighlightClass(`achievements[${index}]`)}
-                    value={achievement || ''}
-                    onChange={(val) => updateResumeText(`achievements[${index}]`, val)}
-                    placeholder={`Achievement ${index + 1}`}
-                  />
+                  <li key={index} className="flex items-center gap-2 group">
+                    <input
+                      data-path={`achievements[${index}]`}
+                      className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`achievements[${index}]`)}`}
+                      value={achievement || ''}
+                      onChange={(e) => updateResumeText(`achievements[${index}]`, e.target.value)}
+                      placeholder={`Achievement ${index + 1}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeListItem('achievements', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      title="Remove achievement"
+                    >
+                      ×
+                    </Button>
+                  </li>
                 ))}
               </ul>
             ) : (
