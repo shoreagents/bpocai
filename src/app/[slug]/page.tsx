@@ -71,6 +71,17 @@ export default function SavedResumePage() {
   const [deleting, setDeleting] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState<boolean>(false);
 
+  // Ensure global edit flag exists for any legacy template code expecting it
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = window as any
+      if (typeof w.isEditMode === 'undefined') {
+        w.isEditMode = false
+      }
+    }
+  }, [])
+
   useEffect(() => {
     const fetchResume = async () => {
       try {
