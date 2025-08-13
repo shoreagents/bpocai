@@ -84,10 +84,12 @@ function buildPrompt(data: ImprovePayload): string {
 Return STRICT JSON only with keys: job_title, experience_level, job_description, requirements, responsibilities, benefits, skills.
 
 Hard rules:
-- If an input array (requirements, responsibilities, benefits, skills) is NON-EMPTY, keep the SAME number of items; rewrite each line for clarity but do NOT add or remove bullets.
-- If an input array is EMPTY, generate 4-8 high-quality, generic items suitable for PH BPO roles.
+- If an input array (requirements, responsibilities, benefits, skills) is NON-EMPTY and items are meaningful/relevant, keep the SAME number of items; rewrite each line for clarity and professionalism.
+- If an input array is NON-EMPTY but items are nonsense (e.g., random characters, repeated punctuation, blank/near-blank, or off-topic), DISCARD them and produce 3–4 strong, generic items suitable for PH BPO roles.
+- If an input array is EMPTY, generate 3–4 high-quality, generic items suitable for PH BPO roles.
+- Each bullet should be concise (roughly 2–12 words), action-oriented, and not redundant.
 - Keep experience_level strictly one of: "entry-level" | "mid-level" | "senior-level". If an input value exists, keep it as-is.
-- job_description: 3-6 concise sentences. If an input description exists, rewrite it for clarity; otherwise generate one.
+- job_description: 3–6 concise sentences. If an input description exists, rewrite it for clarity; otherwise generate one.
 - Avoid company-specific claims or confidential info.
 - No emojis, no numbering, no markdown. JSON only.
 
@@ -116,11 +118,12 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
     parsed = {}
   }
   const arr = (v: any) => Array.isArray(v) ? v.filter(Boolean).map((s: any) => String(s).trim()).slice(0, 20) : []
-  const keepLength = (improved: string[], original?: string[]) => {
-    if (Array.isArray(original) && original.length > 0) {
-      return improved.length > 0 ? improved.slice(0, original.length) : original
-    }
-    return improved
+  // Accept the model's length when it provides items (it may choose 3–4 to replace nonsense).
+  // If the model returned nothing, fall back to the original if present; otherwise empty for defaulting below.
+  const acceptModelLength = (improved: string[], original?: string[]) => {
+    if (improved.length > 0) return improved
+    if (Array.isArray(original) && original.length > 0) return original
+    return []
   }
   const str = (v: any) => (typeof v === 'string' ? v.trim() : '')
   const lvlRaw = str(parsed.experience_level)
@@ -134,8 +137,8 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
     job_description: str(parsed.job_description) || fallback.job_description || 'We are seeking a motivated professional to join our growing team. You will deliver excellent service and collaborate with cross-functional partners to achieve business goals.',
     requirements: (() => {
       const improved = arr(parsed.requirements)
-      const kept = keepLength(improved, fallback.requirements)
-      return kept.length ? kept : (fallback.requirements || [
+      const accepted = acceptModelLength(improved, fallback.requirements)
+      return accepted.length ? accepted : (fallback.requirements || [
       'At least 1 year BPO experience',
       'Excellent English communication skills',
       'Amenable to shifting schedules'
@@ -143,8 +146,8 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
     })(),
     responsibilities: (() => {
       const improved = arr(parsed.responsibilities)
-      const kept = keepLength(improved, fallback.responsibilities)
-      return kept.length ? kept : (fallback.responsibilities || [
+      const accepted = acceptModelLength(improved, fallback.responsibilities)
+      return accepted.length ? accepted : (fallback.responsibilities || [
       'Handle customer inquiries via phone, chat, or email',
       'Troubleshoot basic issues and provide timely resolutions',
       'Document interactions accurately in CRM'
@@ -152,8 +155,8 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
     })(),
     benefits: (() => {
       const improved = arr(parsed.benefits)
-      const kept = keepLength(improved, fallback.benefits)
-      return kept.length ? kept : (fallback.benefits || [
+      const accepted = acceptModelLength(improved, fallback.benefits)
+      return accepted.length ? accepted : (fallback.benefits || [
       'Competitive salary package',
       'HMO on Day 1 or upon regularization',
       'Performance incentives'
@@ -161,8 +164,8 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
     })(),
     skills: (() => {
       const improved = arr(parsed.skills)
-      const kept = keepLength(improved, fallback.skills)
-      return kept.length ? kept : (fallback.skills || [
+      const accepted = acceptModelLength(improved, fallback.skills)
+      return accepted.length ? accepted : (fallback.skills || [
       'Customer service',
       'Active listening',
       'Problem-solving'

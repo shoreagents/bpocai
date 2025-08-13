@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
     const id = Number(body?.id)
     if (!id || Number.isNaN(id)) return NextResponse.json({ error: 'id required' }, { status: 400 })
     const asIs: boolean = !!body?.asIs || body?.mode === 'as-is'
+    const targetRaw: string = String(body?.to || body?.target || '').toLowerCase()
+    const processedStatus: 'processed' | 'active' = (targetRaw === 'active' || targetRaw === 'hiring') ? 'active' : 'processed'
 
     await client.query('BEGIN')
     const srcRes = await client.query('SELECT * FROM job_requests WHERE id = $1 FOR UPDATE', [id])
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
       src.work_type,
       src.currency,
       src.salary_type,
-      'processed',
+      processedStatus,
       src.views ?? 0,
       src.applicants ?? 0,
       src.priority
@@ -165,10 +167,12 @@ function buildPrompt(data: ImprovePayload): string {
 Return STRICT JSON only with keys: job_title, experience_level, job_description, requirements, responsibilities, benefits, skills.
 
 Hard rules:
-- If an input array is NON-EMPTY, keep the SAME number of items; rewrite each line for clarity but do NOT add or remove bullets.
-- If an input array is EMPTY, generate 4-8 high-quality, generic items suitable for PH BPO roles.
+- If an input array (requirements, responsibilities, benefits, skills) is NON-EMPTY and items are meaningful/relevant, keep the SAME number of items; rewrite each line for clarity and professionalism.
+- If an input array is NON-EMPTY but items are nonsense (random characters, repeated punctuation, blank/near-blank, or off-topic), DISCARD them and produce 3–4 strong, generic items suitable for PH BPO roles.
+- If an input array is EMPTY, generate 3–4 high-quality, generic items suitable for PH BPO roles.
+- Each bullet should be concise (roughly 2–12 words), action-oriented, and not redundant.
 - Keep experience_level strictly one of: "entry-level" | "mid-level" | "senior-level". If an input value exists, keep it as-is.
-- job_description: 3-6 concise sentences. If an input description exists, rewrite it; otherwise generate one.
+- job_description: 3–6 concise sentences. If an input description exists, rewrite it; otherwise generate one.
 - No emojis, no numbering, no markdown. JSON only.
 
 INPUT:
@@ -191,9 +195,12 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
   let parsed: any = {}
   try { parsed = match ? JSON.parse(match[0]) : JSON.parse(text) } catch {}
   const arr = (v: any) => Array.isArray(v) ? v.filter(Boolean).map((s: any) => String(s).trim()).slice(0, 20) : []
-  const keepLength = (improved: string[], original?: string[]) => {
-    if (Array.isArray(original) && original.length > 0) return improved.length > 0 ? improved.slice(0, original.length) : original
-    return improved
+  // Accept the model's length when it provides items (it may choose 3–4 to replace nonsense).
+  // If the model returned nothing, fall back to the original if present; otherwise empty for defaulting below.
+  const acceptModelLength = (improved: string[], original?: string[]) => {
+    if (improved.length > 0) return improved
+    if (Array.isArray(original) && original.length > 0) return original
+    return []
   }
   const str = (v: any) => (typeof v === 'string' ? v.trim() : '')
   const lvlRaw = str(parsed.experience_level)
@@ -202,10 +209,10 @@ function safelyParseImprovedJSON(text: string, fallback: ImprovePayload): Requir
     job_title: str(parsed.job_title) || fallback.job_title || 'Customer Service Representative',
     experience_level: lvl,
     job_description: str(parsed.job_description) || fallback.job_description || 'We are seeking a motivated professional to join our growing team.',
-    requirements: (() => { const i = arr(parsed.requirements); const k = keepLength(i, fallback.requirements); return k.length ? k : (fallback.requirements || ['At least 1 year BPO experience','Excellent English communication skills','Amenable to shifting schedules']) })(),
-    responsibilities: (() => { const i = arr(parsed.responsibilities); const k = keepLength(i, fallback.responsibilities); return k.length ? k : (fallback.responsibilities || ['Handle customer inquiries','Provide timely resolutions','Document interactions in CRM']) })(),
-    benefits: (() => { const i = arr(parsed.benefits); const k = keepLength(i, fallback.benefits); return k.length ? k : (fallback.benefits || ['Competitive salary package','HMO','Performance incentives']) })(),
-    skills: (() => { const i = arr(parsed.skills); const k = keepLength(i, fallback.skills); return k.length ? k : (fallback.skills || ['Customer service','Active listening','Problem-solving']) })()
+    requirements: (() => { const i = arr(parsed.requirements); const a = acceptModelLength(i, fallback.requirements); return a.length ? a : (fallback.requirements || ['At least 1 year BPO experience','Excellent English communication skills','Amenable to shifting schedules']) })(),
+    responsibilities: (() => { const i = arr(parsed.responsibilities); const a = acceptModelLength(i, fallback.responsibilities); return a.length ? a : (fallback.responsibilities || ['Handle customer inquiries','Provide timely resolutions','Document interactions in CRM']) })(),
+    benefits: (() => { const i = arr(parsed.benefits); const a = acceptModelLength(i, fallback.benefits); return a.length ? a : (fallback.benefits || ['Competitive salary package','HMO','Performance incentives']) })(),
+    skills: (() => { const i = arr(parsed.skills); const a = acceptModelLength(i, fallback.skills); return a.length ? a : (fallback.skills || ['Customer service','Active listening','Problem-solving']) })()
   }
 }
 
@@ -235,6 +242,17 @@ function rowToJobCard(row: any) {
   const ms = Date.now() - createdAt.getTime()
   const postedDays = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)))
   const locationType = String(row.work_arrangement || 'onsite')
+  const derivedPriority = ((): 'low' | 'medium' | 'high' => {
+    const a = Number(row.applicants ?? 0)
+    if (a >= 50) return 'high'
+    if (a >= 10) return 'medium'
+    return 'low'
+  })()
+  const priorityFromDb = String(row.priority ?? '').toLowerCase()
+  const priority: 'low' | 'medium' | 'high' =
+    priorityFromDb === 'low' || priorityFromDb === 'medium' || priorityFromDb === 'high'
+      ? (priorityFromDb as any)
+      : derivedPriority
   return {
     id: String(row.id),
     company: row.company_name || 'Unknown Company',
@@ -247,12 +265,7 @@ function rowToJobCard(row: any) {
     postedDays,
     applicants: row.applicants ?? 0,
     status: 'approved',
-    priority: ((): 'low' | 'medium' | 'high' => {
-      const a = Number(row.applicants ?? 0)
-      if (a >= 50) return 'high'
-      if (a >= 10) return 'medium'
-      return 'low'
-    })(),
+    priority,
   }
 }
 

@@ -158,6 +158,10 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
         // Reset form after success
         setTimeout(() => {
           onOpenChange(false)
+          // Redirect to jobs page after sign up
+          if (typeof window !== 'undefined') {
+            window.location.href = '/jobs/job-matching'
+          }
           setFormData({
             firstName: '',
             lastName: '',
@@ -172,7 +176,7 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
           setShowPassword(false)
           setShowConfirmPassword(false)
           setSuccessMessage('')
-        }, 3000)
+        }, 1200)
       }
     } catch (error) {
       console.error('Registration error:', error)

@@ -18,7 +18,6 @@ import {
 import { 
   ArrowLeft,
   Target,
-  MapPin,
   Clock,
   DollarSign,
   BookmarkIcon,
@@ -40,10 +39,12 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
 
 export default function JobMatchingPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [selectedJobDetails, setSelectedJobDetails] = useState<any | null>(null);
@@ -55,6 +56,7 @@ export default function JobMatchingPage() {
   const [isPageSelectorOpen, setIsPageSelectorOpen] = useState(false);
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
   const [isGetStartedDialogOpen, setIsGetStartedDialogOpen] = useState(false);
+  // Use Header's auth modals by toggling URL search params
   const shareRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const pageSelectorRef = useRef<HTMLDivElement>(null);
@@ -95,12 +97,11 @@ export default function JobMatchingPage() {
   useEffect(() => {
     (async () => {
       try {
-        const token = await getSessionToken()
-        const headers: any = token ? { Authorization: `Bearer ${token}` } : {}
-        const res = await fetch('/api/admin/jobs', { cache: 'no-store', headers })
+        // Public endpoint for active jobs (no auth required)
+        const res = await fetch('/api/jobs/active', { cache: 'no-store' })
         if (!res.ok) throw new Error('Failed to load jobs')
         const data = await res.json()
-        const active = (data.jobs || []).filter((j: any) => j.status === 'hiring' || j.status === 'active')
+        const active = data.jobs || []
         const mapped = active.map((row: any) => ({
           id: row.id,
           company: row.company,
@@ -124,14 +125,12 @@ export default function JobMatchingPage() {
     })()
   }, [])
 
-  // Load full job details from processed_job_requests when a job is selected
+  // Load full job details when a job is selected (public endpoint so logged-out users can view)
   useEffect(() => {
     (async () => {
       if (!selectedJob) { setSelectedJobDetails(null); return }
       try {
-        const token = await getSessionToken()
-        if (!token) throw new Error('Not authenticated')
-        const res = await fetch(`/api/admin/processed-jobs/${selectedJob}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        const res = await fetch(`/api/jobs/active/${selectedJob}`, { cache: 'no-store' })
         if (!res.ok) throw new Error('Failed to load job details')
         const data = await res.json()
         setSelectedJobDetails(data.job || null)
@@ -219,12 +218,21 @@ export default function JobMatchingPage() {
     setCurrentPage(1); // Reset to page 1 when filter changes
   };
 
+  const triggerHeaderSignUp = () => {
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('signup', 'true')
+      // Use client router to notify App Router hooks
+      router.replace(url.pathname + url.search)
+    } catch {}
+  }
+
   const handleSignIn = () => {
-    setIsSignInDialogOpen(true);
+    triggerHeaderSignUp()
   };
 
   const handleGetStarted = () => {
-    setIsGetStartedDialogOpen(true);
+    triggerHeaderSignUp()
   };
 
   const list = jobs
@@ -477,7 +485,7 @@ export default function JobMatchingPage() {
 
                     {/* Employment Type Badges */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {job.employmentType.map((type, idx) => (
+                      {job.employmentType.map((type: string, idx: number) => (
                         <Badge 
                           key={idx}
                           className="bg-white/10 text-gray-300 border-white/20 px-2 py-1 text-xs"
@@ -496,16 +504,10 @@ export default function JobMatchingPage() {
                   </CardHeader>
 
                   <CardContent className="space-y-4">
-                    {/* Salary and Location */}
-                    <div className="space-y-3">
-                      <div className="flex items-center text-gray-300">
-                        <DollarSign className="w-4 h-4 mr-2 text-green-400" />
-                        <span className="text-sm">{job.salary}</span>
-                      </div>
-                      <div className="flex items-center text-gray-300">
-                        <MapPin className="w-4 h-4 mr-2 text-purple-400" />
-                        <span className="text-sm">{job.location}</span>
-                      </div>
+                    {/* Salary */}
+                    <div className="flex items-center text-gray-300">
+                      <DollarSign className="w-4 h-4 mr-2 text-green-400" />
+                      <span className="text-sm">{job.salary}</span>
                     </div>
 
                     {/* Quick Apply Button */}
@@ -513,10 +515,10 @@ export default function JobMatchingPage() {
                       className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSignIn();
+                        setSelectedJob(job.id);
                       }}
                     >
-                      Apply now
+                      View & Apply
                     </Button>
                   </CardContent>
                 </Card>
@@ -757,7 +759,7 @@ export default function JobMatchingPage() {
 
                       {/* Employment Type Badges */}
                       <div className="flex flex-wrap gap-3 mb-6">
-                        {selectedJobData.employmentType.map((type, idx) => (
+                        {selectedJobData.employmentType.map((type: string, idx: number) => (
                           <Badge 
                             key={idx}
                             className="bg-white/10 text-gray-300 border-white/20 px-3 py-1"
@@ -774,22 +776,45 @@ export default function JobMatchingPage() {
                         </Badge>
                       </div>
 
-                      {/* Salary and Location */}
+                      {/* Salary and Applicants */}
                       <div className="space-y-4 mb-8">
                         <div className="flex items-center text-gray-300">
                           <DollarSign className="w-6 h-6 mr-4 text-green-400" />
                           <span className="font-medium text-xl">{selectedJobData.salary}</span>
                         </div>
                         <div className="flex items-center text-gray-300">
-                          <MapPin className="w-6 h-6 mr-4 text-purple-400" />
-                          <span className="text-lg">{selectedJobData.location}</span>
+                          <span className="text-sm">Applicants:</span>
+                          <span className="ml-2 font-medium">{(selectedJobDetails?.applicants ?? 0).toLocaleString()}</span>
                         </div>
                       </div>
 
                       {/* Apply Button */}
                       <Button 
                         className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 text-lg py-4"
-                        onClick={handleSignIn}
+                        onClick={async () => {
+                          try {
+                            if (!user) { triggerHeaderSignUp(); return }
+                            const token = await getSessionToken()
+                            if (!token) { triggerHeaderSignUp(); return }
+                            const chk = await fetch('/api/user/saved-resumes', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+                            const j = await chk.json()
+                            if (!chk.ok || !j?.hasSavedResume) { 
+                              alert('You must have a resume first before applying')
+                              router.push('/resume-builder')
+                              return 
+                            }
+                            const resp = await fetch('/api/user/applications', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                              body: JSON.stringify({ jobId: selectedJobData.id, resumeId: j.id || j.resumeId, resumeSlug: j.resumeSlug })
+                            })
+                            if (!resp.ok) throw new Error('Failed to submit application')
+                            alert('Application submitted')
+                          } catch (err) {
+                            console.error(err)
+                            alert('Could not apply. Please try again.')
+                          }
+                        }}
                       >
                         Apply now
                       </Button>
@@ -814,14 +839,21 @@ export default function JobMatchingPage() {
                           <CheckCircle className="h-6 w-6 text-green-400" />
                           Responsibilities
                         </h3>
-                        <ul className="space-y-4">
-                          {(selectedJobDetails?.responsibilities || selectedJobData.responsibilities).map((responsibility: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-4 text-gray-300">
-                              <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 flex-shrink-0"></div>
-                              <span className="text-lg">{responsibility}</span>
-                            </li>
-                          ))}
-                        </ul>
+                          <ul className="space-y-4">
+                            {Array.isArray(selectedJobDetails?.responsibilities) && selectedJobDetails.responsibilities.length > 0
+                              ? selectedJobDetails.responsibilities.map((responsibility: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
+                                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 flex-shrink-0"></div>
+                                    <span className="text-lg">{responsibility}</span>
+                                  </li>
+                                ))
+                              : (selectedJobData.responsibilities || []).map((responsibility: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
+                                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 flex-shrink-0"></div>
+                                    <span className="text-lg">{responsibility}</span>
+                                  </li>
+                                ))}
+                          </ul>
                       </div>
 
                       {/* Qualifications */}
@@ -830,14 +862,21 @@ export default function JobMatchingPage() {
                           <Star className="h-6 w-6 text-yellow-400" />
                           Qualifications & Requirements
                         </h3>
-                        <ul className="space-y-4">
-                          {(selectedJobDetails?.requirements || selectedJobData.qualifications).map((qualification: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-4 text-gray-300">
-                              <div className="w-2 h-2 bg-cyan-400 rounded-full mt-3 flex-shrink-0"></div>
-                              <span className="text-lg">{qualification}</span>
-                            </li>
-                          ))}
-                        </ul>
+                          <ul className="space-y-4">
+                            {Array.isArray(selectedJobDetails?.requirements) && selectedJobDetails.requirements.length > 0
+                              ? selectedJobDetails.requirements.map((qualification: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
+                                    <div className="w-2 h-2 bg-cyan-400 rounded-full mt-3 flex-shrink-0"></div>
+                                    <span className="text-lg">{qualification}</span>
+                                  </li>
+                                ))
+                              : (selectedJobData.qualifications || []).map((qualification: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
+                                    <div className="w-2 h-2 bg-cyan-400 rounded-full mt-3 flex-shrink-0"></div>
+                                    <span className="text-lg">{qualification}</span>
+                                  </li>
+                                ))}
+                          </ul>
                       </div>
 
                       {/* Perks & Benefits */}
@@ -846,14 +885,21 @@ export default function JobMatchingPage() {
                           <Gift className="h-6 w-6 text-pink-400" />
                           Perks & Benefits
                         </h3>
-                        <ul className="space-y-4">
-                          {(selectedJobDetails?.benefits || selectedJobData.perks).map((perk: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-4 text-gray-300">
-                              <div className="w-2 h-2 bg-green-400 rounded-full mt-3 flex-shrink-0"></div>
-                              <span className="text-lg">{perk}</span>
-                            </li>
-                          ))}
-                        </ul>
+                          <ul className="space-y-4">
+                            {Array.isArray(selectedJobDetails?.benefits) && selectedJobDetails.benefits.length > 0
+                              ? selectedJobDetails.benefits.map((perk: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full mt-3 flex-shrink-0"></div>
+                                    <span className="text-lg">{perk}</span>
+                                  </li>
+                                ))
+                              : (selectedJobData.perks || []).map((perk: string, idx: number) => (
+                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full mt-3 flex-shrink-0"></div>
+                                    <span className="text-lg">{perk}</span>
+                                  </li>
+                                ))}
+                          </ul>
                       </div>
                     </div>
                   </div>
@@ -862,115 +908,7 @@ export default function JobMatchingPage() {
             </motion.div>
           )}
 
-          {/* Sign In Dialog */}
-          <Dialog open={isSignInDialogOpen} onOpenChange={setIsSignInDialogOpen}>
-            <DialogContent className="bg-gray-900/95 backdrop-blur-md border border-white/10 text-white">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-white">Sign In to Your Account</DialogTitle>
-                <DialogDescription className="text-gray-300">
-                  Access your personalized job recommendations and save your favorite positions.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Email</label>
-                  <Input 
-                    type="email" 
-                    placeholder="Enter your email"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Password</label>
-                  <Input 
-                    type="password" 
-                    placeholder="Enter your password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <Button 
-                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
-                >
-                  Sign In
-                </Button>
-                <div className="text-center">
-                  <span className="text-gray-400 text-sm">Don't have an account? </span>
-                  <button 
-                    onClick={() => {
-                      setIsSignInDialogOpen(false);
-                      setIsGetStartedDialogOpen(true);
-                    }}
-                    className="text-cyan-400 hover:text-cyan-300 text-sm font-medium"
-                  >
-                    Get Started Free
-                  </button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Get Started Free Dialog */}
-          <Dialog open={isGetStartedDialogOpen} onOpenChange={setIsGetStartedDialogOpen}>
-            <DialogContent className="bg-gray-900/95 backdrop-blur-md border border-white/10 text-white">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-white">Create Your Free Account</DialogTitle>
-                <DialogDescription className="text-gray-300">
-                  Join thousands of BPO professionals and unlock personalized career opportunities.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300">First Name</label>
-                    <Input 
-                      placeholder="Enter your first name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-300">Last Name</label>
-                    <Input 
-                      placeholder="Enter your last name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Email</label>
-                  <Input 
-                    type="email" 
-                    placeholder="Enter your email"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Password</label>
-                  <Input 
-                    type="password" 
-                    placeholder="Create a password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <Button 
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                >
-                  Create Account
-                </Button>
-                <div className="text-center">
-                  <span className="text-gray-400 text-sm">Already have an account? </span>
-                  <button 
-                    onClick={() => {
-                      setIsGetStartedDialogOpen(false);
-                      setIsSignInDialogOpen(true);
-                    }}
-                    className="text-cyan-400 hover:text-cyan-300 text-sm font-medium"
-                  >
-                    Sign In
-                  </button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {/* Auth handled by Header via URL search param (?signup=true) */}
         </div>
       </div>
     </div>

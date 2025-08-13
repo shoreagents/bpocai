@@ -45,6 +45,7 @@ const platformItems: SidebarItem[] = [
   { title: 'Resumes', icon: FileText, href: '/admin/resumes' },
   { title: 'Analysis', icon: BarChart3, href: '/admin/analysis' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
+  { title: 'Applicants', icon: Users, href: '/admin/applicants' },
   { title: 'Assessments', icon: ClipboardList, href: '/admin/assessments' },
   { title: 'Games', icon: Gamepad2, href: '/admin/games' },
   { title: 'Leaderboards', icon: Trophy, href: '/admin/leaderboards' }

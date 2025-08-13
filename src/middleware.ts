@@ -7,6 +7,8 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/api/save-generated-resume') ||
       request.nextUrl.pathname.startsWith('/api/save-resume-to-profile') ||
       request.nextUrl.pathname.startsWith('/api/user/saved-resumes') ||
+      request.nextUrl.pathname.startsWith('/api/admin/applicants') ||
+      request.nextUrl.pathname.startsWith('/api/user/applications') ||
       request.nextUrl.pathname.startsWith('/api/analyze-resume') ||
       request.nextUrl.pathname.startsWith('/api/user/analysis-results') ||
       request.nextUrl.pathname.startsWith('/api/user/extracted-resume') ||
@@ -15,7 +17,8 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/api/admin/members') ||
       request.nextUrl.pathname.startsWith('/api/admin/jobs/improve') ||
       request.nextUrl.pathname.startsWith('/api/admin/jobs/process') ||
-      request.nextUrl.pathname.startsWith('/api/admin/processed-jobs')) {
+      request.nextUrl.pathname.startsWith('/api/admin/processed-jobs') ||
+      request.nextUrl.pathname.startsWith('/api/games/typing-hero')) {
     console.log('🔍 Middleware: Processing authenticated API request')
     
     try {
@@ -117,6 +120,8 @@ export const config = {
     '/api/save-generated-resume',
     '/api/save-resume-to-profile',
     '/api/user/saved-resumes',
+    '/api/admin/applicants',
+    '/api/user/applications',
     '/api/analyze-resume',
     '/api/user/analysis-results',
     '/api/user/extracted-resume',
@@ -127,6 +132,7 @@ export const config = {
     '/api/admin/jobs/improve',
     '/api/admin/jobs/process'
     ,'/api/admin/processed-jobs',
-    '/api/admin/processed-jobs/:path*'
+    '/api/admin/processed-jobs/:path*',
+    '/api/games/typing-hero/:path*'
   ],
 } 

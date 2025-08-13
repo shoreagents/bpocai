@@ -79,13 +79,17 @@ export async function GET(request: NextRequest) {
 
     // fetch processed
     const processedRes = await pool.query(`
-      SELECT p.*, m.company AS company_name
+      SELECT 
+        p.*, 
+        m.company AS company_name,
+        COALESCE(p.priority, j.priority) AS merged_priority
       FROM processed_job_requests p
       LEFT JOIN members m ON m.company_id = p.company_id
+      LEFT JOIN job_requests j ON j.id = p.id
       ORDER BY p.created_at DESC
     `)
     const processedJobs = processedRes.rows.map((row: any) => ({
-      ...rowToJobCard(row),
+      ...rowToJobCard({ ...row, priority: row.merged_priority ?? row.priority }),
       job_description: row.job_description,
       requirements: row.requirements,
       responsibilities: row.responsibilities,
@@ -136,6 +140,7 @@ export async function POST(request: NextRequest) {
           responsibilities,
           benefits,
           skills,
+          jobDescription,
           priority
         } = body?.data || {}
 
@@ -176,7 +181,7 @@ export async function POST(request: NextRequest) {
             dbWorkArrangement,
             parsedSalary.min,
             parsedSalary.max,
-            'Pending description',
+            jobDescription || 'Pending description',
             Array.isArray(requirements) ? requirements : [],
             Array.isArray(responsibilities) ? responsibilities : [],
             Array.isArray(benefits) ? benefits : [],

@@ -148,6 +148,8 @@ export default function TypingHeroPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const endCalledRef = useRef<boolean>(false);
+  const sessionSavedRef = useRef<boolean>(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   
   // Game intervals
@@ -428,6 +430,8 @@ export default function TypingHeroPage() {
     setCurrentDifficulty(difficulty);
     setGameState('playing');
     setGameStartTime(Date.now());
+    endCalledRef.current = false;
+    sessionSavedRef.current = false;
     
     const config = BPO_VOCABULARY[difficulty];
     setGameStats({
@@ -499,7 +503,9 @@ export default function TypingHeroPage() {
   };
 
   // End game
-  const endGame = (success: boolean) => {
+  const endGame = async (success: boolean, finalMetrics?: { wpm?: number; accuracy?: number }) => {
+    if (endCalledRef.current) return;
+    endCalledRef.current = true;
     setGameState(success ? 'completed' : 'failed');
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     if (wordSpawnRef.current) clearInterval(wordSpawnRef.current);
@@ -520,6 +526,40 @@ export default function TypingHeroPage() {
         ...prev,
         [currentDifficulty]: true
       }));
+    }
+
+    // Persist session
+    try {
+      const startedAt = new Date(gameStartTime || Date.now());
+      const finishedAt = new Date();
+      const durationMs = finishedAt.getTime() - startedAt.getTime();
+      const token = await (await import('@/lib/auth-helpers')).getSessionToken();
+      if (token && !sessionSavedRef.current) {
+        sessionSavedRef.current = true;
+        const wpmToSave = typeof finalMetrics?.wpm === 'number' ? finalMetrics.wpm : gameStats.wpm;
+        const accToSave = typeof finalMetrics?.accuracy === 'number' ? finalMetrics.accuracy : gameStats.accuracy;
+        await fetch('/api/games/typing-hero/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            startedAt,
+            finishedAt,
+            durationMs,
+            difficulty: currentDifficulty, // maps to enum in API (medium->intermediate, hard->advanced)
+            level: currentDifficulty,
+            wpm: wpmToSave,
+            accuracy: accToSave,
+            keypresses: gameStats.charactersTyped,
+            mistakes: Math.max(0, gameStats.totalWords - gameStats.correctWords),
+            error_breakdown: {},
+          })
+        });
+      }
+    } catch (e) {
+      console.error('Failed to save Typing Hero session', e);
     }
   };
 
@@ -688,7 +728,7 @@ export default function TypingHeroPage() {
           const requiredWpm = wpmRequirements[currentDifficulty];
           const passed = accuracy >= 70 && prev.correctWords >= 10 && wpm >= requiredWpm; // Pass criteria
           
-          setTimeout(() => endGame(passed), 100);
+          setTimeout(() => endGame(passed, { wpm: Math.round(wpm), accuracy }), 100);
           return { ...prev, timeLeft: 0 };
         }
         
