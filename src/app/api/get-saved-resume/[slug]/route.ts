@@ -48,6 +48,7 @@ export async function GET(
       const resumeResult = await client.query(
         `SELECT 
           sr.id,
+          sr.user_id,
           sr.resume_slug,
           sr.resume_title,
           sr.resume_data,
@@ -82,10 +83,11 @@ export async function GET(
         [resume.id]
       )
 
-      return NextResponse.json({
+        return NextResponse.json({
         success: true,
         resume: {
           id: resume.id,
+            userId: resume.user_id,
           slug: resume.resume_slug,
           title: resume.resume_title,
           data: resume.resume_data,

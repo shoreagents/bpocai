@@ -12,6 +12,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import AdminLayout from '@/components/layout/AdminLayout'
 import React from 'react'
 
+const industryOptions = [
+  'Technology','Healthcare','Finance/Banking','Education','Manufacturing','Retail/E-commerce','Real Estate','Marketing/Advertising','Hospitality/Tourism','Construction','Government','Non-profit','Transportation/Logistics','Media/Entertainment','Food & Beverage','Others',
+]
+const departmentOptions = [
+  'Engineering','Information Technology (IT)','Sales','Marketing','Human Resources','Finance/Accounting','Operations','Customer Service','Administration','Research & Development','Legal','Design/Creative','Project Management','Quality Assurance','Business Development','Supply Chain','Others',
+]
+
 interface JobCard {
   id: string
   company: string
@@ -137,8 +144,9 @@ function JobsPage() {
     const job = jobs.find(j => j.id === jobId)
     if (!job) return
 
-    // Block dragging processed back to New Job Request
-    const isProcessed = job.status === 'approved' || job.status === 'processed'
+    // Treat processed and active/hiring cards as processed-source
+    // so they can never move back to New or Processed
+    const isProcessed = (job as any).source === 'processed' || job.status === 'approved' || job.status === 'processed' || job.status === 'hiring' || job.status === 'active'
     if (isProcessed && status === 'job-request') {
       return
     }
@@ -158,7 +166,10 @@ function JobsPage() {
         const data = await res.json()
         setJobs(prevJobs => {
           const withoutOriginal = prevJobs.filter(j => j.id !== String(data.originalJobId))
-          return [data.processedJob, ...withoutOriginal]
+          const existing = prevJobs.find(j => j.id === String(data.originalJobId)) || ({} as any)
+          const processed = data.processedJob || {}
+          const priority = processed.priority || existing.priority || 'medium'
+          return [{ ...processed, priority }, ...withoutOriginal]
         })
         // Immediately hydrate with full processed fields
         try {
@@ -174,7 +185,11 @@ function JobsPage() {
               requirements: pj.requirements,
               responsibilities: pj.responsibilities,
               benefits: pj.benefits,
-              skills: pj.skills
+              skills: pj.skills,
+              priority: ((): any => {
+                const pr = String(pj.priority || '').toLowerCase()
+                return pr === 'low' || pr === 'medium' || pr === 'high' ? pr : j.priority
+              })()
             } : j))
           }
         } catch {}
@@ -185,13 +200,14 @@ function JobsPage() {
       return
     }
 
-    // Disallow moving processed cards to New Job Request; allow to Active/Hiring only
+    // Processed/Active cards: allow toggling between Processed Request and Active/Hiring, but never back to New
     if (isProcessed) {
-      if (status === 'approved') return // block going back to Processed Request
-      if (status === 'job-request') return // block back to new
-      if (status === 'hiring') {
-        // Update processed table status to active
+      if (status === 'job-request') return // never allow back to New Job Request
+
+      if (status === 'approved' || status === 'hiring') {
         const prev = jobs
+        const newProcessedStatus = status === 'approved' ? 'processed' : 'active'
+        // Optimistic UI update
         setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, status, source: 'processed' as any } : j))
         try {
           const token = await getSessionToken()
@@ -199,10 +215,10 @@ function JobsPage() {
           const res = await fetch('/api/admin/processed-jobs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: 'update', data: { id: jobId, status: 'active' } })
+            body: JSON.stringify({ action: 'update', data: { id: jobId, status: newProcessedStatus } })
           })
           if (!res.ok) throw new Error('Failed to move processed job')
-          // Reload improved fields
+          // Reload processed fields to hydrate card
           const fres = await fetch(`/api/admin/processed-jobs/${jobId}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
           if (fres.ok) {
             const fdata = await fres.json()
@@ -223,11 +239,62 @@ function JobsPage() {
         }
         return
       }
+
       // Other destinations ignored
       return
     }
 
-    // Otherwise, move within job_requests (status-only change)
+    // Otherwise, moving an original job within job_requests
+    // Special case: moving directly to Active/Hiring should also process into processed_job_requests with status 'active'
+    if (status === 'hiring') {
+      const prev = jobs
+      try {
+        const token = await getSessionToken()
+        if (!token) throw new Error('Not authenticated')
+        // Process original into processed table and mark active
+        const res = await fetch('/api/admin/jobs/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ id: jobId, asIs: true, to: 'active' })
+        })
+        if (!res.ok) throw new Error('Failed to activate job')
+        const data = await res.json()
+        // Replace original with processed card and set as active/hiring
+        setJobs(prevJobs => {
+          const withoutOriginal = prevJobs.filter(j => j.id !== String(data.originalJobId))
+          // Keep priority from processed job if available; otherwise derive from existing card
+          const processed = data.processedJob || {}
+          const existing = jobs.find(j => j.id === String(data.originalJobId)) || ({} as any)
+          const priority = processed.priority || existing.priority || 'medium'
+          return [{ ...processed, status: 'hiring', source: 'processed' as any, priority }, ...withoutOriginal]
+        })
+        // Hydrate processed details
+        const fres = await fetch(`/api/admin/processed-jobs/${jobId}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        if (fres.ok) {
+          const fdata = await fres.json()
+          const pj = fdata.job
+          setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? {
+            ...j,
+            title: pj.job_title || j.title,
+            job_description: pj.job_description,
+            requirements: pj.requirements,
+            responsibilities: pj.responsibilities,
+            benefits: pj.benefits,
+            skills: pj.skills,
+            priority: ((): any => {
+              const pr = String(pj.priority || '').toLowerCase()
+              return pr === 'low' || pr === 'medium' || pr === 'high' ? pr : j.priority
+            })()
+          } : j))
+        }
+      } catch (err) {
+        console.error(err)
+        setJobs(prev)
+      }
+      return
+    }
+
+    // Default: status-only move within original job_requests
     const prev = jobs
     setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, status } : j))
     try {
@@ -267,6 +334,7 @@ function JobsPage() {
             application_deadline: newJobData.applicationDeadline || null,
             industry: newJobData.industry || null,
             department: newJobData.department || null,
+            jobDescription: newJobData.jobDescription || '',
             requirements: newJobData.requirements ? newJobData.requirements.split('\n') : [],
             responsibilities: newJobData.responsibilities ? newJobData.responsibilities.split('\n') : [],
             benefits: newJobData.benefits ? newJobData.benefits.split('\n') : [],
@@ -404,6 +472,7 @@ function JobsPage() {
     const s = String(db || '').toLowerCase()
     if (s === 'active') return 'hiring'
     if (s === 'inactive') return 'job-request'
+    if (s === 'processed' || s === 'approved') return 'approved'
     if (s === 'closed') return 'closed'
     return 'job-request'
   }
@@ -724,11 +793,29 @@ function JobsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Industry</label>
-                  <Input value={newJobData.industry} onChange={(e)=> setNewJobData(p=> ({...p, industry: e.target.value}))} className="bg-white/10 border-white/20 text-white" />
+                  <select
+                    className="w-full job-select border border-white/20 rounded-lg px-3 py-2"
+                    value={newJobData.industry}
+                    onChange={(e)=> setNewJobData(p=> ({...p, industry: e.target.value}))}
+                  >
+                    <option value="">Select industry</option>
+                    {industryOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Department</label>
-                  <Input value={newJobData.department} onChange={(e)=> setNewJobData(p=> ({...p, department: e.target.value}))} className="bg-white/10 border-white/20 text-white" />
+                  <select
+                    className="w-full job-select border border-white/20 rounded-lg px-3 py-2"
+                    value={newJobData.department}
+                    onChange={(e)=> setNewJobData(p=> ({...p, department: e.target.value}))}
+                  >
+                    <option value="">Select department</option>
+                    {departmentOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -982,16 +1069,18 @@ function JobsPage() {
                       >
                         Improve with AI
                       </Button>
-                      <div className="text-[11px] text-gray-400 text-right">
-                        Once this job request is improved with AI, it will be moved to processed request
-                 </div>
+                      {mapEnumToUi(editingJob.status) === 'job-request' && (
+                        <div className="text-[11px] text-gray-400 text-right">
+                          Once this job request is improved with AI, it will be moved to processed request
+                        </div>
+                      )}
                    </div>
                    </div>
                   <div className="flex flex-wrap items-center gap-3 mb-6">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-400">Status</span>
                       <span className="text-xs px-2 py-1 rounded-md bg-white/10 border border-white/15">
-                        {mapEnumToUi(editingJob.status) === 'hiring' ? 'ACTIVE JOB' : mapEnumToUi(editingJob.status) === 'job-request' ? 'JOB REQUEST' : mapEnumToUi(editingJob.status) === 'approved' ? 'PROCESSED' : 'CLOSED'}
+                        {mapEnumToUi(editingJob.status) === 'hiring' ? 'Active' : mapEnumToUi(editingJob.status) === 'job-request' ? 'Job Request' : mapEnumToUi(editingJob.status) === 'approved' ? 'Processed' : 'Closed'}
                       </span>
                  </div>
                     

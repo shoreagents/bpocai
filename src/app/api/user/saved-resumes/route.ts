@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           hasSavedResume: true,
+          id: savedResume.id,
+          resumeId: savedResume.id,
           resumeSlug: savedResume.resume_slug,
           resumeTitle: savedResume.resume_title,
           resumeUrl: `/${savedResume.resume_slug}`
