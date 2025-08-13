@@ -204,7 +204,7 @@ export default function Header({}: HeaderProps) {
     { title: 'Home', href: '/home', icon: Home },
     { title: 'Resume Builder', href: '/resume-builder', icon: FileText },
     { title: 'Career Tools', href: '/career-tools', icon: Wrench },
-    { title: 'Jobs', href: '/jobs', icon: Briefcase },
+    { title: 'Jobs', href: '/jobs/job-matching', icon: Briefcase },
     { title: 'Leaderboards', href: '/leaderboards', icon: Trophy },
     { title: 'About', href: '/about', icon: Users }
   ]

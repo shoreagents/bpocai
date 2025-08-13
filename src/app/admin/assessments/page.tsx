@@ -64,6 +64,27 @@ export default function AssessmentsPage() {
   const [selectedTab, setSelectedTab] = useState('typing-speed')
   const [selectedRows, setSelectedRows] = useState<string[]>([])
 
+  // Temporary placeholder: Coming Soon
+  return (
+    <AdminLayout 
+      title="Assessment Management" 
+      description="Manage and monitor assessment performance and analytics"
+    >
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Card className="glass-card border-white/10 max-w-xl w-full text-center">
+          <CardHeader>
+            <CardTitle className="text-3xl text-white">Coming Soon</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-300">
+              The Assessments admin page is under development. Check back soon.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </AdminLayout>
+  )
+
   const tabs: AssessmentTab[] = [
     { id: 'typing-speed', name: 'Typing Speed Test', badge: 3, icon: Keyboard },
     { id: 'disc-personality', name: 'DISC Personality', badge: 2, icon: Brain },

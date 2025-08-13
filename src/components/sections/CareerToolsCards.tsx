@@ -57,7 +57,7 @@ export default function CareerToolsCards() {
         { icon: BrainIcon, text: 'Personality Test' },
         { icon: Target, text: 'Logic Assessment' }
       ],
-      comingSoon: false,
+	      comingSoon: true,
       href: '/career-tools/assessments'
     },
     {
@@ -76,7 +76,7 @@ export default function CareerToolsCards() {
         { icon: Star, text: 'Skill Premium' },
         { icon: Target, text: 'Location Based' }
       ],
-      comingSoon: false,
+	      comingSoon: true,
       href: '/career-tools/salary-calculator'
     }
   ];

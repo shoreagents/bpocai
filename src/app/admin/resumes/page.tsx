@@ -538,7 +538,12 @@ export default function ResumesPage() {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-gray-900 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
               <div className="px-6 py-4 border-b border-white/10 flex-shrink-0 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Resume Preview</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-white">Resume Preview</h2>
+                  {previewResume?.resume_slug && (
+                    <span className="text-sm text-gray-400">Slug: {previewResume.resume_slug}</span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   {previewResume?.resume_slug && (
                     <Button
@@ -581,22 +586,31 @@ export default function ResumesPage() {
 
                   {/* Resume Content */}
                   <div className="bg-white rounded-lg shadow-lg overflow-hidden flex-1">
-                    <div 
-                      className="resume-preview-content"
-                      style={{
-                        height: '100%',
-                        overflowY: 'auto',
-                        padding: '40px',
-                        backgroundColor: 'white',
-                        color: '#333',
-                        fontSize: '14px',
-                        lineHeight: '1.6',
-                        fontFamily: 'Arial, sans-serif'
-                      }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: previewResume.resume_html || 'No preview available' 
-                      }}
-                    />
+                    {previewResume?.resume_slug ? (
+                      <iframe
+                        src={`/${previewResume.resume_slug}`}
+                        className="w-full"
+                        style={{ height: '70vh', border: '0' }}
+                        title="Resume Preview"
+                      />
+                    ) : (
+                      <div 
+                        className="resume-preview-content"
+                        style={{
+                          height: '100%',
+                          overflowY: 'auto',
+                          padding: '40px',
+                          backgroundColor: 'white',
+                          color: '#333',
+                          fontSize: '14px',
+                          lineHeight: '1.6',
+                          fontFamily: 'Arial, sans-serif'
+                        }}
+                        dangerouslySetInnerHTML={{ 
+                          __html: previewResume?.resume_html || 'No preview available' 
+                        }}
+                      />
+                    )}
                   </div>
                   
                 </div>
