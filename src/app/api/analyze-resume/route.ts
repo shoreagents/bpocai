@@ -15,6 +15,9 @@ interface AnalysisResult {
   skillsAlignment: number;
   keyStrengths: string[];
   strengthsAnalysis: {
+    topStrengths: string[];
+    uniqueValue: string;
+    areasToHighlight: string[];
     coreStrengths: string[];
     technicalStrengths: string[];
     softSkills: string[];
@@ -27,10 +30,14 @@ interface AnalysisResult {
   salaryAnalysis: {
     currentLevel: string;
     recommendedSalaryRange: string;
+    marketPosition?: string;
+    growthPotential?: string;
     factorsAffectingSalary: string[];
     negotiationTips: string[];
   };
   careerPath: {
+    currentRole?: string;
+    targetRole?: string;
     currentPosition: string;
     nextCareerSteps: Array<{
       step: string;
@@ -514,6 +521,13 @@ Please provide a detailed analysis in the following JSON structure, using ONLY i
     [List 3-5 actual strengths from the resume data with detailed explanations, including certifications]
   ],
   "strengthsAnalysis": {
+    "topStrengths": [
+      [List 3-5 top strengths that make the candidate stand out, including certifications]
+    ],
+    "uniqueValue": "[Describe what makes this candidate unique and valuable in 1-2 sentences]",
+    "areasToHighlight": [
+      [List 3-4 key areas the candidate should emphasize in interviews and applications]
+    ],
     "coreStrengths": [
       [List 3-4 core professional strengths with detailed explanations]
     ],
@@ -540,6 +554,8 @@ Please provide a detailed analysis in the following JSON structure, using ONLY i
   "salaryAnalysis": {
     "currentLevel": "${experienceLevel}",
     "recommendedSalaryRange": "[Calculate based on experience level, location, and certifications]",
+    "marketPosition": "[Describe the candidate's market position and competitiveness]",
+    "growthPotential": "[Describe the candidate's potential for salary growth and advancement]",
     "factorsAffectingSalary": [
       [List 3-4 factors based on actual resume content and certifications]
     ],
@@ -548,6 +564,8 @@ Please provide a detailed analysis in the following JSON structure, using ONLY i
     ]
   },
   "careerPath": {
+    "currentRole": "${currentPosition}",
+    "targetRole": "[Next logical position based on current role and certifications]",
     "currentPosition": "${currentPosition}",
     "nextCareerSteps": [
       {
@@ -624,6 +642,9 @@ function parseClaudeResponse(responseText: string, resumeData: any): AnalysisRes
       skillsAlignment: parsed.skillsAlignment || 70,
       keyStrengths: parsed.keyStrengths || ['Good communication skills', 'Relevant experience'],
       strengthsAnalysis: parsed.strengthsAnalysis || {
+        topStrengths: ['Strong communication skills', 'Customer service experience', 'Problem-solving abilities'],
+        uniqueValue: 'Reliable and customer-focused professional with strong communication skills',
+        areasToHighlight: ['Customer service excellence', 'Communication skills', 'Problem-solving'],
         coreStrengths: ['Strong communication skills', 'Customer service experience'],
         technicalStrengths: ['Basic computer skills', 'Microsoft Office proficiency'],
         softSkills: ['Teamwork', 'Problem-solving'],
@@ -636,17 +657,21 @@ function parseClaudeResponse(responseText: string, resumeData: any): AnalysisRes
       salaryAnalysis: parsed.salaryAnalysis || {
         currentLevel: 'mid',
         recommendedSalaryRange: 'PHP 20,000 - 30,000',
+        marketPosition: 'Competitive for experience level',
+        growthPotential: 'High potential for advancement with skill development',
         factorsAffectingSalary: ['Experience level', 'Technical skills', 'Location'],
         negotiationTips: ['Highlight achievements', 'Research market rates']
       },
       careerPath: parsed.careerPath || {
+        currentRole: 'Customer Service Representative',
+        targetRole: 'Team Lead or Quality Analyst',
         currentPosition: 'Customer Service Representative',
         nextCareerSteps: [
           { step: '1', title: 'Team Lead', description: 'Lead small teams' },
           { step: '2', title: 'Quality Analyst', description: 'Monitor service quality' }
         ],
         skillGaps: ['Leadership skills', 'Advanced analytics'],
-        timeline: '  for promotion',
+        timeline: '2-3 years for promotion',
         timelineDetails: 'Focus on developing leadership skills and taking on additional responsibilities'
       },
       sectionAnalysis: parsed.sectionAnalysis || {
@@ -669,6 +694,9 @@ function parseClaudeResponse(responseText: string, resumeData: any): AnalysisRes
       skillsAlignment: 70,
       keyStrengths: ['Good communication skills', 'Relevant experience'],
       strengthsAnalysis: {
+        topStrengths: ['Strong communication skills', 'Customer service experience', 'Problem-solving abilities'],
+        uniqueValue: 'Reliable and customer-focused professional with strong communication skills',
+        areasToHighlight: ['Customer service excellence', 'Communication skills', 'Problem-solving'],
         coreStrengths: ['Strong communication skills', 'Customer service experience'],
         technicalStrengths: ['Basic computer skills', 'Microsoft Office proficiency'],
         softSkills: ['Teamwork', 'Problem-solving'],
@@ -681,10 +709,14 @@ function parseClaudeResponse(responseText: string, resumeData: any): AnalysisRes
       salaryAnalysis: {
         currentLevel: 'mid',
         recommendedSalaryRange: 'PHP 20,000 - 30,000',
+        marketPosition: 'Competitive for experience level',
+        growthPotential: 'High potential for advancement with skill development',
         factorsAffectingSalary: ['Experience level', 'Technical skills', 'Location'],
         negotiationTips: ['Highlight achievements', 'Research market rates']
       },
       careerPath: {
+        currentRole: 'Customer Service Representative',
+        targetRole: 'Team Lead or Quality Analyst',
         currentPosition: 'Customer Service Representative',
         nextCareerSteps: [
           { step: '1', title: 'Team Lead', description: 'Lead small teams' },

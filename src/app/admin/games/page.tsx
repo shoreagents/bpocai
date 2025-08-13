@@ -68,9 +68,9 @@ export default function GamesPage() {
     { id: 'typing-hero', name: 'Typing Hero', badge: 4, icon: Keyboard },
     { id: 'logic-grid', name: 'Logic Grid', badge: 3, icon: PuzzleIcon },
     { id: 'inbox-zero', name: 'Inbox Zero', badge: 2, icon: MessageSquare },
-    { id: 'broken-briefs', name: 'Broken Briefs', badge: 1, icon: Brain },
-    { id: 'task-juggler', name: 'Task Juggler', badge: 3, icon: Target },
-    { id: 'right-choice', name: 'Right Choice', badge: 2, icon: Brain }
+    { id: 'right-choice', name: 'Right Choice', badge: 2, icon: Brain },
+    { id: 'disc-personality', name: 'BPOC DISC', badge: 2, icon: Brain },
+    { id: 'ultimate', name: 'BPOC Ultimate', badge: 1, icon: Star }
   ]
 
   const gameData: GameData[] = [

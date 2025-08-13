@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    console.log('API: Starting to fetch AI analysis results...')
+    console.log('API: Starting to fetch analysis details for ID:', params.id)
     
     // Query ai_analysis_results with user information
     const result = await pool.query(`
@@ -28,13 +31,17 @@ export async function GET(request: NextRequest) {
         u.avatar_url as user_avatar
       FROM ai_analysis_results aar
       LEFT JOIN users u ON aar.user_id = u.id
-      ORDER BY aar.created_at DESC
-    `)
+      WHERE aar.id = $1
+    `, [params.id])
 
-    console.log('API: Raw analysis data:', result.rows)
-    console.log('API: Number of analyses found:', result.rows.length)
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
+    }
 
-    const transformedAnalyses = result.rows.map((analysis: any) => ({
+    const analysis = result.rows[0]
+    console.log('API: Analysis data found:', analysis)
+
+    const transformedAnalysis = {
       id: analysis.id,
       user_id: analysis.user_id,
       overall_score: analysis.overall_score || 0,
@@ -53,58 +60,14 @@ export async function GET(request: NextRequest) {
       user_name: analysis.user_name || 'Unknown User',
       user_email: analysis.user_email || 'No email',
       user_avatar: analysis.user_avatar
-    }))
+    }
 
     return NextResponse.json({
-      analyses: transformedAnalyses,
-      total: transformedAnalyses.length,
-      averageScore: transformedAnalyses.length > 0 
-        ? Math.round(transformedAnalyses.reduce((sum: number, a: any) => sum + a.overall_score, 0) / transformedAnalyses.length)
-        : 0
+      analysis: transformedAnalysis
     })
 
   } catch (error) {
-    console.error('Error in analysis API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { action, analysisId, ...data } = body
-
-    switch (action) {
-      case 'update':
-        const updateResult = await pool.query(
-          'UPDATE ai_analysis_results SET updated_at = NOW() WHERE id = $1',
-          [analysisId]
-        )
-
-        if (updateResult.rowCount === 0) {
-          return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
-        }
-
-        return NextResponse.json({ message: 'Analysis updated successfully' })
-
-      case 'delete':
-        const deleteResult = await pool.query(
-          'DELETE FROM ai_analysis_results WHERE id = $1',
-          [analysisId]
-        )
-
-        if (deleteResult.rowCount === 0) {
-          return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
-        }
-
-        return NextResponse.json({ message: 'Analysis deleted successfully' })
-
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-    }
-
-  } catch (error) {
-    console.error('Error in analysis API POST:', error)
+    console.error('Error in analysis details API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

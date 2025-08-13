@@ -47,10 +47,10 @@ const BPO_VOCABULARY = {
     spawnRate: 1500 // Consistent spawn rate across all difficulties
   },
   medium: {
-    words: ['tasks', 'goals', 'plans', 'costs', 'files', 'codes', 'deals', 'teams', 'users', 'games', 'sites', 'forms', 'cards', 'rates', 'types', 'modes', 'tests', 'loads', 'syncs', 'moves', 'links', 'mails', 'infos', 'pages', 'items', 'roles', 'desks', 'bills', 'notes', 'tools'],
+    words: ['help', 'call', 'work', 'team', 'goal', 'plan', 'task', 'role', 'skill', 'lead', 'email', 'phone', 'client', 'system', 'update', 'manage', 'handle', 'process', 'support', 'service'],
     timeLimit: 30, // 30 seconds
-    speed: 1.0,
-    spawnRate: 1500 // Consistent spawn rate across all difficulties
+    speed: 0.5, // Slow speed
+    spawnRate: 2000
   },
   hard: {
     words: ['customer', 'service', 'support', 'billing', 'account', 'payment', 'problem', 'solution', 'request', 'feedback', 'process', 'system', 'update', 'manage', 'handle', 'call back', 'send email', 'fix issue', 'new task', 'team lead', 'data sync', 'user info', 'web page', 'file size', 'test mode', 'load time', 'sync data', 'copy text', 'push code', 'link site'],
@@ -117,8 +117,8 @@ export default function TypingHeroPage() {
   });
   
   // Game state
-  const [gameState, setGameState] = useState<'menu' | 'difficulty' | 'playing' | 'paused' | 'completed' | 'failed'>('menu');
-  const [currentDifficulty, setCurrentDifficulty] = useState<DifficultyLevel>('easy');
+  const [gameState, setGameState] = useState<'menu' | 'playing' | 'paused' | 'completed' | 'failed'>('menu');
+  const [currentDifficulty, setCurrentDifficulty] = useState<DifficultyLevel>('medium');
   const [difficultyProgress, setDifficultyProgress] = useState<DifficultyProgress>({
     easy: false,
     medium: false,
@@ -377,7 +377,7 @@ export default function TypingHeroPage() {
   useEffect(() => {
     if (isMuted) return;
     
-    if (gameState === 'menu' || gameState === 'difficulty') {
+    if (gameState === 'menu') {
       playMusic('menu');
     }
   }, [gameState, isMuted, playMusic]);
@@ -424,7 +424,7 @@ export default function TypingHeroPage() {
   }, [gameState, generateWord, currentDifficulty]);
 
   // Start game with selected difficulty
-  const startGame = (difficulty: DifficultyLevel) => {
+  const startGame = (difficulty: DifficultyLevel = 'medium') => {
     if (!isDifficultyUnlocked(difficulty)) return;
     
     setCurrentDifficulty(difficulty);
@@ -604,6 +604,28 @@ export default function TypingHeroPage() {
     return 0; // No bonus for very early/late typing
   };
 
+  // Simulate realistic typing errors based on difficulty and speed
+  const simulateTypingError = (word: string, difficulty: DifficultyLevel): boolean => {
+    // Base error rate increases with difficulty
+    const baseErrorRates = {
+      easy: 0.02,    // 2% error rate
+      medium: 0.05,  // 5% error rate  
+      hard: 0.08,    // 8% error rate
+      expert: 0.12   // 12% error rate
+    };
+    
+    // Error rate increases with word length
+    const lengthMultiplier = Math.min(word.length / 5, 2);
+    
+    // Error rate increases with typing speed (WPM)
+    const speedMultiplier = Math.min(gameStats.wpm / 50, 1.5);
+    
+    const totalErrorRate = baseErrorRates[difficulty] * lengthMultiplier * speedMultiplier;
+    
+    // Random chance of error
+    return Math.random() < totalErrorRate;
+  };
+
   // Handle word typing
   const handleWordType = (word: FallingWord, isCorrect: boolean) => {
     if (isCorrect) {
@@ -660,29 +682,81 @@ export default function TypingHeroPage() {
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase().trim();
+    const value = e.target.value.toLowerCase();
     setCurrentInput(value);
     
-    if (!value) return;
+    if (!value.trim()) return;
     
     // Check if typed word matches any visible falling word
-    const matchingWord = fallingWords.find(w => 
-      !w.typed && !w.missed && w.word.toLowerCase() === value && w.y >= 0 && w.y <= 100
-    );
+    // For words with spaces, we need to handle them specially
+    const matchingWord = fallingWords.find(w => {
+      if (!w.typed && !w.missed && w.y >= 0 && w.y <= 100) {
+        // Handle words with spaces by comparing normalized versions
+        const normalizedInput = value.trim();
+        const normalizedWord = w.word.toLowerCase();
+        
+        // Direct match
+        if (normalizedWord === normalizedInput) return true;
+        
+        // Handle case where user types without spaces for words that have spaces
+        // e.g., "call back" can be typed as "callback"
+        if (normalizedWord.includes(' ')) {
+          const noSpaceWord = normalizedWord.replace(/\s+/g, '');
+          if (noSpaceWord === normalizedInput) return true;
+        }
+        
+        // Handle case where user types with spaces for words that don't have spaces
+        // e.g., "help" can be typed as "h e l p" (though this is less common)
+        if (!normalizedWord.includes(' ') && normalizedInput.includes(' ')) {
+          const noSpaceInput = normalizedInput.replace(/\s+/g, '');
+          if (noSpaceInput === normalizedWord) return true;
+        }
+      }
+      return false;
+    });
     
     if (matchingWord) {
-      handleWordType(matchingWord, true);
-      setCurrentInput(''); // Clear input after successful match
+      // Simulate realistic typing errors
+      const shouldHaveError = simulateTypingError(matchingWord.word, currentDifficulty);
+      
+      if (shouldHaveError) {
+        // Simulate a typing error - treat as incorrect
+        handleWordType(matchingWord, false);
+        setCurrentInput(''); // Clear input after error
+      } else {
+        // No error - proceed normally
+        handleWordType(matchingWord, true);
+        setCurrentInput(''); // Clear input after successful match
+      }
     }
   };
 
   // Handle Enter key for incorrect words
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && currentInput.trim()) {
-      // Check if it doesn't match any visible falling word
-      const hasMatch = fallingWords.some(w => 
-        !w.typed && !w.missed && w.word.toLowerCase() === currentInput.toLowerCase().trim() && w.y >= 0 && w.y <= 100
-      );
+      // Check if it doesn't match any visible falling word using the same logic as handleInputChange
+      const hasMatch = fallingWords.some(w => {
+        if (!w.typed && !w.missed && w.y >= 0 && w.y <= 100) {
+          const normalizedInput = currentInput.toLowerCase().trim();
+          const normalizedWord = w.word.toLowerCase();
+          
+          // Direct match
+          if (normalizedWord === normalizedInput) return true;
+          
+          // Handle case where user types without spaces for words that have spaces
+          if (normalizedWord.includes(' ')) {
+            const noSpaceWord = normalizedWord.replace(/\s+/g, '');
+            if (noSpaceWord === normalizedInput) return true;
+          }
+          
+          // Handle case where user types with spaces for words that don't have spaces
+          if (!normalizedWord.includes(' ') && normalizedInput.includes(' ')) {
+            const noSpaceInput = normalizedInput.replace(/\s+/g, '');
+            if (noSpaceInput === normalizedWord) return true;
+          }
+        }
+        return false;
+      });
       
       if (!hasMatch && fallingWords.length > 0) {
         // Wrong word typed - create poo effect in random lane
@@ -734,9 +808,31 @@ export default function TypingHeroPage() {
         
         // Update WPM and accuracy
         const elapsedSeconds = getCurrentConfig().timeLimit - newTimeLeft;
-        const accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
         const wordsTyped = prev.charactersTyped / 5;
         const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
+        
+        // Calculate realistic accuracy with additional factors
+        let accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
+        
+        // Apply difficulty-based accuracy adjustment
+        const difficultyAccuracyMultipliers = {
+          easy: 1.0,      // No adjustment
+          medium: 0.95,   // Slightly harder
+          hard: 0.90,     // More challenging
+          expert: 0.85    // Most challenging
+        };
+        
+        accuracy = accuracy * difficultyAccuracyMultipliers[currentDifficulty];
+        
+        // Apply speed-based accuracy penalty (faster typing = more errors)
+        if (wpm > 50) {
+          const speedPenalty = Math.min((wpm - 50) * 0.002, 0.1); // Max 10% penalty
+          accuracy = accuracy * (1 - speedPenalty);
+        }
+        
+        // Ensure accuracy stays within realistic bounds
+        accuracy = Math.max(accuracy, 60); // Minimum 60% accuracy
+        accuracy = Math.min(accuracy, 98); // Maximum 98% accuracy (realistic human limit)
         
         return {
           ...prev,
@@ -768,9 +864,14 @@ export default function TypingHeroPage() {
           word.y < 110 && !word.typed
         );
         
-        // Mark missed words
+        // Mark missed words and update stats
         const withMissed = active.map(word => {
           if (word.y > TARGET_ZONE_Y + TARGET_ZONE_TOLERANCE && !word.missed && !word.typed) {
+            // Update game stats when word is missed
+            setGameStats(prev => ({
+              ...prev,
+              totalWords: prev.totalWords + 1
+            }));
             return { ...word, missed: true };
           }
           return word;
@@ -816,7 +917,7 @@ export default function TypingHeroPage() {
       if (gameState === 'playing') {
         const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
         playMusic(musicTrack);
-      } else if (gameState === 'menu' || gameState === 'difficulty') {
+      } else if (gameState === 'menu') {
         playMusic('menu');
       } else if (gameState === 'completed') {
         playMusic('success');
@@ -942,7 +1043,7 @@ export default function TypingHeroPage() {
                         Welcome to Typing Hero!
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-lg">
-                        Rock your keyboard with rhythm and speed!
+                        Click "Start Typing" to begin the medium difficulty challenge!
                       </CardDescription>
                     </div>
                   </div>
@@ -960,7 +1061,7 @@ export default function TypingHeroPage() {
                         </li>
                         <li className="flex items-start">
                           <span className="text-green-400 mr-3 mt-0.5 text-lg">⚡</span>
-                          <span>Type any visible word anytime - no need to wait!</span>
+                          <span>Type any visible word anytime - no need to wait! Spaces are optional for multi-word phrases.</span>
                         </li>
                         <li className="flex items-start">
                           <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎯</span>
@@ -975,15 +1076,17 @@ export default function TypingHeroPage() {
                           <span>Wrong words = Poo effects and lost combo</span>
                         </li>
                         <li className="flex items-start">
-                          <span className="text-blue-400 mr-3 mt-0.5 text-lg">🔓</span>
-                          <span>Complete each difficulty to unlock the next one</span>
+                          <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
+                          <span>Complete the challenge to see your final WPM and accuracy</span>
                         </li>
                         <li className="flex items-start">
-                          <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
-                          <span>Achieve 70% accuracy and 10+ correct words to pass</span>
+                          <span className="text-orange-400 mr-3 mt-0.5 text-lg">📊</span>
+                          <span>Accuracy is realistic - increases with difficulty and typing speed</span>
                         </li>
                       </ul>
                     </div>
+                    
+
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                       <div className="p-4 bg-white/5 rounded-lg border border-white/10">
@@ -991,14 +1094,14 @@ export default function TypingHeroPage() {
                           <span className="text-purple-400 text-lg">🎵</span>
                           <h4 className="text-white font-semibold">Dynamic Music</h4>
                         </div>
-                        <p className="text-gray-300 text-sm">Each difficulty has unique electronic beats that get faster and more intense!</p>
+                        <p className="text-gray-300 text-sm">Each difficulty has unique music and challenge levels!</p>
                       </div>
                       <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-cyan-400 text-lg">📝</span>
                           <h4 className="text-white font-semibold">Progressive Challenge</h4>
                         </div>
-                        <p className="text-gray-300 text-sm">From short words to complex business phrases!</p>
+                        <p className="text-gray-300 text-sm">Start with Easy and work your way up to Expert!</p>
                       </div>
                     </div>
                   </div>
@@ -1006,130 +1109,13 @@ export default function TypingHeroPage() {
                 <CardContent>
                   <Button
                     className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
-                    onClick={() => setGameState('difficulty')}
+                    onClick={() => startGame('medium')}
                   >
                     <Play className="h-6 w-6 mr-3" />
-                    Choose Difficulty 
+                    Start Typing
                   </Button>
                 </CardContent>
               </Card>
-            </motion.div>
-          )}
-
-          {/* Difficulty Selection */}
-          {gameState === 'difficulty' && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-4xl mx-auto space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">Choose Your Challenge</h2>
-                <p className="text-gray-400">Complete each difficulty to unlock the next level</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(['easy', 'medium', 'hard', 'expert'] as DifficultyLevel[]).map((difficulty) => {
-                  const config = BPO_VOCABULARY[difficulty];
-                  const isUnlocked = isDifficultyUnlocked(difficulty);
-                  const isCompleted = difficultyProgress[difficulty];
-                  
-                  return (
-                    <motion.div
-                      key={difficulty}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * ['easy', 'medium', 'hard', 'expert'].indexOf(difficulty) }}
-                    >
-                      <Card className={`glass-card border-white/10 relative ${isUnlocked ? 'hover:border-white/30 cursor-pointer' : 'opacity-50'} transition-all duration-300`}>
-                        {!isUnlocked && (
-                          <div className="absolute top-4 right-4">
-                            <Lock className="h-6 w-6 text-gray-500" />
-                          </div>
-                        )}
-                        {isCompleted && (
-                          <div className="absolute top-4 right-4">
-                            <CheckCircle className="h-6 w-6 text-green-400" />
-                          </div>
-                        )}
-                        
-                        <CardHeader>
-                          <div className="flex items-center justify-between mb-2">
-                            <CardTitle className="text-xl text-white capitalize">{difficulty}</CardTitle>
-                            <Badge className={getDifficultyColor(difficulty)}>
-                              {difficulty === 'easy' && '⭐'}
-                              {difficulty === 'medium' && '⭐⭐'}
-                              {difficulty === 'hard' && '⭐⭐⭐'}
-                              {difficulty === 'expert' && '⭐⭐⭐⭐'}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2 text-sm text-gray-300">
-                            <div className="flex justify-between">
-                              <span>Time Limit:</span>
-                              <span className="text-cyan-400">{Math.floor(config.timeLimit / 60)}:{(config.timeLimit % 60).toString().padStart(2, '0')}</span>
-                            </div>
-                                                         <div className="flex justify-between">
-                               <span>Word Type:</span>
-                               <span className="text-purple-400">
-                                 {difficulty === 'easy' && '4-Letter Words'}
-                                 {difficulty === 'medium' && '5-6 Letter Words'}
-                                 {difficulty === 'hard' && 'Long Words + Phrases'}
-                                 {difficulty === 'expert' && 'Complex Phrases'}
-                               </span>
-                             </div>
-                            <div className="flex justify-between">
-                              <span>Speed:</span>
-                              <span className="text-yellow-400">
-                                {difficulty === 'easy' && 'Slow'}
-                                {difficulty === 'medium' && 'Normal'}
-                                {difficulty === 'hard' && 'Fast'}
-                                {difficulty === 'expert' && 'Very Fast'}
-                              </span>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        
-                        <CardContent>
-                          <Button
-                            className={`w-full ${isUnlocked ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' : 'bg-gray-600 cursor-not-allowed'}`}
-                            onClick={() => isUnlocked && startGame(difficulty)}
-                            disabled={!isUnlocked}
-                          >
-                            {!isUnlocked ? (
-                              <>
-                                <Lock className="h-4 w-4 mr-2" />
-                                Locked
-                              </>
-                            ) : isCompleted ? (
-                              <>
-                                <RotateCcw className="h-4 w-4 mr-2" />
-                                Play Again
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-4 w-4 mr-2" />
-                                Start Challenge
-                              </>
-                            )}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              <div className="text-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setGameState('menu')}
-                  className="border-white/20 text-white hover:bg-white/10"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Menu
-                </Button>
-              </div>
             </motion.div>
           )}
 
@@ -1363,7 +1349,7 @@ export default function TypingHeroPage() {
                         onKeyPress={handleKeyPress}
                         placeholder={fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).length > 0 ? 
                           `Type any visible: ${fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).slice(0, 2).map(w => w.word).join(', ')}${fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).length > 2 ? '...' : ''}` : 
-                          "Type any word or phrase when it appears..."
+                          "Type any word or phrase (spaces optional)..."
                         }
                         className="bg-gray-800/50 border-white/20 text-white text-lg font-mono"
                         disabled={gameState !== 'playing'}
@@ -1372,12 +1358,14 @@ export default function TypingHeroPage() {
                         spellCheck="false"
                       />
                     </div>
-                    <div className="text-sm text-gray-400">
-                      <div>Pass: <span className="text-green-400">70% accuracy + 10 words + {currentDifficulty === 'easy' ? '25' : currentDifficulty === 'medium' ? '35' : currentDifficulty === 'hard' ? '50' : '70'} WPM</span></div>
-                      <div className="mt-1 text-xs">
-                        Timing bonuses: <span className="text-green-400">Perfect +50</span> | <span className="text-yellow-400">Great +25</span> | <span className="text-purple-400">Good +10</span>
+                                          <div className="text-sm text-gray-400">
+                        <div className="mt-1 text-xs">
+                          Timing bonuses: <span className="text-green-400">Perfect +50</span> | <span className="text-yellow-400">Great +25</span> | <span className="text-purple-400">Good +10</span>
+                        </div>
+                        <div className="mt-1 text-xs text-cyan-400">
+                          Realistic accuracy system - errors increase with speed & difficulty
+                        </div>
                       </div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1431,19 +1419,19 @@ export default function TypingHeroPage() {
                     </div>
                   </div>
 
-                  {gameState === 'failed' && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
-                      <p className="text-red-400 font-medium mb-2">Requirements Not Met</p>
+                  {/* Show results based on completion status */}
+                  {gameState === 'completed' ? (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
+                      <p className="text-green-400 font-medium mb-2">Challenge Complete! 🎉</p>
                       <p className="text-gray-300 text-sm">
-                        Need: 70% accuracy, 10+ correct words, and {currentDifficulty === 'easy' ? '25' : currentDifficulty === 'medium' ? '35' : currentDifficulty === 'hard' ? '50' : '70'}+ WPM
+                        Great job! You've completed the typing challenge with realistic accuracy scoring.
                       </p>
                     </div>
-                  )}
-                  {gameState === 'completed' && (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
-                      <p className="text-green-400 font-medium mb-2">Challenge Passed! 🎉</p>
+                  ) : (
+                    <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-4 text-center">
+                      <p className="text-gray-400 font-medium mb-2">Challenge Ended</p>
                       <p className="text-gray-300 text-sm">
-                        You met all requirements: 70%+ accuracy, 10+ correct words, and {currentDifficulty === 'easy' ? '25' : currentDifficulty === 'medium' ? '35' : currentDifficulty === 'hard' ? '50' : '70'}+ WPM
+                        Time's up! Here are your final results.
                       </p>
                     </div>
                   )}

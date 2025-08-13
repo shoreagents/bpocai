@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,11 +34,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
 import AdminLayout from '@/components/layout/AdminLayout'
 
 interface Resume {
@@ -60,43 +66,59 @@ export default function ResumesPage() {
   const [previewResume, setPreviewResume] = useState<any>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [deleteResumeId, setDeleteResumeId] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [editResume, setEditResume] = useState<Resume | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    resume_title: '',
+    template_used: ''
+  })
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
 
   // Fetch resumes from database
-  useEffect(() => {
-    const fetchResumes = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/admin/resumes')
-        const data = await response.json()
-        
-        if (response.ok) {
-          setResumes(data.resumes)
-        } else {
-          console.error('Failed to fetch resumes:', data.error)
-        }
-      } catch (error) {
-        console.error('Error fetching resumes:', error)
-      } finally {
-        setLoading(false)
+  const fetchResumes = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/resumes')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setResumes(data.resumes)
+      } else {
+        console.error('Failed to fetch resumes:', data.error)
       }
+    } catch (error) {
+      console.error('Error fetching resumes:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchResumes()
   }, [])
+
+  // Debug useEffect for delete dialog state
+  useEffect(() => {
+    console.log('State changed - showDeleteDialog:', showDeleteDialog, 'deleteResumeId:', deleteResumeId)
+  }, [showDeleteDialog, deleteResumeId])
 
   // Filter resumes based on search term
   const filteredResumes = resumes.filter((resume) => {
     const matchesSearch = 
       resume.resume_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       resume.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resume.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resume.template_used.toLowerCase().includes(searchTerm.toLowerCase())
-
+      resume.template_used.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resume.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+    
     return matchesSearch
   })
+
+  // Debug logging for delete dialog
+  console.log('Current state - showDeleteDialog:', showDeleteDialog, 'deleteResumeId:', deleteResumeId)
 
   // Pagination logic
   const totalPages = Math.ceil(filteredResumes.length / itemsPerPage)
@@ -160,6 +182,64 @@ export default function ResumesPage() {
       console.error('Error fetching resume preview:', error)
     } finally {
       setPreviewLoading(false)
+    }
+  }
+
+  const handleDeleteResume = async (resumeId: string) => {
+    try {
+      const response = await fetch(`/api/admin/resumes/${resumeId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove the deleted resume from the list
+        setResumes(prevResumes => prevResumes.filter(resume => resume.id !== resumeId))
+        setShowDeleteDialog(false)
+        setDeleteResumeId(null)
+      } else {
+        console.error('Failed to delete resume')
+      }
+    } catch (error) {
+      console.error('Error deleting resume:', error)
+    }
+  }
+
+  const handleEditResume = async (resume: Resume) => {
+    setEditResume(resume)
+    setEditFormData({
+      resume_title: resume.resume_title,
+      template_used: resume.template_used
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editResume) return
+    
+    try {
+      const response = await fetch(`/api/admin/resumes/${editResume.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editFormData),
+      })
+      
+      if (response.ok) {
+        // Update the resume in the list
+        setResumes(prevResumes => prevResumes.map(resume => 
+          resume.id === editResume.id 
+            ? { ...resume, ...editFormData, updated_at: new Date().toISOString() }
+            : resume
+        ))
+        setShowEditDialog(false)
+        setEditResume(null)
+        setEditFormData({ resume_title: '', template_used: '' })
+      } else {
+        console.error('Failed to update resume')
+      }
+    } catch (error) {
+      console.error('Error updating resume:', error)
     }
   }
 
@@ -245,15 +325,28 @@ export default function ResumesPage() {
                   placeholder="Search resumes, users, or file types..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-400"
                 />
               </div>
-                             <div className="flex gap-2">
-                 <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                   <Filter className="w-4 h-4 mr-2" />
-                   More Filters
-                 </Button>
-               </div>
+              <div className="flex items-center gap-2">
+
+                <Button
+                  size="sm"
+                  onClick={fetchResumes}
+                  className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/10 text-white hover:bg-white/10"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  More Filters
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -263,8 +356,11 @@ export default function ResumesPage() {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
           </div>
-                 ) : filteredResumes.length === 0 ? (
-           <div></div>
+        ) : filteredResumes.length === 0 ? (
+          <div className="text-center py-8">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">No resumes found</p>
+          </div>
         ) : (
           <div className="space-y-6">
             {/* Resume Cards Grid */}
@@ -347,6 +443,7 @@ export default function ResumesPage() {
                             size="sm"
                             className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-white/10"
                             title="Edit"
+                            onClick={() => handleEditResume(resume)}
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
@@ -354,8 +451,15 @@ export default function ResumesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          type="button"
                           className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                           title="Delete"
+                          onClick={() => {
+                            console.log('Delete button clicked, setting state...')
+                            setDeleteResumeId(resume.id)
+                            setShowDeleteDialog(true)
+                            console.log('State set - deleteResumeId:', resume.id, 'showDeleteDialog:', true)
+                          }}
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -429,74 +533,65 @@ export default function ResumesPage() {
           </div>
                  )}
 
-                   {/* Resume Preview Modal */}
-          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border-white/10">
-              <style jsx>{`
-                .resume-preview-content {
-                  font-family: Arial, sans-serif;
-                }
-                .resume-preview-content h1,
-                .resume-preview-content h2,
-                .resume-preview-content h3 {
-                  color: #333;
-                  margin-bottom: 10px;
-                }
-                .resume-preview-content p {
-                  margin-bottom: 8px;
-                }
-                .resume-preview-content ul,
-                .resume-preview-content ol {
-                  margin-bottom: 10px;
-                  padding-left: 20px;
-                }
-                .resume-preview-content li {
-                  margin-bottom: 4px;
-                }
-              `}</style>
-             <DialogHeader>
-               <DialogTitle className="text-white flex items-center justify-between">
-                 <span>Resume Preview</span>
-                 <Button
-                   variant="ghost"
-                   size="sm"
-                   onClick={() => setPreviewOpen(false)}
-                   className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-                 >
-                   <X className="w-4 h-4" />
-                 </Button>
-               </DialogTitle>
-             </DialogHeader>
-             
-             {previewLoading ? (
-               <div className="flex items-center justify-center py-12">
-                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-               </div>
-             ) : previewResume ? (
-               <div className="space-y-4">
-                 {/* Resume Header */}
-                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                   <div>
-                     <h2 className="text-xl font-bold text-white">{previewResume.resume_title}</h2>
-                     <p className="text-gray-400">Created by {previewResume.user_name}</p>
-                   </div>
-                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                     {previewResume.template_used}
-                   </Badge>
-                 </div>
+                           {/* Resume Preview Modal */}
+        {previewOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+              <div className="px-6 py-4 border-b border-white/10 flex-shrink-0 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Resume Preview</h2>
+                <div className="flex items-center gap-2">
+                  {previewResume?.resume_slug && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/${previewResume.resume_slug}`, '_blank')}
+                      className="border-white/10 text-white hover:bg-white/10 px-4 py-2"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Full Resume
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewOpen(false)}
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {previewLoading ? (
+                <div className="flex items-center justify-center flex-1">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                </div>
+              ) : previewResume ? (
+                <div className="space-y-6 px-6 py-6 flex-1 overflow-y-auto">
+                  {/* Resume Header */}
+                  <div className="flex items-center justify-between p-6 bg-white/5 rounded-lg border border-white/10">
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">{previewResume.resume_title}</h2>
+                      <p className="text-gray-400 text-lg">Created by {previewResume.user_name}</p>
+                    </div>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-lg px-4 py-2">
+                      {previewResume.template_used}
+                    </Badge>
+                  </div>
 
-                                   {/* Resume Content */}
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                  {/* Resume Content */}
+                  <div className="bg-white rounded-lg shadow-lg overflow-hidden flex-1">
                     <div 
                       className="resume-preview-content"
                       style={{
-                        maxHeight: '60vh',
+                        height: '100%',
                         overflowY: 'auto',
-                        padding: '20px',
+                        padding: '40px',
                         backgroundColor: 'white',
                         color: '#333',
                         fontSize: '14px',
-                        lineHeight: '1.6'
+                        lineHeight: '1.6',
+                        fontFamily: 'Arial, sans-serif'
                       }}
                       dangerouslySetInnerHTML={{ 
                         __html: previewResume.resume_html || 'No preview available' 
@@ -504,28 +599,96 @@ export default function ResumesPage() {
                     />
                   </div>
                   
-                  {/* View Full Resume Button */}
-                  {previewResume.resume_slug && (
-                    <div className="flex justify-center pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open(`/${previewResume.resume_slug}`, '_blank')}
-                        className="border-white/10 text-white hover:bg-white/10"
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Full Resume
-                      </Button>
-                    </div>
-                  )}
-               </div>
-             ) : (
-               <div className="text-center py-8">
-                 <p className="text-gray-400">No resume data available</p>
-               </div>
-             )}
-           </DialogContent>
-         </Dialog>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center flex-1">
+                  <p className="text-gray-400">No resume data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
        </div>
+
+       {/* Delete Confirmation Dialog */}
+       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+         <AlertDialogContent className="bg-gray-900 border-gray-700 text-white z-[9999]">
+           <AlertDialogHeader>
+             <AlertDialogTitle className="text-white">Delete Resume</AlertDialogTitle>
+             <AlertDialogDescription className="text-gray-300">
+               Are you sure you want to delete this resume? This action cannot be undone.
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter>
+             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">
+               Cancel
+             </AlertDialogCancel>
+             <AlertDialogAction
+               onClick={() => {
+                 console.log('Delete action clicked, calling handleDeleteResume with:', deleteResumeId)
+                 deleteResumeId && handleDeleteResume(deleteResumeId)
+               }}
+               className="bg-red-600 hover:bg-red-700 text-white"
+             >
+               Delete
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+
+       {/* Edit Resume Dialog */}
+       <AlertDialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+         <AlertDialogContent className="bg-gray-900 border-gray-700 text-white z-[9999]">
+           <AlertDialogHeader>
+             <AlertDialogTitle className="text-white">Edit Resume</AlertDialogTitle>
+             <AlertDialogDescription className="text-gray-300">
+               Update the resume information below.
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <div className="space-y-4 py-4">
+             <div>
+               <label className="block text-sm font-medium text-gray-300 mb-2">
+                 Resume Title
+               </label>
+               <Input
+                 value={editFormData.resume_title}
+                 onChange={(e) => setEditFormData(prev => ({ ...prev, resume_title: e.target.value }))}
+                 className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                 placeholder="Enter resume title"
+               />
+             </div>
+             <div>
+               <label className="block text-sm font-medium text-gray-300 mb-2">
+                 Template Used
+               </label>
+                                <Input
+                   value={editFormData.template_used}
+                   onChange={(e) => setEditFormData(prev => ({ ...prev, template_used: e.target.value }))}
+                   className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                   placeholder="Enter template name"
+                 />
+             </div>
+           </div>
+           <AlertDialogFooter>
+             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">
+               Cancel
+             </AlertDialogCancel>
+             <AlertDialogAction
+               onClick={handleSaveEdit}
+               className="bg-cyan-600 hover:bg-cyan-700 text-white"
+             >
+               Save Changes
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+
+       {/* Debug info - remove this later */}
+       {showDeleteDialog && (
+         <div className="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg z-[10000]">
+           Debug: Dialog should be open! deleteResumeId: {deleteResumeId}
+         </div>
+       )}
      </AdminLayout>
    )
  } 
