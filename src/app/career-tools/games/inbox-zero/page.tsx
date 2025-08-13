@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,6 +78,17 @@ export default function InboxZeroPage() {
   const [emailSpawnInterval, setEmailSpawnInterval] = useState<NodeJS.Timeout | null>(null);
   const [gameInterval, setGameInterval] = useState<NodeJS.Timeout | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const endCalledRef = useRef<boolean>(false);
+  const sessionSavedRef = useRef<boolean>(false);
+  const gameStartAtRef = useRef<number>(0);
+  const [decisionsLog, setDecisionsLog] = useState<Array<{
+    id: string;
+    priority: 'high' | 'medium' | 'low';
+    type: 'urgent' | 'spam' | 'follow-up' | 'conflicting' | 'client';
+    action: 'reply' | 'archive' | 'flag' | 'spam';
+    isCorrect: boolean;
+    decisionMs: number;
+  }>>([]);
 
   const emailTemplates = [
     {
@@ -218,6 +229,9 @@ export default function InboxZeroPage() {
 
   const startGame = () => {
     setGameState('playing');
+    endCalledRef.current = false;
+    sessionSavedRef.current = false;
+    gameStartAtRef.current = Date.now();
     setGameStats({
       score: 0,
       emailsProcessed: 0,
@@ -229,6 +243,7 @@ export default function InboxZeroPage() {
     setGameTime(120);
     setEmails([]);
     setCurrentEmail(null);
+    setDecisionsLog([]);
 
     // Spawn first email immediately
     setEmails([generateEmail()]);
@@ -258,6 +273,8 @@ export default function InboxZeroPage() {
   };
 
   const endGame = () => {
+    if (endCalledRef.current) return;
+    endCalledRef.current = true;
     if (emailSpawnInterval) clearInterval(emailSpawnInterval);
     if (gameInterval) clearInterval(gameInterval);
     
@@ -267,6 +284,48 @@ export default function InboxZeroPage() {
     
     setGameStats(prev => ({ ...prev, accuracy }));
     setGameState('finished');
+
+    // Persist session (best-effort)
+    (async () => {
+      try {
+        const { getSessionToken } = await import('@/lib/auth-helpers')
+        const token = await getSessionToken()
+        if (!token) return
+        if (decisionsLog.length <= 0) return
+        const startedAt = new Date(gameStartAtRef.current || Date.now())
+        const finishedAt = new Date()
+        const durationMs = finishedAt.getTime() - startedAt.getTime()
+        const processed = decisionsLog.length
+        const correct = decisionsLog.filter(d => d.isCorrect).length
+        const falsePos = decisionsLog.filter(d => !d.isCorrect).length
+        const falseNeg = decisionsLog.filter(d => d.priority === 'high' && !d.isCorrect).length
+        const correctPct = processed > 0 ? (correct / processed) * 100 : 0
+        const triageScore = Math.round(correctPct)
+        const avgDecisionMs = processed > 0 ? Math.round(decisionsLog.reduce((s, d) => s + d.decisionMs, 0) / processed) : null
+        const slaPct = processed > 0 ? Math.round((decisionsLog.filter(d => d.decisionMs <= 5000).length / processed) * 10000) / 100 : null
+        if (sessionSavedRef.current) return;
+        sessionSavedRef.current = true;
+        await fetch('/api/games/inbox-zero/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            startedAt,
+            finishedAt,
+            durationMs,
+            difficulty: 'intermediate',
+            triage_score: Math.max(0, Math.min(100, triageScore)),
+            correct_priority_pct: Math.max(0, Math.min(100, Math.round(correctPct * 100) / 100)),
+            sla_adherence_pct: slaPct,
+            avg_decision_ms: avgDecisionMs,
+            false_positives: falsePos,
+            false_negatives: falseNeg,
+            decisions: decisionsLog
+          })
+        })
+      } catch (e) {
+        console.error('Failed to save Inbox Zero session', e)
+      }
+    })()
   };
 
   const processEmail = (emailId: string, action: 'reply' | 'archive' | 'flag' | 'spam') => {
@@ -296,6 +355,19 @@ export default function InboxZeroPage() {
         ? { ...e, isProcessed: true, action, isCorrect }
         : e
     ));
+
+    // Record decision details
+    setDecisionsLog(prev => [
+      ...prev,
+      {
+        id: email.id,
+        priority: email.priority,
+        type: email.type,
+        action,
+        isCorrect: !!isCorrect,
+        decisionMs: Date.now() - (email.timeReceived || gameStartAtRef.current)
+      }
+    ]);
 
     // Update stats
     setGameStats(prev => ({

@@ -19,7 +19,11 @@ import {
   MapPin,
   FileText,
   Pencil,
-  Trash2
+  Trash2,
+  Guitar,
+  Brain,
+  Scale,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,6 +74,8 @@ export default function SavedResumePage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [typingStats, setTypingStats] = useState<any | null>(null);
+  const [typingLatest, setTypingLatest] = useState<any | null>(null);
 
   // Ensure global edit flag exists for any legacy template code expecting it
   useEffect(() => {
@@ -112,38 +118,40 @@ export default function SavedResumePage() {
     }
   }, [slug]);
 
-  // Try to fetch AI analysis results for the authenticated user
+  // Fetch AI analysis results (public by resume owner)
   useEffect(() => {
-    const fetchAnalysis = async () => {
+    const load = async () => {
       try {
-        setAnalysisLoading(true);
-        const token = await getSessionToken();
-        if (!token) {
-          setAnalysis(null);
-          return;
-        }
-        const res = await fetch('/api/user/analysis-results', {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Failed to load analysis');
-        }
-        const data = await res.json();
-        if (data?.found && data?.analysis) {
-          setAnalysis(data.analysis);
-        } else {
-          setAnalysis(null);
-        }
+        setAnalysisLoading(true)
+        if (!resume?.userId) { setAnalysis(null); return }
+        const res = await fetch(`/api/analysis-results/public/${resume.userId}`, { cache: 'no-store' })
+        if (!res.ok) { setAnalysis(null); return }
+        const data = await res.json()
+        if (data?.found) setAnalysis(data.analysis); else setAnalysis(null)
       } catch (e) {
-        setAnalysisError(e instanceof Error ? e.message : 'Failed to load analysis');
+        setAnalysis(null)
       } finally {
-        setAnalysisLoading(false);
+        setAnalysisLoading(false)
       }
-    };
-    fetchAnalysis();
-  }, []);
+    }
+    load()
+  }, [resume?.userId]);
+
+  // Fetch Career Games data (Typing Hero)
+  useEffect(() => {
+    (async () => {
+      try {
+        // Find resume owner userId from loaded resume
+        if (!resume?.userId) return
+        const res = await fetch(`/api/games/typing-hero/public/${resume.userId}`, { cache: 'no-store' })
+        if (res.ok) {
+          const data = await res.json()
+          setTypingStats(data.stats || null)
+          setTypingLatest(data.latestSession || null)
+        }
+      } catch {}
+    })()
+  }, [resume?.userId])
 
   const exportToPDF = async () => {
     const element = document.getElementById('resume-content');
@@ -486,7 +494,7 @@ export default function SavedResumePage() {
                   </div>
                   <div>
                     <h1 className="text-3xl lg:text-4xl font-bold text-white mb-1">{resume.title}</h1>
-                    <p className="text-gray-300">by {resume.user.fullName}</p>
+                    <div className="text-gray-300 text-sm">Total Views: {resume.viewCount} • Created: {new Date(resume.createdAt).toLocaleDateString()}</div>
                   </div>
                 </div>
               </div>
@@ -531,51 +539,7 @@ export default function SavedResumePage() {
                 ) : null}
               </div>
             </div>
-
-                         {/* Stats Cards */}
-             <div className="flex flex-wrap gap-4 justify-center">
-               <Card className="glass-card border-white/10 hover:border-purple-500/30 transition-all duration-200 w-auto min-w-[320px] max-w-[380px]">
-                 <CardContent className="p-4">
-                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-purple-500/20 rounded-lg">
-                       <Eye className="h-5 w-5 text-purple-400" />
-                     </div>
-                     <div className="min-w-0 flex-1">
-                       <p className="text-sm text-gray-400 truncate">Total Views</p>
-                       <p className="text-2xl font-bold text-white">{resume.viewCount}</p>
-                     </div>
-                   </div>
-                 </CardContent>
-               </Card>
-
-               <Card className="glass-card border-white/10 hover:border-blue-500/30 transition-all duration-200 w-auto min-w-[320px] max-w-[380px]">
-                 <CardContent className="p-4">
-                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-blue-500/20 rounded-lg">
-                       <Calendar className="h-5 w-5 text-blue-400" />
-                     </div>
-                     <div className="min-w-0 flex-1">
-                       <p className="text-sm text-gray-400 truncate">Created</p>
-                       <p className="text-lg font-semibold text-white truncate">{new Date(resume.createdAt).toLocaleDateString()}</p>
-                     </div>
-                   </div>
-                 </CardContent>
-               </Card>
-
-               <Card className="glass-card border-white/10 hover:border-green-500/30 transition-all duration-200 w-auto min-w-[320px] max-w-[380px]">
-                 <CardContent className="p-4">
-                   <div className="flex items-center gap-3">
-                     <div className="p-2 bg-green-500/20 rounded-lg">
-                       <Star className="h-5 w-5 text-green-400" />
-                     </div>
-                     <div className="min-w-0 flex-1">
-                       <p className="text-sm text-gray-400 truncate">Template</p>
-                       <p className="text-lg font-semibold text-white truncate capitalize">{resume.template}</p>
-                     </div>
-                   </div>
-                 </CardContent>
-               </Card>
-             </div>
+            
           </div>
         </motion.div>
 
@@ -589,19 +553,21 @@ export default function SavedResumePage() {
           className="flex justify-center"
         >
 
-          <div className="max-w-5xl w-full mx-auto">
+          <div className="max-w-7xl w-full mx-auto">
             <Tabs defaultValue="resume" className="space-y-6">
               <div className="flex justify-center">
                 <TabsList className="glass-card border-white/20 p-1 bg-black/20">
                   <TabsTrigger value="resume">Resume</TabsTrigger>
                   <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+                  <TabsTrigger value="career-games">Career Games</TabsTrigger>
+                  <TabsTrigger value="career-assessment">Career Assessment</TabsTrigger>
                 </TabsList>
               </div>
 
               <TabsContent value="resume">
                 <div 
                   id="resume-content"
-                  className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
+                  className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
                   style={{
                     fontFamily: template.fontFamily,
                     color: '#1f2937'
@@ -883,7 +849,7 @@ export default function SavedResumePage() {
               </TabsContent>
 
               <TabsContent value="analysis">
-                <div className="max-w-4xl w-full mx-auto">
+                <div className="max-w-6xl w-full mx-auto">
                   {analysisLoading && (
                     <div className="text-center text-gray-300 py-12">Loading analysis...</div>
                   )}
@@ -983,6 +949,106 @@ export default function SavedResumePage() {
                     </div>
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="career-games">
+                <div className="max-w-6xl w-full mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Typing Hero */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Guitar className="w-5 h-5 text-yellow-400" />
+                        <CardTitle className="text-white">Typing Hero</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300 space-y-2">
+                        {typingStats ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>Best WPM: <span className="text-white font-semibold">{typingStats.best_wpm ?? '—'}</span></div>
+                            <div>Best Accuracy: <span className="text-white font-semibold">{typingStats.best_accuracy ?? '—'}{typingStats.best_accuracy != null ? '%' : ''}</span></div>
+                            <div>Median WPM: <span className="text-white font-semibold">{typingStats.median_wpm ?? '—'}</span></div>
+                            <div>Recent WPM: <span className="text-white font-semibold">{typingStats.recent_wpm ?? '—'}</span></div>
+                            <div>Highest Difficulty: <span className="text-white font-semibold capitalize">{typingStats.highest_difficulty ?? '—'}</span></div>
+                            <div>Consistency Index: <span className="text-white font-semibold">{typingStats.consistency_index ?? '—'}</span></div>
+                            <div>Total Sessions: <span className="text-white font-semibold">{typingStats.total_sessions ?? 0}</span></div>
+                            <div>Percentile: <span className="text-white font-semibold">{typingStats.percentile != null ? `${typingStats.percentile}%` : '—'}</span></div>
+                          </div>
+                        ) : (
+                          <div>No Typing Hero stats yet.</div>
+                        )}
+                        <Separator className="my-3 bg-white/10" />
+                        <div className="text-gray-400">Latest Session</div>
+                        {typingLatest ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-gray-300">
+                            <div>Date: <span className="text-white font-semibold">{new Date(typingLatest.started_at).toLocaleString()}</span></div>
+                            <div>WPM: <span className="text-white font-semibold">{typingLatest.wpm ?? '—'}</span></div>
+                            <div>Accuracy: <span className="text-white font-semibold">{typingLatest.accuracy != null ? `${typingLatest.accuracy}%` : '—'}</span></div>
+                          </div>
+                        ) : (
+                          <div>No recent session found.</div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Inbox Zero */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-green-400" />
+                        <CardTitle className="text-white">Inbox Zero</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Logic Grid */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-cyan-400" />
+                        <CardTitle className="text-white">Logic Grid</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Right Choice */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Scale className="w-5 h-5 text-purple-400" />
+                        <CardTitle className="text-white">Right Choice</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* BPOC DISC */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-amber-400" />
+                        <CardTitle className="text-white">BPOC DISC</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* BPOC Ultimate */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Crown className="w-5 h-5 text-red-400" />
+                        <CardTitle className="text-white">BPOC Ultimate</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="career-assessment">
+                <div className="max-w-6xl w-full mx-auto"></div>
               </TabsContent>
             </Tabs>
           </div>
