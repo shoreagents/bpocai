@@ -570,6 +570,50 @@ export default function DISCPersonalityGame() {
 
     setDiscResult(results);
     setShowResults(true);
+
+    // Persist session + stats and request AI interpretation
+    ;(async () => {
+      try {
+        const payload = {
+          startedAt: new Date(Date.now() - 1000 * 60),
+          finishedAt: new Date(),
+          durationMs: 60 * 1000,
+          d: results.scores.D,
+          i: results.scores.I,
+          s: results.scores.S,
+          c: results.scores.C,
+          primary_style: results.primaryType,
+          secondary_style: Object.entries(results.scores)
+            .sort(([,a],[,b]) => (b as number) - (a as number))[1][0],
+          consistency_index: results.confidence,
+          strengths: [],
+          blind_spots: [],
+          preferred_env: {}
+        }
+
+        // Ask backend to also store an AI interpretation (Claude) lazily
+        const aiInterpretation = await fetch('/api/games/disc-personality/interpret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scores: results.scores, primary: results.primaryType })
+        }).then(r => r.ok ? r.json() : null).catch(() => null)
+
+        // Authorization token for protected API
+        const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null)
+
+        const resp = await fetch('/api/games/disc-personality/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ ...payload, ai_interpretation: aiInterpretation?.interpretation || null })
+        })
+        if (!resp.ok) console.error('Failed to save DISC session')
+      } catch (e) {
+        console.error('Error saving DISC results', e)
+      }
+    })()
   };
 
   const resetGame = () => {
@@ -853,14 +897,10 @@ export default function DISCPersonalityGame() {
                 <div className="mb-8">
                   <h3 className="text-xl font-semibold text-white mb-4">BPOC DISC Type Breakdown</h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {Object.entries(gameState.scores).map(([type, score]) => {
-                      const numScore = Number(score);
-                      const level = Math.floor(numScore / 20) + 1; // Level 1-6 based on score
-                      const xpInLevel = numScore % 20;
-                      const nextLevelXP = 20;
-                      
-                      const getTypeColor = (type: string) => {
-                        switch(type) {
+                    {Object.entries(discResult.scores).map(([type, score]) => {
+                      const numScore = Number(score); // percentage 0-100
+                      const getTypeColor = (t: string) => {
+                        switch(t) {
                           case 'D': return { bg: 'from-red-500/10 to-red-600/10', border: 'border-red-500/20', text: 'text-red-400' };
                           case 'I': return { bg: 'from-blue-500/10 to-blue-600/10', border: 'border-blue-500/20', text: 'text-blue-400' };
                           case 'S': return { bg: 'from-purple-500/10 to-purple-600/10', border: 'border-purple-500/20', text: 'text-purple-400' };
@@ -868,43 +908,28 @@ export default function DISCPersonalityGame() {
                           default: return { bg: 'from-purple-500/10 to-blue-500/10', border: 'border-purple-500/20', text: 'text-purple-400' };
                         }
                       };
-                      
                       const colors = getTypeColor(type);
-                      
                       return (
-                        <motion.div 
-                          key={type} 
+                        <motion.div
+                          key={type}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: Object.keys(discResult.scores).indexOf(type) * 0.1 }}
                           className={`glass-card ${colors.border} bg-gradient-to-br ${colors.bg} rounded-lg p-4`}
                         >
                           <div className="text-center mb-3">
-                            <div className={`text-2xl font-bold ${colors.text} mb-1`}>{String(score)}</div>
-                            <div className="text-sm text-gray-400 font-medium mb-2">{type}-Type</div>
-                            <div className="text-xs text-cyan-400 font-bold">{numScore >= 20 ? 'MAX LEVEL' : `Level ${numScore + 1}`}</div>
+                            <div className={`text-2xl font-bold ${colors.text} mb-1`}>{numScore}%</div>
+                            <div className="text-sm text-gray-400 font-medium">{type}-Type</div>
                           </div>
-                          
-                          {/* Progress Bar */}
-                          <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                            <div 
+                          {/* Progress Bar (percentage) */}
+                          <div className="w-full bg-gray-700 rounded-full h-2">
+                            <div
                               className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
-                              style={{ width: `${(numScore / Math.max(...Object.values(gameState.scores).map(Number))) * 100}%` }}
-                            ></div>
-                          </div>
-                          
-                          {/* Level Progress */}
-                          <div className="text-xs text-gray-500 text-center">
-                            {numScore >= 20 ? 'MAXED' : `${xpInLevel}/${nextLevelXP} to Level ${numScore + 2}`}
-                          </div>
-                          <div className="w-full bg-gray-800 rounded-full h-1 mt-1">
-                            <div 
-                              className="bg-gradient-to-r from-cyan-400 to-blue-400 h-1 rounded-full transition-all duration-500"
-                              style={{ width: `${(xpInLevel / nextLevelXP) * 100}%` }}
-                            ></div>
+                              style={{ width: `${Math.max(0, Math.min(100, numScore))}%` }}
+                            />
                           </div>
                         </motion.div>
-                      );
+                      )
                     })}
                   </div>
                 </div>

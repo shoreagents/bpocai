@@ -61,8 +61,30 @@ export async function PUT(request: NextRequest) {
     console.log('🔄 API: Updating profile for user:', userId)
     console.log('📊 API: Update data received:', updateData)
 
-    // Generate full_name from first_name and last_name
-    const fullName = `${updateData.first_name || ''} ${updateData.last_name || ''}`.trim()
+    // Load existing values to avoid overwriting with nulls when not provided
+    const existingRes = await pool.query(
+      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position FROM users WHERE id = $1`,
+      [userId]
+    )
+
+    if (existingRes.rows.length === 0) {
+      console.log('❌ API: User not found for update:', userId)
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const existing = existingRes.rows[0]
+
+    const firstName = updateData.first_name ?? existing.first_name
+    const lastName = updateData.last_name ?? existing.last_name
+    const location = updateData.location ?? existing.location
+    const avatarUrl = updateData.avatar_url ?? existing.avatar_url
+    const phone = updateData.phone ?? existing.phone
+    const bio = updateData.bio ?? existing.bio
+    const position = updateData.position ?? existing.position
+
+    // Recompute full_name from first/last when applicable, otherwise keep existing
+    const recomputedFullName = `${firstName || ''} ${lastName || ''}`.trim()
+    const fullName = recomputedFullName || existing.full_name
 
     const query = `
       UPDATE users 
@@ -73,14 +95,14 @@ export async function PUT(request: NextRequest) {
     `
     const result = await pool.query(query, [
       userId,
-      updateData.first_name,
-      updateData.last_name,
+      firstName,
+      lastName,
       fullName,
-      updateData.location,
-      updateData.avatar_url,
-      updateData.phone,
-      updateData.bio,
-      updateData.position
+      location,
+      avatarUrl,
+      phone,
+      bio,
+      position
     ])
 
     if (result.rows.length === 0) {

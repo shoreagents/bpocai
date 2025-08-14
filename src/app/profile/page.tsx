@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 import { Progress } from '@/components/ui/progress';
@@ -13,25 +14,13 @@ import {
   ArrowLeft,
   User,
   Camera,
-
   Edit3,
   Trophy,
-  Star,
-  Award,
-  Target,
-  Zap,
-  Calendar,
-  MapPin,
-  Mail,
-  Phone,
-  Briefcase,
-  Upload,
-  Check,
+  Loader2,
+  Guitar,
+  Brain,
   Crown,
-  Medal,
-  Shield,
-  Sparkles,
-  Loader2
+  Globe
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadProfilePhoto, deleteProfilePhoto, optimizeImage } from '@/lib/storage'
@@ -62,6 +51,10 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [typingStats, setTypingStats] = useState<any | null>(null);
+  const [typingLatest, setTypingLatest] = useState<any | null>(null);
+  const [discStats, setDiscStats] = useState<any | null>(null);
+  const [discLatest, setDiscLatest] = useState<any | null>(null);
   
   // Fetch user profile from Railway
   useEffect(() => {
@@ -111,95 +104,33 @@ export default function ProfilePage() {
   };
 
   const [profileData, setProfileData] = useState({
-    firstName: userProfile?.first_name || 'Aaron',
-    lastName: userProfile?.last_name || 'Punzalan',
-    email: userProfile?.email || 'apunzalan500@gmail.com',
-    phone: userProfile?.phone || '+63 961 260 9123',
-    location: userProfile?.location || 'Clark, Pampanga',
-    jobTitle: userProfile?.position || 'Junior Developer',
-    company: '', // Removed ShoreAgents
-    bio: userProfile?.bio || 'Passionate junior developer with 2+ years of experience in web development and a strong background in customer service. Skilled in JavaScript, React, and Node.js with a keen interest in AI-powered applications. Previously worked as a customer service representative for 3 years, which gave me valuable insights into client needs and business processes. Always eager to learn new technologies and contribute to meaningful projects that make a difference.'
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    location: '',
+    jobTitle: '',
+    company: '',
+    bio: ''
   });
 
   // Update profile data when Railway data loads
   useEffect(() => {
     if (userProfile) {
       setProfileData({
-        firstName: userProfile.first_name || 'Aaron',
-        lastName: userProfile.last_name || 'Punzalan',
-        email: userProfile.email || 'apunzalan500@gmail.com',
-        phone: userProfile.phone || '+63 961 260 9123',
-        location: userProfile.location || 'Clark, Pampanga',
-        jobTitle: userProfile.position || 'Junior Developer',
-        company: '', // Removed ShoreAgents
-        bio: userProfile.bio || 'Passionate junior developer with 2+ years of experience in web development and a strong background in customer service. Skilled in JavaScript, React, and Node.js with a keen interest in AI-powered applications. Previously worked as a customer service representative for 3 years, which gave me valuable insights into client needs and business processes. Always eager to learn new technologies and contribute to meaningful projects that make a difference.'
+        firstName: userProfile.first_name || '',
+        lastName: userProfile.last_name || '',
+        email: userProfile.email || '',
+        phone: userProfile.phone || '',
+        location: userProfile.location || '',
+        jobTitle: userProfile.position || '',
+        company: '',
+        bio: userProfile.bio || ''
       });
     }
   }, [userProfile]);
 
-  // Mock achievements data
-  const achievements = [
-    {
-      id: '1',
-      title: 'Resume Master',
-      description: 'Built your first professional resume',
-      icon: Trophy,
-      earned: true,
-      earnedDate: '2024-12-01',
-      rarity: 'common',
-      points: 100
-    },
-    {
-      id: '2',
-      title: 'Assessment Champion',
-      description: 'Completed 5 skill assessments',
-      icon: Target,
-      earned: true,
-      earnedDate: '2024-12-10',
-      rarity: 'uncommon',
-      points: 250
-    },
-    {
-      id: '3',
-      title: 'Interview Ready',
-      description: 'Completed mock interview preparation',
-      icon: Star,
-      earned: true,
-      earnedDate: '2024-12-15',
-      rarity: 'rare',
-      points: 500
-    },
-    {
-      id: '4',
-      title: 'BPO Expert',
-      description: 'Achieved 90+ score on all BPO assessments',
-      icon: Crown,
-      earned: false,
-      earnedDate: null,
-      rarity: 'legendary',
-      points: 1000
-    },
-    {
-      id: '5',
-      title: 'Career Builder',
-      description: 'Complete your career profile to 100%',
-      icon: Shield,
-      earned: false,
-      earnedDate: null,
-      rarity: 'epic',
-      points: 750
-    },
-    {
-      id: '6',
-      title: 'Speed Demon',
-      description: 'Achieve 60+ WPM on typing test',
-      icon: Zap,
-      earned: true,
-      earnedDate: '2024-12-20',
-      rarity: 'uncommon',
-      points: 300
-    }
-  ];
+  // achievements removed
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
@@ -274,6 +205,32 @@ export default function ProfilePage() {
 
 
   const progressToNextLevel = ((userStats.experiencePoints % 1000) / 1000) * 100;
+
+  // Load Typing Hero public stats for this user
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const res = await fetch(`/api/games/typing-hero/public/${user.id}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setTypingStats(data.stats || null);
+          setTypingLatest(data.latestSession || null);
+        }
+        const discRes = await fetch(`/api/games/disc-personality/public/${user.id}`, { cache: 'no-store' });
+        if (discRes.ok) {
+          const d = await discRes.json();
+          setDiscStats(d.stats || null);
+          setDiscLatest(d.latestSession || null);
+        }
+      } catch (e) {
+        setTypingStats(null);
+        setTypingLatest(null);
+        setDiscStats(null);
+        setDiscLatest(null);
+      }
+    })();
+  }, [user?.id]);
 
   if (!user) {
     return (
@@ -388,7 +345,9 @@ export default function ProfilePage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h2 className="text-3xl font-bold text-white">{userDisplayName}</h2>
-                          <p className="text-gray-400">{profileData.jobTitle || 'BPO Professional'}</p>
+                          {profileData.jobTitle && (
+                            <p className="text-gray-400">{profileData.jobTitle}</p>
+                          )}
                         </div>
                         <Button
                           onClick={() => router.push('/settings')}
@@ -425,7 +384,7 @@ export default function ProfilePage() {
                       )}
 
                       {/* Quick Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center p-3 bg-white/5 rounded-lg">
                           <div className="text-2xl font-bold text-cyan-400">{userStats.resumeScore}%</div>
                           <div className="text-xs text-gray-400">Resume Score</div>
@@ -442,10 +401,7 @@ export default function ProfilePage() {
                           <div className="text-2xl font-bold text-purple-400">{userStats.jobMatches}</div>
                           <div className="text-xs text-gray-400">Job Matches</div>
                         </div>
-                        <div className="text-center p-3 bg-white/5 rounded-lg">
-                          <div className="text-2xl font-bold text-yellow-400">{achievements.filter(a => a.earned).length}</div>
-                          <div className="text-xs text-gray-400">Achievements</div>
-                        </div>
+                        {/* Achievements tile removed */}
                       </div>
                     </div>
                   </div>
@@ -453,70 +409,116 @@ export default function ProfilePage() {
               </Card>
             </motion.div>
 
-
-
-            {/* Achievements - Extended */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              className="max-w-4xl mx-auto"
+            {/* Career Games Cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
             >
               <Card className="glass-card border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-yellow-400" />
-                      Achievements
-                    </CardTitle>
-                    <CardDescription className="text-gray-300">
-                      Your progress and milestones on BPOC.AI
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                <CardHeader>
+                  <CardTitle className="text-white">Career Games</CardTitle>
+                  <CardDescription className="text-gray-300">Your game stats</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {achievements.map((achievement) => (
-                        <div
-                          key={achievement.id}
-                          className={`p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] ${
-                            achievement.earned 
-                              ? 'border-green-500/30 bg-green-500/10 text-green-400' 
-                              : 'border-gray-700/30 bg-gray-700/20 text-gray-500 opacity-50'
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                                                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                              achievement.earned ? 'bg-green-500/20' : 'bg-gray-700/20'
-                            }`}>
-                            <achievement.icon className="w-6 h-6" />
-                            </div>
-                            <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-lg">{achievement.title}</h4>
-                                {achievement.earned && (
-                                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Earned
-                                  </Badge>
-                                )}
-                              </div>
-                            <p className="text-sm opacity-80 mb-3">{achievement.description}</p>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm capitalize font-medium">{achievement.rarity}</span>
-                              <span className="text-sm font-bold">+{achievement.points} XP</span>
-                              </div>
-                              {achievement.earned && achievement.earnedDate && (
-                              <p className="text-xs opacity-60 mt-2">
-                                  Earned on {new Date(achievement.earnedDate).toLocaleDateString()}
-                                </p>
-                              )}
+                    {/* Typing Hero */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Guitar className="w-5 h-5 text-yellow-400" />
+                        <CardTitle className="text-white">Typing Hero</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300 space-y-2">
+                        {typingStats ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>Best WPM: <span className="text-white font-semibold">{typingStats.best_wpm ?? '—'}</span></div>
+                            <div>Best Accuracy: <span className="text-white font-semibold">{typingStats.best_accuracy ?? '—'}{typingStats.best_accuracy != null ? '%' : ''}</span></div>
+                            <div>Median WPM: <span className="text-white font-semibold">{typingStats.median_wpm ?? '—'}</span></div>
+                            <div>Recent WPM: <span className="text-white font-semibold">{typingStats.recent_wpm ?? '—'}</span></div>
+                            <div>Highest Difficulty: <span className="text-white font-semibold capitalize">{typingStats.highest_difficulty ?? '—'}</span></div>
+                            <div>Consistency Index: <span className="text-white font-semibold">{typingStats.consistency_index ?? '—'}</span></div>
+                            <div>Total Sessions: <span className="text-white font-semibold">{typingStats.total_sessions ?? 0}</span></div>
+                            <div>Percentile: <span className="text-white font-semibold">{typingStats.percentile != null ? `${typingStats.percentile}%` : '—'}</span></div>
+                          </div>
+                        ) : (
+                          <div>No Typing Hero stats yet.</div>
+                        )}
+                        <Separator className="my-3 bg-white/10" />
+                        <div className="text-gray-400">Latest Session</div>
+                        {typingLatest ? (
+                          <div className="grid grid-cols-3 gap-3 text-gray-300">
+                            <div>Date: <span className="text-white font-semibold">{new Date(typingLatest.started_at).toLocaleString()}</span></div>
+                            <div>WPM: <span className="text-white font-semibold">{typingLatest.wpm ?? '—'}</span></div>
+                            <div>Accuracy: <span className="text-white font-semibold">{typingLatest.accuracy != null ? `${typingLatest.accuracy}%` : '—'}</span></div>
+                          </div>
+                        ) : (
+                          <div>No recent session found.</div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* BPOC DISC */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-amber-400" />
+                        <CardTitle className="text-white">BPOC DISC</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300 space-y-2">
+                        {discStats ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>D: <span className="text-white font-semibold">{discStats.d ?? '—'}%</span></div>
+                            <div>I: <span className="text-white font-semibold">{discStats.i ?? '—'}%</span></div>
+                            <div>S: <span className="text-white font-semibold">{discStats.s ?? '—'}%</span></div>
+                            <div>C: <span className="text-white font-semibold">{discStats.c ?? '—'}%</span></div>
+                            <div>Primary: <span className="text-white font-semibold">{discStats.primary_style ?? '—'}</span></div>
+                            <div>Secondary: <span className="text-white font-semibold">{discStats.secondary_style ?? '—'}</span></div>
+                            <div>Consistency: <span className="text-white font-semibold">{discStats.consistency_index ?? '—'}</span></div>
+                            {discStats.percentile != null && (
+                              <div>Percentile: <span className="text-white font-semibold">{discStats.percentile}%</span></div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-gray-400">No data yet.</div>
+                        )}
+                        {discLatest && (
+                          <div className="mt-3 text-gray-400">
+                            <div className="text-xs">Latest Session</div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>Date: <span className="text-white">{new Date(discLatest.started_at).toLocaleString()}</span></div>
+                              <div>Primary: <span className="text-white">{discLatest.primary_style}</span></div>
+                              <div>D/I/S/C: <span className="text-white">{discLatest.d}% / {discLatest.i}% / {discLatest.s}% / {discLatest.c}%</span></div>
+                              <div>Consistency: <span className="text-white">{discLatest.consistency_index ?? '—'}</span></div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* BPOC Ultimate */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Crown className="w-5 h-5 text-red-400" />
+                        <CardTitle className="text-white">BPOC Ultimate</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* BPOC Cultural */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-cyan-400" />
+                        <CardTitle className="text-white">BPOC Cultural</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </div>
       </div>

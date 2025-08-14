@@ -76,6 +76,8 @@ export default function SavedResumePage() {
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [typingStats, setTypingStats] = useState<any | null>(null);
   const [typingLatest, setTypingLatest] = useState<any | null>(null);
+  const [discStats, setDiscStats] = useState<any | null>(null);
+  const [discLatest, setDiscLatest] = useState<any | null>(null);
 
   // Ensure global edit flag exists for any legacy template code expecting it
   useEffect(() => {
@@ -148,6 +150,12 @@ export default function SavedResumePage() {
           const data = await res.json()
           setTypingStats(data.stats || null)
           setTypingLatest(data.latestSession || null)
+        }
+        const dres = await fetch(`/api/games/disc-personality/public/${resume.userId}`, { cache: 'no-store' })
+        if (dres.ok) {
+          const d = await dres.json()
+          setDiscStats(d.stats || null)
+          setDiscLatest(d.latestSession || null)
         }
       } catch {}
     })()
@@ -560,7 +568,6 @@ export default function SavedResumePage() {
                   <TabsTrigger value="resume">Resume</TabsTrigger>
                   <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
                   <TabsTrigger value="career-games">Career Games</TabsTrigger>
-                  <TabsTrigger value="career-assessment">Career Assessment</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -953,7 +960,7 @@ export default function SavedResumePage() {
 
               <TabsContent value="career-games">
                 <div className="max-w-6xl w-full mx-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Typing Hero */}
                     <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
                       <CardHeader className="pb-2 flex items-center gap-2">
@@ -989,47 +996,40 @@ export default function SavedResumePage() {
                       </CardContent>
                     </Card>
 
-                    {/* Inbox Zero */}
-                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
-                      <CardHeader className="pb-2 flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-green-400" />
-                        <CardTitle className="text-white">Inbox Zero</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-sm text-gray-300">
-                        <div className="text-gray-400">No data yet.</div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Logic Grid */}
-                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
-                      <CardHeader className="pb-2 flex items-center gap-2">
-                        <Brain className="w-5 h-5 text-cyan-400" />
-                        <CardTitle className="text-white">Logic Grid</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-sm text-gray-300">
-                        <div className="text-gray-400">No data yet.</div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Right Choice */}
-                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
-                      <CardHeader className="pb-2 flex items-center gap-2">
-                        <Scale className="w-5 h-5 text-purple-400" />
-                        <CardTitle className="text-white">Right Choice</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-sm text-gray-300">
-                        <div className="text-gray-400">No data yet.</div>
-                      </CardContent>
-                    </Card>
-
                     {/* BPOC DISC */}
                     <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
                       <CardHeader className="pb-2 flex items-center gap-2">
                         <Brain className="w-5 h-5 text-amber-400" />
                         <CardTitle className="text-white">BPOC DISC</CardTitle>
                       </CardHeader>
-                      <CardContent className="text-sm text-gray-300">
-                        <div className="text-gray-400">No data yet.</div>
+                      <CardContent className="text-sm text-gray-300 space-y-2">
+                        {discStats ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>D: <span className="text-white font-semibold">{discStats.d ?? '—'}%</span></div>
+                            <div>I: <span className="text-white font-semibold">{discStats.i ?? '—'}%</span></div>
+                            <div>S: <span className="text-white font-semibold">{discStats.s ?? '—'}%</span></div>
+                            <div>C: <span className="text-white font-semibold">{discStats.c ?? '—'}%</span></div>
+                            <div>Primary: <span className="text-white font-semibold">{discStats.primary_style ?? '—'}</span></div>
+                            <div>Secondary: <span className="text-white font-semibold">{discStats.secondary_style ?? '—'}</span></div>
+                            <div>Consistency: <span className="text-white font-semibold">{discStats.consistency_index ?? '—'}</span></div>
+                            {discStats.percentile != null && (
+                              <div>Percentile: <span className="text-white font-semibold">{discStats.percentile}%</span></div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-gray-400">No data yet.</div>
+                        )}
+                        {discLatest && (
+                          <div className="mt-2 text-gray-400">
+                            <div className="text-xs">Latest Session</div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>Date: <span className="text-white">{new Date(discLatest.started_at).toLocaleString()}</span></div>
+                              <div>Primary: <span className="text-white">{discLatest.primary_style}</span></div>
+                              <div>D/I/S/C: <span className="text-white">{discLatest.d}% / {discLatest.i}% / {discLatest.s}% / {discLatest.c}%</span></div>
+                              <div>Consistency: <span className="text-white">{discLatest.consistency_index ?? '—'}</span></div>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
@@ -1043,13 +1043,22 @@ export default function SavedResumePage() {
                         <div className="text-gray-400">No data yet.</div>
                       </CardContent>
                     </Card>
+
+                    {/* BPOC Cultural */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-cyan-400" />
+                        <CardTitle className="text-white">BPOC Cultural</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300">
+                        <div className="text-gray-400">No data yet.</div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="career-assessment">
-                <div className="max-w-6xl w-full mx-auto"></div>
-              </TabsContent>
+              
             </Tabs>
           </div>
         </motion.div>
