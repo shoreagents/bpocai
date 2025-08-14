@@ -402,8 +402,6 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
   // Initialize questions based on game type
   const getGameQuestions = () => {
     switch (resolvedParams.game) {
-      case 'right-choice':
-        return rightChoiceQuestions
       case 'disc-personality':
         return discQuestions
       case 'ultimate':

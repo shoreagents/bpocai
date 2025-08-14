@@ -55,11 +55,9 @@ const assessmentOptions = [
 
 const gameOptions = [
   { value: 'typing-hero', label: 'Typing Hero', icon: Gamepad2 },
-  { value: 'inbox-zero', label: 'Inbox Zero', icon: Gamepad2 },
-  { value: 'logic-grid', label: 'Logic Grid', icon: Gamepad2 },
-  { value: 'right-choice', label: 'Right Choice', icon: Gamepad2 },
   { value: 'disc-personality-game', label: 'BPOC DISC', icon: Gamepad2 },
-  { value: 'ultimate', label: 'BPOC Ultimate', icon: Gamepad2 }
+  { value: 'ultimate', label: 'BPOC Ultimate', icon: Gamepad2 },
+  { value: 'bpoc-cultural', label: 'BPOC Cultural', icon: Gamepad2 }
 ]
 
 // Empty data array for now

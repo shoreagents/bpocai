@@ -15,7 +15,8 @@ import {
   MessageSquare,
   PuzzleIcon,
   Keyboard,
-  Star
+  Star,
+  Globe
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -66,11 +67,9 @@ export default function GamesPage() {
 
   const tabs: GameTab[] = [
     { id: 'typing-hero', name: 'Typing Hero', badge: 4, icon: Keyboard },
-    { id: 'logic-grid', name: 'Logic Grid', badge: 3, icon: PuzzleIcon },
-    { id: 'inbox-zero', name: 'Inbox Zero', badge: 2, icon: MessageSquare },
-    { id: 'right-choice', name: 'Right Choice', badge: 2, icon: Brain },
     { id: 'disc-personality', name: 'BPOC DISC', badge: 2, icon: Brain },
-    { id: 'ultimate', name: 'BPOC Ultimate', badge: 1, icon: Star }
+    { id: 'ultimate', name: 'BPOC Ultimate', badge: 1, icon: Star },
+    { id: 'bpoc-cultural', name: 'BPOC Cultural', badge: 1, icon: Globe }
   ]
 
   const gameData: GameData[] = [
