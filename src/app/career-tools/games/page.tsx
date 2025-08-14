@@ -21,11 +21,10 @@ import {
   Guitar,
   Phone,
   Brain,
-  Mail,
   FileText,
   Utensils,
-  Scale,
-  Crown
+  Crown,
+  Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -49,51 +48,6 @@ export default function CareerGamesPage() {
         participants: 2847,
         rating: 4.9
       },
-    {
-      id: 'inbox-zero',
-      title: 'Inbox Zero Challenge',
-      description: 'Master email triage and prioritization in a simulated BPO environment',
-      icon: Mail,
-      difficulty: 'Intermediate',
-      category: 'Communication',
-      duration: '5 minutes',
-      content: 'Dynamic Emails',
-      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      categoryColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-      skillsDeveloped: ['Email Management', 'Time Management', 'Attention to Detail', 'Work Ethic'],
-      participants: 892,
-      rating: 4.7
-    },
-    {
-      id: 'logic-grid',
-      title: 'Logic Grid',
-      description: 'Solve complex puzzles using deductive reasoning and logical clues',
-      icon: Brain,
-      difficulty: 'Advanced',
-      category: 'Problem Solving',
-      duration: '8 minutes',
-      content: '4 Difficulties',
-      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
-      categoryColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      skillsDeveloped: ['Critical Thinking', 'Problem Solving', 'Attention to Detail', 'Logical Reasoning'],
-      participants: 756,
-      rating: 4.6
-    },
-    {
-      id: 'internship-food',
-      title: 'The Right Choice',
-      description: 'Make judgment calls in workplace scenarios',
-      icon: Scale,
-      difficulty: 'Intermediate',
-      category: 'Judgment',
-      duration: '2 minutes',
-      content: '15 Scenarios',
-      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      skillsDeveloped: ['Cultural Awareness', 'Workplace Ethics', 'Social Cues', 'Professional Judgment'],
-      participants: 423,
-      rating: 4.8
-    },
     {
       id: 'disc-personality',
       title: 'BPOC DISC',
@@ -124,6 +78,21 @@ export default function CareerGamesPage() {
       participants: 89,
       rating: 4.8
     },
+    {
+      id: 'bpoc-cultural',
+      title: 'BPOC Cultural',
+                description: 'Master cultural communication across all regions',
+      icon: Globe,
+      difficulty: 'Expert',
+      category: 'Cultural',
+      duration: '25 minutes',
+      content: '4 Stages',
+      difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      categoryColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+                skillsDeveloped: ['Cultural Intelligence', 'Voice', 'Writing Adaptation', 'Global Communication'],
+      participants: 45,
+      rating: 4.9
+    },
 
   ];
 
@@ -133,16 +102,12 @@ export default function CareerGamesPage() {
     // Navigate to specific game pages
     if (gameId === 'typing-hero') {
       router.push('/career-tools/games/typing-hero');
-    } else if (gameId === 'inbox-zero') {
-      router.push('/career-tools/games/inbox-zero');
-    } else if (gameId === 'logic-grid') {
-      router.push('/career-tools/games/logic-grid');
-    } else if (gameId === 'internship-food') {
-      router.push('/career-tools/games/right-choice');
     } else if (gameId === 'disc-personality') {
       router.push('/career-tools/games/disc-personality');
     } else if (gameId === 'ultimate') {
       router.push('/career-tools/games/ultimate');
+    } else if (gameId === 'bpoc-cultural') {
+      router.push('/career-tools/games/bpoc-cultural');
     } else {
       // For other games, you can add navigation or modals here
       console.log(`Starting game: ${gameId}`);

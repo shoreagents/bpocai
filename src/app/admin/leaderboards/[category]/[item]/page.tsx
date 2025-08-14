@@ -72,11 +72,9 @@ const getItemDisplayName = (category: string, item: string) => {
     'communication-skills': 'Communication Skills',
     'workplace-judgment': 'Workplace Judgment',
     'typing-hero': 'Typing Hero',
-    'inbox-zero': 'Inbox Zero',
-    'logic-grid': 'Logic Grid',
-    'right-choice': 'Right Choice',
     'disc-personality-game': 'BPOC DISC',
-    'ultimate': 'BPOC Ultimate'
+    'ultimate': 'BPOC Ultimate',
+    'bpoc-cultural': 'BPOC Cultural'
   }
   return itemNames[item] || item
 }

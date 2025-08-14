@@ -6,11 +6,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_id_enum') THEN
     CREATE TYPE game_id_enum AS ENUM (
       'typing-hero',
-      'inbox-zero',
-      'logic-grid',
-      'right-choice',
       'disc-personality',
-      'ultimate'
+      'ultimate',
+      'bpoc-cultural'
     );
   END IF;
 END $$;
@@ -36,11 +34,9 @@ CREATE TABLE IF NOT EXISTS game_sessions (
   difficulty game_difficulty_enum,
   -- Flexible per-game metrics payload. Examples:
   -- typing-hero: {"wpm": 72, "errors": {"spelling": 3, "punctuation": 1}}
-  -- inbox-zero: {"triageScore": 86, "avgDecisionMs": 2400}
-  -- logic-grid: {"hintsUsed": 1, "puzzleId": "easy-2"}
-  -- right-choice: {"correctPct": 92}
   -- disc-personality: {"d": 35, "i": 60, "s": 55, "c": 50, "primary": "I", "secondary": "S"}
   -- ultimate: {"leadership": 78, "crisis": 72, "integrity": 90}
+  -- second-ultimate: {"us_compatibility": 95, "uk_compatibility": 92, "au_compatibility": 88, "ca_compatibility": 90}
   metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
