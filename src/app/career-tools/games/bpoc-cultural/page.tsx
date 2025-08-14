@@ -20,7 +20,7 @@ import {
 import { 
   Mic, MicOff, Play, Pause, RotateCcw, Send, Timer, 
   Flag, Users, Zap, Trophy, Crown, Skull, Volume2, 
-  MessageSquare, Globe, Target, Star, ArrowLeft
+  MessageSquare, Globe, Target, Star, ArrowLeft, Share, AlertTriangle
 } from 'lucide-react';
 
 const CulturalCommunicationArena = () => {
@@ -42,10 +42,23 @@ const CulturalCommunicationArena = () => {
   const [survivalStatus, setSurvivalStatus] = useState(100);
   const [achievements, setAchievements] = useState<string[]>([]);
   
-  const audioRef = useRef(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [hasAudio, setHasAudio] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [toastAchievement, setToastAchievement] = useState<string | null>(null);
+  const [stageAchievements, setStageAchievements] = useState<Record<number, string[]>>({});
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  // Count any real player interactions (voice recordings or writing submissions)
+  const [interactionCount, setInteractionCount] = useState(0);
+
+  // Real voice recording state
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [canRecord, setCanRecord] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
   // Combo challenge state
   const [comboVoiceDone, setComboVoiceDone] = useState(false);
@@ -88,6 +101,14 @@ const CulturalCommunicationArena = () => {
     setBossRoundIndex(0);
     setBossVoiceDone(false);
     setBossTimer(30);
+    
+    // Clear audio recordings when moving to new challenge
+    setAudioChunks([]);
+    setAudioBlob(null);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
   }, [currentChallenge, currentStage]);
 
   // Per-round timer for final boss
@@ -104,10 +125,86 @@ const CulturalCommunicationArena = () => {
     if (achievements.length > 0) {
       const latest = achievements[achievements.length - 1];
       setToastAchievement(latest);
-      const t = setTimeout(() => setToastAchievement(null), 3000);
+      const t = setTimeout(() => setToastAchievement(null), 4500);
       return () => clearTimeout(t);
     }
   }, [achievements]);
+
+  // Check current permission state without requesting new permissions
+  const checkCurrentPermissionState = async () => {
+    try {
+      const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      console.log('Current microphone permission state:', permission.state);
+      return permission.state;
+    } catch (error) {
+      console.log('Could not check permission state:', error);
+      return 'unknown';
+    }
+  };
+
+  // Check microphone permissions on mount and when needed
+  const checkMicrophonePermission = async () => {
+    try {
+      console.log('Checking microphone permissions...');
+
+      // First check current permission state (best-effort)
+      const permissionState = await checkCurrentPermissionState();
+      console.log('Permission state before getUserMedia:', permissionState);
+
+      // Attempt to get a stream; success here means permission is granted
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      // If we reached here, permission is granted and the device is available
+      setCanRecord(true);
+
+      // Immediately stop tracks; we only needed this to verify permission
+      stream.getTracks().forEach((track) => track.stop());
+
+      console.log('✅ Microphone permission granted and device available');
+    } catch (error) {
+      setCanRecord(false);
+      console.error('Microphone access failed:', error);
+
+      // Check if it's a permission or device error
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          console.log('Permission denied by user');
+        } else if (error.name === 'NotFoundError') {
+          console.log('No microphone found');
+        } else if (error.name === 'NotReadableError') {
+          console.log('Microphone is busy or not accessible');
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    checkMicrophonePermission();
+    
+    // Cleanup audio URL on unmount
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
+
+
+
+  // Helper: add achievement (global + per-stage)
+  const addAchievement = (label: string) => {
+    setAchievements((prev) => [...prev, label]);
+    setStageAchievements((prev) => ({
+      ...prev,
+      [currentStage]: [...(prev[currentStage] || []), label],
+    }));
+  };
 
   const handleBackClick = () => {
     if (gameState === 'playing') {
@@ -254,57 +351,345 @@ const CulturalCommunicationArena = () => {
     ]
   };
 
+  // Real voice recording functions
+  const startRealRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+          channelCount: 1
+        } 
+      });
+      
+      // Set up audio level monitoring
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      source.connect(analyser);
+      
+      setAudioContext(audioCtx);
+      
+      // Monitor audio levels
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const checkAudioLevel = () => {
+        if (isRecording) {
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          setAudioLevel(average);
+          requestAnimationFrame(checkAudioLevel);
+        }
+      };
+      checkAudioLevel();
+      
+      // Check for supported audio formats with fallback
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'audio/wav';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+              mimeType = ''; // Let browser choose default
+            }
+          }
+        }
+      }
+      
+      console.log('Using audio format:', mimeType);
+      
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      
+      recorder.ondataavailable = (event) => {
+        console.log('Audio data available:', {
+          size: event.data.size,
+          type: event.data.type,
+          timestamp: Date.now()
+        });
+        
+        if (event.data.size > 0) {
+          setAudioChunks(prev => [...prev, event.data]);
+        } else {
+          console.warn('Empty audio chunk received');
+        }
+      };
+      
+      recorder.onstop = () => {
+        console.log('Recording stopped, chunks:', audioChunks.length);
+        
+        // Use a timeout to ensure all chunks are processed
+        setTimeout(() => {
+          const currentChunks = [...audioChunks];
+          console.log('Processing chunks:', currentChunks.length);
+          
+          // Check if we have actual audio data
+          if (currentChunks.length === 0 || currentChunks.every(chunk => chunk.size === 0)) {
+            console.error('No audio data recorded! Trying fallback method...');
+            
+            // Try fallback recording method
+            if (stream && stream.active) {
+              console.log('Attempting fallback recording...');
+              startFallbackRecording(stream);
+            } else {
+              alert('No audio was recorded. Please check your microphone and try again.');
+              setIsRecording(false);
+            }
+            return;
+          }
+          
+          const audioBlob = new Blob(currentChunks, { type: recorder.mimeType || 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          
+          console.log('Recording stopped:', {
+            blobSize: audioBlob.size,
+            blobType: audioBlob.type,
+            mimeType: recorder.mimeType,
+            chunksCount: currentChunks.length,
+            totalChunkSize: currentChunks.reduce((sum, chunk) => sum + chunk.size, 0),
+            audioUrl: audioUrl
+          });
+          
+          // Only proceed if we have a valid audio blob
+          if (audioBlob.size > 0) {
+            setAudioBlob(audioBlob);
+            setAudioUrl(audioUrl);
+            setAudioChunks([]);
+            
+            // Analyze the recording for cultural fit
+            analyzeVoiceRecording(audioBlob);
+          } else {
+            console.error('Created blob is empty!');
+            alert('Recording failed - no audio data captured. Please try again.');
+          }
+        }, 100); // Small delay to ensure all chunks are processed
+      };
+      
+      setMediaRecorder(recorder);
+      
+      // Start recording without timeslice for better compatibility
+      recorder.start();
+      setIsRecording(true);
+      setInteractionCount((c) => c + 1);
+      setRecordingTime(0);
+      
+      console.log('Recording started with format:', recorder.mimeType);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('Please allow microphone access to record voice responses.');
+    }
+  };
+
+  const stopRealRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      
+      // Clean up audio context
+      if (audioContext) {
+        audioContext.close();
+        setAudioContext(null);
+      }
+      setAudioLevel(0);
+    }
+  };
+
+  // Enhanced audio playback function
+  const playAudioRecording = async () => {
+    if (!audioRef.current || !audioUrl) {
+      console.log('No audio to play');
+      return;
+    }
+
+    try {
+      // Reset audio to beginning
+      audioRef.current.currentTime = 0;
+      
+      // Try to play the audio
+      await audioRef.current.play();
+      console.log('Audio playback started successfully');
+    } catch (error) {
+      console.error('Audio playback failed:', error);
+      
+      // Fallback: try to create a new audio element
+      try {
+        const fallbackAudio = new Audio(audioUrl);
+        await fallbackAudio.play();
+        console.log('Fallback audio playback successful');
+      } catch (fallbackError) {
+        console.error('Fallback audio also failed:', fallbackError);
+        alert('Audio playback failed. Please try recording again.');
+      }
+    }
+  };
+
+  // Fallback recording method using Web Audio API
+  const startFallbackRecording = async (stream: MediaStream) => {
+    try {
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const destination = audioCtx.createMediaStreamDestination();
+      source.connect(destination);
+      
+      const mediaRecorder = new MediaRecorder(destination.stream);
+      const chunks: Blob[] = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        if (chunks.length > 0) {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          
+          console.log('Fallback recording successful:', {
+            blobSize: audioBlob.size,
+            chunksCount: chunks.length
+          });
+          
+          setAudioBlob(audioBlob);
+          setAudioUrl(audioUrl);
+          setAudioChunks([]);
+          analyzeVoiceRecording(audioBlob);
+        } else {
+          console.error('Fallback recording also failed');
+          alert('Recording failed. Please check your microphone permissions and try again.');
+        }
+        
+        audioCtx.close();
+      };
+      
+      mediaRecorder.start();
+      setMediaRecorder(mediaRecorder);
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      console.log('Fallback recording started');
+    } catch (error) {
+      console.error('Fallback recording failed:', error);
+      alert('All recording methods failed. Please check your browser and microphone.');
+    }
+  };
+
   const handleVoiceRecording = () => {
     if (!isRecording) {
-      setIsRecording(true);
-      // Mock recording start
+      startRealRecording();
     } else {
-      setIsRecording(false);
-      // Mock recording stop and analysis
-      setTimeout(() => {
-        const randomScore = 70 + Math.random() * 25;
-        const region = ['US', 'UK', 'AU', 'CA'][Math.floor(Math.random() * 4)];
-        setCulturalScores(prev => ({
-          ...prev,
-          [region]: Math.min(100, prev[region] + randomScore/10)
-        }));
-        
-        if (randomScore > 85) {
-          setAchievements(prev => [...prev, `${culturalContexts[region].flag} Cultural Master`]);
-        }
-
-        // Mark voice completion flags depending on active challenge type
-        const current = stages[currentStage - 1].challenges[currentChallenge];
-        if (current.type === 'combo') {
-          setComboVoiceDone(true);
-        } else if (current.type === 'ultimate') {
-          setBossVoiceDone(true);
-        }
-      }, 1500);
+      stopRealRecording();
     }
+  };
+
+  // Analyze voice recording for cultural fit
+  const analyzeVoiceRecording = (audioBlob: Blob) => {
+    // In a real app, this would send audio to AI analysis
+    // For now, we'll simulate analysis based on recording duration
+    const duration = recordingTime;
+    
+    // Simulate cultural analysis based on recording length and quality
+    const baseScore = Math.min(100, 60 + (duration * 2)); // Longer recordings get higher scores
+    
+    // Random cultural region focus
+    const region = ['US', 'UK', 'AU', 'CA'][Math.floor(Math.random() * 4)] as keyof typeof culturalContexts;
+    const score = Math.min(100, baseScore + Math.random() * 20);
+    
+    setCulturalScores(prev => ({
+      ...prev,
+      [region]: Math.min(100, prev[region] + score/10)
+    }));
+    
+    if (score > 85) {
+      addAchievement(`${culturalContexts[region].flag} Cultural Master`);
+    }
+
+    // Mark voice completion flags depending on active challenge type
+    const current = stages[currentStage - 1].challenges[currentChallenge];
+    if (current.type === 'combo') {
+      setComboVoiceDone(true);
+    } else if (current.type === 'ultimate') {
+      setBossVoiceDone(true);
+    }
+  };
+
+  // Enhanced cultural analysis for text input
+  const analyzeCulturalFit = (text: string) => {
+    const analysis = {
+      US: 0, UK: 0, AU: 0, CA: 0, overall: 0
+    };
+    
+    // Cultural keyword analysis
+    const usKeywords = ['direct', 'efficient', 'quick', 'asap', 'heads up', 'jump on', 'fix', 'team'];
+    const ukKeywords = ['rather', 'concerned', 'regarding', 'adjustment', 'proper', 'good morning', 'structured', 'diplomatic'];
+    const auKeywords = ['mate', 'honest', 'straight', 'real', 'authentic', 'gday', 'pear-shaped', 'bloody'];
+    const caKeywords = ['sorry', 'bother', 'worried', 'timeline', 'collaborative', 'hope', 'having a good day', 'quite'];
+    
+    // Score based on keyword presence and text length
+    const textLower = text.toLowerCase();
+    
+    usKeywords.forEach(word => {
+      if (textLower.includes(word)) analysis.US += 8;
+    });
+    ukKeywords.forEach(word => {
+      if (textLower.includes(word)) analysis.UK += 8;
+    });
+    auKeywords.forEach(word => {
+      if (textLower.includes(word)) analysis.AU += 8;
+    });
+    caKeywords.forEach(word => {
+      if (textLower.includes(word)) analysis.CA += 8;
+    });
+    
+    // Bonus for appropriate length and structure
+    if (text.length > 20) {
+      analysis.US += 5;
+      analysis.UK += 5;
+      analysis.AU += 5;
+      analysis.CA += 5;
+    }
+    
+    // Cap scores at 100
+    analysis.US = Math.min(100, analysis.US);
+    analysis.UK = Math.min(100, analysis.UK);
+    analysis.AU = Math.min(100, analysis.AU);
+    analysis.CA = Math.min(100, analysis.CA);
+    
+    analysis.overall = (analysis.US + analysis.UK + analysis.AU + analysis.CA) / 4;
+    return analysis;
   };
 
   const handleWritingSubmit = () => {
     if (currentResponse.length > 10) {
-      // Mock writing analysis
-      const scores = Object.keys(culturalContexts).map(region => {
-        const score = 60 + Math.random() * 35;
-        return { region, score };
-      });
+      // Real-time cultural analysis
+      const culturalAnalysis = analyzeCulturalFit(currentResponse);
       
-      scores.forEach(({ region, score }) => {
-        setCulturalScores(prev => ({
-          ...prev,
-          [region]: Math.min(100, prev[region] + score/10)
-        }));
+      // Update scores based on actual content analysis
+      Object.entries(culturalAnalysis).forEach(([region, score]) => {
+        if (region !== 'overall') {
+          setCulturalScores(prev => ({
+            ...prev,
+            [region]: Math.min(100, prev[region as keyof typeof culturalScores] + score/10)
+          }));
+        }
       });
       
       setCurrentResponse('');
+      setInteractionCount((c) => c + 1);
       
-      // Check for achievements
-      if (scores.every(s => s.score > 80)) {
-        setAchievements(prev => [...prev, "🌟 Cultural Chameleon"]);
+      // Check for achievements based on performance
+      if (culturalAnalysis.overall > 80) {
+        addAchievement("🌟 Cultural Chameleon");
       }
+      
+      // Add specific cultural achievements
+      if (culturalAnalysis.US > 85) addAchievement("🇺🇸 US Communication Expert");
+      if (culturalAnalysis.UK > 85) addAchievement("🇬🇧 UK Communication Expert");
+      if (culturalAnalysis.AU > 85) addAchievement("🇦🇺 AU Communication Expert");
+      if (culturalAnalysis.CA > 85) addAchievement("🇨🇦 CA Communication Expert");
 
       // Flag for combo writing completion
       const current = stages[currentStage - 1].challenges[currentChallenge];
@@ -327,6 +712,16 @@ const CulturalCommunicationArena = () => {
   };
 
   const calculateTier = () => {
+    // If the user hasn't interacted with any challenge, force the lowest tier
+    if (interactionCount === 0) {
+      return {
+        tier: "No Participation",
+        icon: "🕒",
+        color: "from-gray-500 to-gray-700",
+        description: "No challenges were completed. Play the arena to earn a cultural rating."
+      };
+    }
+
     const avgScore = Object.values(culturalScores).reduce((a, b) => a + b, 0) / 4;
     const achievementCount = achievements.length;
     
@@ -387,7 +782,11 @@ const CulturalCommunicationArena = () => {
 
   const startGame = () => {
     if (playerName.trim()) {
+      // Ensure any previous dialog state is closed before transitioning
+      setShowNameDialog(false);
       setGameState('playing');
+    } else {
+      setShowNameDialog(true);
     }
   };
 
@@ -600,7 +999,13 @@ const CulturalCommunicationArena = () => {
                   className="mt-8 text-center"
                 >
                   <Button
-                    onClick={startGame}
+                    onClick={() => {
+                      if (playerName.trim()) {
+                        setGameState('playing');
+                      } else {
+                        setShowNameDialog(true);
+                      }
+                    }}
                     className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 text-xl font-bold"
                     size="lg"
                   >
@@ -610,6 +1015,167 @@ const CulturalCommunicationArena = () => {
                 </motion.div>
               </motion.div>
             </div>
+          </div>
+        </div>
+        
+        {/* Name Required Dialog - only visible on intro screen */}
+        <AlertDialog open={showNameDialog} onOpenChange={setShowNameDialog}>
+          <AlertDialogContent className="glass-card border-white/20">
+            <AlertDialogHeader>
+              <div className="flex justify-center mb-2">
+                <AlertTriangle className="w-8 h-8 text-red-400"/>
+              </div>
+              <AlertDialogTitle className="text-white text-center">Name Required</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-300 text-center">
+                Please enter your name to continue with the game.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction 
+                onClick={() => setShowNameDialog(false)} 
+                className="mx-auto bg-blue-600 hover:bg-blue-700"
+              >
+                OK
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+  // Results Screen
+  if (gameState === 'results') {
+    const tier = calculateTier();
+    const avgScore = Math.round(Object.values(culturalScores).reduce((a, b) => a + b, 0) / 4);
+    return (
+      <div className="min-h-screen cyber-grid overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+
+        <Header />
+
+        <div className="pt-16 relative z-10">
+          <div className="container mx-auto px-4 py-8">
+            {/* Header row with Back like other games */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between mb-8"
+            >
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push('/career-tools/games')}
+                  className="mr-4 text-gray-400 hover:text-white"
+                >
+                  <ArrowLeft className="h-5 w-5 mr-2" />
+                  Back
+                </Button>
+                <div className="flex items-center">
+                  <Globe className="h-12 w-12 text-green-400 mr-4" />
+                  <div>
+                    <h1 className="text-4xl font-bold gradient-text">BPOC Cultural</h1>
+                    <p className="text-gray-400">The Ultimate Client Survival Arena</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div 
+              className="text-center max-w-4xl mx-auto"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Card className="glass-card border-white/10 mb-6">
+                <CardContent className="p-8">
+                  <div className="text-6xl mb-4">{tier.icon}</div>
+                  <h1 className="text-4xl font-bold gradient-text mb-2">Arena Complete!</h1>
+                  <p className="text-gray-300 mb-6">Great work{playerName ? `, ${playerName}` : ''}! Here's your cultural performance.</p>
+
+                  {/* Tier */}
+                  <div className={`text-3xl font-extrabold bg-gradient-to-r ${tier.color} bg-clip-text text-transparent mb-6`}>
+                    {tier.tier}
+                  </div>
+                  <p className="text-gray-300 mb-8 max-w-2xl mx-auto">{tier.description}</p>
+
+                  {/* Cultural Scores */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    {Object.entries(culturalScores).map(([region, score]) => (
+                      <div key={region} className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
+                        <div className="text-2xl mb-2">{culturalContexts[region as keyof typeof culturalContexts].flag}</div>
+                        <div className="text-xl font-bold text-white">{Math.round(score)}%</div>
+                        <div className="text-xs text-gray-400">{culturalContexts[region as keyof typeof culturalContexts].name}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Achievements */}
+                  <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Trophy className="w-5 h-5 text-yellow-400"/>Achievements</h3>
+                    {achievements.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {achievements.map((a, i) => (
+                          <span key={i} className="bg-yellow-600/20 text-yellow-300 border border-yellow-500/30 rounded-full px-3 py-1 text-xs">{a}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400">No achievements this run. Try to adapt more precisely next time!</div>
+                    )}
+                  </div>
+
+                  {/* Summary */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
+                      <div className="text-2xl font-bold text-white">{avgScore}%</div>
+                      <div className="text-sm text-gray-400">Average Cultural Score</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
+                      <div className="text-2xl font-bold text-white">{achievements.length}</div>
+                      <div className="text-sm text-gray-400">Achievements Earned</div>
+                    </div>
+                  </div>
+
+                </CardContent>
+              </Card>
+
+              {/* Actions below card (full width like results card) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mt-2">
+                <Button
+                  onClick={() => router.push('/career-tools/games')}
+                  className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2"/>
+                  Back to Main Menu
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'My BPOC Cultural Results',
+                        text: `Average: ${avgScore}% | Achievements: ${achievements.length}`,
+                        url: window.location.href,
+                      });
+                    } else {
+                      navigator.clipboard.writeText(`BPOC Cultural Results — Average: ${avgScore}% | Achievements: ${achievements.length}`);
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                >
+                  <Share className="w-4 h-4 mr-2"/>
+                  Share
+                </Button>
+                <Button
+                  onClick={restartGame}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                >
+                  <Play className="w-4 h-4 mr-2"/>
+                  Play Again
+                </Button>
+              </div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -696,7 +1262,8 @@ const CulturalCommunicationArena = () => {
               <div className="grid grid-cols-4 gap-4">
                 {Object.entries(culturalScores).map(([region, score]) => (
                   <div key={region} className="bg-gray-700 rounded-lg p-3 text-center">
-                    <div className="text-xl">{culturalContexts[region as keyof typeof culturalContexts].flag}</div>
+                    {/* Use region code instead of flag to avoid 'GB' fallback rendering */}
+                    <div className="text-xl font-semibold">{region}</div>
                     <div className="text-lg font-bold">{Math.round(score)}%</div>
                     <div className="text-xs text-gray-400">{region}</div>
                   </div>
@@ -714,14 +1281,20 @@ const CulturalCommunicationArena = () => {
               className="max-w-4xl mx-auto"
             >
               {/* Challenge header */}
-              <div className="rounded-xl p-6 mb-8 text-center border border-white/10" style={{ backgroundColor: '#111315' }}>
+              <div className="rounded-xl p-6 mb-8 text-center border border-white/10 relative" style={{ backgroundColor: '#111315' }}>
                 <h1 className="text-3xl font-bold mb-2">{stages[currentStage - 1].challenges[currentChallenge].title}</h1>
                 <p className="text-lg opacity-90">{stages[currentStage - 1].challenges[currentChallenge].description}</p>
                 <div className="mt-4 flex justify-center gap-4">
                   {stages[currentStage - 1].challenges[currentChallenge].regions.map(region => (
-                    <span key={region} className="text-2xl">{culturalContexts[region as keyof typeof culturalContexts].flag}</span>
+                    <span key={region} className="text-base md:text-lg font-semibold text-gray-200 uppercase tracking-wide">{region}</span>
                   ))}
                 </div>
+                {/* Stage achievements badge */}
+                {stageAchievements[currentStage] && stageAchievements[currentStage].length > 0 && (
+                  <div className="absolute top-4 right-4 bg-green-600/20 text-green-300 border border-green-500/40 rounded-full px-3 py-1 text-xs">
+                    🏅 {stageAchievements[currentStage].length} Achv
+                  </div>
+                )}
               </div>
 
               {/* Challenge content */}
@@ -734,7 +1307,7 @@ const CulturalCommunicationArena = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                       {stages[currentStage - 1].challenges[currentChallenge].regions.map(region => (
                         <div key={region} className={`bg-gradient-to-br ${culturalContexts[region as keyof typeof culturalContexts].color} rounded-lg p-4`}>
-                          <div className="text-2xl mb-2">{culturalContexts[region as keyof typeof culturalContexts].flag}</div>
+                          <div className="text-sm md:text-base font-semibold uppercase text-white/90 mb-2">{region}</div>
                           <div className="font-bold text-lg text-white">{culturalContexts[region as keyof typeof culturalContexts].name}</div>
                           <div className="text-sm text-white/90 mb-2">{culturalContexts[region as keyof typeof culturalContexts].style}</div>
                           <div className="text-xs italic text-white/80">"{culturalContexts[region as keyof typeof culturalContexts].example}"</div>
@@ -742,32 +1315,117 @@ const CulturalCommunicationArena = () => {
                       ))}
                     </div>
 
-                    {/* Recording interface */}
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <div className="text-lg mb-4">
-                        {isRecording ? 
-                          `🔴 Recording... ${recordingTime}s` : 
-                          "Click to start recording your response"
-                        }
-                      </div>
-                      
-                      <motion.button
-                        onClick={handleVoiceRecording}
-                        className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
-                          isRecording 
-                            ? 'bg-red-600 hover:bg-red-700' 
-                            : 'bg-blue-600 hover:bg-blue-700'
-                        }`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                      >
-                        {isRecording ? <MicOff /> : <Mic />}
-                      </motion.button>
-                      
-                      <div className="text-sm text-gray-400 mt-4">
-                        Record your introduction for each cultural context
-                      </div>
-                    </div>
+                                         {/* Enhanced Recording Interface */}
+                     <div className="bg-gray-700 rounded-lg p-6">
+                       <div className="text-lg mb-4 text-center">
+                         {isRecording ? (
+                           <div>
+                             <div className="text-red-400 mb-2">🔴 Recording... {recordingTime}s</div>
+                             {/* Audio level indicator */}
+                             <div className="w-32 h-4 bg-gray-700 rounded-full mx-auto overflow-hidden">
+                               <div 
+                                 className="h-full bg-green-500 transition-all duration-100"
+                                 style={{ width: `${Math.min(100, (audioLevel / 128) * 100)}%` }}
+                               />
+                             </div>
+                             <div className="text-xs text-gray-400 mt-1">
+                               Audio Level: {Math.round((audioLevel / 128) * 100)}%
+                             </div>
+                           </div>
+                         ) : (
+                           <div>
+                             {audioUrl ? "Your recording is ready!" : "Click to start recording your response"}
+                             {/* Microphone status indicator */}
+                             <div className="mt-2 text-sm">
+                               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
+                                 canRecord 
+                                   ? 'bg-green-600/20 text-green-400 border border-green-500/40' 
+                                   : 'bg-red-600/20 text-red-400 border border-red-500/40'
+                               }`}>
+                                 {canRecord ? '🎤 Microphone Ready' : '❌ Microphone Not Ready'}
+                               </span>
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                       
+                       <div className="flex items-center justify-center gap-4 mb-4">
+                         <motion.button
+                           onClick={handleVoiceRecording}
+                           disabled={!canRecord}
+                           className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
+                             isRecording 
+                               ? 'bg-red-600 hover:bg-red-700' 
+                               : !canRecord
+                               ? 'bg-gray-500 cursor-not-allowed'
+                               : 'bg-blue-600 hover:bg-blue-700'
+                           }`}
+                           whileHover={{ scale: canRecord && !isRecording ? 1.1 : 1 }}
+                           whileTap={{ scale: canRecord && !isRecording ? 0.9 : 1 }}
+                         >
+                           {isRecording ? <MicOff /> : <Mic />}
+                         </motion.button>
+                         
+                         {audioUrl && (
+                           <motion.button
+                             onClick={playAudioRecording}
+                             className="w-16 h-16 rounded-full bg-green-600 hover:bg-green-700 flex items-center justify-center text-2xl transition-all"
+                             whileHover={{ scale: 1.1 }}
+                             whileTap={{ scale: 0.9 }}
+                           >
+                             <Play className="text-white" />
+                           </motion.button>
+                         )}
+                       </div>
+                       
+                       {!canRecord && (
+                         <div className="text-center text-red-400 text-sm mb-4">
+                           <div className="mb-2">⚠️ Microphone access required. Please allow microphone permissions.</div>
+                           <div className="flex gap-2 justify-center">
+                             <Button
+                               onClick={checkMicrophonePermission}
+                               size="sm"
+                               className="bg-blue-600 hover:bg-blue-700 text-white"
+                             >
+                               🔄 Refresh Access
+                             </Button>
+                             <Button
+                               onClick={async () => {
+                                 const state = await checkCurrentPermissionState();
+                                 alert(`Current microphone permission: ${state}\n\nIf it shows 'granted', try clicking 'Refresh Access' above.`);
+                               }}
+                               size="sm"
+                               variant="outline"
+                               className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                             >
+                               ℹ️ Check Status
+                             </Button>
+                           </div>
+                         </div>
+                       )}
+                       
+                       {audioUrl && (
+                         <div className="text-center">
+                           <audio 
+                             ref={audioRef} 
+                             src={audioUrl} 
+                             className="hidden"
+                             controls={false}
+                             preload="metadata"
+                           />
+                           <div className="text-sm text-green-400 mb-2">
+                             🎵 Recording saved! Click play to review.
+                           </div>
+                           <div className="text-xs text-gray-400">
+                             Duration: {recordingTime}s • Format: WebM
+                           </div>
+                         </div>
+                       )}
+                       
+                       <div className="text-sm text-gray-400 mt-4 text-center">
+                         Record your introduction for each cultural context
+                       </div>
+                     </div>
                   </div>
                 )}
 
@@ -778,6 +1436,32 @@ const CulturalCommunicationArena = () => {
                     <div className="bg-gray-700 rounded-lg p-6 mb-6">
                       <h4 className="font-bold mb-2">Scenario:</h4>
                       <p className="text-gray-300">{mockChallenges.writing_adaptation.scenario}</p>
+                      
+                      {/* Real-time cultural feedback */}
+                      {currentResponse.length > 5 && (
+                        <div className="mt-4 p-3 bg-gray-600 rounded-lg">
+                          <h5 className="font-semibold text-white mb-2">Cultural Analysis Preview:</h5>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {(() => {
+                              const preview = analyzeCulturalFit(currentResponse);
+                              return Object.entries(preview).map(([region, score]) => {
+                                if (region === 'overall') return null;
+                                return (
+                                  <div key={region} className="flex justify-between">
+                                    <span className="text-gray-300">{region}:</span>
+                                    <span className={`font-bold ${
+                                      score > 80 ? 'text-green-400' : 
+                                      score > 60 ? 'text-yellow-400' : 'text-red-400'
+                                    }`}>
+                                      {Math.round(score)}%
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -925,7 +1609,7 @@ const CulturalCommunicationArena = () => {
                               setBossTimer(30);
                             } else {
                               // finished all rounds
-                              setAchievements(prev => [...prev, '🏁 Final Boss Survived']);
+                              addAchievement('🏁 Final Boss Survived');
                             }
                           }}
                           className="bg-green-600 hover:bg-green-700 text-white"
@@ -942,11 +1626,15 @@ const CulturalCommunicationArena = () => {
               <div className="text-center">
                 {(() => {
                   const current = stages[currentStage - 1].challenges[currentChallenge];
+                  // Toggle this flag to re-enable gating in the future
+                  const enforceCompletion = false;
                   let disabled = false;
-                  if (current.type === 'combo') {
-                    disabled = !(comboVoiceDone && comboWriteDone);
-                  } else if (current.type === 'ultimate') {
-                    disabled = bossRoundIndex < 3 || !bossVoiceDone; // require finishing rounds
+                  if (enforceCompletion) {
+                    if (current.type === 'combo') {
+                      disabled = !(comboVoiceDone && comboWriteDone);
+                    } else if (current.type === 'ultimate') {
+                      disabled = bossRoundIndex < 3 || !bossVoiceDone; // require finishing rounds
+                    }
                   }
                   return (
                     <motion.button
@@ -969,14 +1657,16 @@ const CulturalCommunicationArena = () => {
               <AnimatePresence>
                 {toastAchievement && (
                   <motion.div
-                    initial={{ opacity: 0, x: 50, y: -50 }}
+                    initial={{ opacity: 0, x: 50, y: -10 }}
                     animate={{ opacity: 1, x: 0, y: 0 }}
                     exit={{ opacity: 0, x: 50 }}
-                    className="fixed top-6 right-6 z-50 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-xl px-5 py-3 shadow-lg"
+                    className="fixed top-24 right-6 z-[100000] pointer-events-none"
                   >
-                    <div className="flex items-center gap-2 text-white">
-                      <span>🏆</span>
-                      <span className="font-semibold">{toastAchievement}</span>
+                    <div className="bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg px-4 py-2 shadow-2xl text-white max-w-sm border border-white/10 backdrop-blur-sm">
+                      <div className="flex items-center gap-2">
+                        <span>🏆</span>
+                        <span className="font-semibold truncate">{toastAchievement}</span>
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -1004,6 +1694,22 @@ const CulturalCommunicationArena = () => {
               >
                 Exit Game
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Name Required Dialog (should not render while playing) */}
+        <AlertDialog open={false}>
+          <AlertDialogContent className="glass-card border-white/20">
+            <AlertDialogHeader>
+              <div className="flex justify-center mb-2"><AlertTriangle className="w-8 h-8 text-red-400"/></div>
+              <AlertDialogTitle className="text-white text-center">Name Required</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-300 text-center">
+                Please enter your name to continue with the game.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setShowNameDialog(false)} className="mx-auto bg-blue-600 hover:bg-blue-700">OK</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
