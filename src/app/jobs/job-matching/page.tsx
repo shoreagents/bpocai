@@ -15,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft,
   Target,
@@ -56,6 +66,9 @@ export default function JobMatchingPage() {
   const [isPageSelectorOpen, setIsPageSelectorOpen] = useState(false);
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
   const [isGetStartedDialogOpen, setIsGetStartedDialogOpen] = useState(false);
+  const [showApplicationDialog, setShowApplicationDialog] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState('');
+  const [applicationType, setApplicationType] = useState<'success' | 'error' | 'info'>('success');
   // Use Header's auth modals by toggling URL search params
   const shareRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -799,7 +812,9 @@ export default function JobMatchingPage() {
                             const chk = await fetch('/api/user/saved-resumes', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
                             const j = await chk.json()
                             if (!chk.ok || !j?.hasSavedResume) { 
-                              alert('You must have a resume first before applying')
+                              setApplicationMessage('You must have a resume first before applying');
+                              setApplicationType('info');
+                              setShowApplicationDialog(true);
                               router.push('/resume-builder')
                               return 
                             }
@@ -809,10 +824,14 @@ export default function JobMatchingPage() {
                               body: JSON.stringify({ jobId: selectedJobData.id, resumeId: j.id || j.resumeId, resumeSlug: j.resumeSlug })
                             })
                             if (!resp.ok) throw new Error('Failed to submit application')
-                            alert('Application submitted')
+                            setApplicationMessage('Application submitted successfully!');
+                            setApplicationType('success');
+                            setShowApplicationDialog(true);
                           } catch (err) {
                             console.error(err)
-                            alert('Could not apply. Please try again.')
+                            setApplicationMessage('Could not apply. Please try again.');
+                            setApplicationType('error');
+                            setShowApplicationDialog(true);
                           }
                         }}
                       >
@@ -911,6 +930,29 @@ export default function JobMatchingPage() {
           {/* Auth handled by Header via URL search param (?signup=true) */}
         </div>
       </div>
+
+      {/* Application Status Alert Dialog */}
+      <AlertDialog open={showApplicationDialog} onOpenChange={setShowApplicationDialog}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              {applicationType === 'success' ? 'Application Submitted!' : 
+               applicationType === 'error' ? 'Application Error' : 'Information'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300">
+              {applicationMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => setShowApplicationDialog(false)}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

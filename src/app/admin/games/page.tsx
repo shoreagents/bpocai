@@ -66,10 +66,10 @@ export default function GamesPage() {
   const [selectedRows, setSelectedRows] = useState<string[]>([])
 
   const tabs: GameTab[] = [
-    { id: 'typing-hero', name: 'Typing Hero', badge: 4, icon: Keyboard },
-    { id: 'disc-personality', name: 'BPOC DISC', badge: 2, icon: Brain },
-    { id: 'ultimate', name: 'BPOC Ultimate', badge: 1, icon: Star },
-    { id: 'bpoc-cultural', name: 'BPOC Cultural', badge: 1, icon: Globe }
+    { id: 'typing-hero', name: 'Typing Hero', icon: Keyboard },
+    { id: 'disc-personality', name: 'BPOC DISC', icon: Brain },
+    { id: 'ultimate', name: 'BPOC Ultimate', icon: Star },
+    { id: 'bpoc-cultural', name: 'BPOC Cultural', icon: Globe }
   ]
 
   const gameData: GameData[] = [
@@ -253,183 +253,12 @@ export default function GamesPage() {
               >
                 <IconComponent className="w-4 h-4" />
                 <span>{tab.name}</span>
-                {tab.badge && (
-                  <Badge 
-                    variant="secondary" 
-                    className={`text-xs ${
-                      isActive 
-                        ? 'bg-gray-200 text-gray-900' 
-                        : 'bg-white/10 text-gray-400'
-                    }`}
-                  >
-                    {tab.badge}
-                  </Badge>
-                )}
               </button>
             )
           })}
         </div>
 
-        {/* Data Table */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              {currentTab?.icon && <currentTab.icon className="w-5 h-5" />}
-              {currentTab?.name} Game Data
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-white/10 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-white/5">
-                    <TableHead className="w-12">
-                      <Checkbox 
-                        checked={selectedRows.length === gameData.length}
-                        onCheckedChange={handleSelectAll}
-                        className="border-white/20"
-                      />
-                    </TableHead>
-                    <TableHead className="text-white font-medium">Header</TableHead>
-                    <TableHead className="text-white font-medium">Section Type</TableHead>
-                    <TableHead className="text-white font-medium">Status</TableHead>
-                    <TableHead className="text-white font-medium">Difficulty</TableHead>
-                    <TableHead className="text-white font-medium">Category</TableHead>
-                    <TableHead className="text-white font-medium">Target</TableHead>
-                    <TableHead className="text-white font-medium">Limit</TableHead>
-                    <TableHead className="text-white font-medium">Reviewer</TableHead>
-                    <TableHead className="text-white font-medium">Participants</TableHead>
-                    <TableHead className="text-white font-medium">Completion Rate</TableHead>
-                    <TableHead className="text-white font-medium">Avg Score</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {gameData.map((item) => (
-                    <TableRow key={item.id} className="border-white/10 hover:bg-white/5">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full cursor-grab"></div>
-                          <Checkbox 
-                            checked={selectedRows.includes(item.id)}
-                            onCheckedChange={(checked) => handleSelectRow(item.id, checked as boolean)}
-                            className="border-white/20"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium text-white">
-                        {item.header}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-white/10 text-white border-white/20">
-                          {item.sectionType}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(item.status)}
-                          <Badge className={getStatusColor(item.status)}>
-                            {item.status}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getDifficultyColor(item.difficulty)}>
-                          {item.difficulty}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                          {item.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-white">{item.target}</TableCell>
-                      <TableCell className="text-white">{item.limit}</TableCell>
-                      <TableCell>
-                        {item.reviewer === 'Assign reviewer' ? (
-                          <select className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm">
-                            <option>Assign reviewer</option>
-                            <option>Eddie Lake</option>
-                            <option>Jamik Tashpulatov</option>
-                          </select>
-                        ) : (
-                          <span className="text-white">{item.reviewer}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-white">{item.participants}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 bg-white/10 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-cyan-400 to-purple-400 h-2 rounded-full"
-                              style={{ width: `${item.completionRate}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-white text-sm">{item.completionRate}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Star className="w-4 h-4 text-yellow-400" />
-                          <span className="text-white">{item.averageScore}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-gray-900 border-white/10">
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-sm text-gray-400">
-                {selectedRows.length} of {gameData.length} row(s) selected.
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">Rows per page</span>
-                  <select className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm">
-                    <option>10</option>
-                    <option>25</option>
-                    <option>50</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">Page 1 of 7</span>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                      &lt;&lt;
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                      &lt;
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                      &gt;
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                      &gt;&gt;
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </AdminLayout>
   )

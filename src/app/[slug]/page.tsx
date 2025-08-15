@@ -501,10 +501,12 @@ export default function SavedResumePage() {
                   <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30">
                     <FileText className="h-6 w-6 text-purple-400" />
                   </div>
-                  <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-white mb-1">{resume.title}</h1>
-                    <div className="text-gray-300 text-sm">Total Views: {resume.viewCount} • Created: {new Date(resume.createdAt).toLocaleDateString()}</div>
-                  </div>
+                                     <div>
+                     <h1 className="text-3xl lg:text-4xl font-bold text-white mb-1">{resume.title}</h1>
+                                           <div className="text-gray-300 text-sm">
+                        <span className="font-bold">Total Views:</span> {resume.viewCount} • <span className="font-bold">Created:</span> {new Date(resume.createdAt).toLocaleDateString()} • <span className="font-bold">Template:</span> {resume.template || 'Default'}
+                      </div>
+                   </div>
                 </div>
               </div>
               
