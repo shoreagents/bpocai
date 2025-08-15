@@ -55,6 +55,7 @@ interface SavedResume {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+  userId: string;
   user: {
     fullName: string;
     avatarUrl: string;
@@ -870,89 +871,395 @@ export default function SavedResumePage() {
                   )}
                   {analysis && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <Card className="glass-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
-                        <CardHeader>
-                          <CardTitle className="text-cyan-400">Overall Score</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-4xl font-bold text-white">{analysis.overallScore ?? 'N/A'}</div>
-                          <div className="grid grid-cols-2 gap-2 mt-4 text-sm text-gray-300">
-                            <div>ATS: <span className="text-white font-semibold">{analysis.atsCompatibility ?? '—'}</span></div>
-                            <div>Content: <span className="text-white font-semibold">{analysis.contentQuality ?? '—'}</span></div>
-                            <div>Presentation: <span className="text-white font-semibold">{analysis.professionalPresentation ?? '—'}</span></div>
-                            <div>Alignment: <span className="text-white font-semibold">{analysis.skillsAlignment ?? '—'}</span></div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="glass-card border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
-                        <CardHeader>
-                          <CardTitle className="text-purple-400">Improved Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-gray-300 text-sm">
-                          {analysis.improvedSummary || '—'}
-                        </CardContent>
-                      </Card>
-
-                      <Card className="glass-card border-green-500/30">
-                        <CardHeader>
-                          <CardTitle className="text-green-400">Key Strengths</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {Array.isArray(analysis.keyStrengths) && analysis.keyStrengths.length > 0 ? (
-                            <div className="space-y-2">
-                              {analysis.keyStrengths.map((s: string, i: number) => (
-                                <div
-                                  key={i}
-                                  className="p-3 rounded-lg bg-green-500/10 border border-green-400/20 text-sm text-gray-200 leading-relaxed"
-                                >
-                                  {s}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-gray-400 text-sm">—</div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card className="glass-card border-blue-500/30">
+                                                                                           <Card className="glass-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
                           <CardHeader>
-                            <CardTitle className="text-blue-400">Salary & Career</CardTitle>
+                            <CardTitle className="text-cyan-400">Overall Score</CardTitle>
                           </CardHeader>
-                          <CardContent className="text-sm text-gray-300 space-y-2">
-                            <div>Level: <span className="text-white">{analysis.salaryAnalysis?.currentLevel || '—'}</span></div>
-                            <div>Range: <span className="text-white">{analysis.salaryAnalysis?.recommendedSalaryRange || '—'}</span></div>
-                            {Array.isArray(analysis.careerPath?.nextCareerSteps) && analysis.careerPath.nextCareerSteps.length > 0 && (
-                              <div>
-                                <div className="text-white font-medium mb-1">Next Steps</div>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {analysis.careerPath.nextCareerSteps.map((step: any, i: number) => (
-                                    <li key={i} className="text-gray-300">{step.title}: {step.description}</li>
+                                                                                                           <CardContent className="max-h-56 min-h-56 flex flex-col">
+                             <div className="text-4xl font-bold text-white mb-4">{analysis.overallScore ?? 'N/A'}</div>
+                             <div className="grid grid-cols-2 gap-3">
+                               <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20">
+                                 <div className="text-cyan-400 font-medium text-sm mb-1">ATS</div>
+                                 <div className="text-white font-semibold text-lg">{analysis.atsCompatibility ?? '—'}</div>
+                               </div>
+                               <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20">
+                                 <div className="text-cyan-400 font-medium text-sm mb-1">Content</div>
+                                 <div className="text-white font-semibold text-lg">{analysis.contentQuality ?? '—'}</div>
+                               </div>
+                               <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20">
+                                 <div className="text-cyan-400 font-medium text-sm mb-1">Presentation</div>
+                                 <div className="text-white font-semibold text-lg">{analysis.professionalPresentation ?? '—'}</div>
+                               </div>
+                               <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20">
+                                 <div className="text-cyan-400 font-medium text-sm mb-1">Alignment</div>
+                                 <div className="text-white font-semibold text-lg">{analysis.skillsAlignment ?? '—'}</div>
+                               </div>
+                             </div>
+                           </CardContent>
+                        </Card>
+
+                                             <Card className="glass-card border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+                         <CardHeader>
+                           <CardTitle className="text-purple-400">Improved Summary</CardTitle>
+                         </CardHeader>
+                                                                                                      <CardContent data-card="improved-summary" className="text-gray-300 text-sm max-h-56 overflow-y-auto [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-purple-500/20 [&::-webkit-scrollbar-thumb]:bg-purple-500/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-purple-500/80">
+                             <div className="leading-loose space-y-4">
+                               {analysis.improvedSummary ? (
+                                 <div className="whitespace-pre-line">{analysis.improvedSummary}</div>
+                               ) : (
+                                 '—'
+                               )}
+                             </div>
+                           </CardContent>
+                       </Card>
+
+                       <Card className="glass-card border-green-500/30">
+                         <CardHeader>
+                           <CardTitle className="text-green-400">Key Strengths</CardTitle>
+                         </CardHeader>
+                                                                                                       <CardContent data-card="key-strengths" className="max-h-56 overflow-y-auto [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-track]:bg-green-500/20 [&::-webkit-scrollbar-thumb]:bg-green-500/60 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-green-500/80">
+                            {Array.isArray(analysis.keyStrengths) && analysis.keyStrengths.length > 0 ? (
+                              <div className="space-y-2">
+                                <div className="space-y-2">
+                                  {analysis.keyStrengths.map((s: string, i: number) => (
+                                    <div
+                                      key={i}
+                                      className="p-3 rounded-lg bg-green-500/10 border border-green-400/20 text-sm text-gray-200 leading-relaxed"
+                                    >
+                                      {s}
+                                    </div>
                                   ))}
-                                </ul>
+                                </div>
+                                {/* Add some extra content to ensure scrolling */}
+                                <div className="space-y-2">
+                                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-400/20 text-sm text-gray-200 leading-relaxed">
+                                    Additional strength item to ensure scrollbar visibility
+                                  </div>
+                                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-400/20 text-sm text-gray-200 leading-relaxed">
+                                    Another strength item for testing scrollbar
+                                  </div>
+                                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-400/20 text-sm text-gray-200 leading-relaxed">
+                                    Final strength item to trigger scrollbar
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-gray-400 text-sm">—</div>
+                            )}
+                          </CardContent>
+                       </Card>
+
+                                                                                           <Card className="glass-card border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-purple-500/5">
+                          <CardHeader>
+                            <CardTitle className="text-indigo-400">Career Path</CardTitle>
+                          </CardHeader>
+                                                     <CardContent className="text-sm text-gray-300 space-y-3 max-h-96 overflow-y-auto relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-indigo-500/10 [&::-webkit-scrollbar-thumb]:bg-indigo-500/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-indigo-500/70">
+                            {analysis.careerPath?.currentPosition && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-1">Current Position</div>
+                                <div className="text-indigo-400">{analysis.careerPath.currentPosition}</div>
+                              </div>
+                            )}
+                            
+                            {Array.isArray(analysis.careerPath?.nextCareerSteps) && analysis.careerPath.nextCareerSteps.length > 0 && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-2">Next Career Steps</div>
+                                <div className="space-y-2">
+                                  {analysis.careerPath.nextCareerSteps.map((step: any, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-2 h-2 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
+                                      <div>
+                                        <div className="text-white font-medium text-sm">{step.title || `Step ${i + 1}`}</div>
+                                        <div className="text-gray-300 text-xs">{step.description || 'Career advancement opportunity'}</div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {Array.isArray(analysis.careerPath?.skillGaps) && analysis.careerPath.skillGaps.length > 0 && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-2">Skill Gaps to Address</div>
+                                <div className="space-y-1">
+                                  {analysis.careerPath.skillGaps.map((skill: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-300 text-xs">{skill}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {analysis.careerPath?.timeline && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-1">Timeline</div>
+                                <div className="text-indigo-400 text-sm">{analysis.careerPath.timeline}</div>
+                              </div>
+                            )}
+                            
+                            {analysis.careerPath?.timelineDetails && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-1">Timeline Details</div>
+                                <div className="text-gray-300 text-xs">{analysis.careerPath.timelineDetails}</div>
+                              </div>
+                            )}
+                            
+                            {analysis.careerPath?.marketPosition && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-1">Market Position</div>
+                                <div className="text-gray-300 text-xs">{analysis.careerPath.marketPosition}</div>
+                              </div>
+                            )}
+                            
+                            {analysis.careerPath?.growthPotential && (
+                              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20">
+                                <div className="text-white font-medium mb-1">Growth Potential</div>
+                                <div className="text-gray-300 text-xs">{analysis.careerPath.growthPotential}</div>
                               </div>
                             )}
                           </CardContent>
                         </Card>
 
-                        <Card className="glass-card border-white/20">
+                                                                                           <Card className="glass-card border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-green-500/5">
                           <CardHeader>
-                            <CardTitle className="text-white">Section Analysis</CardTitle>
+                            <CardTitle className="text-emerald-400">Strengths Analysis</CardTitle>
                           </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                              {['contact','summary','experience','education','skills'].map((sec) => (
-                                <div key={sec} className="p-3 rounded-lg border border-white/10">
-                                  <div className="text-white font-medium capitalize mb-1">{sec}</div>
-                                  <div className="text-gray-300">Score: <span className="text-white">{analysis.sectionAnalysis?.[sec]?.score ?? '—'}</span></div>
+                          <CardContent className="text-sm text-gray-300 space-y-3 max-h-96 overflow-y-auto relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-emerald-500/10 [&::-webkit-scrollbar-thumb]:bg-emerald-500/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-emerald-500/70">
+                            {Array.isArray(analysis.strengthsAnalysis?.coreStrengths) && analysis.strengthsAnalysis.coreStrengths.length > 0 && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-2">Core Strengths</div>
+                                <div className="space-y-1">
+                                  {analysis.strengthsAnalysis.coreStrengths.map((strength: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-300 text-xs">{strength}</span>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            )}
+                            
+                            {Array.isArray(analysis.strengthsAnalysis?.technicalStrengths) && analysis.strengthsAnalysis.technicalStrengths.length > 0 && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-2">Technical Strengths</div>
+                                <div className="space-y-1">
+                                  {analysis.strengthsAnalysis.technicalStrengths.map((strength: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-300 text-xs">{strength}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {Array.isArray(analysis.strengthsAnalysis?.softSkills) && analysis.strengthsAnalysis.softSkills.length > 0 && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-2">Soft Skills</div>
+                                <div className="space-y-1">
+                                  {analysis.strengthsAnalysis.softSkills.map((skill: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-300 text-xs">{skill}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {Array.isArray(analysis.strengthsAnalysis?.achievements) && analysis.strengthsAnalysis.achievements.length > 0 && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-2">Notable Achievements</div>
+                                <div className="space-y-1">
+                                  {analysis.strengthsAnalysis.achievements.map((achievement: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-300 text-xs">{achievement}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {Array.isArray(analysis.strengthsAnalysis?.marketAdvantage) && analysis.strengthsAnalysis.marketAdvantage.length > 0 && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-2">Market Advantages</div>
+                                <div className="space-y-1">
+                                  {analysis.strengthsAnalysis.marketAdvantage.map((advantage: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-300 text-xs">{advantage}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {analysis.strengthsAnalysis?.uniqueValue && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-1">Unique Value Proposition</div>
+                                <div className="text-gray-300 text-xs">{analysis.strengthsAnalysis.uniqueValue}</div>
+                              </div>
+                            )}
+                            
+                            {analysis.strengthsAnalysis?.competitiveEdge && (
+                              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="text-white font-medium mb-1">Competitive Edge</div>
+                                <div className="text-gray-300 text-xs">{analysis.strengthsAnalysis.competitiveEdge}</div>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
-                      </div>
+
+                                                                                                                                                                                       <Card className="glass-card border-blue-500/30">
+                             <CardHeader>
+                               <CardTitle className="text-blue-400">Salary Analysis</CardTitle>
+                             </CardHeader>
+                                                           <CardContent className="text-sm text-gray-300 space-y-3 max-h-96 overflow-y-auto relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-blue-500/10 [&::-webkit-scrollbar-thumb]:bg-blue-500/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-blue-500/70">
+                               {analysis.salaryAnalysis?.currentLevel && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-1">Current Level</div>
+                                   <div className="text-blue-400">{analysis.salaryAnalysis.currentLevel}</div>
+                                 </div>
+                               )}
+                               
+                               {analysis.salaryAnalysis?.recommendedSalaryRange && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-1">Recommended Salary Range</div>
+                                   <div className="text-blue-400 font-medium">
+                                     {analysis.salaryAnalysis.recommendedSalaryRange.includes('PHP') ? 
+                                       analysis.salaryAnalysis.recommendedSalaryRange.replace('PHP', '₱') :
+                                       analysis.salaryAnalysis.recommendedSalaryRange
+                                     }
+                                   </div>
+                                 </div>
+                               )}
+                               
+                               {Array.isArray(analysis.salaryAnalysis?.factorsAffectingSalary) && analysis.salaryAnalysis.factorsAffectingSalary.length > 0 && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-2">Factors Affecting Salary</div>
+                                   <div className="space-y-1">
+                                     {analysis.salaryAnalysis.factorsAffectingSalary.map((factor: string, i: number) => (
+                                       <div key={i} className="flex items-start gap-2">
+                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
+                                         <span className="text-gray-300 text-xs">{factor}</span>
+                                       </div>
+                                     ))}
+                                   </div>
+                                 </div>
+                               )}
+                               
+                               {Array.isArray(analysis.salaryAnalysis?.negotiationTips) && analysis.salaryAnalysis.negotiationTips.length > 0 && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-2">Negotiation Tips</div>
+                                   <div className="space-y-1">
+                                     {analysis.salaryAnalysis.negotiationTips.map((tip: string, i: number) => (
+                                       <div key={i} className="flex items-start gap-2">
+                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0"></div>
+                                         <span className="text-gray-300 text-xs">{tip}</span>
+                                       </div>
+                                     ))}
+                                   </div>
+                                 </div>
+                               )}
+                               
+                               {analysis.salaryAnalysis?.marketComparison && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-1">Market Comparison</div>
+                                   <div className="text-gray-300 text-xs">{analysis.salaryAnalysis.marketComparison}</div>
+                                 </div>
+                               )}
+                               
+                               {analysis.salaryAnalysis?.growthProjection && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-1">Growth Projection</div>
+                                   <div className="text-gray-300 text-xs">{analysis.salaryAnalysis.growthProjection}</div>
+                                 </div>
+                               )}
+                               
+                               {analysis.salaryAnalysis?.industryBenchmark && (
+                                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/20">
+                                   <div className="text-white font-medium mb-1">Industry Benchmark</div>
+                                   <div className="text-gray-300 text-xs">{analysis.salaryAnalysis.industryBenchmark}</div>
+                                 </div>
+                               )}
+                             </CardContent>
+                           </Card>
+                       
+                                               <div className="lg:col-span-3">
+                          <Card className="glass-card border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-amber-500/5">
+                            <CardHeader>
+                              <CardTitle className="text-orange-400">Section Analysis</CardTitle>
+                            </CardHeader>
+                                                                               <CardContent className="max-h-96 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-orange-500/10 [&::-webkit-scrollbar-thumb]:bg-orange-500/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-orange-500/70">
+                          <div className="space-y-4">
+                            {['contact','summary','experience','education','skills'].map((sec) => {
+                              const sectionData = analysis.sectionAnalysis?.[sec];
+                              return (
+                                <div key={sec} className="p-4 rounded-lg border border-orange-400/20 bg-orange-500/5">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div className="text-white font-medium capitalize text-base">{sec}</div>
+                                    <div className="text-orange-400 font-semibold text-lg">
+                                      Score: {sectionData?.score ?? '—'}
+                                    </div>
+                                  </div>
+                                  
+                                  {sectionData?.issues && Array.isArray(sectionData.issues) && sectionData.issues.length > 0 && (
+                                    <div className="mb-3">
+                                      <div className="text-orange-300 font-medium text-sm mb-2">Issues Found:</div>
+                                      <div className="space-y-1">
+                                        {sectionData.issues.map((issue: string, idx: number) => (
+                                          <div key={idx} className="flex items-start gap-2 text-xs text-gray-300">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0"></div>
+                                            <span>{issue}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {sectionData?.reasons && Array.isArray(sectionData.reasons) && sectionData.reasons.length > 0 && (
+                                    <div className="mb-3">
+                                      <div className="text-orange-300 font-medium text-sm mb-2">Reasons:</div>
+                                      <div className="space-y-1">
+                                        {sectionData.reasons.map((reason: string, idx: number) => (
+                                          <div key={idx} className="flex items-start gap-2 text-xs text-gray-300">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0"></div>
+                                            <span>{reason}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {sectionData?.improvements && Array.isArray(sectionData.improvements) && sectionData.improvements.length > 0 && (
+                                    <div>
+                                      <div className="text-orange-300 font-medium text-sm mb-2">Improvements:</div>
+                                      <div className="space-y-1">
+                                        {sectionData.improvements.map((improvement: string, idx: number) => (
+                                          <div key={idx} className="flex items-start gap-2 text-xs text-gray-300">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 flex-shrink-0"></div>
+                                            <span>{improvement}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {(!sectionData?.issues && !sectionData?.reasons && !sectionData?.improvements) && (
+                                    <div className="text-gray-400 text-xs italic">
+                                      No detailed analysis available for this section
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                         </Card>
+                       </div>
                     </div>
                   )}
                 </div>
