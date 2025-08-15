@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +37,7 @@ const CulturalCommunicationArena = () => {
     AU: 50,
     CA: 50
   });
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState('Player');
   const [currentResponse, setCurrentResponse] = useState('');
   const [survivalStatus, setSurvivalStatus] = useState(100);
   const [achievements, setAchievements] = useState<string[]>([]);
@@ -47,7 +47,7 @@ const CulturalCommunicationArena = () => {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [toastAchievement, setToastAchievement] = useState<string | null>(null);
   const [stageAchievements, setStageAchievements] = useState<Record<number, string[]>>({});
-  const [showNameDialog, setShowNameDialog] = useState(false);
+
   // Count any real player interactions (voice recordings or writing submissions)
   const [interactionCount, setInteractionCount] = useState(0);
 
@@ -917,13 +917,7 @@ const CulturalCommunicationArena = () => {
   };
 
   const startGame = () => {
-    if (playerName.trim()) {
-      // Ensure any previous dialog state is closed before transitioning
-      setShowNameDialog(false);
-      setGameState('playing');
-    } else {
-      setShowNameDialog(true);
-    }
+    setGameState('playing');
   };
 
   if (gameState === 'welcome') {
@@ -1114,38 +1108,16 @@ const CulturalCommunicationArena = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
+                className="text-center"
               >
-                <Card className="glass-card border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-2xl text-white">Enter Your Username</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <Input
-                        type="text"
-                        placeholder="Enter your name"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
-                  className="mt-8 text-center"
+                  className="mt-8"
                 >
                   <Button
-                    onClick={() => {
-                      if (playerName.trim()) {
-                        setGameState('playing');
-                      } else {
-                        setShowNameDialog(true);
-                      }
-                    }}
+                    onClick={startGame}
                     className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 text-xl font-bold"
                     size="lg"
                   >
@@ -1158,28 +1130,8 @@ const CulturalCommunicationArena = () => {
           </div>
         </div>
         
-        {/* Name Required Dialog - only visible on intro screen */}
-        <AlertDialog open={showNameDialog} onOpenChange={setShowNameDialog}>
-          <AlertDialogContent className="glass-card border-white/20">
-            <AlertDialogHeader>
-              <div className="flex justify-center mb-2">
-                <AlertTriangle className="w-8 h-8 text-red-400"/>
-              </div>
-              <AlertDialogTitle className="text-white text-center">Name Required</AlertDialogTitle>
-              <AlertDialogDescription className="text-gray-300 text-center">
-                Please enter your name to continue with the game.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction 
-                onClick={() => setShowNameDialog(false)} 
-                className="mx-auto bg-blue-600 hover:bg-blue-700"
-              >
-                OK
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+
+          
       </div>
     );
   }
@@ -1326,17 +1278,19 @@ const CulturalCommunicationArena = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen cyber-grid overflow-hidden">
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
-      </div>
-      
-      <Header />
-      
-      <div className="pt-16 relative z-10">
+  // Main Game Screen
+  if (gameState === 'playing') {
+    return (
+      <div className="min-h-screen cyber-grid overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+        </div>
+        
+        <Header />
+        
+        <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -2032,24 +1986,14 @@ const CulturalCommunicationArena = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Name Required Dialog (should not render while playing) */}
-        <AlertDialog open={false}>
-          <AlertDialogContent className="glass-card border-white/20">
-            <AlertDialogHeader>
-              <div className="flex justify-center mb-2"><AlertTriangle className="w-8 h-8 text-red-400"/></div>
-              <AlertDialogTitle className="text-white text-center">Name Required</AlertDialogTitle>
-              <AlertDialogDescription className="text-gray-300 text-center">
-                Please enter your name to continue with the game.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={() => setShowNameDialog(false)} className="mx-auto bg-blue-600 hover:bg-blue-700">OK</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+
       </div>
     </div>
-  );
+    );
+  }
+
+  // Default fallback (should not reach here)
+  return null;
 };
 
 export default CulturalCommunicationArena;

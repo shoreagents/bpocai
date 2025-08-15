@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Badge } from '@/components/ui/badge';
 import { 
   AlertDialog,
@@ -476,11 +476,11 @@ export default function BPOCUltimateGame() {
     business: 0
   });
   const [choices, setChoices] = useState<Array<{scenario: number, choice: any, type: string}>>([]);
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState('Player');
   const [selectedAvatar, setSelectedAvatar] = useState('👨‍💼');
   const [showReaction, setShowReaction] = useState('');
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const [showNameAlert, setShowNameAlert] = useState(false);
+
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [gameStartTime, setGameStartTime] = useState<number | null>(null);
   const postedRef = useRef(false);
@@ -556,26 +556,14 @@ export default function BPOCUltimateGame() {
   const [businessImpact, setBusinessImpact] = useState(0); // 0-100
   const [crisisPressure, setCrisisPressure] = useState(0); // 0-100
   
-  const avatars = [
-    { emoji: '👨‍💼', label: 'Executive' },
-    { emoji: '👨‍💻', label: 'Tech Specialist' },
-    { emoji: '👩‍💼', label: 'Manager' },
-    { emoji: '🧑‍💼', label: 'Professional' },
-    { emoji: '👔', label: 'Business Lead' }
-  ];
+
 
   const startGame = () => {
-    if (!playerName.trim()) {
-      setShowNameAlert(true);
-      return;
-    }
     setGameState('playing');
     setGameStartTime(Date.now());
   };
 
-  const proceedToIntro = () => {
-    setGameState('intro');
-  };
+
 
   const handleChoice = (choice: any) => {
     // Set selected choice
@@ -801,8 +789,8 @@ export default function BPOCUltimateGame() {
       business: 0
     });
     setChoices([]);
-    setPlayerName('');
-    setSelectedAvatar('👨‍💼');
+    
+    
     
     // Reset real-time feedback system
     setTeamMorale(50);
@@ -898,10 +886,10 @@ export default function BPOCUltimateGame() {
                           How to Play
                         </h3>
                         <ul className="space-y-3 text-sm">
-                          <li className="flex items-start">
-                            <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🎯</span>
-                            <span>Navigate through 4 critical workplace scenarios</span>
-                          </li>
+                                                     <li className="flex items-start">
+                             <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🎯</span>
+                             <span>Navigate through 10 critical workplace scenarios</span>
+                           </li>
                           <li className="flex items-start">
                             <span className="text-cyan-400 mr-3 mt-0.5 text-lg">⚡</span>
                             <span>Make real-time decisions that reveal your character</span>
@@ -931,7 +919,7 @@ export default function BPOCUltimateGame() {
                             <Crown className="h-5 w-5 text-green-400" />
                             <h4 className="text-white font-semibold">Executive Assessment</h4>
                           </div>
-                          <p className="text-gray-300 text-sm">Evaluate leadership, decision-making, and business acumen in real scenarios!</p>
+                          <p className="text-gray-300 text-sm">Evaluate leadership, decision-making, and business acumen in 10 real scenarios!</p>
                         </div>
                         <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                           <div className="flex items-center gap-2 mb-2">
@@ -944,13 +932,13 @@ export default function BPOCUltimateGame() {
                     </div>
                   </CardContent>
                   <CardContent>
-                    <Button
-                      onClick={proceedToIntro}
-                      className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
-                    >
-                      <Play className="h-6 w-6 mr-3" />
-                      Start Game
-                    </Button>
+                                         <Button
+                       onClick={startGame}
+                       className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
+                     >
+                       <Play className="h-6 w-6 mr-3" />
+                       Start the Ultimate Game
+                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -961,164 +949,7 @@ export default function BPOCUltimateGame() {
     );
   }
 
-  // Intro Screen
-  if (gameState === 'intro') {
-    return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
-        </div>
-        
-        <Header />
-        
-        <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-              <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between mb-8"
-            >
-              <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  onClick={handleBackClick}
-                  className="mr-4 text-gray-400 hover:text-white"
-                >
-                  <ArrowLeft className="h-5 w-5 mr-2" />
-                  Back
-                </Button>
-                <div className="flex items-center">
-                  <Crown className="h-12 w-12 text-green-400 mr-4" />
-                  <div>
-                    <h1 className="text-4xl font-bold gradient-text">BPOC Ultimate</h1>
-                    <p className="text-gray-400">The Complete Candidate Revelation</p>
-                  </div>
-                </div>
-              </div>
-              </motion.div>
 
-            {/* Main Content */}
-            <div className="max-w-4xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center mb-8"
-              >
-                <p className="text-xl text-gray-300 leading-relaxed">
-                Navigate 4 critical workplace scenarios. Every choice reveals your true character. 
-                Are you Executive Material or a potential nightmare?
-              </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="glass-card border-white/10">
-                  <CardHeader>
-                    <CardTitle className="text-2xl text-white">Choose Your Avatar</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                                                            <div className="grid grid-cols-5 gap-4 mb-6">
-                      {avatars.map((avatar, index) => {
-                        return (
-                  <motion.button
-                    key={index}
-                            onClick={() => setSelectedAvatar(avatar.emoji)}
-                            className={`p-4 rounded-xl text-center transition-all ${
-                              selectedAvatar === avatar.emoji 
-                                ? 'bg-blue-500/20 border-2 border-blue-400' 
-                                : 'bg-gray-800/50 border-2 border-transparent hover:border-gray-600'
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                  >
-                            <div className="text-3xl mb-2">{avatar.emoji}</div>
-                            <div className="text-xs text-gray-300 font-medium">
-                              {avatar.label}
-                            </div>
-                  </motion.button>
-                        );
-                      })}
-              </div>
-              
-                    <div className="space-y-4">
-                      <Input
-                type="text"
-                placeholder="Enter your name"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                        className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
-              />
-            </div>
-                  </CardContent>
-                </Card>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="mt-8 text-center"
-                >
-                  <Button
-                    onClick={startGame}
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 text-xl font-bold"
-                    size="lg"
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    Start the Ultimate Game
-                  </Button>
-                </motion.div>
-          </motion.div>
-        </div>
-          </div>
-            </div>
-
-        {/* Name Validation Modal - Only in Intro Screen */}
-        {showNameAlert && (
-          <motion.div
-            className="fixed inset-0 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowNameAlert(false)}></div>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              transition={{ duration: 0.3 }}
-              className="relative z-10"
-            >
-              <Card className="glass-card border-white/20 shadow-xl min-w-[400px]">
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white mb-2">Name Required</h3>
-                    <p className="text-gray-300 mb-6">
-                      Please enter your name to continue with the game.
-                    </p>
-                    <Button
-                      onClick={() => setShowNameAlert(false)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      OK
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
-      </div>
-    );
-  }
 
   // Results Screen
   if (gameState === 'results') {

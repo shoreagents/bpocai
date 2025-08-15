@@ -45,6 +45,13 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import AdminLayout from '@/components/layout/AdminLayout'
@@ -83,6 +90,48 @@ interface TypingHeroStats {
   user_avatar?: string
 }
 
+interface UltimateStats {
+  id: string
+  user_id: string
+  total_sessions: number
+  completed_sessions: number
+  last_played_at: string
+  leadership: number
+  crisis_mgmt: number
+  integrity: number
+  communications: number
+  analysis: number
+  overall: number
+  pass_level: string
+  percentile: number
+  created_at: string
+  updated_at: string
+  user_name: string
+  user_email: string
+  user_avatar?: string
+}
+
+interface DiscPersonalityStats {
+  id: string
+  user_id: string
+  last_taken_at: string
+  d: number
+  i: number
+  s: number
+  c: number
+  primary_style: string
+  secondary_style: string
+  consistency_index: number
+  strengths: string[]
+  blind_spots: string[]
+  preferred_env: string[]
+  created_at: string
+  updated_at: string
+  user_name: string
+  user_email: string
+  user_avatar?: string
+}
+
 interface GameTab {
   id: string
   name: string
@@ -94,8 +143,11 @@ export default function GamesPage() {
   const [selectedTab, setSelectedTab] = useState('typing-hero')
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [typingHeroStats, setTypingHeroStats] = useState<TypingHeroStats[]>([])
+  const [ultimateStats, setUltimateStats] = useState<UltimateStats[]>([])
+  const [discPersonalityStats, setDiscPersonalityStats] = useState<DiscPersonalityStats[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterType, setFilterType] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [error, setError] = useState<string | null>(null)
@@ -127,11 +179,55 @@ export default function GamesPage() {
     }
   }, [])
 
+  const fetchUltimateStats = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch('/api/admin/ultimate-stats')
+      if (response.ok) {
+        const data = await response.json()
+        setUltimateStats(data.stats || [])
+      } else {
+        setError('Failed to fetch ultimate stats')
+        setUltimateStats([])
+      }
+    } catch (error) {
+      setError('Failed to fetch ultimate stats')
+      setUltimateStats([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const fetchDiscPersonalityStats = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch('/api/admin/disc-personality-stats')
+      if (response.ok) {
+        const data = await response.json()
+        setDiscPersonalityStats(data.stats || [])
+      } else {
+        setError('Failed to fetch DISC personality stats')
+        setDiscPersonalityStats([])
+      }
+    } catch (error) {
+      setError('Failed to fetch DISC personality stats')
+      setDiscPersonalityStats([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (selectedTab === 'typing-hero') {
       fetchTypingHeroStats()
+    } else if (selectedTab === 'ultimate') {
+      fetchUltimateStats()
+    } else if (selectedTab === 'disc-personality') {
+      fetchDiscPersonalityStats()
     }
-  }, [selectedTab, fetchTypingHeroStats])
+  }, [selectedTab, fetchTypingHeroStats, fetchUltimateStats, fetchDiscPersonalityStats])
 
   const gameData: GameData[] = [
     {
@@ -266,10 +362,82 @@ export default function GamesPage() {
   }
 
   // Filter and paginate typing hero stats
-  const filteredTypingHeroStats = typingHeroStats.filter(stat =>
-    stat.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    stat.user_email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredTypingHeroStats = typingHeroStats.filter(stat => {
+    // Search filter
+    const matchesSearch = stat.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         stat.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (!matchesSearch) return false
+    
+    // Type filter
+    switch (filterType) {
+      case 'active':
+        return stat.last_played_at && new Date(stat.last_played_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      case 'inactive':
+        return !stat.last_played_at || new Date(stat.last_played_at) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      case 'high-wpm':
+        return stat.best_wpm >= 50
+      case 'high-accuracy':
+        return stat.best_accuracy >= 90
+      case 'recent':
+        return stat.last_played_at && new Date(stat.last_played_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      case 'all':
+      default:
+        return true
+    }
+  })
+
+  // Filter Ultimate stats
+  const filteredUltimateStats = ultimateStats.filter(stat => {
+    // Search filter
+    const matchesSearch = stat.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         stat.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (!matchesSearch) return false
+    
+    // Type filter
+    switch (filterType) {
+      case 'active':
+        return stat.last_played_at && new Date(stat.last_played_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      case 'inactive':
+        return !stat.last_played_at || new Date(stat.last_played_at) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      case 'high-score':
+        return stat.overall >= 80
+      case 'high-leadership':
+        return stat.leadership >= 80
+      case 'high-integrity':
+        return stat.integrity >= 80
+      case 'recent':
+        return stat.last_played_at && new Date(stat.last_played_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      case 'all':
+      default:
+        return true
+    }
+  })
+
+  // Filter DISC Personality stats
+  const filteredDiscPersonalityStats = discPersonalityStats.filter(stat => {
+    // Search filter
+    const matchesSearch = stat.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         stat.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (!matchesSearch) return false
+    
+    // Type filter
+    switch (filterType) {
+      case 'active':
+        return stat.last_taken_at && new Date(stat.last_taken_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      case 'inactive':
+        return !stat.last_taken_at || new Date(stat.last_taken_at) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      case 'high-consistency':
+        return stat.consistency_index >= 80
+      case 'recent':
+        return stat.last_taken_at && new Date(stat.last_taken_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      case 'all':
+      default:
+        return true
+    }
+  })
 
   const totalPages = Math.ceil(filteredTypingHeroStats.length / itemsPerPage)
   const paginatedTypingHeroStats = filteredTypingHeroStats.slice(
@@ -279,6 +447,17 @@ export default function GamesPage() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
+    setCurrentPage(1)
+  }
+
+  const handleFilterChange = (filter: string) => {
+    setFilterType(filter)
+    setCurrentPage(1)
+  }
+
+  const clearAllFilters = () => {
+    setSearchTerm('')
+    setFilterType('all')
     setCurrentPage(1)
   }
 
@@ -327,7 +506,22 @@ export default function GamesPage() {
                 <Keyboard className="w-5 h-5" />
                 Typing Hero Statistics
               </CardTitle>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 ml-auto">
+                <div className="relative">
+                  <Select value={filterType || 'all'} onValueChange={handleFilterChange}>
+                    <SelectTrigger className="w-[180px] bg-white/10 border-white/20 text-white focus:ring-cyan-500">
+                      <SelectValue placeholder="All Players" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/10">
+                      <SelectItem value="all">All Players</SelectItem>
+                      <SelectItem value="active">Active Players</SelectItem>
+                      <SelectItem value="inactive">Inactive Players</SelectItem>
+                      <SelectItem value="high-wpm">High WPM (50+)</SelectItem>
+                      <SelectItem value="high-accuracy">High Accuracy (90%+)</SelectItem>
+                      <SelectItem value="recent">Recently Active</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="relative">
                   <input
                     type="text"
@@ -337,6 +531,16 @@ export default function GamesPage() {
                     className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>
+                {(searchTerm || filterType !== 'all') && (
+                  <Button
+                    onClick={clearAllFilters}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-white border border-white/20"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -409,6 +613,181 @@ export default function GamesPage() {
                               <div className="text-xs text-gray-400">percentile</div>
                             </div>
                           </TableCell>
+                                                     <TableCell>
+                             <div className="text-sm text-gray-400">
+                               {stat.created_at ? new Date(stat.created_at).toLocaleDateString() : 'Unknown'}
+                             </div>
+                           </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-gray-900 border-white/10">
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem>Edit Player</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Ultimate Stats Table */}
+        {selectedTab === 'ultimate' && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Star className="w-5 h-5" />
+                BPOC Ultimate Statistics
+              </CardTitle>
+              <div className="flex items-center gap-4 ml-auto">
+                <div className="relative">
+                  <Select value={filterType || 'all'} onValueChange={handleFilterChange}>
+                    <SelectTrigger className="w-[180px] bg-white/10 border-white/20 text-white focus:ring-cyan-500">
+                      <SelectValue placeholder="All Players" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/10">
+                      <SelectItem value="all">All Players</SelectItem>
+                      <SelectItem value="active">Active Players</SelectItem>
+                      <SelectItem value="inactive">Inactive Players</SelectItem>
+                      <SelectItem value="high-score">High Overall (80%+)</SelectItem>
+                      <SelectItem value="high-leadership">High Leadership (80%+)</SelectItem>
+                      <SelectItem value="high-integrity">High Integrity (80%+)</SelectItem>
+                      <SelectItem value="recent">Recently Active</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search players..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+                {(searchTerm || filterType !== 'all') && (
+                  <Button
+                    onClick={clearAllFilters}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-white border border-white/20"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8 text-gray-400">Loading...</div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-400">{error}</div>
+              ) : (
+                <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10 hover:bg-white/5">
+                        <TableHead className="text-white font-medium">Name</TableHead>
+                        <TableHead className="text-white font-medium">Sessions</TableHead>
+                        <TableHead className="text-white font-medium">Leadership</TableHead>
+                        <TableHead className="text-white font-medium">Crisis Mgmt</TableHead>
+                        <TableHead className="text-white font-medium">Integrity</TableHead>
+                        <TableHead className="text-white font-medium">Communications</TableHead>
+                        <TableHead className="text-white font-medium">Analysis</TableHead>
+                        <TableHead className="text-white font-medium">Overall</TableHead>
+                        <TableHead className="text-white font-medium">Pass Level</TableHead>
+                        <TableHead className="text-white font-medium">Percentile</TableHead>
+                        <TableHead className="text-white font-medium">Last Played</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUltimateStats.map((stat) => (
+                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage 
+                                  src={stat.user_avatar} 
+                                  alt={stat.user_name}
+                                />
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">
+                                  {stat.user_name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium text-white">{stat.user_name}</div>
+                                <div className="text-sm text-gray-400">{stat.user_email}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.completed_sessions}/{stat.total_sessions}</div>
+                              <div className="text-xs text-gray-400">completed</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.leadership}</div>
+                              <div className="text-xs text-gray-400">leadership</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.crisis_mgmt}</div>
+                              <div className="text-xs text-gray-400">crisis mgmt</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.integrity}</div>
+                              <div className="text-xs text-gray-400">integrity</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.communications}</div>
+                              <div className="text-xs text-gray-400">communications</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.analysis}</div>
+                              <div className="text-xs text-gray-400">analysis</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.overall}</div>
+                              <div className="text-xs text-gray-400">overall</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                                {stat.pass_level}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.percentile}%</div>
+                              <div className="text-xs text-gray-400">percentile</div>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-400">
                               {stat.last_played_at ? new Date(stat.last_played_at).toLocaleDateString() : 'Never'}
@@ -438,7 +817,166 @@ export default function GamesPage() {
             </CardContent>
           </Card>
         )}
-=======
+
+        {/* DISC Personality Stats Table */}
+        {selectedTab === 'disc-personality' && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Brain className="w-5 h-5" />
+                BPOC DISC Personality Statistics
+              </CardTitle>
+              <div className="flex items-center gap-4 ml-auto">
+                <div className="relative">
+                  <Select value={filterType || 'all'} onValueChange={handleFilterChange}>
+                    <SelectTrigger className="w-[180px] bg-white/10 border-white/20 text-white focus:ring-cyan-500">
+                      <SelectValue placeholder="All Players" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/10">
+                      <SelectItem value="all">All Players</SelectItem>
+                      <SelectItem value="active">Active Players</SelectItem>
+                      <SelectItem value="inactive">Inactive Players</SelectItem>
+                      <SelectItem value="high-consistency">High Consistency (80%+)</SelectItem>
+                      <SelectItem value="recent">Recently Active</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search players..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+                {(searchTerm || filterType !== 'all') && (
+                  <Button
+                    onClick={clearAllFilters}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-white border border-white/20"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8 text-gray-400">Loading...</div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-400">{error}</div>
+              ) : (
+                <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10 hover:bg-white/5">
+                        <TableHead className="text-white font-medium">Name</TableHead>
+                        <TableHead className="text-white font-medium">D Score</TableHead>
+                        <TableHead className="text-white font-medium">I Score</TableHead>
+                        <TableHead className="text-white font-medium">S Score</TableHead>
+                        <TableHead className="text-white font-medium">C Score</TableHead>
+                        <TableHead className="text-white font-medium">Primary Style</TableHead>
+                        <TableHead className="text-white font-medium">Secondary Style</TableHead>
+                        <TableHead className="text-white font-medium">Consistency</TableHead>
+                        <TableHead className="text-white font-medium">Last Taken</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDiscPersonalityStats.map((stat) => (
+                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage 
+                                  src={stat.user_avatar} 
+                                  alt={stat.user_name}
+                                />
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">
+                                  {stat.user_name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium text-white">{stat.user_name}</div>
+                                <div className="text-sm text-gray-400">{stat.user_email}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.d}</div>
+                              <div className="text-xs text-gray-400">Dominance</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.i}</div>
+                              <div className="text-xs text-gray-400">Influence</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.s}</div>
+                              <div className="text-xs text-gray-400">Steadiness</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.c}</div>
+                              <div className="text-xs text-gray-400">Conscientiousness</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                {stat.primary_style}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                {stat.secondary_style}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-center">
+                              <div className="font-medium text-white">{stat.consistency_index}%</div>
+                              <div className="text-xs text-gray-400">consistency</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-400">
+                              {stat.last_taken_at ? new Date(stat.last_taken_at).toLocaleDateString() : 'Never'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-gray-900 border-white/10">
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem>Edit Player</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
 
       </div>
