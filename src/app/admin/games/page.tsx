@@ -318,6 +318,7 @@ export default function GamesPage() {
           })}
         </div>
 
+
         {/* Typing Hero Stats Table */}
         {selectedTab === 'typing-hero' && (
           <Card className="glass-card">
@@ -437,6 +438,9 @@ export default function GamesPage() {
             </CardContent>
           </Card>
         )}
+=======
+
+
       </div>
     </AdminLayout>
   )
