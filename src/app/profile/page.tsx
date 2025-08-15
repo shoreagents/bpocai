@@ -55,6 +55,8 @@ export default function ProfilePage() {
   const [typingLatest, setTypingLatest] = useState<any | null>(null);
   const [discStats, setDiscStats] = useState<any | null>(null);
   const [discLatest, setDiscLatest] = useState<any | null>(null);
+  const [ultimateStats, setUltimateStats] = useState<any | null>(null);
+  const [ultimateLatest, setUltimateLatest] = useState<any | null>(null);
   
   // Fetch user profile from Railway
   useEffect(() => {
@@ -223,11 +225,19 @@ export default function ProfilePage() {
           setDiscStats(d.stats || null);
           setDiscLatest(d.latestSession || null);
         }
+        const ult = await fetch(`/api/games/ultimate/public/${user.id}`, { cache: 'no-store' });
+        if (ult.ok) {
+          const u = await ult.json();
+          setUltimateStats(u.stats || null);
+          setUltimateLatest(u.latestSession || null);
+        }
       } catch (e) {
         setTypingStats(null);
         setTypingLatest(null);
         setDiscStats(null);
         setDiscLatest(null);
+        setUltimateStats(null);
+        setUltimateLatest(null);
       }
     })();
   }, [user?.id]);
@@ -410,17 +420,17 @@ export default function ProfilePage() {
             </motion.div>
 
             {/* Career Games Cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
               <Card className="glass-card border-white/10">
-                <CardHeader>
+                  <CardHeader>
                   <CardTitle className="text-white">Career Games</CardTitle>
                   <CardDescription className="text-gray-300">Your game stats</CardDescription>
-                </CardHeader>
-                <CardContent>
+                  </CardHeader>
+                  <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Typing Hero */}
                     <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
@@ -450,7 +460,7 @@ export default function ProfilePage() {
                             <div>Date: <span className="text-white font-semibold">{new Date(typingLatest.started_at).toLocaleString()}</span></div>
                             <div>WPM: <span className="text-white font-semibold">{typingLatest.wpm ?? '—'}</span></div>
                             <div>Accuracy: <span className="text-white font-semibold">{typingLatest.accuracy != null ? `${typingLatest.accuracy}%` : '—'}</span></div>
-                          </div>
+                            </div>
                         ) : (
                           <div>No recent session found.</div>
                         )}
@@ -475,8 +485,8 @@ export default function ProfilePage() {
                             <div>Consistency: <span className="text-white font-semibold">{discStats.consistency_index ?? '—'}</span></div>
                             {discStats.percentile != null && (
                               <div>Percentile: <span className="text-white font-semibold">{discStats.percentile}%</span></div>
-                            )}
-                          </div>
+                                )}
+                              </div>
                         ) : (
                           <div className="text-gray-400">No data yet.</div>
                         )}
@@ -494,16 +504,7 @@ export default function ProfilePage() {
                       </CardContent>
                     </Card>
 
-                    {/* BPOC Ultimate */}
-                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
-                      <CardHeader className="pb-2 flex items-center gap-2">
-                        <Crown className="w-5 h-5 text-red-400" />
-                        <CardTitle className="text-white">BPOC Ultimate</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-sm text-gray-300">
-                        <div className="text-gray-400">No data yet.</div>
-                      </CardContent>
-                    </Card>
+                    
 
                     {/* BPOC Cultural */}
                     <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
@@ -515,10 +516,85 @@ export default function ProfilePage() {
                         <div className="text-gray-400">No data yet.</div>
                       </CardContent>
                     </Card>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+
+                    {/* BPOC Ultimate */}
+                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                      <CardHeader className="pb-2 flex items-center gap-2">
+                        <Crown className="w-5 h-5 text-red-400" />
+                        <CardTitle className="text-white">BPOC Ultimate</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-gray-300 space-y-3">
+                        {ultimateStats ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>Tier: <span className="text-white font-semibold">{ultimateStats.last_tier ?? '—'}</span></div>
+                              <div>Sessions: <span className="text-white font-semibold">{ultimateStats.total_sessions ?? 0}</span></div>
+                              <div>Smart: <span className="text-white font-semibold">{ultimateStats.smart ?? '—'}</span></div>
+                              <div>Motivated: <span className="text-white font-semibold">{ultimateStats.motivated ?? '—'}</span></div>
+                              <div>Integrity: <span className="text-white font-semibold">{ultimateStats.integrity ?? '—'}</span></div>
+                              <div>Business: <span className="text-white font-semibold">{ultimateStats.business ?? '—'}</span></div>
+                              {ultimateStats.last_recommendation && (
+                                <div className="col-span-2">Recommendation: <span className="text-white font-semibold">{ultimateStats.last_recommendation}</span></div>
+                              )}
+                              {ultimateStats.last_client_value && (
+                                <div className="col-span-2">Client Value: <span className="text-white font-semibold">{ultimateStats.last_client_value}</span></div>
+                              )}
+                            </div>
+                            {(ultimateStats.platinum_choices != null || ultimateStats.gold_choices != null || ultimateStats.bronze_choices != null || ultimateStats.nightmare_choices != null) && (
+                              <div className="grid grid-cols-4 gap-3 text-xs text-gray-400">
+                                <div>Platinum: <span className="text-white font-semibold">{ultimateStats.platinum_choices ?? 0}</span></div>
+                                <div>Gold: <span className="text-white font-semibold">{ultimateStats.gold_choices ?? 0}</span></div>
+                                <div>Bronze: <span className="text-white font-semibold">{ultimateStats.bronze_choices ?? 0}</span></div>
+                                <div>Nightmare: <span className="text-white font-semibold">{ultimateStats.nightmare_choices ?? 0}</span></div>
+                              </div>
+                            )}
+                            {ultimateStats.latest_competencies && (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>Team Morale: <span className="text-white font-semibold">{ultimateStats.latest_competencies.teamMorale ?? ultimateStats.latest_competencies.team_morale ?? '—'}</span></div>
+                                <div>Client Trust: <span className="text-white font-semibold">{ultimateStats.latest_competencies.clientTrust ?? ultimateStats.latest_competencies.client_trust ?? '—'}</span></div>
+                                <div>Business Impact: <span className="text-white font-semibold">{ultimateStats.latest_competencies.businessImpact ?? ultimateStats.latest_competencies.business_impact ?? '—'}</span></div>
+                                <div>Crisis Pressure: <span className="text-white font-semibold">{ultimateStats.latest_competencies.crisisPressure ?? ultimateStats.latest_competencies.crisis_pressure ?? '—'}</span></div>
+                              </div>
+                            )}
+                            {Array.isArray(ultimateStats.key_strengths) && ultimateStats.key_strengths.length > 0 && (
+                              <div>
+                                <div className="text-gray-400">Key Strengths</div>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {ultimateStats.key_strengths.map((s: string, i: number) => (
+                                    <span key={i} className="px-2 py-1 bg-white/5 rounded text-xs text-white/90 border border-white/10">{s}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {Array.isArray(ultimateStats.development_areas) && ultimateStats.development_areas.length > 0 && (
+                              <div>
+                                <div className="text-gray-400">Development Areas</div>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {ultimateStats.development_areas.map((s: string, i: number) => (
+                                    <span key={i} className="px-2 py-1 bg-white/5 rounded text-xs text-white/90 border border-white/10">{s}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-gray-400">No data yet.</div>
+                        )}
+                        {ultimateLatest && (
+                          <div className="mt-3 text-gray-400">
+                            <div className="text-xs">Latest Session</div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>Date: <span className="text-white">{new Date(ultimateLatest.started_at).toLocaleString()}</span></div>
+                              <div>Tier: <span className="text-white">{ultimateLatest.tier ?? '—'}</span></div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
           </div>
         </div>
       </div>
