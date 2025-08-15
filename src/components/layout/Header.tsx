@@ -245,6 +245,7 @@ export default function Header({}: HeaderProps) {
   const userMenuItems = [
     { label: 'Profile', href: '/profile', icon: User, action: null },
     { label: 'My Resume', href: savedResumeInfo?.resumeUrl || '/resume-builder', icon: FileTextIcon, action: null },
+    { label: 'My Applications', href: '/applications', icon: Briefcase, action: null },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }
   ]
