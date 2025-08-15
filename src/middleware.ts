@@ -19,7 +19,8 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/api/admin/jobs/process') ||
       request.nextUrl.pathname.startsWith('/api/admin/processed-jobs') ||
       request.nextUrl.pathname.startsWith('/api/games/typing-hero/session') ||
-      request.nextUrl.pathname.startsWith('/api/games/disc-personality/session')) {
+      request.nextUrl.pathname.startsWith('/api/games/disc-personality/session') ||
+      request.nextUrl.pathname.startsWith('/api/games/ultimate/session')) {
     console.log('🔍 Middleware: Processing authenticated API request')
     
     try {
@@ -135,6 +136,7 @@ export const config = {
     ,'/api/admin/processed-jobs',
     '/api/admin/processed-jobs/:path*',
     '/api/games/typing-hero/session',
-    '/api/games/disc-personality/session'
+    '/api/games/disc-personality/session',
+    '/api/games/ultimate/session'
   ],
 } 
