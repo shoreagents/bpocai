@@ -1267,7 +1267,7 @@ const CulturalCommunicationArena = () => {
                   </div>
 
                   {/* Summary */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
                       <div className="text-2xl font-bold text-white">{avgScore}%</div>
                       <div className="text-sm text-gray-400">Average Cultural Score</div>
@@ -1275,6 +1275,10 @@ const CulturalCommunicationArena = () => {
                     <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
                       <div className="text-2xl font-bold text-white">{achievements.length}</div>
                       <div className="text-sm text-gray-400">Achievements Earned</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
+                      <div className="text-2xl font-bold text-white">{survivalStatus}%</div>
+                      <div className="text-sm text-gray-400">Survival Status</div>
                     </div>
                   </div>
 
@@ -1295,11 +1299,11 @@ const CulturalCommunicationArena = () => {
                     if (navigator.share) {
                       navigator.share({
                         title: 'My BPOC Cultural Results',
-                        text: `Average: ${avgScore}% | Achievements: ${achievements.length}`,
+                        text: `Average: ${avgScore}% | Achievements: ${achievements.length} | Survival: ${survivalStatus}%`,
                         url: window.location.href,
                       });
                     } else {
-                      navigator.clipboard.writeText(`BPOC Cultural Results — Average: ${avgScore}% | Achievements: ${achievements.length}`);
+                      navigator.clipboard.writeText(`BPOC Cultural Results — Average: ${avgScore}% | Achievements: ${achievements.length} | Survival: ${survivalStatus}%`);
                     }
                   }}
                   className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
