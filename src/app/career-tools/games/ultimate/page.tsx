@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
@@ -482,6 +482,73 @@ export default function BPOCUltimateGame() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showNameAlert, setShowNameAlert] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+  const postedRef = useRef(false);
+  // Save session once when reaching results screen
+  useEffect(() => {
+    if (gameState !== 'results') return;
+    (async () => {
+      try {
+        if (postedRef.current) return;
+        postedRef.current = true;
+        const startedAt = gameStartTime ? new Date(gameStartTime) : new Date(Date.now() - 5 * 60 * 1000);
+        const finishedAt = new Date();
+        const durationMs = finishedAt.getTime() - (gameStartTime || finishedAt.getTime());
+        const platinumChoices = choices.filter(c => c.type === 'PLATINUM').length;
+        const goldChoices = choices.filter(c => c.type === 'GOLD').length;
+        const bronzeChoices = choices.filter(c => c.type === 'BRONZE').length;
+        const nightmareChoices = choices.filter(c => c.type === 'NIGHTMARE').length;
+        const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
+        await fetch('/api/games/ultimate/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            startedAt,
+            finishedAt,
+            durationMs,
+            smart: scores.smart,
+            motivated: scores.motivated,
+            integrity: scores.integrity,
+            business: scores.business,
+            platinumChoices,
+            goldChoices,
+            bronzeChoices,
+            nightmareChoices,
+            tier: getPlayerTier().tier,
+            tierRecommendation: getPlayerTier().recommendation ?? null,
+            clientValue: getPlayerTier().clientValue ?? null,
+            teamMorale: Math.round(teamMorale),
+            clientTrust: Math.round(clientTrust),
+            businessImpact: Math.round(businessImpact),
+            crisisPressure: Math.round(crisisPressure),
+            keyStrengths: [
+              ...(scores.smart >= 120 ? ['Strategic decision-making'] : []),
+              ...(scores.motivated >= 120 ? ['High initiative and drive'] : []),
+              ...(scores.integrity >= 120 ? ['Strong ethical foundation'] : []),
+              ...(scores.business >= 120 ? ['Excellent business sense'] : []),
+              ...(platinumChoices >= 4 ? ['Consistent premium choices'] : []),
+              ...(choices.filter(c => c.type === 'NIGHTMARE').length <= 1 ? ['Crisis avoidance'] : [])
+            ],
+            developmentAreas: [
+              ...(scores.smart < 90 ? ['Strategic thinking under pressure'] : []),
+              ...(scores.motivated < 90 ? ['Proactive leadership initiative'] : []),
+              ...(scores.integrity < 90 ? ['Ethical decision-making'] : []),
+              ...(scores.business < 90 ? ['Commercial awareness'] : []),
+              ...(choices.filter(c => c.type === 'NIGHTMARE').length >= 3 ? ['Crisis management skills'] : []),
+              ...(choices.filter(c => c.type === 'BRONZE').length >= 4 ? ['Results-oriented thinking'] : [])
+            ],
+            playerName,
+            avatar: selectedAvatar
+          })
+        });
+      } catch (e) {
+        console.error('Failed to save Ultimate session', e);
+      }
+    })();
+  }, [gameState]);
   
   // Real-time feedback system state
   const [teamMorale, setTeamMorale] = useState(0); // 0-100
@@ -503,6 +570,7 @@ export default function BPOCUltimateGame() {
       return;
     }
     setGameState('playing');
+    setGameStartTime(Date.now());
   };
 
   const proceedToIntro = () => {
