@@ -230,51 +230,187 @@ const CulturalCommunicationArena = () => {
   const stages = [
     {
       name: "Cultural Bootcamp",
+      description: "Master the fundamentals of cross-cultural communication",
+      scenario: "You're a new BPO agent joining a global team. Your first task is to introduce yourself to different regional teams and adapt your communication style to match their cultural expectations.",
+      instructions: "Complete all three challenges to demonstrate your basic cultural awareness and adaptability. Each challenge tests different aspects of cultural communication.",
       challenges: [
         {
-          title: "Voice Introduction Challenge",
+          title: "The Voice Identity Test",
           description: "Introduce yourself to 4 different client teams",
+          scenario: "Record 4 different 30-second introductions for different cultural contexts. Each team has different communication preferences and cultural norms.",
+          instructions: "Record a brief self-introduction (15-30 seconds) that matches each region's communication style. Focus on tone, formality level, and cultural appropriateness. Avoid robotic tones, fake accents, or nervous stammering.",
           type: "voice",
           timeLimit: 120,
-          regions: ['US', 'UK', 'AU', 'CA']
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Same robotic tone for all cultures",
+            "Fake accent attempts", 
+            "Nervous stammering or excessive 'ums'",
+            "Cannot be clearly understood by native speakers",
+            "Wrong energy level for cultural context"
+          ]
         },
         {
-          title: "Writing Style Chameleon",
+          title: "The Writing Style Chameleon",
           description: "Same message, 4 different cultural styles",
+          scenario: "Your manager asks you to communicate a project deadline change to different regional stakeholders. Each region expects different levels of formality and communication structure.",
+          instructions: "Write the same message in 4 different styles that match each region's cultural communication preferences. Pay attention to vocabulary, sentence structure, and tone. Complete all 4 within time limit.",
           type: "writing",
           timeLimit: 90,
-          regions: ['US', 'UK', 'AU', 'CA']
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Generic corporate speak for all regions",
+            "Inappropriate formality level",
+            "Cultural tone-deafness",
+            "Takes longer than 20 seconds per response"
+          ]
+        },
+        {
+          title: "The Slang Decoder Challenge",
+          description: "Decode regional slang and respond appropriately",
+          scenario: "You'll receive 10 client messages with regional slang from different cultures. Your mission is to decode the slang and respond appropriately to each.",
+          instructions: "Decode regional slang terms and respond in culturally appropriate ways. Show understanding of informal language without taking offense. Complete all responses within time limit.",
+          type: "slang",
+          timeLimit: 90,
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Misunderstand more than 3 slang terms",
+            "Respond inappropriately to cultural tone",
+            "Show offense at casual/informal language",
+            "Take longer than 90 seconds total"
+          ]
         }
       ]
     },
     {
       name: "Client Integration Arena", 
+      description: "Handle real-world client interactions with cultural sensitivity",
+      scenario: "You're now handling live client interactions. You'll face angry customers and team coordination challenges that require immediate cultural adaptation under pressure.",
+      instructions: "Navigate through customer service scenarios and team coordination challenges. Your survival depends on maintaining cultural appropriateness while solving problems.",
       challenges: [
         {
-          title: "Angry Customer Gauntlet",
-          description: "De-escalate 3 increasingly difficult customers",
-          type: "voice",
+          title: "The Cultural Style Switch",
+          description: "Same business problem, 4 different cultural approaches",
+          scenario: "Client's social media campaign is 20% below target metrics. Explain the situation to 4 different clients using their preferred communication style.",
+          instructions: "Provide voice response (45 seconds) and writing follow-up (15 seconds) for each culture. Adapt your approach to match each region's communication preferences while maintaining professional quality.",
+          type: "style_switch",
           timeLimit: 180,
-          regions: ['US', 'UK', 'AU']
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Same approach for all cultures",
+            "Wrong formality level for any region",
+            "Mismatched voice and writing styles",
+            "Cultural stereotyping or insensitivity"
+          ]
         },
         {
-          title: "Multi-Cultural Team Crisis",
+          title: "The Angry Customer Gauntlet",
+          description: "De-escalate 3 increasingly difficult customers",
+          scenario: "You're working the customer service line and receiving calls from increasingly frustrated customers from different regions. Each requires a different approach to de-escalation.",
+          instructions: "Record voice responses to de-escalate each customer. Adapt your tone, language, and approach based on the customer's cultural background. Stay professional while showing cultural understanding.",
+          type: "voice",
+          timeLimit: 180,
+          regions: ['US', 'UK', 'AU'],
+          eliminationTriggers: [
+            "Nervous, defensive, or panicked voice delivery",
+            "Wrong cultural approach for any customer",
+            "Cannot handle profanity professionally",
+            "Blame-shifting or excuse-making responses"
+          ]
+        },
+        {
+          title: "The Multi-Cultural Team Chaos",
           description: "Coordinate team from 4 different cultures",
+          scenario: "Emergency team chat with mixed cultural styles. 4 team members from different cultures need coordination during crisis.",
+          instructions: "Record ONE voice response (90 seconds) that addresses all four communication styles. Acknowledge each team member's concerns while providing unified action plan.",
           type: "combo",
           timeLimit: 120,
-          regions: ['US', 'UK', 'AU', 'CA']
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Favor one cultural style over others",
+            "Generic response that doesn't address individual styles",
+            "Nervous or uncertain voice delivery",
+            "Misses any team member's core concern"
+          ]
+        }
+      ]
+    },
+    {
+      name: "The Pressure Cooker",
+      description: "Advanced cultural navigation under extreme pressure",
+      scenario: "You're now in high-pressure situations that test your cultural intelligence and professional boundaries. Each challenge requires perfect cultural adaptation while maintaining professionalism.",
+      instructions: "Navigate through increasingly sensitive cultural situations. Demonstrate emotional maturity and cultural intelligence under pressure.",
+      challenges: [
+        {
+          title: "The Cultural Landmine Field",
+          description: "Navigate 4 increasingly sensitive cultural situations",
+          scenario: "You'll face 4 increasingly sensitive situations that test your ability to handle inappropriate comments, passive-aggressive attacks, and cultural insensitivity professionally.",
+          instructions: "Navigate each cultural sensitivity appropriately. Maintain professional relationships despite difficult comments. Address underlying concerns without defensive reactions.",
+          type: "landmines",
+          timeLimit: 150,
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Take offense at inappropriate comments",
+            "Miss passive-aggressive subtext completely",
+            "Give dishonest responses to avoid conflict",
+            "Show cultural insensitivity in responses"
+          ]
+        },
+        {
+          title: "The Professional Boundary Test",
+          description: "Handle clients pushing professional boundaries",
+          scenario: "Clients are pushing professional boundaries by asking personal questions, making inappropriate requests, or sharing excessive personal information.",
+          instructions: "Maintain appropriate professional boundaries. Redirect conversations back to business appropriately. Handle inappropriate comments with grace while preserving client relationships.",
+          type: "boundaries",
+          timeLimit: 120,
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Share personal information inappropriately",
+            "Agree to inappropriate social meetings",
+            "Become confrontational about cultural comments",
+            "Take on unprofessional counselor role"
+          ]
+        },
+        {
+          title: "The Communication Breakdown Crisis",
+          description: "Fix multiple communication failures simultaneously",
+          scenario: "Multiple communication failures happening simultaneously. Each client has different complaints about your communication style and needs specific fixes.",
+          instructions: "Record individual voice messages (30 seconds each) addressing each client's specific communication concern. Take ownership of failures and provide specific solutions.",
+          type: "crisis",
+          timeLimit: 150,
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Defensive responses or blame-shifting",
+            "Generic solutions that don't address specific cultural needs",
+            "Nervous or uncertain voice delivery",
+            "Promises changes that contradict other clients' needs"
+          ]
         }
       ]
     },
     {
       name: "Final Boss Battle",
+      description: "The ultimate test of cultural communication mastery",
+      scenario: "You're leading a critical conference call with stakeholders from all regions. The call is about a major project failure that could cost millions. Each participant expects communication in their preferred cultural style.",
+      instructions: "Navigate through 4 phases of crisis management while respecting all cultural communication styles. This is the ultimate test of your cultural communication skills under extreme pressure.",
       challenges: [
         {
-          title: "Conference Call Chaos",
-          description: "Emergency call with 4 cultural communication styles",
+          title: "The Ultimate Multi-Cultural Conference Call Crisis",
+          description: "Conference call from hell with 4 cultural communication styles",
+          scenario: "Emergency 4-way client call. Each client has different crisis, different cultural expectations, and they're all talking over each other demanding immediate attention.",
+          instructions: "Complete 4 phases: Listen & Analyze (60s), Take Charge (90s), Individual Follow-ups (90s), Cultural Adaptation Test (60s). Demonstrate crisis leadership while respecting cultural styles.",
           type: "ultimate",
           timeLimit: 300,
-          regions: ['US', 'UK', 'AU', 'CA']
+          regions: ['US', 'UK', 'AU', 'CA'],
+          eliminationTriggers: [
+            "Panic, freeze, or break under pressure",
+            "Favor one culture inappropriately over others",
+            "Use wrong cultural communication approach for any client",
+            "Fail to take charge during crisis leadership moment",
+            "Miss any client's primary concern or cultural needs",
+            "Exceed 5-minute time limit",
+            "Lose professional composure at any point"
+          ]
         }
       ]
     }
@@ -866,6 +1002,10 @@ const CulturalCommunicationArena = () => {
                             <span>Master communication across US, UK, Australian, and Canadian cultures</span>
                           </li>
                           <li className="flex items-start">
+                            <span className="text-cyan-400 mr-3 mt-0.5 text-lg">📖</span>
+                            <span>Each stage includes detailed scenarios and clear instructions</span>
+                          </li>
+                          <li className="flex items-start">
                             <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🎤</span>
                             <span>Record voice responses and adapt writing styles in real-time</span>
                           </li>
@@ -965,7 +1105,7 @@ const CulturalCommunicationArena = () => {
                 className="text-center mb-8"
               >
                 <p className="text-xl text-gray-300 leading-relaxed">
-                  Master cultural communication across all regions. Navigate through 4 stages of challenges. 
+                  Master cultural communication across all regions. Navigate through 4 stages of challenges, each with detailed scenarios and clear instructions. 
                   Become the ultimate global communicator!
                 </p>
               </motion.div>
@@ -1227,7 +1367,7 @@ const CulturalCommunicationArena = () => {
                   <div>
                     <div className="font-bold text-lg">{playerName}</div>
                     <div className="text-sm text-gray-400">
-                      Stage {currentStage}: {stages[currentStage - 1].name}
+                      Stage {currentStage}: {stages[currentStage - 1].name} • Challenge {currentStage}{String.fromCharCode(65 + currentChallenge)}: {stages[currentStage - 1].challenges[currentChallenge].title}
                     </div>
                   </div>
                 </div>
@@ -1253,7 +1393,7 @@ const CulturalCommunicationArena = () => {
                 <div 
                   className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
                   style={{ 
-                    width: `${((currentStage - 1) / stages.length) * 100}%` 
+                    width: `${((currentStage - 1) / (stages.length - 1)) * 100}%` 
                   }}
                 />
               </div>
@@ -1282,13 +1422,58 @@ const CulturalCommunicationArena = () => {
             >
               {/* Challenge header */}
               <div className="rounded-xl p-6 mb-8 text-center border border-white/10 relative" style={{ backgroundColor: '#111315' }}>
-                <h1 className="text-3xl font-bold mb-2">{stages[currentStage - 1].challenges[currentChallenge].title}</h1>
-                <p className="text-lg opacity-90">{stages[currentStage - 1].challenges[currentChallenge].description}</p>
-                <div className="mt-4 flex justify-center gap-4">
-                  {stages[currentStage - 1].challenges[currentChallenge].regions.map(region => (
-                    <span key={region} className="text-base md:text-lg font-semibold text-gray-200 uppercase tracking-wide">{region}</span>
-                  ))}
+                {/* Challenge Info */}
+                <div>
+                  <div className="mb-4">
+                    <div className="text-sm text-gray-400 mb-1">Challenge {currentStage}{String.fromCharCode(65 + currentChallenge)}</div>
+                    <h1 className="text-3xl font-bold">{stages[currentStage - 1].challenges[currentChallenge].title}</h1>
+                  </div>
+                  
+                  <p className="text-lg opacity-90 mb-4">{stages[currentStage - 1].challenges[currentChallenge].description}</p>
+                  
+                  {/* Challenge Scenario */}
+                  <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-semibold text-purple-300">Challenge Scenario</span>
+                    </div>
+                    <p className="text-sm text-gray-200">{stages[currentStage - 1].challenges[currentChallenge].scenario}</p>
+                  </div>
+                  
+                  {/* Challenge Instructions */}
+                  <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-4 h-4 text-orange-400" />
+                      <span className="text-sm font-semibold text-purple-300">Challenge Instructions</span>
+                    </div>
+                    <p className="text-sm text-gray-200">{stages[currentStage - 1].challenges[currentChallenge].instructions}</p>
+                  </div>
+                  
+                  {/* Elimination Triggers */}
+                  {stages[currentStage - 1].challenges[currentChallenge].eliminationTriggers && (
+                    <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Skull className="w-4 h-4 text-red-400" />
+                        <span className="text-sm font-semibold text-red-300">Elimination Triggers</span>
+                      </div>
+                      <div className="space-y-1">
+                        {stages[currentStage - 1].challenges[currentChallenge].eliminationTriggers.map((trigger, index) => (
+                          <div key={index} className="flex items-start gap-2 text-xs text-gray-200">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 flex-shrink-0"></div>
+                            <span>{trigger}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 flex justify-center gap-4">
+                    {stages[currentStage - 1].challenges[currentChallenge].regions.map(region => (
+                      <span key={region} className="text-base md:text-lg font-semibold text-gray-200 uppercase tracking-wide">{region}</span>
+                    ))}
+                  </div>
                 </div>
+                
                 {/* Stage achievements badge */}
                 {stageAchievements[currentStage] && stageAchievements[currentStage].length > 0 && (
                   <div className="absolute top-4 right-4 bg-green-600/20 text-green-300 border border-green-500/40 rounded-full px-3 py-1 text-xs">
@@ -1301,8 +1486,6 @@ const CulturalCommunicationArena = () => {
               <div className="bg-[#111315] rounded-xl p-8 mb-8 border border-white/10 shadow-lg shadow-black/30">
                 {stages[currentStage - 1].challenges[currentChallenge].type === 'voice' && (
                   <div className="text-center">
-                    <h3 className="text-xl font-bold mb-6">🎤 Voice Challenge</h3>
-                    
                     {/* Example prompts */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                       {stages[currentStage - 1].challenges[currentChallenge].regions.map(region => (
@@ -1431,38 +1614,6 @@ const CulturalCommunicationArena = () => {
 
                 {stages[currentStage - 1].challenges[currentChallenge].type === 'writing' && (
                   <div>
-                    <h3 className="text-xl font-bold mb-6">📝 Writing Challenge</h3>
-                    
-                    <div className="bg-gray-700 rounded-lg p-6 mb-6">
-                      <h4 className="font-bold mb-2">Scenario:</h4>
-                      <p className="text-gray-300">{mockChallenges.writing_adaptation.scenario}</p>
-                      
-                      {/* Real-time cultural feedback */}
-                      {currentResponse.length > 5 && (
-                        <div className="mt-4 p-3 bg-gray-600 rounded-lg">
-                          <h5 className="font-semibold text-white mb-2">Cultural Analysis Preview:</h5>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            {(() => {
-                              const preview = analyzeCulturalFit(currentResponse);
-                              return Object.entries(preview).map(([region, score]) => {
-                                if (region === 'overall') return null;
-                                return (
-                                  <div key={region} className="flex justify-between">
-                                    <span className="text-gray-300">{region}:</span>
-                                    <span className={`font-bold ${
-                                      score > 80 ? 'text-green-400' : 
-                                      score > 60 ? 'text-yellow-400' : 'text-red-400'
-                                    }`}>
-                                      {Math.round(score)}%
-                                    </span>
-                                  </div>
-                                );
-                              });
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                       {Object.entries(mockChallenges.writing_adaptation).map(([key, value]) => {
@@ -1502,9 +1653,83 @@ const CulturalCommunicationArena = () => {
                   </div>
                 )}
 
+                {stages[currentStage - 1].challenges[currentChallenge].type === 'slang' && (
+                  <div>
+
+                    <div className="bg-gray-700 rounded-lg p-6">
+                      <textarea
+                        value={currentResponse}
+                        onChange={(e) => setCurrentResponse(e.target.value)}
+                        placeholder="Write your slang decoding responses here..."
+                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                      />
+                      <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-gray-400">
+                          {currentResponse.length} characters
+                        </span>
+                        <button
+                          onClick={handleWritingSubmit}
+                          disabled={currentResponse.length < 10}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          Submit Response
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {stages[currentStage - 1].challenges[currentChallenge].type === 'style_switch' && (
+                  <div>
+                    
+                    <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="bg-gradient-to-br from-blue-600 to-red-600 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-white">🇺🇸 US Style</div>
+                          <div className="text-xs italic text-white/80">Direct, solution-focused, energetic</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-purple-600 to-blue-800 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-white">🇬🇧 UK Style</div>
+                          <div className="text-xs italic text-white/80">Diplomatic, structured, professional</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-yellow-600 to-green-600 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-white">🇦🇺 AU Style</div>
+                          <div className="text-xs italic text-white/80">Honest, straightforward, casual-professional</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-red-600 to-red-800 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-white">🇨🇦 CA Style</div>
+                          <div className="text-xs italic text-white/80">Considerate, collaborative, gently apologetic</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-700 rounded-lg p-6">
+                      <textarea
+                        value={currentResponse}
+                        onChange={(e) => setCurrentResponse(e.target.value)}
+                        placeholder="Write your cultural style adaptations here..."
+                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                      />
+                      <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-gray-400">
+                          {currentResponse.length} characters
+                        </span>
+                        <button
+                          onClick={handleWritingSubmit}
+                          disabled={currentResponse.length < 10}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          Submit Response
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                  {stages[currentStage - 1].challenges[currentChallenge].type === 'combo' && (
                   <div>
-                    <h3 className="text-xl font-bold mb-6">⚡ Combo Challenge</h3>
                     <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-6 text-center mb-6">
                       <div className="text-6xl mb-4">🌪️</div>
                       <h4 className="text-xl font-bold mb-2">Multi-Cultural Crisis!</h4>
@@ -1565,11 +1790,116 @@ const CulturalCommunicationArena = () => {
                       </div>
                     </div>
                   </div>
+                                 )}
+
+                {stages[currentStage - 1].challenges[currentChallenge].type === 'landmines' && (
+                  <div>
+
+                    <div className="bg-gray-700 rounded-lg p-6">
+                      <textarea
+                        value={currentResponse}
+                        onChange={(e) => setCurrentResponse(e.target.value)}
+                        placeholder="Write your responses to navigate these cultural landmines..."
+                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                      />
+                      <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-gray-400">
+                          {currentResponse.length} characters
+                        </span>
+                        <button
+                          onClick={handleWritingSubmit}
+                          disabled={currentResponse.length < 10}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          Submit Response
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {stages[currentStage - 1].challenges[currentChallenge].type === 'boundaries' && (
+                  <div>
+                    
+                    <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                      <div className="space-y-4">
+                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-yellow-300">🇺🇸 Boundary Test 1 - Personal Information Fishing</div>
+                          <div className="text-xs italic text-gray-200">"So where do you live? How much do you guys actually make? I'm curious about the wage difference."</div>
+                          <div className="text-xs text-yellow-200 mt-2">Test: Professional deflection while maintaining friendliness</div>
+                        </div>
+                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-yellow-300">🇬🇧 Boundary Test 2 - Inappropriate Relationship Building</div>
+                          <div className="text-xs italic text-gray-200">"Perhaps we could discuss this over drinks when I'm in Manila next month? I do enjoy the local nightlife."</div>
+                          <div className="text-xs text-yellow-200 mt-2">Test: Professional boundary maintenance with diplomatic grace</div>
+                        </div>
+                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-yellow-300">🇦🇺 Boundary Test 3 - Cultural Stereotyping</div>
+                          <div className="text-xs italic text-gray-200">"You Filipinos are all so hardworking and cheap! No wonder everyone outsources there."</div>
+                          <div className="text-xs text-yellow-200 mt-2">Test: Address stereotyping professionally without lecturing</div>
+                        </div>
+                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                          <div className="font-bold text-sm mb-2 text-yellow-300">🇨🇦 Boundary Test 4 - Excessive Personal Sharing</div>
+                          <div className="text-xs italic text-gray-200">"Sorry, I'm going through a terrible divorce and I just need someone to talk to about my personal problems..."</div>
+                          <div className="text-xs text-yellow-200 mt-2">Test: Empathy while maintaining professional focus</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-700 rounded-lg p-6">
+                      <textarea
+                        value={currentResponse}
+                        onChange={(e) => setCurrentResponse(e.target.value)}
+                        placeholder="Write your responses to maintain professional boundaries..."
+                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                      />
+                      <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-gray-400">
+                          {currentResponse.length} characters
+                        </span>
+                        <button
+                          onClick={handleWritingSubmit}
+                          disabled={currentResponse.length < 10}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          Submit Response
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {stages[currentStage - 1].challenges[currentChallenge].type === 'crisis' && (
+                  <div>
+
+                    <div className="bg-gray-700 rounded-lg p-6">
+                      <textarea
+                        value={currentResponse}
+                        onChange={(e) => setCurrentResponse(e.target.value)}
+                        placeholder="Write your crisis communication responses..."
+                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                      />
+                      <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-gray-400">
+                          {currentResponse.length} characters
+                        </span>
+                        <button
+                          onClick={handleWritingSubmit}
+                          disabled={currentResponse.length < 10}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          Submit Response
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                  {stages[currentStage - 1].challenges[currentChallenge].type === 'ultimate' && (
                   <div>
-                    <h3 className="text-xl font-bold mb-6">👑 FINAL BOSS BATTLE</h3>
                     <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center mb-6">
                       <div className="text-6xl mb-4">💀</div>
                       <h4 className="text-xl font-bold mb-2">Conference Call Chaos</h4>
