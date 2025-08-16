@@ -41,13 +41,13 @@ import {
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
 const BPO_VOCABULARY = {
   easy: {
-    words: ['help', 'call', 'chat', 'work', 'home', 'time', 'good', 'best', 'nice', 'easy', 'fast', 'slow', 'high', 'free', 'safe', 'open', 'cool', 'warm', 'date', 'team', 'user', 'game', 'play', 'view', 'save', 'edit', 'send', 'read', 'find', 'sell'],
+    words: ['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project', 'website', 'database', 'network', 'system', 'client', 'customer', 'business', 'company', 'product', 'solution', 'problem', 'request', 'feedback', 'process', 'workflow', 'team work', 'data entry', 'web design', 'user guide', 'help desk', 'call center', 'email support'],
     timeLimit: 30, // 30 seconds
     speed: 1.0,
     spawnRate: 1500 // Consistent spawn rate across all difficulties
   },
   medium: {
-    words: ['help', 'call', 'work', 'team', 'goal', 'plan', 'task', 'role', 'skill', 'lead', 'email', 'phone', 'client', 'system', 'update', 'manage', 'handle', 'process', 'support', 'service'],
+    words: ['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project', 'website', 'database', 'network', 'system', 'client', 'customer', 'business', 'company', 'product', 'solution', 'problem', 'request', 'feedback', 'process', 'workflow', 'team work', 'data entry', 'web design', 'user guide', 'help desk', 'call center', 'email support'],
     timeLimit: 30, // 30 seconds
     speed: 0.5, // Slow speed
     spawnRate: 2000
@@ -405,6 +405,7 @@ export default function TypingHeroPage() {
     if (gameState !== 'playing') return;
     
     const config = getCurrentConfig();
+    
     const newWord: FallingWord = {
       id: `word-${Date.now()}-${Math.random()}`,
       word: generateWord(),
@@ -784,33 +785,49 @@ export default function TypingHeroPage() {
           return { ...prev, timeLeft: 0 };
         }
         
+                          // Gradually increase speed from 15 seconds down to 1 second remaining
+         if (newTimeLeft <= 15 && newTimeLeft >= 1) {
+           // Calculate progressive speed increase (0.5 -> 0.8 instead of 0.5 -> 1.0)
+           const speedIncrease = (15 - newTimeLeft) / 15; // 0 to 1 over 15 seconds
+           const newSpeed = 0.5 + (speedIncrease * 0.3); // Max speed: 0.8 instead of 1.0
+           
+           setFallingWords(current => 
+             current.map(word => ({ ...word, speed: newSpeed }))
+           );
+         }
+        
         // Update WPM and accuracy
         const elapsedSeconds = getCurrentConfig().timeLimit - newTimeLeft;
         const wordsTyped = prev.charactersTyped / 5;
         const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
         
-        // Calculate realistic accuracy with additional factors
-        let accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
-        
-        // Apply difficulty-based accuracy adjustment
-        const difficultyAccuracyMultipliers = {
-          easy: 1.0,      // No adjustment
-          medium: 0.95,   // Slightly harder
-          hard: 0.90,     // More challenging
-          expert: 0.85    // Most challenging
-        };
-        
-        accuracy = accuracy * difficultyAccuracyMultipliers[currentDifficulty];
-        
-        // Apply speed-based accuracy penalty (faster typing = more errors)
-        if (wpm > 50) {
-          const speedPenalty = Math.min((wpm - 50) * 0.002, 0.1); // Max 10% penalty
-          accuracy = accuracy * (1 - speedPenalty);
-        }
-        
-        // Ensure accuracy stays within realistic bounds
-        accuracy = Math.max(accuracy, 60); // Minimum 60% accuracy
-        accuracy = Math.min(accuracy, 98); // Maximum 98% accuracy (realistic human limit)
+                 // Calculate realistic accuracy with additional factors
+         let accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
+         
+         // If no words were attempted, accuracy should be 0%
+         if (prev.totalWords === 0) {
+           accuracy = 0;
+         } else {
+           // Apply difficulty-based accuracy adjustment
+           const difficultyAccuracyMultipliers = {
+             easy: 1.0,      // No adjustment
+             medium: 0.95,   // Slightly harder
+             hard: 0.90,     // More challenging
+             expert: 0.85    // Most challenging
+           };
+           
+           accuracy = accuracy * difficultyAccuracyMultipliers[currentDifficulty];
+           
+           // Apply speed-based accuracy penalty (faster typing = more errors)
+           if (wpm > 50) {
+             const speedPenalty = Math.min((wpm - 50) * 0.002, 0.1); // Max 10% penalty
+             accuracy = accuracy * (1 - speedPenalty);
+           }
+           
+           // Ensure accuracy stays within realistic bounds (but allow 0% for no attempts)
+           accuracy = Math.max(accuracy, 0); // Minimum 0% accuracy
+           accuracy = Math.min(accuracy, 98); // Maximum 98% accuracy (realistic human limit)
+         }
         
         return {
           ...prev,
@@ -1357,12 +1374,12 @@ export default function TypingHeroPage() {
             >
               <Card className="glass-card border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-3xl text-center mb-4 text-gray-400">
-                    Challenge failed to complete
+                  <CardTitle className="text-3xl text-center mb-4 text-green-400">
+                    Challenge Complete
                   </CardTitle>
                   <div className="text-center">
-                    <Badge className="bg-gray-500/20 text-gray-300 border-gray-400/30">
-                      {currentDifficulty.toUpperCase()} ATTEMPTED
+                    <Badge className="bg-green-500/20 text-green-300 border-green-400/30">
+                      COMPLETED
                     </Badge>
                   </div>
                 </CardHeader>
@@ -1390,10 +1407,10 @@ export default function TypingHeroPage() {
                   </div>
 
                   {/* Challenge Results */}
-                  <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-4 text-center">
-                    <p className="text-gray-400 font-medium mb-2">Challenge Results</p>
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
+                    <p className="text-green-400 font-medium mb-2">Challenge Complete! 🎉</p>
                     <p className="text-gray-300 text-sm">
-                      Here are your final results from the typing challenge.
+                      Great job! You've completed the typing challenge. Here are your final results.
                     </p>
                   </div>
                 </CardContent>
