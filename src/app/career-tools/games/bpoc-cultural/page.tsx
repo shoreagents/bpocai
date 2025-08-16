@@ -31,11 +31,11 @@ const CulturalCommunicationArena = () => {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes for demo
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [culturalScores, setCulturalScores] = useState({
-    US: 50,
-    UK: 50,
-    AU: 50,
-    CA: 50
+  const [culturalScores, setCulturalScores] = useState<Record<string, number>>({
+    US: 0,
+    UK: 0,
+    AU: 0,
+    CA: 0
   });
   const [playerName, setPlayerName] = useState('Player');
   const [currentResponse, setCurrentResponse] = useState('');
@@ -68,6 +68,24 @@ const CulturalCommunicationArena = () => {
   const [bossRoundIndex, setBossRoundIndex] = useState(0); // 0..3
   const [bossVoiceDone, setBossVoiceDone] = useState(false);
   const [bossTimer, setBossTimer] = useState(30);
+  const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false);
+
+  // Cultural recording state
+  const [currentRecordingRegion, setCurrentRecordingRegion] = useState<string | null>(null);
+  const [culturalTranscripts, setCulturalTranscripts] = useState<Record<string, string>>({
+    US: '',
+    UK: '',
+    AU: '',
+    CA: ''
+  });
+  const [generatedScripts, setGeneratedScripts] = useState<Record<string, string>>({
+    US: '',
+    UK: '',
+    AU: '',
+    CA: ''
+  });
+  const [isGeneratingScript, setIsGeneratingScript] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState<Record<string, boolean>>({ US: false, UK: false, AU: false, CA: false });
 
   // Game timer
   useEffect(() => {
@@ -109,6 +127,21 @@ const CulturalCommunicationArena = () => {
       URL.revokeObjectURL(audioUrl);
       setAudioUrl(null);
     }
+    
+    // Clear cultural recording state
+    setCurrentRecordingRegion(null);
+    setCulturalTranscripts({
+      US: '',
+      UK: '',
+      AU: '',
+      CA: ''
+    });
+    setGeneratedScripts({
+      US: '',
+      UK: '',
+      AU: '',
+      CA: ''
+    });
   }, [currentChallenge, currentStage]);
 
   // Per-round timer for final boss
@@ -186,6 +219,29 @@ const CulturalCommunicationArena = () => {
 
   useEffect(() => {
     checkMicrophonePermission();
+    
+    // Load user stats if available
+    const loadUserStats = async () => {
+      try {
+        const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
+        if (token) {
+          const response = await fetch('/api/games/bpoc-cultural/stats', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Loaded user stats:', data);
+            // You can use this data to show previous performance
+          }
+        }
+      } catch (error) {
+        console.log('Could not load user stats:', error);
+      }
+    };
+    
+    loadUserStats();
     
     // Cleanup audio URL on unmount
     return () => {
@@ -317,21 +373,6 @@ const CulturalCommunicationArena = () => {
             "Cannot handle profanity professionally",
             "Blame-shifting or excuse-making responses"
           ]
-        },
-        {
-          title: "The Multi-Cultural Team Chaos",
-          description: "Coordinate team from 4 different cultures",
-          scenario: "Emergency team chat with mixed cultural styles. 4 team members from different cultures need coordination during crisis.",
-          instructions: "Record ONE voice response (90 seconds) that addresses all four communication styles. Acknowledge each team member's concerns while providing unified action plan.",
-          type: "combo",
-          timeLimit: 120,
-          regions: ['US', 'UK', 'AU', 'CA'],
-          eliminationTriggers: [
-            "Favor one cultural style over others",
-            "Generic response that doesn't address individual styles",
-            "Nervous or uncertain voice delivery",
-            "Misses any team member's core concern"
-          ]
         }
       ]
     },
@@ -387,36 +428,17 @@ const CulturalCommunicationArena = () => {
           ]
         }
       ]
-    },
-    {
-      name: "Final Boss Battle",
-      description: "The ultimate test of cultural communication mastery",
-      scenario: "You're leading a critical conference call with stakeholders from all regions. The call is about a major project failure that could cost millions. Each participant expects communication in their preferred cultural style.",
-      instructions: "Navigate through 4 phases of crisis management while respecting all cultural communication styles. This is the ultimate test of your cultural communication skills under extreme pressure.",
-      challenges: [
-        {
-          title: "The Ultimate Multi-Cultural Conference Call Crisis",
-          description: "Conference call from hell with 4 cultural communication styles",
-          scenario: "Emergency 4-way client call. Each client has different crisis, different cultural expectations, and they're all talking over each other demanding immediate attention.",
-          instructions: "Complete 4 phases: Listen & Analyze (60s), Take Charge (90s), Individual Follow-ups (90s), Cultural Adaptation Test (60s). Demonstrate crisis leadership while respecting cultural styles.",
-          type: "ultimate",
-          timeLimit: 300,
-          regions: ['US', 'UK', 'AU', 'CA'],
-          eliminationTriggers: [
-            "Panic, freeze, or break under pressure",
-            "Favor one culture inappropriately over others",
-            "Use wrong cultural communication approach for any client",
-            "Fail to take charge during crisis leadership moment",
-            "Miss any client's primary concern or cultural needs",
-            "Exceed 5-minute time limit",
-            "Lose professional composure at any point"
-          ]
-        }
-      ]
     }
   ];
 
-  const culturalContexts = {
+  const culturalContexts: Record<string, {
+    flag: string;
+    name: string;
+    style: string;
+    color: string;
+    example: string;
+    tone: string;
+  }> = {
     US: {
       flag: "🇺🇸",
       name: "United States",
@@ -490,6 +512,9 @@ const CulturalCommunicationArena = () => {
   // Real voice recording functions
   const startRealRecording = async () => {
     try {
+      console.log('Starting voice recording...');
+      
+      // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -500,7 +525,9 @@ const CulturalCommunicationArena = () => {
         } 
       });
       
-      // Set up audio level monitoring
+      console.log('Microphone access granted, stream active:', stream.active);
+      
+      // Create audio context for monitoring
       const audioCtx = new AudioContext();
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
@@ -520,116 +547,74 @@ const CulturalCommunicationArena = () => {
       };
       checkAudioLevel();
       
-      // Check for supported audio formats with fallback
-      let mimeType = 'audio/webm;codecs=opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/mp4';
-          if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'audio/wav';
-            if (!MediaRecorder.isTypeSupported(mimeType)) {
-              mimeType = ''; // Let browser choose default
-            }
-          }
-        }
-      }
-      
-      console.log('Using audio format:', mimeType);
-      
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      // Use a simple MediaRecorder with basic settings
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
       
       recorder.ondataavailable = (event) => {
-        console.log('Audio data available:', {
-          size: event.data.size,
-          type: event.data.type,
-          timestamp: Date.now()
-        });
-        
+        console.log('Data available:', event.data.size, event.data.type);
         if (event.data.size > 0) {
-          setAudioChunks(prev => [...prev, event.data]);
-        } else {
-          console.warn('Empty audio chunk received');
+          chunks.push(event.data);
         }
       };
       
       recorder.onstop = () => {
-        console.log('Recording stopped, chunks:', audioChunks.length);
+        console.log('Recording stopped, processing chunks...');
         
-        // Use a timeout to ensure all chunks are processed
-        setTimeout(() => {
-          const currentChunks = [...audioChunks];
-          console.log('Processing chunks:', currentChunks.length);
-          
-          // Check if we have actual audio data
-          if (currentChunks.length === 0 || currentChunks.every(chunk => chunk.size === 0)) {
-            console.error('No audio data recorded! Trying fallback method...');
-            
-            // Try fallback recording method
-            if (stream && stream.active) {
-              console.log('Attempting fallback recording...');
-              startFallbackRecording(stream);
-            } else {
-              alert('No audio was recorded. Please check your microphone and try again.');
-              setIsRecording(false);
-            }
-            return;
-          }
-          
-          const audioBlob = new Blob(currentChunks, { type: recorder.mimeType || 'audio/webm' });
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        
+        if (chunks.length > 0) {
+          // Create audio blob
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
           const audioUrl = URL.createObjectURL(audioBlob);
           
-          console.log('Recording stopped:', {
+          console.log('Recording successful:', {
             blobSize: audioBlob.size,
-            blobType: audioBlob.type,
-            mimeType: recorder.mimeType,
-            chunksCount: currentChunks.length,
-            totalChunkSize: currentChunks.reduce((sum, chunk) => sum + chunk.size, 0),
-            audioUrl: audioUrl
+            chunksCount: chunks.length,
+            type: audioBlob.type
           });
           
-          // Only proceed if we have a valid audio blob
-          if (audioBlob.size > 0) {
-            setAudioBlob(audioBlob);
-            setAudioUrl(audioUrl);
-            setAudioChunks([]);
-            
-            // Analyze the recording for cultural fit
-            analyzeVoiceRecording(audioBlob);
-          } else {
-            console.error('Created blob is empty!');
-            alert('Recording failed - no audio data captured. Please try again.');
-          }
-        }, 100); // Small delay to ensure all chunks are processed
+          setAudioBlob(audioBlob);
+          setAudioUrl(audioUrl);
+          setAudioChunks([]);
+          
+          // Analyze the recording
+          analyzeVoiceRecording(audioBlob);
+        } else {
+          console.error('No audio chunks recorded');
+          alert('Recording failed - no audio data captured. Please try again.');
+        }
+        
+        // Clean up
+        if (audioContext) {
+          audioContext.close();
+          setAudioContext(null);
+        }
+        setAudioLevel(0);
+        setIsRecording(false);
       };
       
-      setMediaRecorder(recorder);
-      
-      // Start recording without timeslice for better compatibility
+      // Start recording
       recorder.start();
+      setMediaRecorder(recorder);
       setIsRecording(true);
       setInteractionCount((c) => c + 1);
       setRecordingTime(0);
       
-      console.log('Recording started with format:', recorder.mimeType);
+      console.log('Recording started successfully');
+      
     } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('Please allow microphone access to record voice responses.');
+      console.error('Error starting recording:', error);
+      alert('Failed to start recording. Please check microphone permissions and try again.');
+      setIsRecording(false);
     }
   };
 
   const stopRealRecording = () => {
     if (mediaRecorder && mediaRecorder.state === 'recording') {
+      console.log('Stopping recording...');
       mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-      
-      // Clean up audio context
-      if (audioContext) {
-        audioContext.close();
-        setAudioContext(null);
-      }
-      setAudioLevel(0);
     }
   };
 
@@ -641,35 +626,30 @@ const CulturalCommunicationArena = () => {
     }
 
     try {
-      // Reset audio to beginning
       audioRef.current.currentTime = 0;
-      
-      // Try to play the audio
       await audioRef.current.play();
-      console.log('Audio playback started successfully');
+      console.log('Audio playback started');
     } catch (error) {
       console.error('Audio playback failed:', error);
-      
-      // Fallback: try to create a new audio element
-      try {
-        const fallbackAudio = new Audio(audioUrl);
-        await fallbackAudio.play();
-        console.log('Fallback audio playback successful');
-      } catch (fallbackError) {
-        console.error('Fallback audio also failed:', fallbackError);
-        alert('Audio playback failed. Please try recording again.');
-      }
+      alert('Audio playback failed. Please try recording again.');
     }
   };
 
-  // Fallback recording method using Web Audio API
-  const startFallbackRecording = async (stream: MediaStream) => {
+  // Test function to create a minimal audio file for debugging
+  const createTestAudio = () => {
     try {
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const destination = audioCtx.createMediaStreamDestination();
-      source.connect(destination);
+      console.log('Creating test audio file...');
       
+      // Create a simple audio context and oscillator
+      const audioCtx = new AudioContext();
+      const oscillator = audioCtx.createOscillator();
+      const destination = audioCtx.createMediaStreamDestination();
+      
+      oscillator.connect(destination);
+      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 note
+      oscillator.start();
+      
+      // Record for 2 seconds
       const mediaRecorder = new MediaRecorder(destination.stream);
       const chunks: Blob[] = [];
       
@@ -680,36 +660,633 @@ const CulturalCommunicationArena = () => {
       };
       
       mediaRecorder.onstop = () => {
+        oscillator.stop();
+        audioCtx.close();
+        
         if (chunks.length > 0) {
           const audioBlob = new Blob(chunks, { type: 'audio/webm' });
           const audioUrl = URL.createObjectURL(audioBlob);
           
-          console.log('Fallback recording successful:', {
+          console.log('Test audio created:', {
             blobSize: audioBlob.size,
-            chunksCount: chunks.length
+            chunksCount: chunks.length,
+            type: audioBlob.type
           });
           
           setAudioBlob(audioBlob);
           setAudioUrl(audioUrl);
           setAudioChunks([]);
+          
+          // Test the transcription with this audio
           analyzeVoiceRecording(audioBlob);
-        } else {
-          console.error('Fallback recording also failed');
-          alert('Recording failed. Please check your microphone permissions and try again.');
         }
-        
-        audioCtx.close();
       };
       
       mediaRecorder.start();
-      setMediaRecorder(mediaRecorder);
+      
+      // Stop after 2 seconds
+      setTimeout(() => {
+        mediaRecorder.stop();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Test audio creation failed:', error);
+    }
+  };
+
+  // Simple fallback recording method
+  const startFallbackRecording = async () => {
+    try {
+      console.log('Starting fallback recording...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        } 
+      });
+      
+      // Use Web Audio API to create a simple recording
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const destination = audioCtx.createMediaStreamDestination();
+      source.connect(destination);
+      
+      const recorder = new MediaRecorder(destination.stream);
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        audioCtx.close();
+        
+        if (chunks.length > 0) {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          
+          setAudioBlob(audioBlob);
+          setAudioUrl(audioUrl);
+          setAudioChunks([]);
+          analyzeVoiceRecording(audioBlob);
+        }
+        
+        setIsRecording(false);
+      };
+      
+      recorder.start();
+      setMediaRecorder(recorder);
       setIsRecording(true);
       setRecordingTime(0);
       
-      console.log('Fallback recording started');
     } catch (error) {
       console.error('Fallback recording failed:', error);
-      alert('All recording methods failed. Please check your browser and microphone.');
+      setIsRecording(false);
+    }
+  };
+
+  // Cultural recording handler
+  const handleCulturalRecording = async (region: string) => {
+    if (!isRecording) {
+      // Start recording for this region
+      setCurrentRecordingRegion(region);
+      await startCulturalRecording(region);
+    } else {
+      // Stop recording
+      stopCulturalRecording();
+    }
+  };
+
+  // Start cultural recording for specific region
+  const startCulturalRecording = async (region: string) => {
+    try {
+      console.log(`Starting ${region} cultural recording...`);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+          channelCount: 1
+        } 
+      });
+      
+      console.log(`${region} microphone access granted`);
+      
+      // Create audio context for monitoring
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      source.connect(analyser);
+      
+      setAudioContext(audioCtx);
+      
+      // Monitor audio levels
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const checkAudioLevel = () => {
+        if (isRecording) {
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          setAudioLevel(average);
+          requestAnimationFrame(checkAudioLevel);
+        }
+      };
+      checkAudioLevel();
+      
+      // Create recorder
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        console.log(`${region} data available:`, event.data.size);
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        console.log(`${region} recording stopped, processing...`);
+        
+        stream.getTracks().forEach(track => track.stop());
+        
+        if (chunks.length > 0) {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          
+          console.log(`${region} recording successful:`, {
+            blobSize: audioBlob.size,
+            chunksCount: chunks.length
+          });
+          
+          // Analyze the recording for this specific region
+          analyzeCulturalVoiceRecording(audioBlob, region);
+        } else {
+          console.error(`${region} no audio chunks recorded`);
+          alert(`${region} recording failed. Please try again.`);
+        }
+        
+        // Clean up
+        if (audioContext) {
+          audioContext.close();
+          setAudioContext(null);
+        }
+        setAudioLevel(0);
+        setIsRecording(false);
+        setCurrentRecordingRegion(null);
+      };
+      
+      // Start recording
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setInteractionCount((c) => c + 1);
+      setRecordingTime(0);
+      
+      console.log(`${region} recording started`);
+      
+    } catch (error) {
+      console.error(`Error starting ${region} recording:`, error);
+      alert(`Failed to start ${region} recording. Please check microphone permissions.`);
+      setIsRecording(false);
+      setCurrentRecordingRegion(null);
+    }
+  };
+
+  // Stop cultural recording
+  const stopCulturalRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      console.log('Stopping cultural recording...');
+      mediaRecorder.stop();
+    }
+  };
+
+  // Analyze cultural voice recording for specific region
+  const analyzeCulturalVoiceRecording = async (audioBlob: Blob, region: string) => {
+    try {
+      console.log(`Starting AI analysis for ${region}...`);
+      
+      // Set transcription loading state for this region
+      setIsTranscribing(prev => ({
+        ...prev,
+        [region]: true
+      }));
+      
+      // 1. Transcribe audio with OpenAI Whisper
+      const formData = new FormData();
+      formData.append('audio', audioBlob);
+      
+      console.log('Sending audio to OpenAI Whisper...');
+      const transcribeResponse = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!transcribeResponse.ok) {
+        const errorText = await transcribeResponse.text();
+        console.error('Transcription API Error Response:', errorText);
+        throw new Error(`Transcription failed: ${transcribeResponse.status} - ${errorText}`);
+      }
+      
+      let transcript;
+      try {
+        const responseData = await transcribeResponse.json();
+        transcript = responseData.transcript;
+        if (!transcript) {
+          throw new Error('No transcript in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse transcription response:', parseError);
+        throw new Error('Invalid transcription response format');
+      }
+      console.log('Transcription successful:', transcript);
+      
+      // Update transcript for this region
+      setCulturalTranscripts(prev => ({
+        ...prev,
+        [region]: transcript
+      }));
+      
+      // 2. Analyze cultural fit with Claude
+      const prompt = getRegionSpecificPrompt(region, transcript);
+      
+      console.log('Analyzing cultural fit with Claude...');
+      const analysisResponse = await fetch('/api/analyze-cultural', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, transcript, region })
+      });
+      
+      if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text();
+        console.error('Cultural Analysis API Error Response:', errorText);
+        throw new Error(`Cultural analysis failed: ${analysisResponse.status} - ${errorText}`);
+      }
+      
+      let analysis;
+      try {
+        const responseData = await analysisResponse.json();
+        analysis = responseData.analysis;
+        if (!analysis) {
+          throw new Error('No analysis in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse cultural analysis response:', parseError);
+        throw new Error('Invalid cultural analysis response format');
+      }
+      console.log('Cultural analysis successful:', analysis);
+      
+      // Update cultural score for this region
+      const score = analysis.score || getFallbackScore(region, transcript);
+      setCulturalScores(prev => ({
+        ...prev,
+        [region]: score
+      }));
+      
+      // Add achievements based on score
+      // Safety check to ensure stages and challenges exist
+      if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
+        console.warn('Challenge not found, skipping achievements');
+        return;
+      }
+      
+      const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+      
+      if (currentChallengeTitle === "The Angry Customer Gauntlet") {
+        // Achievements for customer service de-escalation
+        if (score >= 90) {
+          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} De-escalation Master`);
+        } else if (score >= 70) {
+          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} De-escalation Expert`);
+        }
+      } else {
+        // Original achievements for cultural introduction challenges
+        if (score >= 90) {
+          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} Cultural Master`);
+        } else if (score >= 70) {
+          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} Cultural Learner`);
+        }
+      }
+      
+      console.log(`${region} cultural analysis complete. Score: ${score}`);
+      
+    } catch (error) {
+      console.error(`Error analyzing ${region} recording:`, error);
+      
+      // Use fallback scoring if AI analysis fails
+      const fallbackScore = getFallbackScore(region, '');
+      setCulturalScores(prev => ({
+        ...prev,
+        [region]: fallbackScore
+      }));
+      
+      // Show error message
+      alert(`Analysis failed for ${region}. Using fallback scoring.`);
+      
+    } finally {
+      // Clear transcription loading state for this region
+      setIsTranscribing(prev => ({
+        ...prev,
+        [region]: false
+      }));
+    }
+  };
+
+  // Get region-specific prompt for cultural analysis
+  const getRegionSpecificPrompt = (region: string, transcript: string) => {
+    // Safety check to ensure stages and challenges exist
+    if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
+      console.warn('Challenge not found, using default prompt');
+      return `Analyze this voice response for cultural appropriateness in ${region} context.`;
+    }
+    
+    const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+    
+    // Check if this is "The Angry Customer Gauntlet" challenge
+    if (currentChallengeTitle === "The Angry Customer Gauntlet") {
+      // Special prompt for customer service de-escalation challenge
+      const customerComplaints = {
+        US: "Your service is pretty disappointing. I expected way better for what I'm paying.",
+        UK: "This is absolutely unacceptable. I demand to speak to someone with actual authority who can resolve this properly.",
+        AU: "This is a complete fucking shambles! You people are bloody useless! I want my money back RIGHT NOW or I'm posting this disaster everywhere!",
+        CA: "This is absolutely unacceptable. I demand to speak to someone with actual authority who can resolve this properly."
+      };
+      
+      const complaint = customerComplaints[region as keyof typeof customerComplaints] || customerComplaints.UK;
+      
+      return `You are evaluating a customer service response for de-escalation effectiveness in ${region} cultural context.
+
+Customer Complaint: "${complaint}"
+
+Agent's Response: "${transcript}"
+
+Evaluate this response as a customer service professional. Consider:
+
+1. **De-escalation Effectiveness**: Does the response calm the customer and address their frustration?
+2. **Cultural Appropriateness**: Does the tone and language match ${region} communication norms?
+3. **Professional Standards**: Does it maintain professionalism while showing empathy?
+4. **Problem Resolution**: Does it offer concrete solutions or next steps?
+5. **Emotional Intelligence**: Does it handle the customer's anger appropriately?
+
+${region}-Specific Cultural Considerations:
+${region === 'US' ? 'Direct, solution-focused, enthusiastic but professional tone' :
+  region === 'UK' ? 'Polite, formal, diplomatic, structured approach' :
+  region === 'AU' ? 'Authentic, straightforward, casual professionalism, honest empathy' :
+  'Kind, considerate, empathetic, collaborative tone'}
+
+Provide a JSON response with:
+{
+  "score": [0-100],
+  "deEscalation": "How effectively the response calms the customer",
+  "culturalFit": "How well it matches ${region} communication style",
+  "professionalism": "Professional standards maintained",
+  "solutionOriented": "Whether concrete solutions are offered",
+  "improvements": "Specific suggestions for better de-escalation",
+  "overallFeedback": "Comprehensive assessment of customer service effectiveness"
+}
+
+Score should be 0-100 where:
+- 90-100: Excellent de-escalation and cultural fit for ${region}
+- 80-89: Very good de-escalation and cultural fit for ${region}
+- 70-79: Good de-escalation and cultural fit for ${region}
+- Below 70: Needs improvement in de-escalation or cultural adaptation for ${region}
+
+Be strict and evaluate both de-escalation effectiveness AND cultural appropriateness.`;
+    }
+    
+
+    
+    // Original prompt for other challenges
+    const basePrompt = `Analyze this voice response for cultural appropriateness in ${region} context.`;
+    
+    const regionCriteria = {
+      US: {
+        style: "Direct & Efficient",
+        keyTraits: ["directness", "efficiency", "enthusiasm", "solution-focused", "casual confidence"],
+        examples: ["Hey team!", "I'm excited to", "ready to jump in", "Let's make this awesome"],
+        scoring: "Score higher for: direct language, enthusiasm, efficiency focus, casual but professional tone"
+      },
+      UK: {
+        style: "Polite & Proper", 
+        keyTraits: ["formality", "politeness", "diplomacy", "structured approach", "understatement"],
+        examples: ["Good morning", "I'm delighted to", "rather looking forward", "I do hope", "excellent results"],
+        scoring: "Score higher for: formal language, politeness, diplomatic tone, structured communication"
+      },
+      AU: {
+        style: "Honest & Direct",
+        keyTraits: ["authenticity", "straightforwardness", "casual professionalism", "honest enthusiasm", "relaxed confidence"],
+        examples: ["G'day", "Stoked to be", "pretty keen", "get stuck in", "smash our goals", "ripper"],
+        scoring: "Score higher for: authentic language, casual professionalism, honest enthusiasm, relaxed confidence"
+      },
+      CA: {
+        style: "Kind & Considerate",
+        keyTraits: ["empathy", "collaboration", "gentle politeness", "considerate language", "warm professionalism"],
+        examples: ["Hi there", "hope everyone's having a good day", "quite excited", "really looking forward", "hopefully"],
+        scoring: "Score higher for: empathetic language, collaborative tone, gentle politeness, warm professionalism"
+      }
+    };
+
+    const criteria = regionCriteria[region as keyof typeof regionCriteria];
+    
+    return `${basePrompt}
+
+Cultural Context: ${criteria.style}
+Voice Response: "${transcript}"
+
+Key Cultural Traits to Evaluate:
+${criteria.keyTraits.map(trait => `- ${trait}`).join('\n')}
+
+Examples of Good ${region} Communication:
+${criteria.examples.map(example => `- "${example}"`).join('\n')}
+
+Scoring Guidelines: ${criteria.scoring}
+
+Evaluate and provide a JSON response with:
+{
+  "score": [0-100],
+  "tone": "Description of tone appropriateness",
+  "culturalSensitivity": "How well it matches ${region} communication norms",
+  "professionalLevel": "Professional standards maintained",
+  "improvements": "Specific suggestions for better ${region} cultural fit",
+  "overallFeedback": "Comprehensive assessment of cultural adaptation"
+}
+
+Score should be 0-100 where:
+- 90-100: Excellent cultural match for ${region}
+- 80-89: Very good cultural match for ${region}
+- 70-79: Good cultural match for ${region}
+- Below 70: Needs improvement in ${region} cultural adaptation
+
+Be strict and differentiate between regions. A response that's perfect for US might score poorly for UK, and vice versa.`;
+  };
+
+  // Get region-specific fallback score when AI analysis fails
+  const getFallbackScore = (region: string, transcript: string): number => {
+    // Safety check to ensure stages and challenges exist
+    if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
+      console.warn('Challenge not found, using default fallback scoring');
+      return 60; // Default fallback score
+    }
+    
+    const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+    
+    // Check if this is "The Angry Customer Gauntlet" challenge
+    if (currentChallengeTitle === "The Angry Customer Gauntlet") {
+      // Fallback scoring for customer service de-escalation
+      const baseScore = 55; // Lower base score for de-escalation challenge
+      const transcriptLower = transcript.toLowerCase();
+      let bonus = 0;
+      
+      // Check for de-escalation keywords
+      if (transcriptLower.includes('understand') || transcriptLower.includes('apologize') || transcriptLower.includes('sorry')) bonus += 8;
+      if (transcriptLower.includes('help') || transcriptLower.includes('resolve') || transcriptLower.includes('fix')) bonus += 7;
+      if (transcriptLower.includes('calm') || transcriptLower.includes('patient') || transcriptLower.includes('listen')) bonus += 6;
+      if (transcriptLower.includes('solution') || transcriptLower.includes('next step') || transcriptLower.includes('action')) bonus += 5;
+      
+      // Region-specific de-escalation bonuses
+      switch (region) {
+        case 'US':
+          if (transcriptLower.includes('absolutely') || transcriptLower.includes('right away')) bonus += 3;
+          break;
+        case 'UK':
+          if (transcriptLower.includes('certainly') || transcriptLower.includes('immediately')) bonus += 3;
+          break;
+        case 'AU':
+          if (transcriptLower.includes('straight away') || transcriptLower.includes('no worries')) bonus += 3;
+          break;
+        case 'CA':
+          if (transcriptLower.includes('absolutely') || transcriptLower.includes('right away')) bonus += 3;
+          break;
+      }
+      
+      // Add some randomness to ensure different scores
+      const randomBonus = Math.floor(Math.random() * 10);
+      
+      return Math.min(75, baseScore + bonus + randomBonus); // Cap at 75 for de-escalation fallback
+    }
+    
+
+    
+    // Original fallback scoring for other challenges
+    const baseScore = 60; // Base score for all regions
+    
+    // Add region-specific bonuses based on transcript content
+    const transcriptLower = transcript.toLowerCase();
+    let bonus = 0;
+    
+    switch (region) {
+      case 'US':
+        if (transcriptLower.includes('hey') || transcriptLower.includes('team')) bonus += 10;
+        if (transcriptLower.includes('excited') || transcriptLower.includes('ready')) bonus += 8;
+        if (transcriptLower.includes('jump in') || transcriptLower.includes('awesome')) bonus += 7;
+        break;
+      case 'UK':
+        if (transcriptLower.includes('good morning') || transcriptLower.includes('delighted')) bonus += 10;
+        if (transcriptLower.includes('rather') || transcriptLower.includes('excellent')) bonus += 8;
+        if (transcriptLower.includes('hope') || transcriptLower.includes('objectives')) bonus += 7;
+        break;
+      case 'AU':
+        if (transcriptLower.includes('gday') || transcriptLower.includes('stoked')) bonus += 10;
+        if (transcriptLower.includes('keen') || transcriptLower.includes('smash')) bonus += 8;
+        if (transcriptLower.includes('ripper') || transcriptLower.includes('stuck in')) bonus += 7;
+          break;
+      case 'CA':
+        if (transcriptLower.includes('hope everyone') || transcriptLower.includes('quite excited')) bonus += 10;
+        if (transcriptLower.includes('really looking forward') || transcriptLower.includes('hopefully')) bonus += 8;
+        if (transcriptLower.includes('working together') || transcriptLower.includes('great results')) bonus += 7;
+        break;
+    }
+    
+    // Add some randomness to ensure different scores
+    const randomBonus = Math.floor(Math.random() * 15);
+    
+    return Math.min(100, baseScore + bonus + randomBonus);
+  };
+
+  // Generate sample script for specific region using Claude API
+  const generateSampleScript = async (region: string) => {
+    try {
+      setIsGeneratingScript(region);
+      console.log(`Generating ${region} sample script...`);
+      
+      const prompt = `Create a natural, authentic sample script for someone introducing themselves to a new team in ${region} cultural communication style.
+
+Cultural Context: ${culturalContexts[region as keyof typeof culturalContexts].style}
+Region: ${region}
+
+Requirements:
+- Should be 2-3 sentences long (15-25 seconds when spoken)
+- Must authentically reflect ${region} communication norms
+- Should sound natural and conversational, not forced
+- Include appropriate greetings, enthusiasm, and team-focused language
+- Match the cultural style: ${culturalContexts[region as keyof typeof culturalContexts].style}
+- Use generic language (avoid specific names, companies, or personal details)
+- Focus on role, enthusiasm, and team collaboration
+- Keep it professional but culturally appropriate
+
+Return ONLY the script text, no explanations or formatting. Make it sound like a real person speaking naturally in ${region} style.`;
+
+      console.log('Sending request to /api/analyze-cultural with:', {
+        prompt,
+        transcript: '',
+        region,
+        generateScript: true
+      });
+
+      const response = await fetch('/api/analyze-cultural', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt, 
+          transcript: '', 
+          region,
+          generateScript: true 
+        })
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Script generation failed: ${response.status} - ${errorText}`);
+      }
+
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log('Full API response:', responseData);
+      } catch (parseError) {
+        console.error('Failed to parse script generation response:', parseError);
+        throw new Error('Invalid script generation response format');
+      }
+
+      if (!responseData.success) {
+        throw new Error(`API returned error: ${responseData.error || 'Unknown error'}`);
+      }
+
+      const { analysis } = responseData;
+      const script = analysis?.feedback || analysis?.overallFeedback || 'Script generation failed';
+      
+      console.log(`${region} script generated:`, script);
+      
+      // Store the generated script
+      setGeneratedScripts(prev => ({
+        ...prev,
+        [region]: script
+      }));
+
+    } catch (error) {
+      console.error(`Error generating ${region} script:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to generate ${region} script: ${errorMessage}`);
+    } finally {
+      setIsGeneratingScript(null);
     }
   };
 
@@ -721,34 +1298,145 @@ const CulturalCommunicationArena = () => {
     }
   };
 
-  // Analyze voice recording for cultural fit
-  const analyzeVoiceRecording = (audioBlob: Blob) => {
-    // In a real app, this would send audio to AI analysis
-    // For now, we'll simulate analysis based on recording duration
-    const duration = recordingTime;
-    
-    // Simulate cultural analysis based on recording length and quality
-    const baseScore = Math.min(100, 60 + (duration * 2)); // Longer recordings get higher scores
-    
-    // Random cultural region focus
-    const region = ['US', 'UK', 'AU', 'CA'][Math.floor(Math.random() * 4)] as keyof typeof culturalContexts;
-    const score = Math.min(100, baseScore + Math.random() * 20);
-    
-    setCulturalScores(prev => ({
-      ...prev,
-      [region]: Math.min(100, prev[region] + score/10)
-    }));
-    
-    if (score > 85) {
-      addAchievement(`${culturalContexts[region].flag} Cultural Master`);
-    }
-
-    // Mark voice completion flags depending on active challenge type
-    const current = stages[currentStage - 1].challenges[currentChallenge];
-    if (current.type === 'combo') {
-      setComboVoiceDone(true);
-    } else if (current.type === 'ultimate') {
-      setBossVoiceDone(true);
+  // Analyze voice recording for cultural fit using AI
+  const analyzeVoiceRecording = async (audioBlob: Blob) => {
+    try {
+      setIsAnalyzingVoice(true);
+      console.log('Starting AI voice analysis...');
+      
+      // 1. Transcribe audio with OpenAI Whisper
+      const formData = new FormData();
+      formData.append('audio', audioBlob);
+      
+      const transcribeResponse = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!transcribeResponse.ok) {
+        const errorText = await transcribeResponse.text();
+        console.error('Transcription API Error Response:', errorText);
+        throw new Error(`Transcription failed: ${transcribeResponse.status} - ${errorText}`);
+      }
+      
+      let transcript;
+      try {
+        const responseData = await transcribeResponse.json();
+        transcript = responseData.transcript;
+        if (!transcript) {
+          throw new Error('No transcript in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse transcription response:', parseError);
+        throw new Error('Invalid transcription response format');
+      }
+      console.log('Transcription successful:', transcript);
+      
+      // 2. Analyze cultural fit with Claude
+      const current = stages[currentStage - 1].challenges[currentChallenge];
+      const currentRegion = current.regions?.[0] || 'US';
+      
+      const prompt = `Analyze this voice response for cultural appropriateness in ${currentRegion} context:
+      
+      Cultural Context: ${culturalContexts[currentRegion].style}
+      Voice Response: "${transcript}"
+      
+      Evaluate and provide a JSON response with:
+      {
+        "score": 85,
+        "tone": "Appropriate for US direct style",
+        "culturalSensitivity": "Good understanding of US communication norms",
+        "professionalLevel": "Maintains professional standards",
+        "improvements": "Could be more concise",
+        "overallFeedback": "Strong cultural adaptation with room for improvement"
+      }
+      
+      Score should be 0-100 where:
+      - 90-100: Excellent cultural match
+      - 80-89: Very good cultural match  
+      - 70-79: Good cultural match
+      - Below 70: Needs improvement in cultural adaptation`;
+      
+      const analysisResponse = await fetch('/api/analyze-cultural', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, transcript, region: currentRegion })
+      });
+      
+      if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text();
+        console.error('Cultural Analysis API Error Response:', errorText);
+        throw new Error(`Cultural analysis failed: ${analysisResponse.status} - ${errorText}`);
+      }
+      
+      let analysis;
+      try {
+        const responseData = await analysisResponse.json();
+        analysis = responseData.analysis;
+        if (!analysis) {
+          throw new Error('No analysis in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse cultural analysis response:', parseError);
+        throw new Error('Invalid cultural analysis response format');
+      }
+      console.log('Cultural analysis successful:', analysis);
+      
+      // Update cultural scores based on AI analysis
+      const score = analysis.score || 75;
+      setCulturalScores(prev => ({
+        ...prev,
+        [currentRegion]: Math.min(100, prev[currentRegion] + score/10)
+      }));
+      
+      // Add achievements based on performance
+      if (score > 85) {
+        addAchievement(`${culturalContexts[currentRegion].flag} Cultural Master`);
+      } else if (score > 70) {
+        addAchievement(`${culturalContexts[currentRegion].flag} Cultural Learner`);
+      }
+      
+      // Mark voice completion flags depending on active challenge type
+      if (current.type === 'combo') {
+        setComboVoiceDone(true);
+      } else if (current.type === 'ultimate') {
+        setBossVoiceDone(true);
+      }
+      
+      // Store transcript for display
+      setCurrentResponse(transcript);
+      
+      return analysis;
+      
+    } catch (error) {
+      console.error('AI voice analysis failed, using fallback:', error);
+      
+      // Fallback to current simulation
+      const duration = recordingTime;
+      const baseScore = Math.min(100, 60 + (duration * 2));
+      const region = ['US', 'UK', 'AU', 'CA'][Math.floor(Math.random() * 4)] as keyof typeof culturalContexts;
+      const score = Math.min(100, baseScore + Math.random() * 20);
+      
+      setCulturalScores(prev => ({
+        ...prev,
+        [region]: Math.min(100, prev[region] + score/10)
+      }));
+      
+      if (score > 85) {
+        addAchievement(`${culturalContexts[region].flag} Cultural Master`);
+      }
+      
+      // Mark completion flags
+      const current = stages[currentStage - 1].challenges[currentChallenge];
+      if (current.type === 'combo') {
+        setComboVoiceDone(true);
+      } else if (current.type === 'ultimate') {
+        setBossVoiceDone(true);
+      }
+      
+      return { score, feedback: 'Fallback analysis used' };
+    } finally {
+      setIsAnalyzingVoice(false);
     }
   };
 
@@ -904,10 +1592,15 @@ const CulturalCommunicationArena = () => {
     setCurrentStage(1);
     setCurrentChallenge(0);
     setTimeLeft(300);
-    setCulturalScores({ US: 50, UK: 50, AU: 50, CA: 50 });
+    setCulturalScores({ US: 0, UK: 0, AU: 0, CA: 0 });
     setAchievements([]);
     setSurvivalStatus(100);
     setCurrentResponse('');
+    setCurrentRecordingRegion(null);
+    setCulturalTranscripts({ US: '', UK: '', AU: '', CA: '' });
+    setGeneratedScripts({ US: '', UK: '', AU: '', CA: '' });
+    setIsGeneratingScript(null);
+    setIsTranscribing({ US: false, UK: false, AU: false, CA: false });
   };
 
   const formatTime = (seconds: number) => {
@@ -1140,6 +1833,75 @@ const CulturalCommunicationArena = () => {
   if (gameState === 'results') {
     const tier = calculateTier();
     const avgScore = Math.round(Object.values(culturalScores).reduce((a, b) => a + b, 0) / 4);
+    
+    // Save game data when results screen loads
+    useEffect(() => {
+      const saveGameData = async () => {
+        try {
+          // Get authorization token
+          const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
+          
+          if (!token) {
+            console.log('No auth token, skipping data save');
+            return;
+          }
+
+          const sessionData = {
+            startedAt: new Date(Date.now() - (300 - timeLeft) * 1000), // Calculate start time
+            finishedAt: new Date(),
+            durationMs: (300 - timeLeft) * 1000,
+            stageReached: currentStage,
+            challengeCompleted: currentChallenge,
+            gameState: 'results',
+            timeLeft: timeLeft,
+            survivalStatus: survivalStatus,
+            interactionCount: interactionCount,
+            usScore: Math.round(culturalScores.US),
+            ukScore: Math.round(culturalScores.UK),
+            auScore: Math.round(culturalScores.AU),
+            caScore: Math.round(culturalScores.CA),
+            tierName: tier.tier,
+            tierDescription: tier.description,
+            achievements: achievements,
+            metrics: {
+              culturalTranscripts,
+              generatedScripts,
+              stageAchievements,
+              audioRecordings: {
+                totalRecordings: interactionCount,
+                recordingTime: recordingTime
+              },
+              challengeBreakdown: {
+                stage1: { completed: currentStage >= 1, challenges: stages[0]?.challenges?.length || 0 },
+                stage2: { completed: currentStage >= 2, challenges: stages[1]?.challenges?.length || 0 },
+                stage3: { completed: currentStage >= 3, challenges: stages[2]?.challenges?.length || 0 },
+                stage4: { completed: currentStage >= 4, challenges: stages[3]?.challenges?.length || 0 }
+              }
+            }
+          };
+
+          const response = await fetch('/api/games/bpoc-cultural/session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(sessionData)
+          });
+
+          if (response.ok) {
+            console.log('Game data saved successfully');
+          } else {
+            console.error('Failed to save game data');
+          }
+        } catch (error) {
+          console.error('Error saving game data:', error);
+        }
+      };
+
+      saveGameData();
+    }, []); // Only run once when results screen loads
+    
     return (
       <div className="min-h-screen cyber-grid overflow-hidden">
         {/* Background Effects */}
@@ -1345,28 +2107,6 @@ const CulturalCommunicationArena = () => {
                   </div>
                 </div>
               </div>
-              
-              {/* Progress bar */}
-              <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                  style={{ 
-                    width: `${((currentStage - 1) / (stages.length - 1)) * 100}%` 
-                  }}
-                />
-              </div>
-              
-              {/* Cultural scores */}
-              <div className="grid grid-cols-4 gap-4">
-                {Object.entries(culturalScores).map(([region, score]) => (
-                  <div key={region} className="bg-gray-700 rounded-lg p-3 text-center">
-                    {/* Use region code instead of flag to avoid 'GB' fallback rendering */}
-                    <div className="text-xl font-semibold">{region}</div>
-                    <div className="text-lg font-bold">{Math.round(score)}%</div>
-                    <div className="text-xs text-gray-400">{region}</div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -1382,30 +2122,100 @@ const CulturalCommunicationArena = () => {
               <div className="rounded-xl p-6 mb-8 text-center border border-white/10 relative" style={{ backgroundColor: '#111315' }}>
                 {/* Challenge Info */}
                 <div>
-                  <div className="mb-4">
-                    <div className="text-sm text-gray-400 mb-1">Challenge {currentStage}{String.fromCharCode(65 + currentChallenge)}</div>
-                    <h1 className="text-3xl font-bold">{stages[currentStage - 1].challenges[currentChallenge].title}</h1>
-                  </div>
+                  {(() => {
+                    // Safety check to ensure stages and challenges exist
+                    if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
+                      return (
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-red-400 mb-4">Challenge Not Found</div>
+                          <p className="text-lg opacity-90 mb-4">The selected challenge could not be loaded. Please try refreshing the page.</p>
+                        </div>
+                      );
+                    }
+                    
+                    const challenge = stages[currentStage - 1].challenges[currentChallenge];
+                    
+                    return (
+                      <>
+                        <div className="mb-4">
+                          <div className="text-sm text-gray-400 mb-1">Challenge {currentStage}{String.fromCharCode(65 + currentChallenge)}</div>
+                          <h1 className="text-3xl font-bold">{challenge.title}</h1>
+                        </div>
+                        
+                        <p className="text-lg opacity-90 mb-4">{challenge.description}</p>
+                        
+                        {/* Challenge Scenario */}
+                        <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MessageSquare className="w-4 h-4 text-purple-400" />
+                            <span className="text-sm font-semibold text-purple-300">Challenge Scenario</span>
+                          </div>
+                          <p className="text-sm text-gray-200">{challenge.scenario}</p>
+                        </div>
+                        
+                        {/* Challenge Instructions */}
+                        <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Zap className="w-4 h-4 text-orange-400" />
+                            <span className="text-sm font-semibold text-purple-300">Challenge Instructions</span>
+                          </div>
+                          <p className="text-sm text-gray-200">{challenge.instructions}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
                   
-                  <p className="text-lg opacity-90 mb-4">{stages[currentStage - 1].challenges[currentChallenge].description}</p>
-                  
-                  {/* Challenge Scenario */}
-                  <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm font-semibold text-purple-300">Challenge Scenario</span>
+                  {/* Voice Analysis Results Display */}
+                  {currentResponse && (
+                    <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Mic className="w-4 h-4 text-cyan-400" />
+                        <span className="text-sm font-semibold text-cyan-300">Voice Analysis Results</span>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-medium text-cyan-300 mb-2">Your Response:</h4>
+                          <p className="text-sm text-gray-200 bg-gray-800/50 p-3 rounded border border-gray-700">
+                            "{currentResponse}"
+                          </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-cyan-300 mb-1">Cultural Score:</h4>
+                            <div className="text-xl font-bold text-cyan-400">
+                              {(() => {
+                                const current = stages[currentStage - 1].challenges[currentChallenge];
+                                const currentRegion = current.regions?.[0] || 'US';
+                                return Math.round(culturalScores[currentRegion]);
+                              })()}%
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-sm font-medium text-cyan-300 mb-1">Current Region:</h4>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">
+                                {(() => {
+                                  const current = stages[currentStage - 1].challenges[currentChallenge];
+                                  const currentRegion = current.regions?.[0] || 'US';
+                                  return culturalContexts[currentRegion]?.flag;
+                                })()}
+                              </span>
+                              <span className="text-sm text-gray-200">
+                                {(() => {
+                                  const current = stages[currentStage - 1].challenges[currentChallenge];
+                                  const currentRegion = current.regions?.[0] || 'US';
+                                  return culturalContexts[currentRegion]?.name;
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-200">{stages[currentStage - 1].challenges[currentChallenge].scenario}</p>
-                  </div>
-                  
-                  {/* Challenge Instructions */}
-                  <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-4 h-4 text-orange-400" />
-                      <span className="text-sm font-semibold text-purple-300">Challenge Instructions</span>
-                    </div>
-                    <p className="text-sm text-gray-200">{stages[currentStage - 1].challenges[currentChallenge].instructions}</p>
-                  </div>
+                  )}
                   
                   {/* Elimination Triggers */}
                   {stages[currentStage - 1].challenges[currentChallenge].eliminationTriggers && (
@@ -1442,472 +2252,553 @@ const CulturalCommunicationArena = () => {
 
               {/* Challenge content */}
               <div className="bg-[#111315] rounded-xl p-8 mb-8 border border-white/10 shadow-lg shadow-black/30">
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'voice' && (
-                  <div className="text-center">
-                    {/* Example prompts */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                      {stages[currentStage - 1].challenges[currentChallenge].regions.map(region => (
-                        <div key={region} className={`bg-gradient-to-br ${culturalContexts[region as keyof typeof culturalContexts].color} rounded-lg p-4`}>
-                          <div className="text-sm md:text-base font-semibold uppercase text-white/90 mb-2">{region}</div>
-                          <div className="font-bold text-lg text-white">{culturalContexts[region as keyof typeof culturalContexts].name}</div>
-                          <div className="text-sm text-white/90 mb-2">{culturalContexts[region as keyof typeof culturalContexts].style}</div>
-                          <div className="text-xs italic text-white/80">"{culturalContexts[region as keyof typeof culturalContexts].example}"</div>
-                        </div>
-                      ))}
-                    </div>
-
-                                         {/* Enhanced Recording Interface */}
-                     <div className="bg-gray-700 rounded-lg p-6">
-                       <div className="text-lg mb-4 text-center">
-                         {isRecording ? (
-                           <div>
-                             <div className="text-red-400 mb-2">🔴 Recording... {recordingTime}s</div>
-                             {/* Audio level indicator */}
-                             <div className="w-32 h-4 bg-gray-700 rounded-full mx-auto overflow-hidden">
-                               <div 
-                                 className="h-full bg-green-500 transition-all duration-100"
-                                 style={{ width: `${Math.min(100, (audioLevel / 128) * 100)}%` }}
-                               />
-                             </div>
-                             <div className="text-xs text-gray-400 mt-1">
-                               Audio Level: {Math.round((audioLevel / 128) * 100)}%
-                             </div>
-                           </div>
-                         ) : (
-                           <div>
-                             {audioUrl ? "Your recording is ready!" : "Click to start recording your response"}
-                             {/* Microphone status indicator */}
-                             <div className="mt-2 text-sm">
-                               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
-                                 canRecord 
-                                   ? 'bg-green-600/20 text-green-400 border border-green-500/40' 
-                                   : 'bg-red-600/20 text-red-400 border border-red-500/40'
-                               }`}>
-                                 {canRecord ? '🎤 Microphone Ready' : '❌ Microphone Not Ready'}
-                               </span>
-                             </div>
-                           </div>
-                         )}
-                       </div>
-                       
-                       <div className="flex items-center justify-center gap-4 mb-4">
-                         <motion.button
-                           onClick={handleVoiceRecording}
-                           disabled={!canRecord}
-                           className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
-                             isRecording 
-                               ? 'bg-red-600 hover:bg-red-700' 
-                               : !canRecord
-                               ? 'bg-gray-500 cursor-not-allowed'
-                               : 'bg-blue-600 hover:bg-blue-700'
-                           }`}
-                           whileHover={{ scale: canRecord && !isRecording ? 1.1 : 1 }}
-                           whileTap={{ scale: canRecord && !isRecording ? 0.9 : 1 }}
-                         >
-                           {isRecording ? <MicOff /> : <Mic />}
-                         </motion.button>
-                         
-                         {audioUrl && (
-                           <motion.button
-                             onClick={playAudioRecording}
-                             className="w-16 h-16 rounded-full bg-green-600 hover:bg-green-700 flex items-center justify-center text-2xl transition-all"
-                             whileHover={{ scale: 1.1 }}
-                             whileTap={{ scale: 0.9 }}
-                           >
-                             <Play className="text-white" />
-                           </motion.button>
-                         )}
-                       </div>
-                       
-                       {!canRecord && (
-                         <div className="text-center text-red-400 text-sm mb-4">
-                           <div className="mb-2">⚠️ Microphone access required. Please allow microphone permissions.</div>
-                           <div className="flex gap-2 justify-center">
-                             <Button
-                               onClick={checkMicrophonePermission}
-                               size="sm"
-                               className="bg-blue-600 hover:bg-blue-700 text-white"
-                             >
-                               🔄 Refresh Access
-                             </Button>
-                             <Button
-                               onClick={async () => {
-                                 const state = await checkCurrentPermissionState();
-                                 alert(`Current microphone permission: ${state}\n\nIf it shows 'granted', try clicking 'Refresh Access' above.`);
-                               }}
-                               size="sm"
-                               variant="outline"
-                               className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                             >
-                               ℹ️ Check Status
-                             </Button>
-                           </div>
-                         </div>
-                       )}
-                       
-                       {audioUrl && (
-                         <div className="text-center">
-                           <audio 
-                             ref={audioRef} 
-                             src={audioUrl} 
-                             className="hidden"
-                             controls={false}
-                             preload="metadata"
-                           />
-                           <div className="text-sm text-green-400 mb-2">
-                             🎵 Recording saved! Click play to review.
-                           </div>
-                           <div className="text-xs text-gray-400">
-                             Duration: {recordingTime}s • Format: WebM
-                           </div>
-                         </div>
-                       )}
-                       
-                       <div className="text-sm text-gray-400 mt-4 text-center">
-                         Record your introduction for each cultural context
-                       </div>
-                     </div>
-                  </div>
-                )}
-
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'writing' && (
-                  <div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      {Object.entries(mockChallenges.writing_adaptation).map(([key, value]) => {
-                        if (key === 'scenario') return null;
-                        return (
-                          <div key={key} className={`bg-gradient-to-br ${culturalContexts[key as keyof typeof culturalContexts].color} rounded-lg p-4`}>
-                            <div className="font-bold text-sm mb-2 text-white">
-                              {culturalContexts[key as keyof typeof culturalContexts].flag} {culturalContexts[key as keyof typeof culturalContexts].name}
+                {(() => {
+                  // Safety check to ensure stages and challenges exist
+                  if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
+                    return (
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-red-400 mb-4">Challenge Content Not Available</div>
+                        <p className="text-gray-400">The selected challenge content could not be loaded.</p>
+                      </div>
+                    );
+                  }
+                  
+                  const challenge = stages[currentStage - 1].challenges[currentChallenge];
+                  
+                  if (challenge.type === 'voice') {
+                    return (
+                      <div className="text-center">
+                        {/* Cultural Recording Interface */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                          {(['US', 'UK', 'AU', 'CA'] as const).map((region) => (
+                            <div key={region} className={`bg-gradient-to-br ${culturalContexts[region].color} rounded-lg p-6 border border-white/20`}>
+                              <div className="text-center mb-4">
+                                <div className="text-2xl mb-2">{culturalContexts[region].flag}</div>
+                                <div className="text-lg font-bold text-white">{culturalContexts[region].name}</div>
+                                <div className="text-sm text-white/80">{culturalContexts[region].style}</div>
+                              </div>
+                              
+                              {/* Sample Script or Customer Complaint */}
+                              <div className="bg-black/20 rounded-lg p-4 mb-4 text-left">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="text-sm font-semibold text-white/90">
+                                    {(() => {
+                                      const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+                                      if (currentChallengeTitle === "The Angry Customer Gauntlet") return "😡 Customer Complaint:";
+                                      return "📝 Sample Script to Read:";
+                                    })()}
+                                  </div>
+                                  {(() => {
+                                    const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+                                    return currentChallengeTitle !== "The Angry Customer Gauntlet";
+                                  })() && (
+                                    <Button
+                                      onClick={() => generateSampleScript(region)}
+                                      disabled={isGeneratingScript === region}
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/30 text-white/70 hover:bg-white/20 hover:text-white text-xs px-2 py-1 h-6"
+                                    >
+                                      {isGeneratingScript === region ? (
+                                        <Timer className="w-3 h-3 animate-spin mr-1" />
+                                      ) : (
+                                        <span>🔄</span>
+                                      )}
+                                      {isGeneratingScript === region ? 'Generating...' : 'Generate'}
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="text-xs text-white/80 leading-relaxed">
+                                  {(() => {
+                                    const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+                                    
+                                    if (currentChallengeTitle === "The Angry Customer Gauntlet") {
+                                      // Customer complaints for de-escalation challenge
+                                      return region === 'US' ? "Your service is pretty disappointing. I expected way better for what I'm paying." :
+                                             region === 'UK' ? "This is absolutely unacceptable. I demand to speak to someone with actual authority who can resolve this properly." :
+                                             region === 'AU' ? "This is a complete fucking shambles! You people are bloody useless! I want my money back RIGHT NOW or I'm posting this disaster everywhere!" :
+                                             "This is absolutely unacceptable. I demand to speak to someone with actual authority who can resolve this properly.";
+                                    } else {
+                                      // Default sample scripts for cultural introduction challenges
+                                      return generatedScripts[region] || (
+                                        region === 'US' ? "Hey team! I'm excited to join this sprint. I'm all about getting things done efficiently and I'm ready to jump in and contribute to our goals. Let's make this project awesome!" :
+                                        region === 'UK' ? "Good morning everyone. I'm delighted to be joining your team for this sprint. I'm rather looking forward to contributing to our objectives and I do hope we can achieve excellent results together." :
+                                        region === 'AU' ? "G'day everyone! Stoked to be joining the team for this sprint. I'm pretty keen to get stuck in and help us smash our goals. This project's going to be ripper!" :
+                                        "Hi there, hope everyone's having a good day. I'm quite excited to be joining your team for this sprint. I'm really looking forward to working together and hopefully we can achieve some great results."
+                                      );
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+                              
+                              {/* Recording Button */}
+                              <div className="flex justify-center mb-4">
+                                <motion.button
+                                  onClick={() => handleCulturalRecording(region)}
+                                  disabled={!canRecord || isAnalyzingVoice}
+                                  className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                                    isRecording && currentRecordingRegion === region
+                                      ? 'bg-red-600 hover:bg-red-700' 
+                                      : isAnalyzingVoice && currentRecordingRegion === region
+                                      ? 'bg-yellow-600 cursor-wait'
+                                      : !canRecord
+                                      ? 'bg-gray-500 cursor-not-allowed'
+                                      : 'bg-white/20 hover:bg-white/30 border-2 border-white/40'
+                                  }`}
+                                  whileHover={{ scale: canRecord && !isRecording && !isAnalyzingVoice ? 1.1 : 1 }}
+                                  whileTap={{ scale: canRecord && !isRecording && !isAnalyzingVoice ? 0.9 : 1 }}
+                                >
+                                  {isRecording && currentRecordingRegion === region ? <MicOff /> : 
+                                   isAnalyzingVoice && currentRecordingRegion === region ? <Timer className="animate-spin" /> : <Mic />}
+                                </motion.button>
+                              </div>
+                              
+                              {/* Recording Status */}
+                              <div className="text-sm text-white/80 mb-4">
+                                {isRecording && currentRecordingRegion === region ? (
+                                  <div className="text-red-200">🔴 Recording... {recordingTime}s</div>
+                                ) : isTranscribing[region] ? (
+                                  <div className="text-yellow-200 flex items-center justify-center">
+                                    <Timer className="w-4 h-4 animate-spin mr-2" />
+                                    Transcribing...
+                                  </div>
+                                ) : culturalTranscripts[region] ? (
+                                  <div className="text-green-200">✅ Recorded & Transcribed</div>
+                                ) : (
+                                  <div>
+                                    {(() => {
+                                      const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+                                      if (currentChallengeTitle === "The Angry Customer Gauntlet") {
+                                        return `Click to record your ${region} customer service response`;
+                                      } else {
+                                        return `Click to record your ${region} introduction`;
+                                      }
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Transcription Loading Indicator */}
+                              {isTranscribing[region] && (
+                                <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-lg p-3 mb-4 text-center">
+                                  <div className="flex items-center justify-center text-yellow-200">
+                                    <Timer className="w-3 h-3 animate-spin mr-2" />
+                                    <span className="text-sm">Transcribing your recording...</span>
+                                  </div>
+                                  <div className="text-xs text-yellow-300 mt-1">This may take a few seconds</div>
+                                </div>
+                              )}
+                              
+                              {/* Transcription Output */}
+                              {culturalTranscripts[region] && (
+                                <div className="bg-black/30 rounded-lg p-3 text-left">
+                                  <div className="text-sm font-semibold text-white/90 mb-2">
+                                    {(() => {
+                                      const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
+                                      if (currentChallengeTitle === "The Angry Customer Gauntlet") {
+                                        return "🎤 Your Customer Service Response:";
+                                      } else {
+                                        return "🎤 Your Response:";
+                                      }
+                                    })()}
+                                  </div>
+                                  <div className="text-xs text-white/80 bg-black/20 p-2 rounded border border-white/10">
+                                    "{culturalTranscripts[region]}"
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Cultural Score */}
+                              {culturalTranscripts[region] && culturalScores[region as keyof typeof culturalScores] > 0 && (
+                                <div className="mt-3 text-center">
+                                  <div className="text-sm text-white/80">Cultural Score:</div>
+                                  <div className="text-xl font-bold text-white">
+                                    {Math.round(culturalScores[region as keyof typeof culturalScores])}%
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="text-xs italic text-white/80">"{value as string}"</div>
+                          ))}
+                        </div>
+                        
+                        {/* Fallback Recording Button */}
+                        <div className="text-center mb-4">
+                          <Button
+                            onClick={startFallbackRecording}
+                            disabled={!canRecord || isRecording || isAnalyzingVoice}
+                            size="sm"
+                            variant="outline"
+                            className="border-orange-500 text-orange-400 hover:bg-orange-500/20"
+                          >
+                            🔄 Try Alternative Recording Method
+                          </Button>
+                        </div>
+                        
+                        {/* Test Audio Button */}
+                        <div className="text-center mb-4">
+                          <Button
+                            onClick={createTestAudio}
+                            size="sm"
+                            variant="outline"
+                            className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                          >
+                            🎵 Create Test Audio
+                          </Button>
+                        </div>
+                        
+                        {/* Debug Info */}
+                        <div className="text-center text-xs text-gray-500 mt-4">
+                          <div>Microphone Status: {canRecord ? '✅ Ready' : '❌ Not Ready'}</div>
+                          <div>Supported formats: {(() => {
+                            const formats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/wav', 'audio/ogg'];
+                            return formats.filter(f => MediaRecorder.isTypeSupported(f)).join(', ');
+                          })()}</div>
+                        </div>
+                      </div>
+                    );
+                  } else if (challenge.type === 'writing') {
+                    return (
+                      <div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                          {Object.entries(mockChallenges.writing_adaptation).map(([key, value]) => {
+                            if (key === 'scenario') return null;
+                            return (
+                              <div key={key} className={`bg-gradient-to-br ${culturalContexts[key as keyof typeof culturalContexts].color} rounded-lg p-4`}>
+                                <div className="font-bold text-sm mb-2 text-white">
+                                  {culturalContexts[key as keyof typeof culturalContexts].flag} {culturalContexts[key as keyof typeof culturalContexts].name}
+                                </div>
+                                <div className="text-xs italic text-white/80">"{value as string}"</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="bg-gray-700 rounded-lg p-6">
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write your cultural adaptation here..."
+                            className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                          />
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-400">
+                              {currentResponse.length} characters
+                            </span>
+                            <button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Response
+                            </button>
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write your cultural adaptation here..."
-                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
-                      />
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-sm text-gray-400">
-                          {currentResponse.length} characters
-                        </span>
-                        <button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          Submit Response
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'slang' && (
-                  <div>
-
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write your slang decoding responses here..."
-                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
-                      />
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-sm text-gray-400">
-                          {currentResponse.length} characters
-                        </span>
-                        <button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          Submit Response
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'style_switch' && (
-                  <div>
-                    
-                    <div className="bg-gray-700 rounded-lg p-6 mb-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="bg-gradient-to-br from-blue-600 to-red-600 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-white">🇺🇸 US Style</div>
-                          <div className="text-xs italic text-white/80">Direct, solution-focused, energetic</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-purple-600 to-blue-800 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-white">🇬🇧 UK Style</div>
-                          <div className="text-xs italic text-white/80">Diplomatic, structured, professional</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-yellow-600 to-green-600 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-white">🇦🇺 AU Style</div>
-                          <div className="text-xs italic text-white/80">Honest, straightforward, casual-professional</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-red-600 to-red-800 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-white">🇨🇦 CA Style</div>
-                          <div className="text-xs italic text-white/80">Considerate, collaborative, gently apologetic</div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write your cultural style adaptations here..."
-                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
-                      />
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-sm text-gray-400">
-                          {currentResponse.length} characters
-                        </span>
-                        <button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          Submit Response
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                 {stages[currentStage - 1].challenges[currentChallenge].type === 'combo' && (
-                  <div>
-                    <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-6 text-center mb-6">
-                      <div className="text-6xl mb-4">🌪️</div>
-                      <h4 className="text-xl font-bold mb-2">Multi-Cultural Crisis!</h4>
-                      <p className="text-yellow-200 mb-4">
-                        Handle emergency team coordination across all 4 cultures simultaneously
-                      </p>
-                      <div className="text-sm text-yellow-300">
-                        Complete both tasks below to proceed
-                      </div>
-                    </div>
-
-                    {/* Voice section */}
-                    <div className="bg-gray-800 rounded-lg p-6 mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="font-semibold text-white">Voice Response</div>
-                        <div className={`text-sm ${comboVoiceDone ? 'text-green-400' : 'text-gray-400'}`}>
-                          {comboVoiceDone ? 'Completed' : 'Required'}
+                    );
+                  } else if (challenge.type === 'slang') {
+                    return (
+                      <div>
+                        <div className="bg-gray-700 rounded-lg p-6">
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write your slang decoding responses here..."
+                            className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                          />
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-400">
+                              {currentResponse.length} characters
+                            </span>
+                            <button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Response
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-sm text-gray-300 mb-4">Record a brief coordination plan addressing all regions.</div>
-                      <div className="flex items-center gap-4">
-                        <motion.button
-                          onClick={handleVoiceRecording}
-                          className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
-                            isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                          }`}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          {isRecording ? <MicOff /> : <Mic />}
-                        </motion.button>
-                        <div className="text-gray-300">
-                          {isRecording ? `Recording... ${recordingTime}s` : 'Click to record'}
+                    );
+                  } else if (challenge.type === 'style_switch') {
+                    return (
+                      <div>
+                        <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-gradient-to-br from-blue-600 to-red-600 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-white">🇺🇸 US Style</div>
+                              <div className="text-xs italic text-white/80">Direct, solution-focused, energetic</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-purple-600 to-blue-800 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-white">🇬🇧 UK Style</div>
+                              <div className="text-xs italic text-white/80">Diplomatic, structured, professional</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-yellow-600 to-green-600 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-white">🇦🇺 AU Style</div>
+                              <div className="text-xs italic text-white/80">Honest, straightforward, casual-professional</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-red-600 to-red-800 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-white">🇨🇦 CA Style</div>
+                              <div className="text-xs italic text-white/80">Considerate, collaborative, gently apologetic</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-700 rounded-lg p-6">
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write your cultural style adaptations here..."
+                            className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                          />
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-400">
+                              {currentResponse.length} characters
+                            </span>
+                            <button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Response
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  } else if (challenge.type === 'combo') {
+                    return (
+                      <div>
+                        <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-6 text-center mb-6">
+                          <div className="text-6xl mb-4">🌪️</div>
+                          <h4 className="text-xl font-bold mb-2">Multi-Cultural Crisis!</h4>
+                          <p className="text-yellow-200 mb-4">
+                            Handle emergency team coordination across all 4 cultures simultaneously
+                          </p>
+                          <div className="text-sm text-yellow-300">
+                            Complete both tasks below to proceed
+                          </div>
+                        </div>
 
-                    {/* Writing section */}
-                    <div className="bg-gray-800 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="font-semibold text-white">Written Update</div>
-                        <div className={`text-sm ${comboWriteDone ? 'text-green-400' : 'text-gray-400'}`}>
-                          {comboWriteDone ? 'Submitted' : 'Required'}
+                        {/* Voice section */}
+                        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="font-semibold text-white">Voice Response</div>
+                            <div className={`text-sm ${comboVoiceDone ? 'text-green-400' : 'text-gray-400'}`}>
+                              {comboVoiceDone ? 'Completed' : 'Required'}
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-300 mb-4">Record a brief coordination plan addressing all regions.</div>
+                          <div className="flex items-center gap-4">
+                            <motion.button
+                              onClick={handleVoiceRecording}
+                              className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all ${
+                                isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              {isRecording ? <MicOff /> : <Mic />}
+                            </motion.button>
+                            <div className="text-gray-300">
+                              {isRecording ? `Recording... ${recordingTime}s` : 'Click to record'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Writing section */}
+                        <div className="bg-gray-800 rounded-lg p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="font-semibold text-white">Written Update</div>
+                            <div className={`text-sm ${comboWriteDone ? 'text-green-400' : 'text-gray-400'}`}>
+                              {comboWriteDone ? 'Submitted' : 'Required'}
+                            </div>
+                          </div>
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write a short, culturally-aware update for the team..."
+                            className="w-full h-28 bg-gray-700 rounded p-3 text-white text-sm"
+                          />
+                          <div className="text-right mt-3">
+                            <Button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >Submit</Button>
+                          </div>
                         </div>
                       </div>
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write a short, culturally-aware update for the team..."
-                        className="w-full h-28 bg-gray-700 rounded p-3 text-white text-sm"
-                      />
-                      <div className="text-right mt-3">
-                        <Button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >Submit</Button>
-                      </div>
-                    </div>
-                  </div>
-                                 )}
-
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'landmines' && (
-                  <div>
-
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write your responses to navigate these cultural landmines..."
-                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
-                      />
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-sm text-gray-400">
-                          {currentResponse.length} characters
-                        </span>
-                        <button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          Submit Response
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'boundaries' && (
-                  <div>
-                    
-                    <div className="bg-gray-700 rounded-lg p-6 mb-6">
-                      <div className="space-y-4">
-                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-yellow-300">🇺🇸 Boundary Test 1 - Personal Information Fishing</div>
-                          <div className="text-xs italic text-gray-200">"So where do you live? How much do you guys actually make? I'm curious about the wage difference."</div>
-                          <div className="text-xs text-yellow-200 mt-2">Test: Professional deflection while maintaining friendliness</div>
-                        </div>
-                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-yellow-300">🇬🇧 Boundary Test 2 - Inappropriate Relationship Building</div>
-                          <div className="text-xs italic text-gray-200">"Perhaps we could discuss this over drinks when I'm in Manila next month? I do enjoy the local nightlife."</div>
-                          <div className="text-xs text-yellow-200 mt-2">Test: Professional boundary maintenance with diplomatic grace</div>
-                        </div>
-                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-yellow-300">🇦🇺 Boundary Test 3 - Cultural Stereotyping</div>
-                          <div className="text-xs italic text-gray-200">"You Filipinos are all so hardworking and cheap! No wonder everyone outsources there."</div>
-                          <div className="text-xs text-yellow-200 mt-2">Test: Address stereotyping professionally without lecturing</div>
-                        </div>
-                        <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
-                          <div className="font-bold text-sm mb-2 text-yellow-300">🇨🇦 Boundary Test 4 - Excessive Personal Sharing</div>
-                          <div className="text-xs italic text-gray-200">"Sorry, I'm going through a terrible divorce and I just need someone to talk to about my personal problems..."</div>
-                          <div className="text-xs text-yellow-200 mt-2">Test: Empathy while maintaining professional focus</div>
+                    );
+                  } else if (challenge.type === 'landmines') {
+                    return (
+                      <div>
+                        <div className="bg-gray-700 rounded-lg p-6">
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write your responses to navigate these cultural landmines..."
+                            className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                          />
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-400">
+                              {currentResponse.length} characters
+                            </span>
+                            <button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Response
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  } else if (challenge.type === 'boundaries') {
+                    return (
+                      <div>
+                        <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                          <div className="space-y-4">
+                            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-yellow-300">🇺🇸 Boundary Test 1 - Personal Information Fishing</div>
+                              <div className="text-xs italic text-gray-200">"So where do you live? How much do you guys actually make? I'm curious about the wage difference."</div>
+                              <div className="text-xs text-yellow-200 mt-2">Test: Professional deflection while maintaining friendliness</div>
+                            </div>
+                            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-yellow-300">🇬🇧 Boundary Test 2 - Inappropriate Relationship Building</div>
+                              <div className="text-xs italic text-gray-200">"Perhaps we could discuss this over drinks when I'm in Manila next month? I do enjoy the local nightlife."</div>
+                              <div className="text-xs text-yellow-200 mt-2">Test: Professional boundary maintenance with diplomatic grace</div>
+                            </div>
+                            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-yellow-300">🇦🇺 Boundary Test 3 - Cultural Stereotyping</div>
+                              <div className="text-xs italic text-gray-200">"You Filipinos are all so hardworking and cheap! No wonder everyone outsources there."</div>
+                              <div className="text-xs text-yellow-200 mt-2">Test: Address stereotyping professionally without lecturing</div>
+                            </div>
+                            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+                              <div className="font-bold text-sm mb-2 text-yellow-300">🇨🇦 Boundary Test 4 - Excessive Personal Sharing</div>
+                              <div className="text-xs italic text-gray-200">"Sorry, I'm going through a terrible divorce and I just need someone to talk to about my personal problems..."</div>
+                              <div className="text-xs text-yellow-200 mt-2">Test: Empathy while maintaining professional focus</div>
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write your responses to maintain professional boundaries..."
-                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
-                      />
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-sm text-gray-400">
-                          {currentResponse.length} characters
-                        </span>
-                        <button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          Submit Response
-                        </button>
+                        <div className="bg-gray-700 rounded-lg p-6">
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write your responses to maintain professional boundaries..."
+                            className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                          />
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-400">
+                              {currentResponse.length} characters
+                            </span>
+                            <button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Response
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {stages[currentStage - 1].challenges[currentChallenge].type === 'crisis' && (
-                  <div>
-
-                    <div className="bg-gray-700 rounded-lg p-6">
-                      <textarea
-                        value={currentResponse}
-                        onChange={(e) => setCurrentResponse(e.target.value)}
-                        placeholder="Write your crisis communication responses..."
-                        className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
-                      />
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-sm text-gray-400">
-                          {currentResponse.length} characters
-                        </span>
-                        <button
-                          onClick={handleWritingSubmit}
-                          disabled={currentResponse.length < 10}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          Submit Response
-                        </button>
+                    );
+                  } else if (challenge.type === 'crisis') {
+                    return (
+                      <div>
+                        <div className="bg-gray-700 rounded-lg p-6">
+                          <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            placeholder="Write your crisis communication responses..."
+                            className="w-full h-32 bg-gray-600 rounded p-4 text-white resize-none"
+                          />
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-400">
+                              {currentResponse.length} characters
+                            </span>
+                            <button
+                              onClick={handleWritingSubmit}
+                              disabled={currentResponse.length < 10}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Response
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    );
+                  } else if (challenge.type === 'ultimate') {
+                    return (
+                      <div>
+                        <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center mb-6">
+                          <div className="text-6xl mb-4">💀</div>
+                          <h4 className="text-xl font-bold mb-2">Conference Call Chaos</h4>
+                          <p className="text-red-200 mb-4">
+                            4-way client call, each with different cultural expectations.
+                          </p>
+                          <div className="text-sm text-red-300">Round {bossRoundIndex + 1} of 4 • Time left: {bossTimer}s</div>
+                        </div>
 
-                 {stages[currentStage - 1].challenges[currentChallenge].type === 'ultimate' && (
-                  <div>
-                    <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center mb-6">
-                      <div className="text-6xl mb-4">💀</div>
-                      <h4 className="text-xl font-bold mb-2">Conference Call Chaos</h4>
-                      <p className="text-red-200 mb-4">
-                        4-way client call, each with different cultural expectations.
-                      </p>
-                      <div className="text-sm text-red-300">Round {bossRoundIndex + 1} of 4 • Time left: {bossTimer}s</div>
-                    </div>
+                        <div className="bg-gray-800 rounded-lg p-6 text-center">
+                          <div className="text-4xl mb-3">{stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] === 'US' ? '🇺🇸' : stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] === 'UK' ? '🇬🇧' : stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] === 'AU' ? '🇦🇺' : '🇨🇦'}</div>
+                          <div className="text-gray-300 mb-4">Give a concise voice response tailored to this region.</div>
+                          <motion.button
+                            onClick={handleVoiceRecording}
+                            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
+                              isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            {isRecording ? <MicOff /> : <Mic />}
+                          </motion.button>
+                          <div className="mt-3 text-gray-300">{bossVoiceDone ? 'Recorded ✔' : (isRecording ? `Recording... ${recordingTime}s` : 'Click to record')}</div>
 
-                    <div className="bg-gray-800 rounded-lg p-6 text-center">
-                      <div className="text-4xl mb-3">{stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] === 'US' ? '🇺🇸' : stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] === 'UK' ? '🇬🇧' : stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] === 'AU' ? '🇦🇺' : '🇨🇦'}</div>
-                      <div className="text-gray-300 mb-4">Give a concise voice response tailored to this region.</div>
-                      <motion.button
-                        onClick={handleVoiceRecording}
-                        className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all ${
-                          isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                        }`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                      >
-                        {isRecording ? <MicOff /> : <Mic />}
-                      </motion.button>
-                      <div className="mt-3 text-gray-300">{bossVoiceDone ? 'Recorded ✔' : (isRecording ? `Recording... ${recordingTime}s` : 'Click to record')}</div>
-
-                      {/* Next round button */}
-                      <div className="mt-6">
-                        <Button
-                          disabled={!bossVoiceDone}
-                          onClick={() => {
-                            // Score boost for current region
-                            const region = stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] as keyof typeof culturalContexts;
-                            setCulturalScores(prev => ({ ...prev, [region]: Math.min(100, prev[region] + 5 + Math.random()*5) }));
-                            // advance round or finish challenge
-                            if (bossRoundIndex < 3) {
-                              setBossRoundIndex(bossRoundIndex + 1);
-                              setBossVoiceDone(false);
-                              setBossTimer(30);
-                            } else {
-                              // finished all rounds
-                              addAchievement('🏁 Final Boss Survived');
-                            }
-                          }}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          {bossRoundIndex < 3 ? 'Next Round' : 'Rounds Complete'}
-                        </Button>
+                          {/* Next round button */}
+                          <div className="mt-6">
+                            <Button
+                              disabled={!bossVoiceDone}
+                              onClick={() => {
+                                // Score boost for current region
+                                const region = stages[currentStage - 1].challenges[currentChallenge].regions[bossRoundIndex] as keyof typeof culturalContexts;
+                                setCulturalScores(prev => ({ ...prev, [region]: Math.min(100, prev[region] + 5 + Math.random()*5) }));
+                                // advance round or finish challenge
+                                if (bossRoundIndex < 3) {
+                                  setBossRoundIndex(bossRoundIndex + 1);
+                                  setBossVoiceDone(false);
+                                  setBossTimer(30);
+                                } else {
+                                  // finished all rounds
+                                  addAchievement('🏁 Final Boss Survived');
+                                }
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              {bossRoundIndex < 3 ? 'Next Round' : 'Rounds Complete'}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
+                    );
+                  }
+                  
+                  // Default fallback
+                  return (
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-gray-400 mb-4">Challenge Type Not Supported</div>
+                      <p className="text-gray-500">This challenge type is not yet implemented.</p>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Challenge actions */}

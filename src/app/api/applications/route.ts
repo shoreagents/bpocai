@@ -239,17 +239,17 @@ export async function POST(request: NextRequest) {
 
       const newApplication = result.rows[0];
 
-      return NextResponse.json({
-        application: {
-          id: newApplication.id,
-          jobId: newApplication.job_id,
-          resumeId: newApplication.resume_id,
-          resumeSlug: newApplication.resume_slug,
-          status: 'applied', // Frontend status
-          appliedDate: newApplication.created_at
-        },
-        message: 'Application submitted successfully'
-      }, { status: 201 });
+              return NextResponse.json({
+          application: {
+            id: newApplication.id,
+            jobId: newApplication.job_id,
+            resumeId: newApplication.resume_id,
+            resumeSlug: newApplication.resume_slug,
+            status: 'submitted', // Frontend status - matches database enum
+            appliedDate: newApplication.created_at
+          },
+          message: 'Application submitted successfully'
+        }, { status: 201 });
     } finally {
       client.release();
     }
