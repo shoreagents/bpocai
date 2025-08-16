@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+
 import { 
   Users, 
   Search, 
@@ -14,7 +14,18 @@ import {
   Edit,
   Trash2
 } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +60,8 @@ interface User {
   location?: string
   bio?: string
   position?: string
+  admin_level?: string
+  is_admin?: boolean
 }
 
 export default function UsersPage() {
@@ -56,15 +69,28 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('all')
+  const [adminLevelFilter, setAdminLevelFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [togglingUsers, setTogglingUsers] = useState<Set<string>>(new Set())
+  const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; userId: string; userName: string } | null>(null)
 
   // Fetch users from database
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        setLoading(true)
+        console.log('Frontend: Loading state set to true')
         console.log('Frontend: Fetching users from API...')
-        const response = await fetch('/api/admin/users')
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+        
+        const response = await fetch('/api/admin/users', {
+          signal: controller.signal
+        })
+        
+        clearTimeout(timeoutId)
         console.log('Frontend: Response status:', response.status)
         
         if (response.ok) {
@@ -77,14 +103,24 @@ export default function UsersPage() {
           setUsers([])
         }
       } catch (error) {
-        console.error('Frontend: Error fetching users:', error)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error('Frontend: Request timed out after 10 seconds')
+        } else {
+          console.error('Frontend: Error fetching users:', error)
+        }
         setUsers([])
       } finally {
         setLoading(false)
+        console.log('Frontend: Loading state set to false')
       }
     }
 
     fetchUsers()
+    
+    // Cleanup function to ensure loading is reset if component unmounts
+    return () => {
+      setLoading(false)
+    }
   }, [])
 
 
@@ -98,8 +134,9 @@ export default function UsersPage() {
                           user.position?.toLowerCase().includes(searchTerm.toLowerCase())
       
      const matchesPosition = positionFilter === 'all' || user.position === positionFilter
+     const matchesAdminLevel = adminLevelFilter === 'all' || user.admin_level === adminLevelFilter
      
-     return matchesSearch && matchesPosition
+     return matchesSearch && matchesPosition && matchesAdminLevel
    })
 
    // Pagination logic
@@ -111,7 +148,7 @@ export default function UsersPage() {
        // Reset to first page when filters change
     useEffect(() => {
       setCurrentPage(1)
-    }, [searchTerm, positionFilter])
+    }, [searchTerm, positionFilter, adminLevelFilter])
 
 
 
@@ -129,11 +166,103 @@ export default function UsersPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 
+  const handleToggleAdmin = async (userId: string, currentAdminLevel: string | undefined) => {
+    try {
+      setTogglingUsers(prev => new Set(prev).add(userId))
+      
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'toggleAdmin',
+          userId: userId,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Admin toggle result:', result)
+        
+        // Update the local state to reflect the change
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId 
+              ? { ...user, admin_level: result.newAdminLevel }
+              : user
+          )
+        )
+        
+        // Show success notification
+        toast.success(result.message)
+      } else {
+        const error = await response.text()
+        console.error('Failed to toggle admin status:', error)
+        toast.error('Failed to update admin status')
+      }
+    } catch (error) {
+      console.error('Error toggling admin status:', error)
+      toast.error('Error updating admin status')
+    } finally {
+      setTogglingUsers(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(userId)
+        return newSet
+      })
+    }
+  }
+
+  const openDeleteDialog = (userId: string, userName: string) => {
+    setDeleteDialog({ isOpen: true, userId, userName })
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    try {
+      setDeletingUsers(prev => new Set(prev).add(userId))
+      
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          userId: userId,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Delete result:', result)
+        
+        // Remove user from local state
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== userId))
+        
+        // Show success toast
+        toast.success(result.message)
+      } else {
+        const error = await response.text()
+        console.error('Failed to delete user:', error)
+        toast.error('Failed to delete user')
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      toast.error('Error deleting user')
+    } finally {
+      setDeletingUsers(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(userId)
+        return newSet
+      })
+    }
+  }
+
   return (
     <AdminLayout title="Users" description="Manage platform users and their accounts">
-      <div className="space-y-6">
+      <div className="admin-users-page space-y-6">
         {/* Header Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
@@ -195,20 +324,38 @@ export default function UsersPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Admin Users</p>
+                  <p className="text-2xl font-bold text-white">
+                    {users.filter(u => u.admin_level === 'admin').length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+
 
         {/* Filters and Search */}
         <Card className="glass-card">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                 <Input
-                   placeholder="Search users by name, email, location, phone, bio, or position..."
-                   value={searchTerm}
-                   onChange={(e) => setSearchTerm(e.target.value)}
-                   className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-400"
-                 />
+                <Search className="absolute left-4 top-1/3 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search users by name, email, location, phone, bio, or position..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                />
               </div>
                                                            <div className="flex gap-2">
                  <DropdownMenu>
@@ -235,6 +382,36 @@ export default function UsersPage() {
                          {position}
                        </DropdownMenuItem>
                      ))}
+                   </DropdownMenuContent>
+                 </DropdownMenu>
+
+                 <DropdownMenu>
+                   <DropdownMenuTrigger asChild>
+                     <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
+                       {adminLevelFilter === 'all' ? 'All Admin Levels' : adminLevelFilter}
+                       <ChevronDown className="ml-2 h-4 w-4" />
+                     </Button>
+                   </DropdownMenuTrigger>
+                   <DropdownMenuContent className="bg-gray-800 border-white/10">
+                     <DropdownMenuItem 
+                       onClick={() => setAdminLevelFilter('all')}
+                       className="text-white hover:bg-white/10"
+                     >
+                       All Admin Levels
+                     </DropdownMenuItem>
+                     <DropdownMenuSeparator className="bg-white/10" />
+                     <DropdownMenuItem 
+                       onClick={() => setAdminLevelFilter('user')}
+                       className="text-white hover:bg-white/10"
+                     >
+                       User
+                     </DropdownMenuItem>
+                     <DropdownMenuItem 
+                       onClick={() => setAdminLevelFilter('admin')}
+                       className="text-white hover:bg-white/10"
+                     >
+                       Admin
+                     </DropdownMenuItem>
                    </DropdownMenuContent>
                  </DropdownMenu>
 
@@ -269,6 +446,7 @@ export default function UsersPage() {
                        <TableHead className="text-white font-medium">Phone</TableHead>
                        <TableHead className="text-white font-medium">Bio</TableHead>
                        <TableHead className="text-white font-medium">Position</TableHead>
+                       <TableHead className="text-white font-medium">Admin Level</TableHead>
                        <TableHead className="text-white font-medium text-right">Actions</TableHead>
                      </TableRow>
                    </TableHeader>
@@ -315,6 +493,18 @@ export default function UsersPage() {
                          <TableCell>
                            <span className="text-gray-300">{user.position || 'N/A'}</span>
                          </TableCell>
+                         <TableCell>
+                           <Badge 
+                             variant={user.admin_level === 'admin' ? 'default' : 'secondary'}
+                             className={
+                               user.admin_level === 'admin' 
+                                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                                 : 'bg-gray-600 text-gray-200'
+                             }
+                           >
+                             {user.admin_level || 'user'}
+                           </Badge>
+                         </TableCell>
                          <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -325,18 +515,49 @@ export default function UsersPage() {
                             <DropdownMenuContent align="end" className="bg-gray-800 border-white/10">
                               <DropdownMenuLabel className="text-white">Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator className="bg-white/10" />
-                              <DropdownMenuItem className="text-white hover:bg-white/10">
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit User
+                              <DropdownMenuItem 
+                                className="text-white hover:bg-white/10"
+                                onClick={() => handleToggleAdmin(user.id, user.admin_level)}
+                                disabled={togglingUsers.has(user.id)}
+                              >
+                                {togglingUsers.has(user.id) ? (
+                                  <>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                    Updating...
+                                  </>
+                                ) : user.admin_level === 'admin' ? (
+                                  <>
+                                    <UserX className="mr-2 h-4 w-4" />
+                                    Remove Admin
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="mr-2 h-4 w-4" />
+                                    Make Admin
+                                  </>
+                                )}
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-white hover:bg-white/10">
                                 <Mail className="mr-2 h-4 w-4" />
                                 Send Message
                               </DropdownMenuItem>
                               <DropdownMenuSeparator className="bg-white/10" />
-                              <DropdownMenuItem className="text-red-400 hover:bg-red-500/10">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete User
+                              <DropdownMenuItem 
+                                className="text-red-400 hover:bg-red-500/10"
+                                onClick={() => openDeleteDialog(user.id, user.full_name || user.email)}
+                                disabled={deletingUsers.has(user.id)}
+                              >
+                                {deletingUsers.has(user.id) ? (
+                                  <>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-red-400 border-t-transparent"></div>
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete User
+                                  </>
+                                )}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -410,6 +631,34 @@ export default function UsersPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialog?.isOpen} onOpenChange={(open) => !open && setDeleteDialog(null)}>
+          <AlertDialogContent className="glass-card border-white/10">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">Delete User</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-300">
+                Are you sure you want to delete user "{deleteDialog?.userName}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-white/10 text-white hover:bg-white/10">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => {
+                  if (deleteDialog) {
+                    handleDeleteUser(deleteDialog.userId, deleteDialog.userName)
+                    setDeleteDialog(null)
+                  }
+                }}
+              >
+                Delete User
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   )

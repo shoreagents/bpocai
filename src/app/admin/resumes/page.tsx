@@ -9,7 +9,6 @@ import {
   MoreHorizontal, 
   Download, 
   Eye, 
-  Edit, 
   Trash2,
   Calendar,
   User,
@@ -25,6 +24,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { toast } from '@/components/ui/toast'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,12 +75,8 @@ export default function ResumesPage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [deleteResumeId, setDeleteResumeId] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [editResume, setEditResume] = useState<Resume | null>(null)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editFormData, setEditFormData] = useState({
-    resume_title: '',
-    template_used: ''
-  })
+  const [deletingResumes, setDeletingResumes] = useState<Set<string>>(new Set())
+  const [forceDeleteMode, setForceDeleteMode] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
@@ -88,10 +91,10 @@ export default function ResumesPage() {
       if (response.ok) {
         setResumes(data.resumes)
       } else {
-        console.error('Failed to fetch resumes:', data.error)
+        toast.error('Failed to fetch resumes')
       }
     } catch (error) {
-      console.error('Error fetching resumes:', error)
+      toast.error('Error fetching resumes')
     } finally {
       setLoading(false)
     }
@@ -101,10 +104,7 @@ export default function ResumesPage() {
     fetchResumes()
   }, [])
 
-  // Debug useEffect for delete dialog state
-  useEffect(() => {
-    console.log('State changed - showDeleteDialog:', showDeleteDialog, 'deleteResumeId:', deleteResumeId)
-  }, [showDeleteDialog, deleteResumeId])
+
 
   // Filter resumes based on search term
   const filteredResumes = resumes.filter((resume) => {
@@ -117,8 +117,7 @@ export default function ResumesPage() {
     return matchesSearch
   })
 
-  // Debug logging for delete dialog
-  console.log('Current state - showDeleteDialog:', showDeleteDialog, 'deleteResumeId:', deleteResumeId)
+
 
   // Pagination logic
   const totalPages = Math.ceil(filteredResumes.length / itemsPerPage)
@@ -176,18 +175,26 @@ export default function ResumesPage() {
       if (response.ok) {
         setPreviewResume(data.resume)
       } else {
-        console.error('Failed to fetch resume preview:', data.error)
+        toast.error('Failed to fetch resume preview')
       }
     } catch (error) {
-      console.error('Error fetching resume preview:', error)
+      toast.error('Error fetching resume preview')
     } finally {
       setPreviewLoading(false)
     }
   }
 
-  const handleDeleteResume = async (resumeId: string) => {
+
+
+  const handleDeleteResume = async (resumeId: string, force: boolean = false) => {
     try {
-      const response = await fetch(`/api/admin/resumes/${resumeId}`, {
+      setDeletingResumes(prev => new Set(prev).add(resumeId))
+      
+      const url = force 
+        ? `/api/admin/resumes/${resumeId}?force=true`
+        : `/api/admin/resumes/${resumeId}`
+      
+      const response = await fetch(url, {
         method: 'DELETE',
       })
       
@@ -196,52 +203,35 @@ export default function ResumesPage() {
         setResumes(prevResumes => prevResumes.filter(resume => resume.id !== resumeId))
         setShowDeleteDialog(false)
         setDeleteResumeId(null)
+        setForceDeleteMode(false)
+        
+        // Show success toast
+        toast.success('Resume deleted successfully')
       } else {
-        console.error('Failed to delete resume')
+        const errorData = await response.json()
+        
+        // Check if it's a constraint violation and offer force delete
+        if (response.status === 400 && (errorData.error.includes('applications') || errorData.error.includes('referenced'))) {
+          setForceDeleteMode(true)
+          setDeleteResumeId(resumeId) // Make sure we keep the resume ID
+          setShowDeleteDialog(true) // Open the dialog to show force delete option
+          toast.error('Resume has applications. Use force delete to remove all references.')
+        } else {
+          toast.error(errorData.error || 'Failed to delete resume')
+        }
       }
     } catch (error) {
-      console.error('Error deleting resume:', error)
-    }
-  }
-
-  const handleEditResume = async (resume: Resume) => {
-    setEditResume(resume)
-    setEditFormData({
-      resume_title: resume.resume_title,
-      template_used: resume.template_used
-    })
-    setShowEditDialog(true)
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editResume) return
-    
-    try {
-      const response = await fetch(`/api/admin/resumes/${editResume.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editFormData),
+      toast.error('Error deleting resume')
+    } finally {
+      setDeletingResumes(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(resumeId)
+        return newSet
       })
-      
-      if (response.ok) {
-        // Update the resume in the list
-        setResumes(prevResumes => prevResumes.map(resume => 
-          resume.id === editResume.id 
-            ? { ...resume, ...editFormData, updated_at: new Date().toISOString() }
-            : resume
-        ))
-        setShowEditDialog(false)
-        setEditResume(null)
-        setEditFormData({ resume_title: '', template_used: '' })
-      } else {
-        console.error('Failed to update resume')
-      }
-    } catch (error) {
-      console.error('Error updating resume:', error)
     }
   }
+
+
 
   return (
     <AdminLayout title="Resume Management" description="Manage user resumes and documents">
@@ -430,6 +420,9 @@ export default function ResumesPage() {
                            >
                              <Eye className="w-3 h-3" />
                            </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -438,15 +431,13 @@ export default function ResumesPage() {
                           >
                             <Download className="w-3 h-3" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-white/10"
-                            title="Edit"
-                            onClick={() => handleEditResume(resume)}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-gray-800 border-white/10 text-white">
+                                Coming Soon
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
                         </div>
                         <Button
                           variant="ghost"
@@ -454,14 +445,18 @@ export default function ResumesPage() {
                           type="button"
                           className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                           title="Delete"
+                          disabled={deletingResumes.has(resume.id)}
                           onClick={() => {
-                            console.log('Delete button clicked, setting state...')
                             setDeleteResumeId(resume.id)
+                            setForceDeleteMode(false)
                             setShowDeleteDialog(true)
-                            console.log('State set - deleteResumeId:', resume.id, 'showDeleteDialog:', true)
                           }}
                         >
+                          {deletingResumes.has(resume.id) ? (
+                            <div className="w-3 h-3 animate-spin rounded-full border-2 border-red-400 border-t-transparent"></div>
+                          ) : (
                           <Trash2 className="w-3 h-3" />
+                          )}
                         </Button>
                       </div>
                     </CardContent>
@@ -625,84 +620,71 @@ export default function ResumesPage() {
        </div>
 
        {/* Delete Confirmation Dialog */}
-       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+       <AlertDialog open={showDeleteDialog} onOpenChange={(open) => {
+         if (!open) {
+           setForceDeleteMode(false)
+           setDeleteResumeId(null)
+         }
+         setShowDeleteDialog(open)
+       }}>
          <AlertDialogContent className="bg-gray-900 border-gray-700 text-white z-[9999]">
            <AlertDialogHeader>
              <AlertDialogTitle className="text-white">Delete Resume</AlertDialogTitle>
              <AlertDialogDescription className="text-gray-300">
-               Are you sure you want to delete this resume? This action cannot be undone.
+               {forceDeleteMode ? (
+                 <>
+                   This resume has applications that reference it. 
+                   <br /><br />
+                   <strong>Force delete will remove:</strong>
+                   <br />• The resume
+                   <br />• All related applications
+                   <br /><br />
+                   <span className="text-yellow-400">This action cannot be undone!</span>
+                 </>
+               ) : (
+                 'Are you sure you want to delete this resume? This action cannot be undone.'
+               )}
              </AlertDialogDescription>
            </AlertDialogHeader>
            <AlertDialogFooter>
-             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">
+             <AlertDialogCancel 
+               className="border-gray-700 text-gray-300 hover:bg-gray-800"
+               onClick={() => {
+                 setForceDeleteMode(false)
+                 setShowDeleteDialog(false)
+                 setDeleteResumeId(null)
+               }}
+             >
                Cancel
              </AlertDialogCancel>
+             {forceDeleteMode ? (
+               <AlertDialogAction
+                 onClick={() => {
+                   deleteResumeId && handleDeleteResume(deleteResumeId, true)
+                 }}
+                 disabled={deleteResumeId ? deletingResumes.has(deleteResumeId) : false}
+                 className="bg-red-700 hover:bg-red-800 text-white disabled:opacity-50"
+               >
+                 {deleteResumeId && deletingResumes.has(deleteResumeId) ? 'Force Deleting...' : 'Force Delete'}
+               </AlertDialogAction>
+             ) : (
              <AlertDialogAction
                onClick={() => {
-                 console.log('Delete action clicked, calling handleDeleteResume with:', deleteResumeId)
                  deleteResumeId && handleDeleteResume(deleteResumeId)
                }}
-               className="bg-red-600 hover:bg-red-700 text-white"
+                 disabled={deleteResumeId ? deletingResumes.has(deleteResumeId) : false}
+                 className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
              >
-               Delete
+                 {deleteResumeId && deletingResumes.has(deleteResumeId) ? 'Deleting...' : 'Delete'}
              </AlertDialogAction>
+             )}
            </AlertDialogFooter>
          </AlertDialogContent>
        </AlertDialog>
 
-       {/* Edit Resume Dialog */}
-       <AlertDialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-         <AlertDialogContent className="bg-gray-900 border-gray-700 text-white z-[9999]">
-           <AlertDialogHeader>
-             <AlertDialogTitle className="text-white">Edit Resume</AlertDialogTitle>
-             <AlertDialogDescription className="text-gray-300">
-               Update the resume information below.
-             </AlertDialogDescription>
-           </AlertDialogHeader>
-           <div className="space-y-4 py-4">
-             <div>
-               <label className="block text-sm font-medium text-gray-300 mb-2">
-                 Resume Title
-               </label>
-               <Input
-                 value={editFormData.resume_title}
-                 onChange={(e) => setEditFormData(prev => ({ ...prev, resume_title: e.target.value }))}
-                 className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
-                 placeholder="Enter resume title"
-               />
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-300 mb-2">
-                 Template Used
-               </label>
-                                <Input
-                   value={editFormData.template_used}
-                   onChange={(e) => setEditFormData(prev => ({ ...prev, template_used: e.target.value }))}
-                   className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
-                   placeholder="Enter template name"
-                 />
-             </div>
-           </div>
-           <AlertDialogFooter>
-             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">
-               Cancel
-             </AlertDialogCancel>
-             <AlertDialogAction
-               onClick={handleSaveEdit}
-               className="bg-cyan-600 hover:bg-cyan-700 text-white"
-             >
-               Save Changes
-             </AlertDialogAction>
-           </AlertDialogFooter>
-         </AlertDialogContent>
-       </AlertDialog>
 
-       {/* Debug info - remove this later */}
-       {showDeleteDialog && (
-         <div className="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg z-[10000]">
-           Debug: Dialog should be open! deleteResumeId: {deleteResumeId}
-         </div>
-       )}
+
+
      </AdminLayout>
    )
  } 

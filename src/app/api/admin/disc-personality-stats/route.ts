@@ -3,10 +3,14 @@ import pool from '@/lib/database'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('DISC Personality Stats API called')
+    
     const result = await pool.query(`
       SELECT
         dps.id,
         dps.user_id,
+        dps.total_sessions,
+        dps.completed_sessions,
         dps.last_taken_at,
         dps.d,
         dps.i,
@@ -15,9 +19,7 @@ export async function GET(request: NextRequest) {
         dps.primary_style,
         dps.secondary_style,
         dps.consistency_index,
-        dps.strengths,
-        dps.blind_spots,
-        dps.preferred_env,
+        dps.percentile,
         dps.created_at,
         dps.updated_at,
         u.full_name as user_name,
@@ -31,6 +33,8 @@ export async function GET(request: NextRequest) {
     const transformedStats = result.rows.map((stat: any) => ({
       id: stat.id,
       user_id: stat.user_id,
+      total_sessions: stat.total_sessions || 0,
+      completed_sessions: stat.completed_sessions || 0,
       last_taken_at: stat.last_taken_at,
       d: stat.d || 0,
       i: stat.i || 0,
@@ -39,15 +43,16 @@ export async function GET(request: NextRequest) {
       primary_style: stat.primary_style || 'N/A',
       secondary_style: stat.secondary_style || 'N/A',
       consistency_index: stat.consistency_index || 0,
-      strengths: stat.strengths || [],
-      blind_spots: stat.blind_spots || [],
-      preferred_env: stat.preferred_env || [],
+      percentile: stat.percentile || 0,
       created_at: stat.created_at,
       updated_at: stat.updated_at,
       user_name: stat.user_name || 'Unknown User',
       user_email: stat.user_email || 'No Email',
       user_avatar: stat.user_avatar
     }))
+
+    console.log('DISC API - Raw rows:', result.rows.length)
+    console.log('DISC API - Transformed stats:', transformedStats.length)
 
     return NextResponse.json({
       stats: transformedStats,

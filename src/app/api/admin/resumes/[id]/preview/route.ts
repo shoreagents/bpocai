@@ -158,7 +158,7 @@ export async function GET(
          console.error('Error fetching resume content:', error)
          resumeHtml = `<div class="resume-content">
            <h1>${resume.resume_title}</h1>
-           <p style="color: red;">Error loading resume: ${error.message}</p>
+           <p style="color: red;">Error loading resume: ${error instanceof Error ? error.message : 'Unknown error'}</p>
            <p><a href="/${resume.resume_slug}" target="_blank">View full resume</a></p>
          </div>`
        }

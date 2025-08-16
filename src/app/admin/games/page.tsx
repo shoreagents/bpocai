@@ -55,6 +55,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import AdminLayout from '@/components/layout/AdminLayout'
+import { toast } from '@/components/ui/toast'
 
 interface GameData {
   id: string
@@ -94,16 +95,18 @@ interface UltimateStats {
   id: string
   user_id: string
   total_sessions: number
-  completed_sessions: number
-  last_played_at: string
-  leadership: number
-  crisis_mgmt: number
+  last_taken_at: string
+  smart: number
+  motivated: number
   integrity: number
-  communications: number
-  analysis: number
-  overall: number
-  pass_level: string
-  percentile: number
+  business: number
+  platinum_choices: number
+  gold_choices: number
+  bronze_choices: number
+  nightmare_choices: number
+  last_tier: string
+  last_recommendation: string
+  last_client_value: string
   created_at: string
   updated_at: string
   user_name: string
@@ -151,6 +154,11 @@ export default function GamesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [error, setError] = useState<string | null>(null)
+  const [deletingStats, setDeletingStats] = useState<string[]>([])
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteStatId, setDeleteStatId] = useState<string>('')
+  const [deleteStatType, setDeleteStatType] = useState<string>('')
+  const [deleteStatName, setDeleteStatName] = useState<string>('')
 
   const tabs: GameTab[] = [
     { id: 'typing-hero', name: 'Typing Hero', icon: Keyboard },
@@ -203,15 +211,20 @@ export default function GamesPage() {
     try {
       setLoading(true)
       setError(null)
+      console.log('Frontend: Fetching DISC personality stats...')
       const response = await fetch('/api/admin/disc-personality-stats')
+      console.log('Frontend: DISC API response status:', response.status)
       if (response.ok) {
         const data = await response.json()
+        console.log('Frontend: DISC API data received:', data)
         setDiscPersonalityStats(data.stats || [])
       } else {
+        console.error('Frontend: DISC API error status:', response.status)
         setError('Failed to fetch DISC personality stats')
         setDiscPersonalityStats([])
       }
     } catch (error) {
+      console.error('Frontend: DISC API fetch error:', error)
       setError('Failed to fetch DISC personality stats')
       setDiscPersonalityStats([])
     } finally {
@@ -398,17 +411,17 @@ export default function GamesPage() {
     // Type filter
     switch (filterType) {
       case 'active':
-        return stat.last_played_at && new Date(stat.last_played_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        return stat.last_taken_at && new Date(stat.last_taken_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       case 'inactive':
-        return !stat.last_played_at || new Date(stat.last_played_at) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        return !stat.last_taken_at || new Date(stat.last_taken_at) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       case 'high-score':
-        return stat.overall >= 80
+        return stat.smart >= 80 || stat.motivated >= 80 || stat.integrity >= 80 || stat.business >= 80
       case 'high-leadership':
-        return stat.leadership >= 80
+        return stat.smart >= 80
       case 'high-integrity':
         return stat.integrity >= 80
       case 'recent':
-        return stat.last_played_at && new Date(stat.last_played_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        return stat.last_taken_at && new Date(stat.last_taken_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       case 'all':
       default:
         return true
@@ -463,6 +476,70 @@ export default function GamesPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+  }
+
+  const handleDeleteStat = async (statId: string, statType: string, statName: string) => {
+    setDeleteStatId(statId)
+    setDeleteStatType(statType)
+    setDeleteStatName(statName)
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDeleteStat = async () => {
+    if (!deleteStatId || !deleteStatType) return
+
+    try {
+      setDeletingStats(prev => [...prev, deleteStatId])
+      
+      let endpoint = ''
+      switch (deleteStatType) {
+        case 'typing-hero':
+          endpoint = `/api/admin/typing-hero-stats/${deleteStatId}`
+          break
+        case 'disc-personality':
+          endpoint = `/api/admin/disc-personality-stats/${deleteStatId}`
+          break
+        case 'ultimate':
+          endpoint = `/api/admin/ultimate-stats/${deleteStatId}`
+          break
+        default:
+          throw new Error('Invalid stat type')
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Remove the deleted stat from the appropriate state
+        switch (deleteStatType) {
+          case 'typing-hero':
+            setTypingHeroStats(prev => prev.filter(stat => stat.id !== deleteStatId))
+            break
+          case 'disc-personality':
+            setDiscPersonalityStats(prev => prev.filter(stat => stat.id !== deleteStatId))
+            break
+          case 'ultimate':
+            setUltimateStats(prev => prev.filter(stat => stat.id !== deleteStatId))
+            break
+        }
+        setShowDeleteDialog(false)
+        setDeleteStatId('')
+        setDeleteStatType('')
+        setDeleteStatName('')
+        toast.success('Stat record deleted successfully')
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete stat')
+      }
+    } catch (error) {
+      console.error('Error deleting stat:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete stat'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setDeletingStats(prev => prev.filter(id => id !== deleteStatId))
+    }
   }
 
   const currentTab = tabs.find(tab => tab.id === selectedTab)
@@ -626,10 +703,13 @@ export default function GamesPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent className="bg-gray-900 border-white/10">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Player</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-red-400"
+                                  onClick={() => handleDeleteStat(stat.id, 'typing-hero', stat.user_name)}
+                                  disabled={deletingStats.includes(stat.id)}
+                                >
+                                  {deletingStats.includes(stat.id) ? 'Deleting...' : 'Delete'}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -657,15 +737,15 @@ export default function GamesPage() {
                     <SelectTrigger className="w-[180px] bg-white/10 border-white/20 text-white focus:ring-cyan-500">
                       <SelectValue placeholder="All Players" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/10">
-                      <SelectItem value="all">All Players</SelectItem>
-                      <SelectItem value="active">Active Players</SelectItem>
-                      <SelectItem value="inactive">Inactive Players</SelectItem>
-                      <SelectItem value="high-score">High Overall (80%+)</SelectItem>
-                      <SelectItem value="high-leadership">High Leadership (80%+)</SelectItem>
-                      <SelectItem value="high-integrity">High Integrity (80%+)</SelectItem>
-                      <SelectItem value="recent">Recently Active</SelectItem>
-                    </SelectContent>
+                                         <SelectContent className="bg-gray-900 border-white/10">
+                       <SelectItem value="all">All Players</SelectItem>
+                       <SelectItem value="active">Active Players</SelectItem>
+                       <SelectItem value="inactive">Inactive Players</SelectItem>
+                       <SelectItem value="high-score">High Score (80%+)</SelectItem>
+                       <SelectItem value="high-leadership">High Smart (80%+)</SelectItem>
+                       <SelectItem value="high-integrity">High Integrity (80%+)</SelectItem>
+                       <SelectItem value="recent">Recently Active</SelectItem>
+                     </SelectContent>
                   </Select>
                 </div>
                 <div className="relative">
@@ -697,22 +777,22 @@ export default function GamesPage() {
               ) : (
                 <div className="rounded-lg border border-white/10 overflow-hidden">
                   <Table>
-                    <TableHeader>
-                      <TableRow className="border-white/10 hover:bg-white/5">
-                        <TableHead className="text-white font-medium">Name</TableHead>
-                        <TableHead className="text-white font-medium">Sessions</TableHead>
-                        <TableHead className="text-white font-medium">Leadership</TableHead>
-                        <TableHead className="text-white font-medium">Crisis Mgmt</TableHead>
-                        <TableHead className="text-white font-medium">Integrity</TableHead>
-                        <TableHead className="text-white font-medium">Communications</TableHead>
-                        <TableHead className="text-white font-medium">Analysis</TableHead>
-                        <TableHead className="text-white font-medium">Overall</TableHead>
-                        <TableHead className="text-white font-medium">Pass Level</TableHead>
-                        <TableHead className="text-white font-medium">Percentile</TableHead>
-                        <TableHead className="text-white font-medium">Last Played</TableHead>
-                        <TableHead className="w-12"></TableHead>
-                      </TableRow>
-                    </TableHeader>
+                                         <TableHeader>
+                       <TableRow className="border-white/10 hover:bg-white/5">
+                         <TableHead className="text-white font-medium">Name</TableHead>
+                         <TableHead className="text-white font-medium">Sessions</TableHead>
+                         <TableHead className="text-white font-medium">Smart</TableHead>
+                         <TableHead className="text-white font-medium">Motivated</TableHead>
+                         <TableHead className="text-white font-medium">Integrity</TableHead>
+                         <TableHead className="text-white font-medium">Business</TableHead>
+                         <TableHead className="text-white font-medium">Platinum</TableHead>
+                         <TableHead className="text-white font-medium">Gold</TableHead>
+                         <TableHead className="text-white font-medium">Bronze</TableHead>
+                         <TableHead className="text-white font-medium">Last Tier</TableHead>
+                         <TableHead className="text-white font-medium">Last Taken</TableHead>
+                         <TableHead className="w-12"></TableHead>
+                       </TableRow>
+                     </TableHeader>
                     <TableBody>
                       {filteredUltimateStats.map((stat) => (
                         <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
@@ -733,66 +813,66 @@ export default function GamesPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.completed_sessions}/{stat.total_sessions}</div>
-                              <div className="text-xs text-gray-400">completed</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.leadership}</div>
-                              <div className="text-xs text-gray-400">leadership</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.crisis_mgmt}</div>
-                              <div className="text-xs text-gray-400">crisis mgmt</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.integrity}</div>
-                              <div className="text-xs text-gray-400">integrity</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.communications}</div>
-                              <div className="text-xs text-gray-400">communications</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.analysis}</div>
-                              <div className="text-xs text-gray-400">analysis</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.overall}</div>
-                              <div className="text-xs text-gray-400">overall</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                                {stat.pass_level}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-medium text-white">{stat.percentile}%</div>
-                              <div className="text-xs text-gray-400">percentile</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-gray-400">
-                              {stat.last_played_at ? new Date(stat.last_played_at).toLocaleDateString() : 'Never'}
-                            </div>
-                          </TableCell>
+                                                     <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.total_sessions}</div>
+                               <div className="text-xs text-gray-400">sessions</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.smart}</div>
+                               <div className="text-xs text-gray-400">smart</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.motivated}</div>
+                               <div className="text-xs text-gray-400">motivated</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.integrity}</div>
+                               <div className="text-xs text-gray-400">integrity</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="text-white">{stat.business}</div>
+                               <div className="text-xs text-gray-400">business</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.platinum_choices}</div>
+                               <div className="text-xs text-gray-400">platinum</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.gold_choices}</div>
+                               <div className="text-xs text-gray-400">gold</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <div className="font-medium text-white">{stat.bronze_choices}</div>
+                               <div className="text-xs text-gray-400">bronze</div>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-center">
+                               <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                 {stat.last_tier || 'N/A'}
+                               </Badge>
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <div className="text-sm text-gray-400">
+                               {stat.last_taken_at ? new Date(stat.last_taken_at).toLocaleDateString() : 'Never'}
+                             </div>
+                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -801,10 +881,13 @@ export default function GamesPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent className="bg-gray-900 border-white/10">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Player</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-red-400"
+                                  onClick={() => handleDeleteStat(stat.id, 'ultimate', stat.user_name)}
+                                  disabled={deletingStats.includes(stat.id)}
+                                >
+                                  {deletingStats.includes(stat.id) ? 'Deleting...' : 'Delete'}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -961,10 +1044,13 @@ export default function GamesPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent className="bg-gray-900 border-white/10">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Player</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-400">Delete</DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-red-400"
+                                  onClick={() => handleDeleteStat(stat.id, 'disc-personality', stat.user_name)}
+                                  disabled={deletingStats.includes(stat.id)}
+                                >
+                                  {deletingStats.includes(stat.id) ? 'Deleting...' : 'Delete'}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -978,6 +1064,40 @@ export default function GamesPage() {
           </Card>
         )}
 
+        {/* Delete Confirmation Dialog */}
+        {showDeleteDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-gray-900 border border-white/20 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-white mb-4">Delete Stat Record</h3>
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete the stat record for <span className="font-medium text-white">{deleteStatName}</span>? 
+                This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowDeleteDialog(false)
+                    setDeleteStatId('')
+                    setDeleteStatType('')
+                    setDeleteStatName('')
+                  }}
+                  className="border border-white/20"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDeleteStat}
+                  disabled={deletingStats.includes(deleteStatId)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {deletingStats.includes(deleteStatId) ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </AdminLayout>

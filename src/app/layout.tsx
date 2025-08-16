@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import DatabaseStatus from "@/components/debug/DatabaseStatus";
+import { ToastProvider } from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -77,8 +78,10 @@ export default function RootLayout({
 
         <AuthProvider>
           <AdminProvider>
-            {children}
-            <DatabaseStatus />
+            <ToastProvider>
+              {children}
+              <DatabaseStatus />
+            </ToastProvider>
           </AdminProvider>
         </AuthProvider>
       </body>
