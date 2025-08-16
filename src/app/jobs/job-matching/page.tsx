@@ -46,7 +46,8 @@ import {
   Copy,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -87,6 +88,10 @@ export default function JobMatchingPage() {
       if (pageSelectorRef.current && !pageSelectorRef.current.contains(event.target as Node)) {
         setIsPageSelectorOpen(false);
       }
+      // Close match tooltip when clicking outside
+      if (showMatchTooltip && !(event.target as Element).closest('.match-tooltip')) {
+        setShowMatchTooltip(null);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -106,7 +111,11 @@ export default function JobMatchingPage() {
   }, []);
 
   const [jobs, setJobs] = useState<any[]>([])
+  const [matchScores, setMatchScores] = useState<{[key: string]: any}>({})
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false)
+  const [showMatchTooltip, setShowMatchTooltip] = useState<string | null>(null)
 
+  // Fetch jobs and calculate match scores
   useEffect(() => {
     (async () => {
       try {
@@ -124,7 +133,7 @@ export default function JobMatchingPage() {
           employmentType: row.employmentType || [],
           salary: row.salary || '',
           location: '',
-          matchPercentage: 85,
+          matchPercentage: 0, // Will be updated with real scores
           // details will be loaded on demand
           description: '',
           responsibilities: [],
@@ -132,11 +141,68 @@ export default function JobMatchingPage() {
           perks: []
         }))
         setJobs(mapped)
+
+        // Calculate match scores for each job if user is logged in
+        if (user?.id) {
+          setIsLoadingMatches(true)
+          const scores: {[key: string]: any} = {}
+          for (const job of mapped) {
+            try {
+              const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.id}`)
+              if (matchRes.ok) {
+                const matchData = await matchRes.json()
+                scores[job.id] = {
+                  score: matchData.matchScore,
+                  reasoning: matchData.reasoning,
+                  breakdown: matchData.breakdown
+                }
+              } else {
+                scores[job.id] = { score: 0, reasoning: 'Analysis failed', breakdown: {} }
+              }
+            } catch (error) {
+              console.error('Error fetching match score for job:', job.id, error)
+              scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
+            }
+          }
+          setMatchScores(scores)
+          setIsLoadingMatches(false)
+        }
       } catch (e) {
+        console.error('Error loading jobs:', e)
         setJobs([])
       }
     })()
-  }, [])
+  }, [user?.id])
+
+  // Refresh match scores when user changes
+  useEffect(() => {
+    if (user?.id && jobs.length > 0) {
+      (async () => {
+        setIsLoadingMatches(true)
+        const scores: {[key: string]: any} = {}
+        for (const job of jobs) {
+          try {
+            const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.id}`)
+            if (matchRes.ok) {
+              const matchData = await matchRes.json()
+              scores[job.id] = {
+                score: matchData.matchScore,
+                reasoning: matchData.reasoning,
+                breakdown: matchData.breakdown
+              }
+            } else {
+              scores[job.id] = { score: 0, reasoning: 'Analysis failed', breakdown: {} }
+            }
+          } catch (error) {
+            console.error('Error fetching match score for job:', job.id, error)
+            scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
+          }
+        }
+        setMatchScores(scores)
+        setIsLoadingMatches(false)
+      })()
+    }
+  }, [user?.id, jobs])
 
   // Load full job details when a job is selected (public endpoint so logged-out users can view)
   useEffect(() => {
@@ -192,7 +258,16 @@ export default function JobMatchingPage() {
     if (percentage >= 90) return 'bg-green-500/20 text-green-400 border-green-500/30';
     if (percentage >= 80) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     if (percentage >= 70) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    if (percentage >= 60) return 'bg-red-500/20 text-red-400 border-red-500/30';
     return 'bg-red-500/20 text-red-400 border-red-500/30';
+  };
+
+  const getMatchLabel = (percentage: number) => {
+    if (percentage >= 90) return `${percentage}% Match`;
+    if (percentage >= 80) return `${percentage}% Match`;
+    if (percentage >= 70) return `${percentage}% Match`;
+    if (percentage >= 60) return "Not Recommended";
+    return "Not Recommended";
   };
 
   const getWorkType = (job: any) => {
@@ -251,7 +326,7 @@ export default function JobMatchingPage() {
   const list = jobs
 
   const filteredJobs = useMemo(() => {
-    return list.filter(job => {
+    let filtered = list.filter(job => {
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -263,7 +338,18 @@ export default function JobMatchingPage() {
       
       return matchesSearch && matchesWorkType;
     });
-  }, [searchTerm, filterWorkType, list]);
+
+    // Sort by match percentage if user is logged in and match scores are available
+    if (user?.id && Object.keys(matchScores).length > 0) {
+      filtered.sort((a, b) => {
+        const scoreA = matchScores[a.id]?.score || 0;
+        const scoreB = matchScores[b.id]?.score || 0;
+        return scoreB - scoreA; // Sort by highest match first
+      });
+    }
+
+    return filtered;
+  }, [searchTerm, filterWorkType, list, user?.id, matchScores]);
 
   const totalPages = useMemo(() => {
     return Math.ceil(filteredJobs.length / itemsPerPage);
@@ -369,13 +455,17 @@ export default function JobMatchingPage() {
                 <span>
                   {totalPages > 1 
                     ? `Showing ${((currentPage - 1) * itemsPerPage) + 1}-${Math.min(currentPage * itemsPerPage, filteredJobs.length)} of ${filteredJobs.length} jobs`
-                    : `Showing ${filteredJobs.length} jobs matched to your profile`
+                    : user?.id 
+                      ? `Showing ${filteredJobs.length} jobs matched to your profile`
+                      : `Showing ${filteredJobs.length} active jobs`
                   }
                 </span>
                 <span>
                   {totalPages > 1 
                     ? `Page ${currentPage} of ${totalPages}` 
-                    : 'Sorted by match percentage'
+                    : user?.id && Object.keys(matchScores).length > 0
+                      ? 'Sorted by match percentage'
+                      : 'Sign in to see personalized matches'
                   }
                 </span>
               </div>
@@ -510,9 +600,78 @@ export default function JobMatchingPage() {
 
                     {/* Match Percentage */}
                     <div className="mb-4">
-                      <Badge className={`${getMatchColor(job.matchPercentage)} px-3 py-1 text-sm`}>
-                        {job.matchPercentage}% Match
-                      </Badge>
+                      {!user?.id ? (
+                        <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30 px-3 py-1 text-sm">
+                          Sign in to see match
+                        </Badge>
+                      ) : isLoadingMatches ? (
+                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 px-3 py-1 text-sm animate-pulse">
+                          AI Analyzing...
+                        </Badge>
+                      ) : matchScores[job.id] !== undefined ? (
+                        <div className="relative">
+                          <div className="flex items-center gap-2">
+                            {matchScores[job.id].error ? (
+                              <Badge className="bg-red-500/20 text-red-400 border-red-500/30 px-3 py-1 text-sm">
+                                AI Failed
+                              </Badge>
+                            ) : (
+                                                             <Badge className={`${getMatchColor(matchScores[job.id].score)} px-3 py-1 text-sm`}>
+                                 {getMatchLabel(matchScores[job.id].score)}
+                               </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-gray-400 hover:text-white w-4 h-4"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMatchTooltip(showMatchTooltip === job.id ? null : job.id);
+                              }}
+                            >
+                              <Info className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          
+                          {/* Match Tooltip */}
+                          {showMatchTooltip === job.id && (
+                            <div className="match-tooltip absolute top-full left-0 mt-2 w-80 bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50 p-4">
+                              <h4 className="text-sm font-medium text-white mb-2">AI Match Analysis</h4>
+                              
+                              {/* Match Breakdown */}
+                              {matchScores[job.id].breakdown && Object.keys(matchScores[job.id].breakdown).length > 0 && (
+                                <div className="mb-3">
+                                  <h5 className="text-xs font-medium text-gray-300 mb-2">Match Breakdown:</h5>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {Object.entries(matchScores[job.id].breakdown).map(([key, value]) => (
+                                      <div key={key} className="flex items-center justify-between">
+                                        <span className="text-xs text-gray-400 capitalize">
+                                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                                        </span>
+                                        <span className="text-xs font-medium text-white">{value}%</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* AI Reasoning */}
+                              {matchScores[job.id].reasoning && (
+                                <div>
+                                  <h5 className="text-xs font-medium text-gray-300 mb-2">AI Reasoning:</h5>
+                                  <p className="text-xs text-gray-300 leading-relaxed">
+                                    {matchScores[job.id].reasoning}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30 px-3 py-1 text-sm">
+                          No match data
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
 
@@ -784,10 +943,83 @@ export default function JobMatchingPage() {
 
                       {/* Match Percentage */}
                       <div className="mb-6">
-                        <Badge className={`${getMatchColor(selectedJobData.matchPercentage)} px-3 py-1 text-sm`}>
-                          {selectedJobData.matchPercentage}% Match
-                        </Badge>
+                        {!user?.id ? (
+                          <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30 px-3 py-1 text-sm">
+                            Sign in to see match
+                          </Badge>
+                        ) : isLoadingMatches ? (
+                          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 px-3 py-1 text-sm animate-pulse">
+                            AI Analyzing...
+                          </Badge>
+                        ) : matchScores[selectedJobData.id] !== undefined ? (
+                          matchScores[selectedJobData.id].error ? (
+                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 px-3 py-1 text-sm">
+                              AI Failed
+                            </Badge>
+                          ) : (
+                                                         <Badge className={`${getMatchColor(matchScores[selectedJobData.id].score)} px-3 py-1 text-sm`}>
+                               {getMatchLabel(matchScores[selectedJobData.id].score)}
+                             </Badge>
+                          )
+                        ) : (
+                          <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30 px-3 py-1 text-sm">
+                            No match data
+                          </Badge>
+                        )}
                       </div>
+
+                      {/* AI Match Analysis */}
+                      {user?.id && matchScores[selectedJobData.id] && !isLoadingMatches && (
+                        <div className="mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
+                          <h3 className="text-lg font-semibold text-white mb-3">
+                            {matchScores[selectedJobData.id].error ? 'AI Analysis Error' : 'AI Match Analysis'}
+                          </h3>
+                          
+                          {matchScores[selectedJobData.id].error ? (
+                            <div className="text-red-400 text-sm">
+                              <p className="mb-2">Failed to analyze job match. This could be due to:</p>
+                              <ul className="list-disc list-inside space-y-1 text-xs">
+                                <li>Missing API configuration</li>
+                                <li>Insufficient user or job data</li>
+                                <li>API rate limiting</li>
+                                <li>Network connectivity issues</li>
+                              </ul>
+                              <p className="mt-2 text-xs text-gray-400">
+                                Error: {matchScores[selectedJobData.id].reasoning}
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Match Breakdown */}
+                              {matchScores[selectedJobData.id].breakdown && Object.keys(matchScores[selectedJobData.id].breakdown).length > 0 && (
+                                <div className="mb-4">
+                                  <h4 className="text-sm font-medium text-gray-300 mb-2">Match Breakdown:</h4>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {Object.entries(matchScores[selectedJobData.id].breakdown).map(([key, value]) => (
+                                      <div key={key} className="flex items-center justify-between">
+                                        <span className="text-xs text-gray-400 capitalize">
+                                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                                        </span>
+                                        <span className="text-sm font-medium text-white">{value}%</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* AI Reasoning */}
+                              {matchScores[selectedJobData.id].reasoning && (
+                                <div>
+                                  <h4 className="text-sm font-medium text-gray-300 mb-2">AI Reasoning:</h4>
+                                  <p className="text-sm text-gray-300 leading-relaxed">
+                                    {matchScores[selectedJobData.id].reasoning}
+                                  </p>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
 
                       {/* Salary and Applicants */}
                       <div className="space-y-4 mb-8">

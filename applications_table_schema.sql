@@ -1,48 +1,45 @@
 -- Create applications table for storing user job applications
+-- This table uses the application_status_enum type for status values
 CREATE TABLE IF NOT EXISTS applications (
-    id SERIAL PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() NOT NULL,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    job_id VARCHAR(255) NOT NULL,
-    job_title VARCHAR(255) NOT NULL,
-    company_name VARCHAR(255) NOT NULL,
-    location VARCHAR(255) NOT NULL,
-    salary VARCHAR(100),
-    status VARCHAR(50) DEFAULT 'applied' CHECK (status IN ('applied', 'reviewing', 'interviewing', 'offered', 'rejected', 'withdrawn')),
-    job_description TEXT,
-    requirements JSONB,
-    benefits JSONB,
-    application_notes TEXT,
-    applied_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    job_id BIGINT NOT NULL REFERENCES processed_job_requests(id) ON DELETE CASCADE,
+    resume_id UUID NOT NULL REFERENCES saved_resumes(id) ON DELETE RESTRICT,
+    resume_slug TEXT NOT NULL,
+    status application_status_enum DEFAULT 'submitted' NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    position INTEGER DEFAULT 0,
+    CONSTRAINT applications_pkey PRIMARY KEY (id),
+    CONSTRAINT applications_user_job_uidx UNIQUE (user_id, job_id)
 );
 
--- Create index for faster queries by user_id
-CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id);
+-- Create indexes for faster queries
+CREATE INDEX IF NOT EXISTS applications_job_idx ON applications USING btree (job_id);
+CREATE INDEX IF NOT EXISTS applications_status_idx ON applications USING btree (status);
+CREATE INDEX IF NOT EXISTS applications_user_idx ON applications USING btree (user_id);
 
--- Create index for faster queries by status
-CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
-
--- Create index for faster queries by applied_date
-CREATE INDEX IF NOT EXISTS idx_applications_applied_date ON applications(applied_date);
-
--- Add trigger to automatically update updated_at column
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Create trigger to automatically increment job applicants count
+CREATE OR REPLACE FUNCTION applications__inc_job_applicants()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
+  -- Only increment when a brand-new application row is inserted
+  UPDATE processed_job_requests
+     SET applicants = COALESCE(applicants, 0) + 1
+   WHERE id = NEW.job_id;
+  RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_applications_updated_at 
-    BEFORE UPDATE ON applications 
+CREATE TRIGGER applications_after_insert_inc_applicants 
+    AFTER INSERT ON applications 
     FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION applications__inc_job_applicants();
 
 -- Insert some sample data for testing (optional - you can remove this)
-INSERT INTO applications (user_id, job_id, job_title, company_name, location, salary, status, job_description, requirements, benefits, application_notes) 
+-- Note: These sample records use valid UUIDs and reference existing tables
+-- You may need to adjust the user_id, job_id, and resume_id values based on your actual data
+INSERT INTO applications (user_id, job_id, resume_id, resume_slug, status, position) 
 VALUES 
-    ('00000000-0000-0000-0000-000000000001', 'job-001', 'Senior Customer Service Representative', 'TechCorp Solutions', 'Manila, Philippines', '₱35,000 - ₱45,000', 'interviewing', 'Lead customer service operations and mentor junior representatives.', '["5+ years experience", "Leadership skills", "Excellent communication"]', '["Health insurance", "Performance bonuses", "Career growth opportunities"]', 'Second interview scheduled for next week.'),
-    ('00000000-0000-0000-0000-000000000001', 'job-002', 'BPO Team Lead', 'Global Connect Inc.', 'Cebu, Philippines', '₱40,000 - ₱50,000', 'reviewing', 'Manage team performance and ensure quality standards.', '["3+ years BPO experience", "Team management", "Quality assurance"]', '["Competitive salary", "Remote work options", "Training programs"]', 'Application under review by HR team.')
+    ('00000000-0000-0000-0000-000000000001', 1, '00000000-0000-0000-0000-000000000002', 'sample-resume-1', 'submitted', 0),
+    ('00000000-0000-0000-0000-000000000001', 2, '00000000-0000-0000-0000-000000000002', 'sample-resume-1', 'screened', 1)
 ON CONFLICT (id) DO NOTHING;
