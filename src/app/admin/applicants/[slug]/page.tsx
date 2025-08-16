@@ -28,7 +28,7 @@ export default function ApplicantsJobDetailPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 	const [search, setSearch] = useState('')
-	const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'screening' | 'in-review' | 'interview' | 'assessment' | 'offer' | 'hired' | 'rejected' | 'withdrawn'>('all')
+	const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'screened' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'failed' | 'passed' | 'rejected' | 'withdrawn' | 'hired'>('all')
 	const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'status_asc' | 'status_desc'>('newest')
   const [viewSlug, setViewSlug] = useState<string | null>(null)
 
@@ -110,14 +110,16 @@ export default function ApplicantsJobDetailPage() {
 					>
 						<option value="all">All statuses</option>
 						<option value="submitted">Submitted</option>
-						<option value="screening">Screening</option>
-						<option value="in-review">In review</option>
-						<option value="interview">Interview</option>
-						<option value="assessment">Assessment</option>
-						<option value="offer">Offer</option>
-						<option value="hired">Hired</option>
+						<option value="screened">Screened</option>
+						<option value="for verification">For Verification</option>
+						<option value="verified">Verified</option>
+						<option value="initial interview">Initial Interview</option>
+						<option value="final interview">Final Interview</option>
+						<option value="failed">Failed</option>
+						<option value="passed">Passed</option>
 						<option value="rejected">Rejected</option>
 						<option value="withdrawn">Withdrawn</option>
+						<option value="hired">Hired</option>
 					</select>
 					<select
 						className="w-full bg-white/10 text-white border border-white/20 rounded-md px-3 py-2 text-sm [&>option]:bg-gray-900 [&>option]:text-white"
@@ -182,11 +184,13 @@ function statusClass(status: string): string {
   const s = String(status || '').toLowerCase()
   if (s === 'hired') return 'bg-green-500/20 text-green-300 border border-green-500/30'
   if (s === 'rejected') return 'bg-red-500/20 text-red-300 border border-red-500/30'
-  if (s === 'offer') return 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-  if (s === 'interview') return 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-  if (s === 'assessment') return 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-  if (s === 'screening') return 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-  if (s === 'in-review') return 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+  if (s === 'passed') return 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+  if (s === 'initial interview' || s === 'final interview') return 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+  if (s === 'failed') return 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+  if (s === 'screened') return 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+  if (s === 'for verification') return 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+  if (s === 'verified') return 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
   if (s === 'withdrawn') return 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
+  if (s === 'submitted') return 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
   return 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
 }

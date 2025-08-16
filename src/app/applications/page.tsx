@@ -19,7 +19,10 @@ import {
   FileText,
   Building,
   Calendar,
-  Star
+  Star,
+  X,
+  MoreVertical,
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -48,17 +51,72 @@ interface JobApplication {
 }
 
 const statusConfig = {
-  submitted: { label: 'Submitted', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: Clock },
-  screened: { label: 'Screened', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Eye },
-  'for verification': { label: 'For Verification', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: AlertCircle },
-  verified: { label: 'Verified', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30', icon: CheckCircle },
-  'initial interview': { label: 'Initial Interview', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: CheckCircle },
-  'final interview': { label: 'Final Interview', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', icon: CheckCircle },
-  failed: { label: 'Failed', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
-  passed: { label: 'Passed', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: Star },
-  rejected: { label: 'Rejected', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
-  withdrawn: { label: 'Withdrawn', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: XCircle },
-  hired: { label: 'Hired', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: Star }
+  submitted: { 
+    label: 'Submitted', 
+    description: 'Your application has been successfully submitted and is awaiting review',
+    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', 
+    icon: Clock 
+  },
+  screened: { 
+    label: 'Screened', 
+    description: 'Your application has passed initial screening and is under review',
+    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', 
+    icon: Eye 
+  },
+  'for verification': { 
+    label: 'For Verification', 
+    description: 'Your application is being verified for accuracy and completeness',
+    color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', 
+    icon: AlertCircle 
+  },
+  verified: { 
+    label: 'Verified', 
+    description: 'Your application has been verified and is ready for next steps',
+    color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30', 
+    icon: CheckCircle 
+  },
+  'initial interview': { 
+    label: 'Initial Interview', 
+    description: 'You have been selected for an initial interview with the company',
+    color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', 
+    icon: CheckCircle 
+  },
+  'final interview': { 
+    label: 'Final Interview', 
+    description: 'You have advanced to the final interview round',
+    color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', 
+    icon: CheckCircle 
+  },
+  failed: { 
+    label: 'Failed', 
+    description: 'Your application did not meet the requirements for this position',
+    color: 'bg-red-500/20 text-red-400 border-red-500/30', 
+    icon: XCircle 
+  },
+  passed: { 
+    label: 'Passed', 
+    description: 'Congratulations! You have successfully passed the evaluation',
+    color: 'bg-green-500/20 text-green-400 border-green-500/30', 
+    icon: Star 
+  },
+  rejected: { 
+    label: 'Rejected', 
+    description: 'Your application was not selected for this position',
+    color: 'bg-red-500/20 text-red-400 border-red-500/30', 
+    icon: XCircle 
+  },
+  withdrawn: { 
+    label: 'Withdrawn', 
+    description: 'You have withdrawn your application for this position',
+    color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', 
+    icon: XCircle 
+  },
+  hired: { 
+    label: 'Hired', 
+    description: 'Congratulations! You have been hired for this position',
+    color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', 
+    icon: Star 
+  }
 };
 
 export default function ApplicationsPage() {
@@ -67,6 +125,21 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId && !(event.target as Element).closest('.dropdown-menu')) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   // Fetch applications from API
   useEffect(() => {
@@ -131,6 +204,41 @@ export default function ApplicationsPage() {
       return status; // Return the raw status if not found
     }
     return config.label;
+  };
+
+  const getStatusDescription = (status: string) => {
+    const config = statusConfig[status as keyof typeof statusConfig];
+    if (!config) {
+      console.warn('⚠️ Unknown status:', status);
+      return 'Status information not available'; // Return default description if not found
+    }
+    return config.description;
+  };
+
+  const withdrawApplication = async (applicationId: string) => {
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/withdraw`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+
+      if (response.ok) {
+        // Update the local state to reflect the withdrawn status
+        setApplications(prev => prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, status: 'withdrawn' as const }
+            : app
+        ));
+        setOpenMenuId(null); // Close the menu
+      } else {
+        console.error('Failed to withdraw application');
+      }
+    } catch (error) {
+      console.error('Error withdrawing application:', error);
+    }
   };
 
   if (!user) {
@@ -261,64 +369,222 @@ export default function ApplicationsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 * index }}
                     >
-                      <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <h3 className="text-xl font-semibold text-white">{application.jobTitle}</h3>
-                                <Badge className={getStatusColor(application.status)}>
-                                  <StatusIcon className="h-3 w-3 mr-1" />
-                                  {getStatusLabel(application.status)}
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
-                                <div className="flex items-center gap-2">
-                                  <Building className="h-4 w-4" />
-                                  <span>{application.companyName}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>Applied: {new Date(application.appliedDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  <span>ID: {application.id.slice(0, 8)}...</span>
-                                </div>
-                              </div>
-                              
-                              {application.jobDescription && (
-                                <div className="mt-4">
-                                  <p className="text-gray-300 text-sm line-clamp-2">
-                                    {application.jobDescription}
-                                  </p>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="mt-2 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/10"
-                                    onClick={() => {
-                                      // Show full description in alert for now
-                                      alert(application.jobDescription);
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View Full Description
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                                                                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                         <CardContent className="p-6">
+                           <div className="flex items-start justify-between mb-3">
+                             <div className="flex-1">
+                               <div className="flex items-center gap-3 mb-3">
+                                 <h3 className="text-xl font-semibold text-white">{application.jobTitle}</h3>
+                                 <Badge className={getStatusColor(application.status)}>
+                                   <StatusIcon className="h-3 w-3 mr-1" />
+                                   {getStatusLabel(application.status)}
+                                 </Badge>
+                               </div>
+                             </div>
+                             
+                             {/* 3-Dots Menu */}
+                             <div className="relative">
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => setOpenMenuId(openMenuId === application.id ? null : application.id)}
+                                 className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800/50"
+                               >
+                                 <MoreVertical className="h-4 w-4" />
+                               </Button>
+                               
+                               {/* Dropdown Menu */}
+                               {openMenuId === application.id && (
+                                 <div className="dropdown-menu absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                                   <div className="py-1">
+                                     {application.status !== 'withdrawn' && application.status !== 'hired' && application.status !== 'rejected' && (
+                                       <button
+                                         onClick={() => withdrawApplication(application.id)}
+                                         className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"
+                                       >
+                                         <LogOut className="h-4 w-4" />
+                                         Withdraw Application
+                                       </button>
+                                     )}
+                                     {application.status === 'withdrawn' && (
+                                       <div className="px-4 py-2 text-sm text-gray-500">
+                                         Application Withdrawn
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                               )}
+                             </div>
+                           </div>
+                           
+                           {/* Status Description */}
+                           <div className="mb-3">
+                             <p className="text-sm text-gray-300 italic">
+                               {getStatusDescription(application.status)}
+                             </p>
+                           </div>
+                           
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
+                             <div className="flex items-center gap-2">
+                               <Building className="h-4 w-4" />
+                               <span>{application.companyName}</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <Calendar className="h-4 w-4" />
+                               <span>Applied: {new Date(application.appliedDate).toLocaleDateString()}</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <FileText className="h-4 w-4" />
+                               <span>ID: {application.id.slice(0, 8)}...</span>
+                             </div>
+                           </div>
+                           
+                           {application.jobDescription && (
+                             <div className="mt-4">
+                               <p className="text-gray-300 text-sm line-clamp-2">
+                                 {application.jobDescription}
+                               </p>
+                               <Button 
+                                 variant="outline" 
+                                 size="sm" 
+                                 className="mt-2 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/10"
+                                 onClick={() => {
+                                   setSelectedApplication(application);
+                                   setIsModalOpen(true);
+                                 }}
+                               >
+                                 <Eye className="h-4 w-4 mr-2" />
+                                 View Full Description
+                               </Button>
+                             </div>
+                           )}
+                         </CardContent>
+                       </Card>
                     </motion.div>
                   );
                 })
               )}
-            </motion.div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                         </motion.div>
+           </div>
+         </div>
+       </div>
+
+       {/* Job Details Modal */}
+       {isModalOpen && selectedApplication && (
+         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <motion.div
+             initial={{ opacity: 0, scale: 0.95 }}
+             animate={{ opacity: 1, scale: 1 }}
+             exit={{ opacity: 0, scale: 0.95 }}
+             className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden"
+           >
+             {/* Modal Header */}
+             <div className="flex items-center justify-between p-6 border-b border-gray-700">
+               <div>
+                 <h2 className="text-2xl font-bold text-white">{selectedApplication.jobTitle}</h2>
+                 <p className="text-gray-400">{selectedApplication.companyName}</p>
+               </div>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => {
+                   setIsModalOpen(false);
+                   setSelectedApplication(null);
+                 }}
+                 className="text-gray-400 hover:text-white"
+               >
+                 <X className="h-5 w-5" />
+               </Button>
+             </div>
+
+             {/* Modal Content */}
+             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+               <div className="space-y-6">
+                 {/* Job Description */}
+                 {selectedApplication.jobDescription && (
+                   <div>
+                     <h3 className="text-lg font-semibold text-white mb-3">Job Description</h3>
+                     <p className="text-gray-300 leading-relaxed">{selectedApplication.jobDescription}</p>
+                   </div>
+                 )}
+
+                 {/* Responsibilities */}
+                 {selectedApplication.requirements && selectedApplication.requirements.length > 0 && (
+                   <div>
+                     <h3 className="text-lg font-semibold text-white mb-3">Responsibilities</h3>
+                     <ul className="space-y-2">
+                       {selectedApplication.requirements.map((req, index) => (
+                         <li key={index} className="flex items-start gap-2 text-gray-300">
+                           <span className="text-cyan-400 mt-1">•</span>
+                           <span>{req}</span>
+                         </li>
+                       ))}
+                     </ul>
+                   </div>
+                 )}
+
+                 {/* Qualifications & Requirements */}
+                 {selectedApplication.requirements && selectedApplication.requirements.length > 0 && (
+                   <div>
+                     <h3 className="text-lg font-semibold text-white mb-3">Qualifications & Requirements</h3>
+                     <ul className="space-y-2">
+                       {selectedApplication.requirements.map((req, index) => (
+                         <li key={index} className="flex items-start gap-2 text-gray-300">
+                           <span className="text-cyan-400 mt-1">•</span>
+                           <span>{req}</span>
+                         </li>
+                       ))}
+                     </ul>
+                   </div>
+                 )}
+
+                 {/* Perks & Benefits */}
+                 {selectedApplication.benefits && selectedApplication.benefits.length > 0 && (
+                   <div>
+                     <h3 className="text-lg font-semibold text-white mb-3">Perks & Benefits</h3>
+                     <ul className="space-y-2">
+                       {selectedApplication.benefits.map((benefit, index) => (
+                         <li key={index} className="flex items-start gap-2 text-gray-300">
+                           <span className="text-green-400 mt-1">✓</span>
+                           <span>{benefit}</span>
+                         </li>
+                       ))}
+                     </ul>
+                   </div>
+                 )}
+
+                 {/* Additional Information */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+                   {selectedApplication.workArrangement && (
+                     <div>
+                       <span className="text-sm text-gray-400">Work Arrangement:</span>
+                       <p className="text-white font-medium">{selectedApplication.workArrangement}</p>
+                     </div>
+                   )}
+                   {selectedApplication.experienceLevel && (
+                     <div>
+                       <span className="text-sm text-gray-400">Experience Level:</span>
+                       <p className="text-white font-medium">{selectedApplication.experienceLevel}</p>
+                     </div>
+                   )}
+                   {selectedApplication.industry && (
+                     <div>
+                       <span className="text-sm text-gray-400">Industry:</span>
+                       <p className="text-white font-medium">{selectedApplication.industry}</p>
+                     </div>
+                   )}
+                   {selectedApplication.department && (
+                     <div>
+                       <span className="text-sm text-gray-400">Department:</span>
+                       <p className="text-white font-medium">{selectedApplication.department}</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             </div>
+           </motion.div>
+         </div>
+       )}
+     </div>
+   );
+ }
