@@ -38,6 +38,7 @@ import jsPDF from 'jspdf';
 import LoadingScreen from '@/components/ui/loading-screen';
 import Header from '@/components/layout/Header';
 import { PacmanLoader } from 'react-spinners';
+import ProfileCard from '@/components/ui/profile-card';
 
 interface SavedResume {
   id: string;
@@ -560,6 +561,20 @@ export default function SavedResumePage() {
             </div>
             
           </div>
+        </motion.div>
+
+        {/* Profile Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <ProfileCard 
+            userId={resume.userId} 
+            showEditButton={isOwner}
+            className="max-w-6xl mx-auto"
+          />
         </motion.div>
 
 
