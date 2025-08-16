@@ -110,6 +110,26 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     @apply rounded-xl;
   }
+
+    /* Disable hover effects for admin users page cards */
+    .admin-users-page .glass-card,
+    .admin-users-page .glass-card:hover {
+      transform: none !important;
+      transition: none !important;
+      scale: 1 !important;
+      translate: none !important;
+      animation: none !important;
+      box-shadow: none !important;
+    }
+    
+    .admin-users-page .glass-card *,
+    .admin-users-page .glass-card:hover * {
+      transform: none !important;
+      transition: none !important;
+      scale: 1 !important;
+      translate: none !important;
+      animation: none !important;
+    }
   
   .glass-button {
     background: rgba(255, 255, 255, 0.1);

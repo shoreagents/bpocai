@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
       role: 'user', // Default role
       location: user.location,
       bio: user.bio,
-      position: user.position
+      position: user.position,
+      admin_level: user.admin_level || 'user',
+      is_admin: user.is_admin || false
     }))
 
     return NextResponse.json({ 
@@ -61,6 +63,46 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ message: 'User updated successfully' })
+
+      case 'toggleAdmin':
+        // Toggle admin level between 'user' and 'admin'
+        console.log('API: Toggling admin for user:', userId)
+        
+        const currentUser = await pool.query('SELECT admin_level, is_admin FROM users WHERE id = $1', [userId])
+        
+        if (currentUser.rowCount === 0) {
+          return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        }
+
+        const currentAdminLevel = currentUser.rows[0].admin_level
+        const currentIsAdmin = currentUser.rows[0].is_admin
+        
+        console.log('API: Current values - admin_level:', currentAdminLevel, 'is_admin:', currentIsAdmin)
+        
+        const newAdminLevel = currentAdminLevel === 'admin' ? 'user' : 'admin'
+        const newIsAdmin = newAdminLevel === 'admin'
+        
+        console.log('API: New values - admin_level:', newAdminLevel, 'is_admin:', newIsAdmin)
+        
+        const toggleResult = await pool.query(
+          'UPDATE users SET admin_level = $1, is_admin = $2, updated_at = NOW() WHERE id = $3',
+          [newAdminLevel, newIsAdmin, userId]
+        )
+
+        if (toggleResult.rowCount === 0) {
+          return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
+        }
+
+        // Verify the update by fetching the user again
+        const verifyResult = await pool.query('SELECT admin_level, is_admin FROM users WHERE id = $1', [userId])
+        console.log('API: Verification - admin_level:', verifyResult.rows[0].admin_level, 'is_admin:', verifyResult.rows[0].is_admin)
+
+        console.log('API: Successfully updated user admin status')
+
+        return NextResponse.json({ 
+          message: `User ${newAdminLevel === 'admin' ? 'promoted to admin' : 'demoted to user'} successfully`,
+          newAdminLevel 
+        })
 
       case 'delete':
         // Delete user from your users table using PostgreSQL

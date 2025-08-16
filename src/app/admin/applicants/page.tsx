@@ -6,6 +6,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { 
+  Search, 
+  Users, 
+  Building2, 
+  Calendar, 
+  Target, 
+  TrendingUp, 
+  Clock,
+  Briefcase,
+  MapPin,
+  Filter,
+  SortAsc,
+  Eye
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 type JobSummary = {
@@ -109,77 +127,327 @@ export default function Page() {
     return list
   }, [jobs, search, priorityFilter, sortBy])
 
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500/20 text-red-400 border-red-500/30'
+      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      case 'low': return 'bg-green-500/20 text-green-400 border-green-500/30'
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    }
+  }
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'high': return '🔥'
+      case 'medium': return '⚡'
+      case 'low': return '💡'
+      default: return '📋'
+    }
+  }
+
+  const totalApplicants = jobs.reduce((sum, job) => sum + job.applicants, 0)
+  const activeJobs = jobs.length
+  const highPriorityJobs = jobs.filter(job => job.priority === 'high').length
+
+  if (loading) {
   return (
     <AdminLayout title="Applicants" description="Manage and review applicants">
       <div className="space-y-6">
-        {/* Filters */}
-        <Card>
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Header Stats Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="glass-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3">
+                    <Skeleton className="w-10 h-10 rounded-lg" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <Skeleton className="h-10 flex-1" />
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-40" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Jobs Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="glass-card">
+                <CardHeader className="pb-3">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  return (
+    <AdminLayout title="Applicants" description="Manage and review applicants">
+      <div className="space-y-8">
+        {/* Header Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="glass-card bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-blue-300 font-medium">Total Applicants</p>
+                  <p className="text-3xl font-bold text-white">{totalApplicants}</p>
+                  <p className="text-xs text-blue-200">Across all jobs</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-green-300 font-medium">Active Jobs</p>
+                  <p className="text-3xl font-bold text-white">{activeJobs}</p>
+                  <p className="text-xs text-green-200">With applicants</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border-yellow-500/30">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-yellow-300 font-medium">High Priority</p>
+                  <p className="text-3xl font-bold text-white">{highPriorityJobs}</p>
+                  <p className="text-xs text-yellow-200">Urgent positions</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-purple-300 font-medium">Avg. Applicants</p>
+                  <p className="text-3xl font-bold text-white">
+                    {activeJobs > 0 ? Math.round(totalApplicants / activeJobs) : 0}
+                  </p>
+                  <p className="text-xs text-purple-200">Per job</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Filters */}
+        <Card className="glass-card">
+          <CardHeader className="pb-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-5 h-5 text-gray-400" />
+              <h3 className="text-lg font-semibold text-white">Filters & Search</h3>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Search by job title or company"
+                  placeholder="Search by job title or company..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className="flex gap-2">
-              <select
-                className="w-full bg-white/10 text-white border border-white/20 rounded-md px-3 py-2 text-sm [&>option]:bg-gray-900 [&>option]:text-white"
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value as any)}
-              >
-                <option value="all">All priorities</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-              <select
-                className="w-full bg-white/10 text-white border border-white/20 rounded-md px-3 py-2 text-sm [&>option]:bg-gray-900 [&>option]:text-white"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-              >
-                <option value="applicants_desc">Most applicants</option>
-                <option value="deadline_asc">Deadline (soonest)</option>
-                <option value="deadline_desc">Deadline (latest)</option>
-                <option value="priority_desc">Priority (high→low)</option>
-                <option value="priority_asc">Priority (low→high)</option>
-              </select>
+                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-white/40"
+                />
+              </div>
+              
+              <Select value={priorityFilter} onValueChange={(value: any) => setPriorityFilter(value)}>
+                <SelectTrigger className="w-40 bg-white/5 border-white/20 text-white">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700">
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="high">High Priority</SelectItem>
+                  <SelectItem value="medium">Medium Priority</SelectItem>
+                  <SelectItem value="low">Low Priority</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-48 bg-white/5 border-white/20 text-white">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700">
+                  <SelectItem value="applicants_desc">Most Applicants</SelectItem>
+                  <SelectItem value="deadline_asc">Deadline (Soonest)</SelectItem>
+                  <SelectItem value="deadline_desc">Deadline (Latest)</SelectItem>
+                  <SelectItem value="priority_desc">Priority (High→Low)</SelectItem>
+                  <SelectItem value="priority_asc">Priority (Low→High)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
 
-        {loading ? (
-          <div className="text-sm text-gray-400">Loading jobs…</div>
-        ) : error ? (
-          <div className="text-sm text-red-400">{error}</div>
+        {/* Results Summary */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-semibold text-white">Job Positions</h2>
+            <Badge variant="secondary" className="bg-white/10 text-white border-white/20">
+              {visibleJobs.length} results
+            </Badge>
+          </div>
+          {search || priorityFilter !== 'all' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearch('')
+                setPriorityFilter('all')
+              }}
+              className="text-gray-400 hover:text-white hover:bg-white/10"
+            >
+              Clear filters
+            </Button>
+          )}
+        </div>
+
+        {error ? (
+          <Card className="glass-card border-red-500/30">
+            <CardContent className="p-6">
+              <div className="text-center text-red-400">
+                <p className="text-lg font-medium">Error loading jobs</p>
+                <p className="text-sm">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : visibleJobs.length === 0 ? (
+          <Card className="glass-card">
+            <CardContent className="p-12">
+              <div className="text-center text-gray-400">
+                <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No jobs found</p>
+                <p className="text-sm">Try adjusting your search or filters</p>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {visibleJobs.map(job => (
-              <Card key={job.id} className="cursor-pointer" onClick={() => openJob(job)}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{job.title}</CardTitle>
-                  <CardDescription>{job.company}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary">{job.applicants} applicants</Badge>
-                    <Badge variant="outline" className="capitalize">{job.priority}</Badge>
+              <Card 
+                key={job.id} 
+                className="glass-card hover:bg-white/5 transition-all duration-200 cursor-pointer group border-white/10 hover:border-white/20"
+                onClick={() => openJob(job)}
+              >
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg text-white group-hover:text-blue-300 transition-colors">
+                        {job.title}
+                      </CardTitle>
+                      <CardDescription className="text-gray-300 mt-1 flex items-center space-x-2">
+                        <Building2 className="w-4 h-4" />
+                        <span>{job.company}</span>
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        className={`${getPriorityColor(job.priority)} border`}
+                      >
+                        <span className="mr-1">{getPriorityIcon(job.priority)}</span>
+                        {job.priority}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  {/* Applicants Count */}
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                      <Users className="w-3 h-3 mr-1" />
+                      {job.applicants} applicant{job.applicants !== 1 ? 's' : ''}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                  </div>
+
+                  <Separator className="bg-white/10" />
+
+                  {/* Job Details Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     {job.application_deadline && (
-                      <div>Deadline: <span className="text-white">{new Date(job.application_deadline).toLocaleDateString()}</span></div>
+                      <div className="flex items-center space-x-2 text-gray-300">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="text-white">
+                          {new Date(job.application_deadline).toLocaleDateString()}
+                        </span>
+                      </div>
                     )}
                     {job.experience_level && (
-                      <div>Level: <span className="capitalize text-white">{job.experience_level}</span></div>
+                      <div className="flex items-center space-x-2 text-gray-300">
+                        <Target className="w-4 h-4 text-gray-400" />
+                        <span className="text-white capitalize">{job.experience_level}</span>
+                      </div>
                     )}
                     {job.work_arrangement && (
-                      <div>Arrangement: <span className="capitalize text-white">{job.work_arrangement}</span></div>
+                      <div className="flex items-center space-x-2 text-gray-300">
+                        <Briefcase className="w-4 h-4 text-gray-400" />
+                        <span className="text-white capitalize">{job.work_arrangement}</span>
+                      </div>
                     )}
                     {job.industry && (
-                      <div>Industry: <span className="text-white">{job.industry}</span></div>
-                    )}
-                    {job.department && (
-                      <div>Department: <span className="text-white">{job.department}</span></div>
+                      <div className="flex items-center space-x-2 text-gray-300">
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        <span className="text-white">{job.industry}</span>
+                      </div>
                     )}
                   </div>
+
+                  {/* Hover Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg pointer-events-none" />
                 </CardContent>
               </Card>
             ))}

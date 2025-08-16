@@ -83,6 +83,16 @@ export default function SavedResumePage() {
   const [ultimateStats, setUltimateStats] = useState<any | null>(null);
   const [ultimateLatest, setUltimateLatest] = useState<any | null>(null);
 
+  // Starfield state
+  const [stars, setStars] = useState<Array<{
+    id: number;
+    left: string;
+    top: string;
+    animationDelay: string;
+    animationDuration: string;
+    opacity: number;
+  }>>([]);
+
   // Ensure global edit flag exists for any legacy template code expecting it
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -93,6 +103,21 @@ export default function SavedResumePage() {
       }
     }
   }, [])
+
+  // Generate stars only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const newStars = Array.from({ length: 50 }, (_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 3}s`,
+        animationDuration: `${2 + Math.random() * 2}s`,
+        opacity: 0.3 + Math.random() * 0.7
+      }));
+      setStars(newStars);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -339,16 +364,16 @@ export default function SavedResumePage() {
           
           {/* Starfield */}
           <div className="absolute inset-0">
-            {[...Array(50)].map((_, i) => (
+            {stars.map((star) => (
               <div
-                key={i}
+                key={star.id}
                 className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
                 style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${2 + Math.random() * 2}s`,
-                  opacity: 0.3 + Math.random() * 0.7
+                  left: star.left,
+                  top: star.top,
+                  animationDelay: star.animationDelay,
+                  animationDuration: star.animationDuration,
+                  opacity: star.opacity
                 }}
               ></div>
             ))}

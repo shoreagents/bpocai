@@ -13,7 +13,7 @@ function formatSalary(currency: string, min: number | null, max: number | null, 
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = Number(params.id)
+    const id = Number((await params).id)
     if (!id || Number.isNaN(id)) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
     const res = await pool.query(

@@ -9,16 +9,18 @@ export async function GET(request: NextRequest) {
         us.id,
         us.user_id,
         us.total_sessions,
-        us.completed_sessions,
-        us.last_played_at,
-        us.leadership,
-        us.crisis_mgmt,
+        us.last_taken_at,
+        us.smart,
+        us.motivated,
         us.integrity,
-        us.communications,
-        us.analysis,
-        us.overall,
-        us.pass_level,
-        us.percentile,
+        us.business,
+        us.platinum_choices,
+        us.gold_choices,
+        us.bronze_choices,
+        us.nightmare_choices,
+        us.last_tier,
+        us.last_recommendation,
+        us.last_client_value,
         us.created_at,
         us.updated_at,
         u.full_name as user_name,
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
         u.avatar_url as user_avatar
       FROM ultimate_stats us
       LEFT JOIN users u ON us.user_id = u.id
-      ORDER BY us.last_played_at DESC NULLS LAST, us.created_at DESC
+      ORDER BY us.last_taken_at DESC NULLS LAST, us.created_at DESC
     `)
 
     console.log('Ultimate API: Query result rows:', result.rows.length)
@@ -36,16 +38,18 @@ export async function GET(request: NextRequest) {
       id: stat.id,
       user_id: stat.user_id,
       total_sessions: stat.total_sessions || 0,
-      completed_sessions: stat.completed_sessions || 0,
-      last_played_at: stat.last_played_at,
-      leadership: stat.leadership || 0,
-      crisis_mgmt: stat.crisis_mgmt || 0,
+      last_taken_at: stat.last_taken_at,
+      smart: stat.smart || 0,
+      motivated: stat.motivated || 0,
       integrity: stat.integrity || 0,
-      communications: stat.communications || 0,
-      analysis: stat.analysis || 0,
-      overall: stat.overall || 0,
-      pass_level: stat.pass_level || 'N/A',
-      percentile: stat.percentile || 0,
+      business: stat.business || 0,
+      platinum_choices: stat.platinum_choices || 0,
+      gold_choices: stat.gold_choices || 0,
+      bronze_choices: stat.bronze_choices || 0,
+      nightmare_choices: stat.nightmare_choices || 0,
+      last_tier: stat.last_tier || 'N/A',
+      last_recommendation: stat.last_recommendation || 'N/A',
+      last_client_value: stat.last_client_value || 'N/A',
       created_at: stat.created_at,
       updated_at: stat.updated_at,
       user_name: stat.user_name || 'Unknown User',
@@ -56,7 +60,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       stats: transformedStats,
       total: transformedStats.length,
-      active_players: transformedStats.filter((s: any) => s.last_played_at && new Date(s.last_played_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
+      active_players: transformedStats.filter((s: any) => s.last_taken_at && new Date(s.last_taken_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
       total_sessions: transformedStats.reduce((sum: number, s: any) => sum + s.total_sessions, 0)
     })
 
