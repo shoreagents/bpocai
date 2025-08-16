@@ -108,7 +108,7 @@ export default function TypingHeroPage() {
     oscillators: OscillatorNode[];
     gainNodes: GainNode[];
     isPlaying: boolean;
-    currentTrack: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'success' | 'failure' | null;
+    currentTrack: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'failure' | null;
   }>({
     oscillators: [],
     gainNodes: [],
@@ -117,7 +117,7 @@ export default function TypingHeroPage() {
   });
   
   // Game state
-  const [gameState, setGameState] = useState<'menu' | 'playing' | 'paused' | 'completed' | 'failed'>('menu');
+  const [gameState, setGameState] = useState<'menu' | 'playing' | 'paused' | 'failed'>('menu');
   const [currentDifficulty, setCurrentDifficulty] = useState<DifficultyLevel>('medium');
   const [difficultyProgress, setDifficultyProgress] = useState<DifficultyProgress>({
     easy: false,
@@ -201,7 +201,7 @@ export default function TypingHeroPage() {
   }, []);
 
   // Create electronic music for different game states
-  const playMusic = useCallback((trackType: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'success' | 'failure') => {
+  const playMusic = useCallback((trackType: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'failure') => {
     if (!audioContextRef.current || isMuted) return;
     
     // Stop current music
@@ -249,12 +249,7 @@ export default function TypingHeroPage() {
         leadFreqs: [349, 440, 554], // F, A, C#
         drumTempo: 0.25
       },
-      success: {
-        bpm: 80,
-        bassFreq: 100,
-        leadFreqs: [523, 659, 784], // High victory chord
-        drumTempo: 0.6
-      },
+
       failure: {
         bpm: 60,
         bassFreq: 40,
@@ -503,10 +498,10 @@ export default function TypingHeroPage() {
   };
 
   // End game
-  const endGame = async (success: boolean, finalMetrics?: { wpm?: number; accuracy?: number }) => {
+  const endGame = async (_success: boolean, finalMetrics?: { wpm?: number; accuracy?: number }) => {
     if (endCalledRef.current) return;
     endCalledRef.current = true;
-    setGameState(success ? 'completed' : 'failed');
+    setGameState('failed'); // Always show "Challenge failed to complete"
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     if (wordSpawnRef.current) clearInterval(wordSpawnRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -517,16 +512,10 @@ export default function TypingHeroPage() {
     // Stop gameplay music and play result music
     stopMusic();
     setTimeout(() => {
-      playMusic(success ? 'success' : 'failure');
+      playMusic('failure'); // Always play failure music
     }, 500);
     
-    // Update progress if successful
-    if (success) {
-      setDifficultyProgress(prev => ({
-        ...prev,
-        [currentDifficulty]: true
-      }));
-    }
+    // No progress updates since all challenges "fail to complete"
 
     // Persist session
     try {
@@ -785,24 +774,13 @@ export default function TypingHeroPage() {
         const newTimeLeft = prev.timeLeft - 1;
         
         if (newTimeLeft <= 0) {
-          // Time's up - check if passed
+          // Time's up - game ends
           const accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
           const elapsedSeconds = getCurrentConfig().timeLimit;
           const wordsTyped = prev.charactersTyped / 5;
           const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
           
-          // WPM requirements for each difficulty
-          const wpmRequirements = {
-            easy: 25,
-            medium: 35,
-            hard: 50,
-            expert: 70
-          };
-          
-          const requiredWpm = wpmRequirements[currentDifficulty];
-          const passed = accuracy >= 70 && prev.correctWords >= 10 && wpm >= requiredWpm; // Pass criteria
-          
-          setTimeout(() => endGame(passed, { wpm: Math.round(wpm), accuracy }), 100);
+          setTimeout(() => endGame(false, { wpm: Math.round(wpm), accuracy }), 100);
           return { ...prev, timeLeft: 0 };
         }
         
@@ -919,8 +897,6 @@ export default function TypingHeroPage() {
         playMusic(musicTrack);
       } else if (gameState === 'menu') {
         playMusic('menu');
-      } else if (gameState === 'completed') {
-        playMusic('success');
       } else if (gameState === 'failed') {
         playMusic('failure');
       }
@@ -1373,7 +1349,7 @@ export default function TypingHeroPage() {
           )}
 
           {/* Game Complete */}
-          {(gameState === 'completed' || gameState === 'failed') && (
+          {gameState === 'failed' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1381,20 +1357,14 @@ export default function TypingHeroPage() {
             >
               <Card className="glass-card border-white/10">
                 <CardHeader>
-                  <CardTitle className={`text-3xl text-center mb-4 ${gameState === 'completed' ? 'text-green-400' : 'text-red-400'}`}>
-                    {gameState === 'completed' ? (
-                      <>🎉 Challenge Complete! 🔥</>
-                    ) : (
-                      <>💩 Challenge Failed</>
-                    )}
+                  <CardTitle className="text-3xl text-center mb-4 text-gray-400">
+                    Challenge failed to complete
                   </CardTitle>
-                  {gameState === 'completed' && (
-                    <div className="text-center">
-                      <Badge className={getDifficultyColor(currentDifficulty)}>
-                        {currentDifficulty.toUpperCase()} COMPLETED
-                      </Badge>
-                    </div>
-                  )}
+                  <div className="text-center">
+                    <Badge className="bg-gray-500/20 text-gray-300 border-gray-400/30">
+                      {currentDifficulty.toUpperCase()} ATTEMPTED
+                    </Badge>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Final Stats */}
@@ -1419,22 +1389,13 @@ export default function TypingHeroPage() {
                     </div>
                   </div>
 
-                  {/* Show results based on completion status */}
-                  {gameState === 'completed' ? (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
-                      <p className="text-green-400 font-medium mb-2">Challenge Complete! 🎉</p>
-                      <p className="text-gray-300 text-sm">
-                        Great job! You've completed the typing challenge with realistic accuracy scoring.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-4 text-center">
-                      <p className="text-gray-400 font-medium mb-2">Challenge Ended</p>
-                      <p className="text-gray-300 text-sm">
-                        Time's up! Here are your final results.
-                      </p>
-                    </div>
-                  )}
+                  {/* Challenge Results */}
+                  <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-4 text-center">
+                    <p className="text-gray-400 font-medium mb-2">Challenge Results</p>
+                    <p className="text-gray-300 text-sm">
+                      Here are your final results from the typing challenge.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
