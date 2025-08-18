@@ -18,9 +18,8 @@ import {
   Medal,
   Sparkles,
   Stars,
-
+  Briefcase,
   RefreshCw
-
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -89,6 +88,22 @@ export default function LeaderboardsPage() {
 
 	const offset = useMemo(() => (page - 1) * pageSize, [page, pageSize])
 	const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+	const pageItems = useMemo(() => {
+		const items: (number | 'ellipsis')[] = []
+		const maxToShow = 7
+		if (totalPages <= maxToShow) {
+			for (let i = 1; i <= totalPages; i++) items.push(i)
+			return items
+		}
+		const add = (n: number) => { if (!items.includes(n)) items.push(n) }
+		add(1)
+		if (page > 3) items.push('ellipsis')
+		for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) add(i)
+		if (page < totalPages - 2) items.push('ellipsis')
+		add(totalPages)
+		return items
+	}, [page, totalPages])
 
 
 	useEffect(() => {
@@ -505,8 +520,9 @@ export default function LeaderboardsPage() {
                     </div>
                   )}
 
-                        </div>
-
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
