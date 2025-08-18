@@ -38,14 +38,23 @@ export async function GET(request: NextRequest) {
         [userId]
       )
       
+      const bpocCulturalResult = await client.query(
+        `SELECT COUNT(*) as count 
+         FROM bpoc_cultural_sessions 
+         WHERE user_id = $1 AND finished_at IS NOT NULL`,
+        [userId]
+      )
+      
       // Calculate total completed games
       const typingHeroCount = parseInt(typingHeroResult.rows[0]?.count || '0')
       const discPersonalityCount = parseInt(discPersonalityResult.rows[0]?.count || '0')
       const ultimateCount = parseInt(ultimateResult.rows[0]?.count || '0')
+      const bpocCulturalCount = parseInt(bpocCulturalResult.rows[0]?.count || '0')
       
       const totalCompleted = (typingHeroCount > 0 ? 1 : 0) + 
                            (discPersonalityCount > 0 ? 1 : 0) + 
-                           (ultimateCount > 0 ? 1 : 0)
+                           (ultimateCount > 0 ? 1 : 0) +
+                           (bpocCulturalCount > 0 ? 1 : 0)
       
       return NextResponse.json({ 
         hasData: true,
@@ -53,7 +62,8 @@ export async function GET(request: NextRequest) {
         breakdown: {
           typingHero: typingHeroCount,
           discPersonality: discPersonalityCount,
-          ultimate: ultimateCount
+          ultimate: ultimateCount,
+          bpocCultural: bpocCulturalCount
         }
       })
 

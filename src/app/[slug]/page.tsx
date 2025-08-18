@@ -82,6 +82,8 @@ export default function SavedResumePage() {
   const [discLatest, setDiscLatest] = useState<any | null>(null);
   const [ultimateStats, setUltimateStats] = useState<any | null>(null);
   const [ultimateLatest, setUltimateLatest] = useState<any | null>(null);
+  const [culturalStats, setCulturalStats] = useState<any | null>(null);
+  const [culturalLatest, setCulturalLatest] = useState<any | null>(null);
 
   // Starfield state
   const [stars, setStars] = useState<Array<{
@@ -191,6 +193,12 @@ export default function SavedResumePage() {
           const u = await ures.json()
           setUltimateStats(u.stats || null)
           setUltimateLatest(u.latestSession || null)
+        }
+        const cres = await fetch(`/api/games/bpoc-cultural/public/${resume.userId}`, { cache: 'no-store' })
+        if (cres.ok) {
+          const c = await cres.json()
+          setCulturalStats(c.stats || null)
+          setCulturalLatest(c.latestSession || null)
         }
       } catch {}
     })()
@@ -1398,8 +1406,32 @@ export default function SavedResumePage() {
                         <Globe className="w-5 h-5 text-cyan-400" />
                         <CardTitle className="text-white">BPOC Cultural</CardTitle>
                       </CardHeader>
-                      <CardContent className="text-sm text-gray-300">
-                        <div className="text-gray-400">No data yet.</div>
+                      <CardContent className="text-sm text-gray-300 space-y-2">
+                        {culturalStats ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>Survival Status: <span className="text-white font-semibold">{culturalStats.survival_status ?? '—'}%</span></div>
+                            <div>Cultural Score: <span className="text-white font-semibold">{culturalStats.cultural_score ?? '—'}</span></div>
+                            <div>US Score: <span className="text-white font-semibold">{culturalStats.us_score ?? '—'}</span></div>
+                            <div>UK Score: <span className="text-white font-semibold">{culturalStats.uk_score ?? '—'}</span></div>
+                            <div>AU Score: <span className="text-white font-semibold">{culturalStats.au_score ?? '—'}</span></div>
+                            <div>CA Score: <span className="text-white font-semibold">{culturalStats.ca_score ?? '—'}</span></div>
+                            <div>Total Sessions: <span className="text-white font-semibold">{culturalStats.total_sessions ?? 0}</span></div>
+                            <div>Best Session: <span className="text-white font-semibold">{culturalStats.best_session_score ?? '—'}</span></div>
+                          </div>
+                        ) : (
+                          <div className="text-gray-400">No data yet.</div>
+                        )}
+                        {culturalLatest && (
+                          <div className="mt-2 text-gray-400">
+                            <div className="text-xs">Latest Session</div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>Date: <span className="text-white">{new Date(culturalLatest.started_at).toLocaleString()}</span></div>
+                              <div>Survival: <span className="text-white">{culturalLatest.survival_status ?? '—'}%</span></div>
+                              <div>Cultural Score: <span className="text-white">{culturalLatest.cultural_score ?? '—'}</span></div>
+                              <div>Duration: <span className="text-white">{culturalLatest.duration_ms ? `${Math.round(culturalLatest.duration_ms / 1000)}s` : '—'}</span></div>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 

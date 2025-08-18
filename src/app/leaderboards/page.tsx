@@ -17,7 +17,8 @@ import {
   Crown,
   Medal,
   Sparkles,
-  Stars
+  Stars,
+  Briefcase
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -72,7 +73,7 @@ export default function LeaderboardsPage() {
 	const [period, setPeriod] = useState<Period>('weekly')
 	const [gameId, setGameId] = useState<string>('bpoc-cultural')
 	const [page, setPage] = useState<number>(1)
-	const [pageSize] = useState<number>(10)
+	const [pageSize, setPageSize] = useState<number>(10)
 	const [loading, setLoading] = useState<boolean>(false)
 	const [error, setError] = useState<string>('')
 	const [total, setTotal] = useState<number>(0)
@@ -84,6 +85,19 @@ export default function LeaderboardsPage() {
 
 	const offset = useMemo(() => (page - 1) * pageSize, [page, pageSize])
 	const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+	const pageItems = useMemo<(number | string)[]>(() => {
+		const items: Array<number | string> = []
+		if (totalPages <= 7) { for (let i = 1; i <= totalPages; i += 1) items.push(i); return items }
+		items.push(1)
+		const start = Math.max(2, page - 1)
+		const end = Math.min(totalPages - 1, page + 1)
+		if (start > 2) items.push('...')
+		for (let i = start; i <= end; i += 1) items.push(i)
+		if (end < totalPages - 1) items.push('...')
+		items.push(totalPages)
+		return items
+	}, [totalPages, page])
 
   useEffect(() => {
 		const fetchData = async () => {
@@ -284,50 +298,31 @@ export default function LeaderboardsPage() {
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
-      <div className="absolute inset-0">
-        {/* Animated gradient bubbles */}
-        <div className="absolute -top-10 -left-10 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-16 -right-16 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-amber-500/10 rounded-full blur-3xl" />
-      </div>
-      <Header />
-      <div className="pt-16 relative z-10">
-        <div className="container max-w-7xl mx-auto px-4 py-8">
-          {/* Fun hero banner */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative mb-8 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-white/5 via-white/0 to-white/5"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_-10%,rgba(34,211,238,0.15),transparent_60%),radial-gradient(circle_at_80%_120%,rgba(168,85,247,0.12),transparent_60%)]" />
-            <div className="relative flex items-center justify-between p-5 md:p-7">
+       <Header />
+       <div className="pt-16 relative z-10">
+         <div className="container max-w-7xl mx-auto px-4 py-8">
+                       {/* Header */}
+            <div className="mb-8">
               <div className="flex items-center gap-4">
-                <Trophy className="h-10 w-10 text-cyan-400" />
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-cyan-400" />
+                </div>
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-amber-300 bg-clip-text text-transparent">
-                    Leaderboards — Rise to the Top!
+                  <h1 className="text-4xl md:text-5xl font-bold text-white">
+                    Leaderboards
                   </h1>
-                  <p className="text-gray-400">Compete, improve, and collect crowns {getCategoryEmoji('overall')}</p>
+                  <p className="text-lg text-gray-300">
+                    Compete, improve, and rise to the top of our rankings
+                  </p>
                 </div>
               </div>
-              <div className="hidden md:flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
-                  <span>{getCategoryEmoji('' + category)}</span> Live Rankings
-                </span>
-              </div>
             </div>
-          </motion.div>
-
-          {/* Simple intro sentence */}
-          <div className="mb-4 text-sm text-gray-300">
-            Here are our top candidates — users ahead toward getting hired.
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Column */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 flex flex-col min-h-0">
               {/* Controls */}
-              <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
                 <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
                   <SelectTrigger className="w-40 bg-white/10 border border-white/20 text-white">
                     <SelectValue placeholder="Category" />
@@ -368,11 +363,10 @@ export default function LeaderboardsPage() {
                 )}
               </div>
 
-              {/* Accent bar above table */}
-              <div className="h-1 rounded-full mb-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-amber-500 animate-pulse" />
+
 
               {/* Table container (table itself unchanged) */}
-              <Card className="glass-card border-white/10 mb-4">
+              <Card className="glass-card border-white/10 mb-4 flex-1 min-h-0">
                 <CardContent className="p-0 overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -400,7 +394,18 @@ export default function LeaderboardsPage() {
                     </TableHeader>
                     <TableBody>
                       {loading && (
-                        <TableRow><TableCell colSpan={7} className="text-gray-400">Loading...</TableCell></TableRow>
+                        <>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={`skeleton-${i}`} className="hover:bg-transparent">
+                              <TableCell colSpan={7}>
+                                <div className="animate-pulse py-3">
+                                  <div className="h-4 bg-white/10 rounded w-1/3 mb-2" />
+                                  <div className="h-3 bg-white/5 rounded w-2/3" />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </>
                       )}
                       {!loading && error && (
                         <TableRow><TableCell colSpan={7} className="text-red-400">{error}</TableCell></TableRow>
@@ -409,7 +414,7 @@ export default function LeaderboardsPage() {
                         <TableRow><TableCell colSpan={7} className="text-gray-400">No results</TableCell></TableRow>
                       )}
                       {!loading && !error && filteredResults.map((row: any) => (
-                        <TableRow key={`${row.userId}-${row.rank}`} className="hover:bg-white/5 cursor-pointer" onClick={() => setOpenUserId(row.userId)}>
+                        <TableRow key={`${row.userId}-${row.rank}`} className="hover:bg-white/5 cursor-pointer border-b border-white/10" onClick={() => setOpenUserId(row.userId)}>
                           <TableCell>{renderRankCell(row.rank)}</TableCell>
                           <TableCell>{renderUserCell(row)}</TableCell>
                           {category === 'overall' && (<>
@@ -433,35 +438,63 @@ export default function LeaderboardsPage() {
                       ))}
                     </TableBody>
                   </Table>
+
+                  {total > 0 && (
+                    <div className="flex items-center justify-end gap-3 p-3 border-t border-white/10">
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50">
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <div className="flex items-center gap-2">
+                        {pageItems.map((it, idx) => (
+                          typeof it === 'number' ? (
+                            <Button key={idx} variant={it === page ? 'secondary' : 'outline'} size="sm" onClick={() => setPage(it)} className={`h-8 px-3 ${it === page ? 'bg-white/10 text-white' : 'text-gray-300 border-white/20 hover:bg-white/10'}`}>{it}</Button>
+                          ) : (
+                            <span key={idx} className="text-gray-400 px-2">…</span>
+                          )
+                        ))}
+                      </div>
+                      <div className="text-gray-300 text-sm px-3 py-1 rounded bg-white/5 border border-white/10">Page {page} of {totalPages}</div>
+                      <Select value={String(pageSize)} onValueChange={(v: string) => { setPageSize(Number(v)); setPage(1) }}>
+                        <SelectTrigger className="w-[120px] h-8">
+                          <SelectValue placeholder="Page size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 / page</SelectItem>
+                          <SelectItem value="10">10 / page</SelectItem>
+                          <SelectItem value="15">15 / page</SelectItem>
+                          <SelectItem value="20">20 / page</SelectItem>
+                          <SelectItem value="25">25 / page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages} className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50">
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Pagination */}
-              {!loading && totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50">
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <div className="text-gray-300 text-sm">Page {page}</div>
-                  <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} className="border-white/20 text-white hover:bg-white/10">
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                    </div>
-                  )}
-                </div>
+              {/* Pagination moved inside card */}
+            </div>
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-white">How Scoring Works</CardTitle>
+              <Card className="glass-card border-white/10 flex flex-col h-[420px] lg:h-[520px]">
+                <CardHeader className="border-b border-white/10">
+                  <CardTitle className="text-white flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-cyan-300" />
+                    </span>
+                    <span>How Scoring Works</span>
+                  </CardTitle>
+                  <p className="text-sm text-gray-400 mt-1">Quick guide to how we compute ranks</p>
                 </CardHeader>
-                <CardContent className="space-y-6 text-xs text-gray-300">
+                <CardContent className="space-y-6 text-xs text-gray-300 flex-1 min-h-0 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-400/30">
                   <div>
-                    <div className="mb-2 text-white font-semibold">Overall Weights</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-cyan-400 rounded-full" /> Overall Weights</div>
                     <div className="overflow-x-auto">
-                      <table className="w-full border-separate border-spacing-y-1">
-                        <thead className="text-gray-400">
+                      <table className="w-full border-separate border-spacing-y-2">
+                        <thead className="text-gray-400 text-xs uppercase tracking-wider">
                           <tr>
                             <th className="text-left">Component</th>
                             <th className="text-left">How</th>
@@ -469,20 +502,20 @@ export default function LeaderboardsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="bg-white/5">
-                            <td className="px-2 py-1">Games</td>
-                            <td className="px-2 py-1">Avg of your best per game vs game max</td>
-                            <td className="px-2 py-1 text-right">60%</td>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
+                            <td className="px-3 py-2">Games</td>
+                            <td className="px-3 py-2">Avg of your best per game vs game max</td>
+                            <td className="px-3 py-2 text-right">60%</td>
                           </tr>
-                          <tr className="bg-white/5">
-                            <td className="px-2 py-1">Applications</td>
-                            <td className="px-2 py-1">Your total milestone points vs top</td>
-                            <td className="px-2 py-1 text-right">30%</td>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
+                            <td className="px-3 py-2">Applications</td>
+                            <td className="px-3 py-2">Your total milestone points vs top</td>
+                            <td className="px-3 py-2 text-right">30%</td>
                           </tr>
-                          <tr className="bg-white/5">
-                            <td className="px-2 py-1">Engagement</td>
-                            <td className="px-2 py-1">Completions and profile bonuses vs top</td>
-                            <td className="px-2 py-1 text-right">10%</td>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
+                            <td className="px-3 py-2">Engagement</td>
+                            <td className="px-3 py-2">Completions and profile bonuses vs top</td>
+                            <td className="px-3 py-2 text-right">10%</td>
                           </tr>
                         </tbody>
                       </table>
@@ -490,69 +523,69 @@ export default function LeaderboardsPage() {
                   </div>
 
                   <div>
-                    <div className="mb-2 text-white font-semibold">Game Scores</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-purple-400 rounded-full" /> Game Scores</div>
                     <div className="overflow-x-auto">
-                      <table className="w-full border-separate border-spacing-y-1">
-                        <thead className="text-gray-400">
+                      <table className="w-full border-separate border-spacing-y-2">
+                        <thead className="text-gray-400 text-xs uppercase tracking-wider">
                           <tr>
                             <th className="text-left">Game</th>
                             <th className="text-left">Score Formula</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="bg-white/5"><td className="px-2 py-1">Typing Hero</td><td className="px-2 py-1">round(WPM × Accuracy/100)</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">BPOC Cultural</td><td className="px-2 py-1">Average of region scores</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">Ultimate</td><td className="px-2 py-1">Average of smart, motivated, integrity, business</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">DISC Personality</td><td className="px-2 py-1">Average of D, I, S, C</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Typing Hero</td><td className="px-3 py-2">round(WPM × Accuracy/100)</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">BPOC Cultural</td><td className="px-3 py-2">Average of region scores</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Ultimate</td><td className="px-3 py-2">Average of smart, motivated, integrity, business</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">DISC Personality</td><td className="px-3 py-2">Average of D, I, S, C</td></tr>
                         </tbody>
                       </table>
               </div>
             </div>
 
                   <div>
-                    <div className="mb-2 text-white font-semibold">Applications Points</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-green-400 rounded-full" /> Applications Points</div>
                     <div className="overflow-x-auto">
-                      <table className="w-full border-separate border-spacing-y-1">
-                        <thead className="text-gray-400">
+                      <table className="w-full border-separate border-spacing-y-2">
+                        <thead className="text-gray-400 text-xs uppercase tracking-wider">
                           <tr>
                             <th className="text-left">Status</th>
                             <th className="text-right">Points</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="bg-white/5"><td className="px-2 py-1">submitted</td><td className="px-2 py-1 text-right">5</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">qualified</td><td className="px-2 py-1 text-right">15</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">for verification</td><td className="px-2 py-1 text-right">20</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">verified</td><td className="px-2 py-1 text-right">25</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">initial interview</td><td className="px-2 py-1 text-right">35</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">final interview</td><td className="px-2 py-1 text-right">50</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">passed</td><td className="px-2 py-1 text-right">60</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">hired</td><td className="px-2 py-1 text-right">100</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">submitted</td><td className="px-3 py-2 text-right">5</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">qualified</td><td className="px-3 py-2 text-right">15</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">for verification</td><td className="px-3 py-2 text-right">20</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">verified</td><td className="px-3 py-2 text-right">25</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">initial interview</td><td className="px-3 py-2 text-right">35</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">final interview</td><td className="px-3 py-2 text-right">50</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">passed</td><td className="px-3 py-2 text-right">60</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">hired</td><td className="px-3 py-2 text-right">100</td></tr>
                         </tbody>
                       </table>
                     </div>
-                    <p className="mt-1 text-[10px] text-gray-400">Highest status per job only. No double counting.</p>
+                    <p className="mt-2 px-3 py-2 rounded bg-white/10 border border-white/20 text-[11px] text-gray-400">Highest status per job only. No double counting.</p>
                   </div>
 
                     <div>
-                    <div className="mb-2 text-white font-semibold">Engagement Points</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-pink-400 rounded-full" /> Engagement Points</div>
                     <div className="overflow-x-auto">
-                      <table className="w-full border-separate border-spacing-y-1">
-                        <thead className="text-gray-400">
+                      <table className="w-full border-separate border-spacing-y-2">
+                        <thead className="text-gray-400 text-xs uppercase tracking-wider">
                           <tr>
                             <th className="text-left">Action</th>
                             <th className="text-right">Points</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="bg-white/5"><td className="px-2 py-1">Complete a game (first time)</td><td className="px-2 py-1 text-right">+5</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">Complete all 4 games</td><td className="px-2 py-1 text-right">+20</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">First avatar uploaded</td><td className="px-2 py-1 text-right">+5</td></tr>
-                          <tr className="bg-white/5"><td className="px-2 py-1">First resume created</td><td className="px-2 py-1 text-right">+10</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Complete a game (first time)</td><td className="px-3 py-2 text-right">+5</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Complete all 4 games</td><td className="px-3 py-2 text-right">+20</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">First avatar uploaded</td><td className="px-3 py-2 text-right">+5</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">First resume created</td><td className="px-3 py-2 text-right">+10</td></tr>
                         </tbody>
                       </table>
                     </div>
-                    <p className="mt-1 text-[10px] text-gray-400">Engagement points are one‑time bonuses.</p>
+                    <p className="mt-2 px-3 py-2 rounded bg-white/10 border border-white/20 text-[11px] text-gray-400">Engagement points are one‑time bonuses.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -699,4 +732,4 @@ export default function LeaderboardsPage() {
       </div>
     </div>
 	)
-} 
+}
