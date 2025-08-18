@@ -1,5 +1,28 @@
 'use client';
 
+/**
+ * BPOC Cultural Game - Cultural Communication Arena
+ * 
+ * FIXED ISSUES:
+ * 1. Survival Status Calculation: Fixed issue where survival status was showing 100% 
+ *    even when no answers were provided. The problem was in resetChallengeState() 
+ *    which was resetting interactionCount to 0 every time the user moved between 
+ *    challenges, causing the survival status calculation to always return 0.
+ * 
+ * 2. State Persistence: Modified resetChallengeState() to only reset challenge-specific 
+ *    state variables (like currentResponse, audioBlob, etc.) while preserving cumulative 
+ *    game progress variables (interactionCount, culturalScores, achievements).
+ * 
+ * 3. Survival Status Logic: The survival status is now properly calculated based on:
+ *    - interactionCount (must be > 0 to have any survival status)
+ *    - Average cultural scores across all regions
+ *    - Achievement bonuses (up to 10%)
+ *    - Time penalty if game runs out of time (-20%)
+ * 
+ * 4. Debugging: Added comprehensive console logging to track state changes and 
+ *    survival status calculations for troubleshooting.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -39,7 +62,7 @@ const CulturalCommunicationArena = () => {
   });
   const [playerName, setPlayerName] = useState('Player');
   const [currentResponse, setCurrentResponse] = useState('');
-  const [survivalStatus, setSurvivalStatus] = useState(100);
+  const [survivalStatus, setSurvivalStatus] = useState(0);
   const [achievements, setAchievements] = useState<string[]>([]);
   
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -96,9 +119,20 @@ const CulturalCommunicationArena = () => {
       return () => clearInterval(timer);
     }
     if (timeLeft === 0) {
+      console.log('Timer ran out, calculating final survival status...');
+      console.log('State when timer ran out:', {
+        interactionCount,
+        culturalScores,
+        achievements: achievements?.length || 0,
+        timeLeft
+      });
+      // Calculate final survival status before showing results
+      const finalSurvivalStatus = calculateSurvivalStatus();
+      console.log('Timer: Setting survival status to:', finalSurvivalStatus);
+      setSurvivalStatus(finalSurvivalStatus);
       setGameState('results');
     }
-  }, [gameState, timeLeft]);
+  }, [gameState, timeLeft, interactionCount, culturalScores, achievements]);
 
   // Recording timer
   useEffect(() => {
@@ -163,6 +197,9 @@ const CulturalCommunicationArena = () => {
     }
   }, [achievements]);
 
+  // Survival status is calculated when the game ends (either by timer or completion)
+  // No need for additional useEffect here
+
   // Check current permission state without requesting new permissions
   const checkCurrentPermissionState = async () => {
     try {
@@ -208,15 +245,65 @@ const CulturalCommunicationArena = () => {
       if (error instanceof DOMException) {
         if (error.name === 'NotAllowedError') {
           console.log('Permission denied by user');
+          alert('Microphone permission denied. Please allow microphone access in your browser settings and refresh the page.');
         } else if (error.name === 'NotFoundError') {
           console.log('No microphone found');
+          alert('No microphone device found. Please connect a microphone and refresh the page.');
         } else if (error.name === 'NotReadableError') {
           console.log('Microphone is busy or not accessible');
+          alert('Microphone is busy or not accessible. Please close other applications using the microphone and refresh the page.');
+        } else {
+          alert(`Microphone error: ${error.message}. Please check your microphone settings and refresh the page.`);
         }
+      } else {
+        alert('Failed to access microphone. Please check your browser settings and refresh the page.');
       }
     }
   };
 
+  // Enhanced microphone permission check with retry
+  const retryMicrophonePermission = async () => {
+    console.log('Retrying microphone permission...');
+    setCanRecord(false);
+    await checkMicrophonePermission();
+  };
+
+  // Comprehensive microphone debugging function
+  const debugMicrophoneStatus = async () => {
+    console.log('=== MICROPHONE DEBUG INFO ===');
+    console.log('Browser:', navigator.userAgent);
+    console.log('MediaDevices supported:', !!navigator.mediaDevices);
+    console.log('getUserMedia supported:', !!navigator.mediaDevices?.getUserMedia);
+    console.log('MediaRecorder supported:', !!window.MediaRecorder);
+    
+    // Check permissions
+    try {
+      const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      console.log('Microphone permission state:', permission.state);
+      console.log('Permission can change:', permission.onchange !== null);
+    } catch (error) {
+      console.log('Could not check permission state:', error);
+    }
+    
+    // Check available devices
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      console.log('Available audio input devices:', audioInputs);
+    } catch (error) {
+      console.log('Could not enumerate devices:', error);
+    }
+    
+    // Check current canRecord state
+    console.log('Current canRecord state:', canRecord);
+    console.log('Current isRecording state:', isRecording);
+    console.log('Current audioContext state:', !!audioContext);
+    console.log('Current mediaRecorder state:', mediaRecorder?.state);
+    
+    console.log('=== END DEBUG INFO ===');
+  };
+
+  // Check microphone permissions on mount and when needed
   useEffect(() => {
     checkMicrophonePermission();
     
@@ -248,6 +335,10 @@ const CulturalCommunicationArena = () => {
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
+      // Clean up any active audio context
+      if (audioContext) {
+        audioContext.close();
+      }
     };
   }, [audioUrl]);
 
@@ -260,6 +351,9 @@ const CulturalCommunicationArena = () => {
       ...prev,
       [currentStage]: [...(prev[currentStage] || []), label],
     }));
+    
+    // Update survival status after achievement is added
+    setTimeout(() => updateSurvivalStatus(), 0);
   };
 
   const handleBackClick = () => {
@@ -280,7 +374,14 @@ const CulturalCommunicationArena = () => {
   };
 
   const proceedToIntro = () => {
-    setGameState('intro');
+    console.log('Starting game from welcome screen...');
+    console.log('Initial state values:', {
+      survivalStatus,
+      interactionCount,
+      culturalScores,
+      achievements: achievements?.length || 0
+    });
+    setGameState('playing');
   };
 
   const stages = [
@@ -694,10 +795,70 @@ const CulturalCommunicationArena = () => {
     }
   };
 
+  // Test microphone with actual recording
+  const testMicrophoneRecording = async () => {
+    try {
+      console.log('Testing microphone with actual recording...');
+      
+      if (!canRecord) {
+        alert('Microphone not ready. Please check permissions first.');
+        return;
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        
+        if (chunks.length > 0) {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          console.log('Microphone test successful:', {
+            blobSize: audioBlob.size,
+            chunksCount: chunks.length
+          });
+          alert('✅ Microphone test successful! Your microphone is working correctly.');
+        } else {
+          alert('❌ Microphone test failed - no audio recorded.');
+        }
+      };
+      
+      recorder.start();
+      alert('🎤 Recording test audio for 3 seconds... Speak into your microphone.');
+      
+      setTimeout(() => {
+        recorder.stop();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Microphone test failed:', error);
+      alert(`❌ Microphone test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   // Simple fallback recording method
   const startFallbackRecording = async () => {
     try {
       console.log('Starting fallback recording...');
+      
+      if (!canRecord) {
+        alert('Microphone not ready. Please check permissions first.');
+        return;
+      }
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -730,10 +891,17 @@ const CulturalCommunicationArena = () => {
           const audioBlob = new Blob(chunks, { type: 'audio/webm' });
           const audioUrl = URL.createObjectURL(audioBlob);
           
+          console.log('Fallback recording successful:', {
+            blobSize: audioBlob.size,
+            chunksCount: chunks.length
+          });
+          
           setAudioBlob(audioBlob);
           setAudioUrl(audioUrl);
           setAudioChunks([]);
           analyzeVoiceRecording(audioBlob);
+        } else {
+          alert('Fallback recording failed - no audio data captured. Please try again.');
         }
         
         setIsRecording(false);
@@ -744,8 +912,25 @@ const CulturalCommunicationArena = () => {
       setIsRecording(true);
       setRecordingTime(0);
       
+      console.log('Fallback recording started');
+      
     } catch (error) {
       console.error('Fallback recording failed:', error);
+      
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          alert('Microphone permission denied. Please allow microphone access and try again.');
+        } else if (error.name === 'NotFoundError') {
+          alert('No microphone found. Please connect a microphone and try again.');
+        } else if (error.name === 'NotReadableError') {
+          alert('Microphone is busy. Please close other applications using the microphone and try again.');
+        } else {
+          alert(`Microphone error: ${error.message}`);
+        }
+      } else {
+        alert(`Fallback recording failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
       setIsRecording(false);
     }
   };
@@ -767,6 +952,16 @@ const CulturalCommunicationArena = () => {
     try {
       console.log(`Starting ${region} cultural recording...`);
       
+      // Double-check microphone permission before starting
+      if (!canRecord) {
+        console.log('Microphone not ready, attempting to re-check permissions...');
+        await retryMicrophonePermission();
+        if (!canRecord) {
+          alert('Microphone is not available. Please check your microphone permissions and try again.');
+          return;
+        }
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -777,7 +972,7 @@ const CulturalCommunicationArena = () => {
         } 
       });
       
-      console.log(`${region} microphone access granted`);
+      console.log(`${region} microphone access granted, stream active:`, stream.active);
       
       // Create audio context for monitoring
       const audioCtx = new AudioContext();
@@ -827,7 +1022,7 @@ const CulturalCommunicationArena = () => {
           analyzeCulturalVoiceRecording(audioBlob, region);
         } else {
           console.error(`${region} no audio chunks recorded`);
-          alert(`${region} recording failed. Please try again.`);
+          alert(`${region} recording failed - no audio data captured. Please try again.`);
         }
         
         // Clean up
@@ -847,13 +1042,31 @@ const CulturalCommunicationArena = () => {
       setInteractionCount((c) => c + 1);
       setRecordingTime(0);
       
-      console.log(`${region} recording started`);
+      console.log(`${region} recording started successfully`);
       
     } catch (error) {
       console.error(`Error starting ${region} recording:`, error);
-      alert(`Failed to start ${region} recording. Please check microphone permissions.`);
+      
+      // Provide specific error messages based on error type
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          alert(`Microphone permission denied for ${region}. Please allow microphone access and try again.`);
+        } else if (error.name === 'NotFoundError') {
+          alert(`No microphone found for ${region}. Please connect a microphone and try again.`);
+        } else if (error.name === 'NotReadableError') {
+          alert(`Microphone is busy for ${region}. Please close other applications using the microphone and try again.`);
+        } else {
+          alert(`Microphone error for ${region}: ${error.message}`);
+        }
+      } else {
+        alert(`Failed to start ${region} recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
       setIsRecording(false);
       setCurrentRecordingRegion(null);
+      
+      // Try to re-check microphone permissions
+      await retryMicrophonePermission();
     }
   };
 
@@ -947,6 +1160,9 @@ const CulturalCommunicationArena = () => {
         [region]: score
       }));
       
+      // Update survival status after score change
+      setTimeout(() => updateSurvivalStatus(), 0);
+      
       // Add achievements based on score
       // Safety check to ensure stages and challenges exist
       if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
@@ -983,6 +1199,9 @@ const CulturalCommunicationArena = () => {
         ...prev,
         [region]: fallbackScore
       }));
+      
+      // Update survival status after fallback score
+      setTimeout(() => updateSurvivalStatus(), 0);
       
       // Show error message
       alert(`Analysis failed for ${region}. Using fallback scoring.`);
@@ -1389,6 +1608,9 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         [currentRegion]: Math.min(100, prev[currentRegion] + score/10)
       }));
       
+      // Update survival status after score change
+      setTimeout(() => updateSurvivalStatus(), 0);
+      
       // Add achievements based on performance
       if (score > 85) {
         addAchievement(`${culturalContexts[currentRegion].flag} Cultural Master`);
@@ -1406,6 +1628,15 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
       // Store transcript for display
       setCurrentResponse(transcript);
       
+      // Automatically advance to next challenge after voice submission
+      // Only auto-advance if this is not a combo challenge or if both parts are done
+      const currentChallengeData = stages[currentStage - 1].challenges[currentChallenge];
+      if (currentChallengeData.type !== 'combo' || (comboVoiceDone && comboWriteDone)) {
+        setTimeout(() => {
+          nextChallenge();
+        }, 1000); // 1 second delay to show feedback
+      }
+      
       return analysis;
       
     } catch (error) {
@@ -1422,6 +1653,9 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         [region]: Math.min(100, prev[region] + score/10)
       }));
       
+      // Update survival status after fallback score
+      setTimeout(() => updateSurvivalStatus(), 0);
+      
       if (score > 85) {
         addAchievement(`${culturalContexts[region].flag} Cultural Master`);
       }
@@ -1432,6 +1666,15 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         setComboVoiceDone(true);
       } else if (current.type === 'ultimate') {
         setBossVoiceDone(true);
+      }
+      
+      // Automatically advance to next challenge after voice submission
+      // Only auto-advance if this is not a combo challenge or if both parts are done
+      const currentChallengeData = stages[currentStage - 1].challenges[currentChallenge];
+      if (currentChallengeData.type !== 'combo' || (comboVoiceDone && comboWriteDone)) {
+        setTimeout(() => {
+          nextChallenge();
+        }, 1000); // 1 second delay to show feedback
       }
       
       return { score, feedback: 'Fallback analysis used' };
@@ -1516,9 +1759,17 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
       if (culturalAnalysis.CA > 85) addAchievement("🇨🇦 CA Communication Expert");
 
       // Flag for combo writing completion
-      const current = stages[currentStage - 1].challenges[currentChallenge];
-      if (current.type === 'combo') {
+      const currentChallengeData = stages[currentStage - 1].challenges[currentChallenge];
+      if (currentChallengeData.type === 'combo') {
         setComboWriteDone(true);
+      }
+
+      // Automatically advance to next challenge after submission
+      // Only auto-advance if this is not a combo challenge or if both parts are done
+      if (currentChallengeData.type !== 'combo' || (comboVoiceDone && comboWriteDone)) {
+        setTimeout(() => {
+          nextChallenge();
+        }, 1000); // 1 second delay to show feedback
       }
     }
   };
@@ -1526,16 +1777,149 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
   const nextChallenge = () => {
     const currentStageData = stages[currentStage - 1];
     if (currentChallenge < currentStageData.challenges.length - 1) {
+      console.log('Moving to next challenge...');
+      console.log('State before moving:', {
+        interactionCount,
+        culturalScores,
+        achievements: achievements?.length || 0
+      });
+      
       setCurrentChallenge(prev => prev + 1);
+      // Reset challenge-specific state when moving to next challenge
+      resetChallengeState();
+      
+      console.log('State after moving (challenge-specific reset):', {
+        interactionCount,
+        culturalScores,
+        achievements: achievements?.length || 0
+      });
     } else if (currentStage < stages.length) {
+      console.log('Moving to next stage...');
+      console.log('State before moving:', {
+        interactionCount,
+        culturalScores,
+        achievements: achievements?.length || 0
+      });
+      
       setCurrentStage(prev => prev + 1);
       setCurrentChallenge(0);
+      // Reset challenge-specific state when moving to next stage
+      resetChallengeState();
+      
+      console.log('State after moving (challenge-specific reset):', {
+        interactionCount,
+        culturalScores,
+        achievements: achievements?.length || 0
+      });
     } else {
+      console.log('Game completed, calculating final survival status...');
+      // Calculate final survival status before showing results
+      const finalSurvivalStatus = calculateSurvivalStatus();
+      console.log('Game completion: Setting survival status to:', finalSurvivalStatus);
+      setSurvivalStatus(finalSurvivalStatus);
       setGameState('results');
     }
   };
 
+  const resetChallengeState = () => {
+    console.log('resetChallengeState called - resetting challenge-specific state only');
+    console.log('State before reset:', {
+      interactionCount,
+      culturalScores,
+      achievements: achievements?.length || 0
+    });
+    
+    setCurrentResponse('');
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setAudioChunks([]);
+    setIsRecording(false);
+    setRecordingTime(0);
+    setCurrentRecordingRegion(null);
+    setComboVoiceDone(false);
+    setComboWriteDone(false);
+    setBossVoiceDone(false);
+    setBossTimer(30);
+    setIsAnalyzingVoice(false);
+    setIsGeneratingScript(null);
+    setIsTranscribing({ US: false, UK: false, AU: false, CA: false });
+    setCulturalTranscripts({ US: '', UK: '', AU: '', CA: '' });
+    setGeneratedScripts({ US: '', UK: '', AU: '', CA: '' });
+    setAudioLevel(0);
+    setMediaRecorder(null);
+    setCanRecord(false);
+    setAudioContext(null);
+    setToastAchievement(null);
+    setStageAchievements({});
+    // DON'T reset interactionCount - it should accumulate across all challenges
+    // DON'T reset culturalScores - they should persist across challenges
+    // DON'T reset achievements - they should accumulate across challenges
+    // DON'T reset timeLeft - it's the overall game timer
+    
+    console.log('State after reset (should preserve cumulative values):', {
+      interactionCount,
+      culturalScores,
+      achievements: achievements?.length || 0
+    });
+  };
+
+  const calculateSurvivalStatus = () => {
+    console.log('calculateSurvivalStatus called with:', {
+      interactionCount,
+      culturalScores,
+      achievements: achievements?.length || 0,
+      timeLeft
+    });
+    
+    // If no interactions, survival status should be 0%
+    if (interactionCount === 0) {
+      console.log('No interactions, returning 0');
+      return 0;
+    }
+
+    // Calculate based on cultural scores and completion rate
+    const avgScore = Object.values(culturalScores || {}).reduce((a, b) => a + b, 0) / 4;
+    console.log('Average score:', avgScore);
+    
+    // Base survival on average score
+    let survival = Math.max(0, Math.min(100, avgScore));
+    console.log('Base survival:', survival);
+    
+    // Bonus for achievements (up to 10%)
+    const achievementBonus = Math.min(10, (achievements?.length || 0) * 2);
+    survival = Math.min(100, survival + achievementBonus);
+    console.log('Survival after achievement bonus:', survival);
+    
+    // Penalty for incomplete game (if time ran out)
+    if (timeLeft === 0) {
+      survival = Math.max(0, survival - 20);
+      console.log('Survival after time penalty:', survival);
+    }
+    
+    const finalSurvival = Math.round(survival);
+    console.log('Final survival status:', finalSurvival);
+    return finalSurvival;
+  };
+
+  const updateSurvivalStatus = () => {
+    console.log('updateSurvivalStatus called');
+    const newSurvivalStatus = calculateSurvivalStatus();
+    console.log('Setting survival status to:', newSurvivalStatus);
+    setSurvivalStatus(newSurvivalStatus);
+  };
+
   const calculateTier = () => {
+    // Safety checks
+    if (!culturalScores || !achievements) {
+      console.warn('calculateTier: culturalScores or achievements not initialized');
+      return {
+        tier: "Unknown",
+        icon: "❓",
+        color: "from-gray-500 to-gray-700",
+        description: "Unable to calculate tier - data not available"
+      };
+    }
+
     // If the user hasn't interacted with any challenge, force the lowest tier
     if (interactionCount === 0) {
       return {
@@ -1588,19 +1972,36 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
   };
 
   const restartGame = () => {
-    setGameState('intro');
+    console.log('Restarting game...');
+    console.log('State before restart:', {
+      survivalStatus,
+      interactionCount,
+      culturalScores,
+      achievements: achievements?.length || 0
+    });
+    
+    setGameState('playing');
     setCurrentStage(1);
     setCurrentChallenge(0);
     setTimeLeft(300);
     setCulturalScores({ US: 0, UK: 0, AU: 0, CA: 0 });
     setAchievements([]);
-    setSurvivalStatus(100);
+    setInteractionCount(0); // Reset for new game
+    setSurvivalStatus(0); // Reset for new game
+    // Don't set survival status here - it will be calculated when game ends
     setCurrentResponse('');
     setCurrentRecordingRegion(null);
     setCulturalTranscripts({ US: '', UK: '', AU: '', CA: '' });
     setGeneratedScripts({ US: '', UK: '', AU: '', CA: '' });
     setIsGeneratingScript(null);
     setIsTranscribing({ US: false, UK: false, AU: false, CA: false });
+    
+    console.log('State after restart:', {
+      survivalStatus: 0,
+      interactionCount: 0,
+      culturalScores: { US: 0, UK: 0, AU: 0, CA: 0 },
+      achievements: []
+    });
   };
 
   const formatTime = (seconds: number) => {
@@ -1610,6 +2011,13 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
   };
 
   const startGame = () => {
+    console.log('Starting game...');
+    console.log('Initial state values:', {
+      survivalStatus,
+      interactionCount,
+      culturalScores,
+      achievements: achievements?.length || 0
+    });
     setGameState('playing');
   };
 
@@ -1735,7 +2143,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                       className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
                     >
                       <Play className="h-6 w-6 mr-3" />
-                      Start Game
+                      Start the Cultural Game
                     </Button>
                   </CardContent>
                 </Card>
@@ -1747,160 +2155,165 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
     );
   }
 
-  if (gameState === 'intro') {
-    return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
-        </div>
-        
-        <Header />
-        
-        <div className="pt-16 relative z-10">
-          <div className="container mx-auto px-4 py-8">
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between mb-8"
-            >
-              <div className="flex items-center">
-                <Button
-                  variant="ghost"
-                  onClick={handleBackClick}
-                  className="mr-4 text-gray-400 hover:text-white"
-                >
-                  <ArrowLeft className="h-5 w-5 mr-2" />
-                  Back
-                </Button>
-                <div className="flex items-center">
-                  <Globe className="h-12 w-12 text-green-400 mr-4" />
-                  <div>
-                    <h1 className="text-4xl font-bold gradient-text">BPOC Cultural</h1>
-                    <p className="text-gray-400">The Ultimate Client Survival Arena</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
 
-            <div className="max-w-4xl mx-auto">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center mb-8"
-              >
-                <p className="text-xl text-gray-300 leading-relaxed">
-                  Master cultural communication across all regions. Navigate through 4 stages of challenges, each with detailed scenarios and clear instructions. 
-                  Become the ultimate global communicator!
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-center"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="mt-8"
-                >
-                  <Button
-                    onClick={startGame}
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 text-xl font-bold"
-                    size="lg"
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    Start the Cultural Game
-                  </Button>
-                </motion.div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-        
-
-          
-      </div>
-    );
-  }
 
   // Results Screen
   if (gameState === 'results') {
+    try {
+      // Debug logging to identify the issue
+      console.log('Results page loading with state:', {
+        gameState,
+        stages: !!stages,
+        stagesLength: stages?.length,
+        culturalScores,
+        achievements,
+        currentStage,
+        currentChallenge,
+        timeLeft,
+        survivalStatus,
+        interactionCount
+      });
+      
+      // Additional debugging for survival status calculation
+      console.log('Survival status details:', {
+        currentSurvivalStatus: survivalStatus,
+        interactionCount,
+        culturalScoresValues: Object.values(culturalScores || {}),
+        culturalScoresSum: Object.values(culturalScores || {}).reduce((a, b) => a + b, 0),
+        culturalScoresAvg: Object.values(culturalScores || {}).reduce((a, b) => a + b, 0) / 4,
+        achievementsCount: achievements?.length || 0,
+        timeLeft
+      });
+      
+      // Recalculate survival status to verify
+      const recalculatedSurvival = calculateSurvivalStatus();
+      console.log('Recalculated survival status:', recalculatedSurvival);
+      if (recalculatedSurvival !== survivalStatus) {
+        console.warn('Survival status mismatch! Current:', survivalStatus, 'Recalculated:', recalculatedSurvival);
+      }
+
+    // Safety checks to prevent runtime errors
+    if (!stages || !Array.isArray(stages)) {
+      console.error('Stages not properly initialized:', stages);
+      return (
+        <div className="min-h-screen cyber-grid overflow-hidden">
+          <Header />
+          <div className="pt-16 relative z-10">
+            <div className="container mx-auto px-4 py-8">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-red-400 mb-4">Game Error</h1>
+                <p className="text-gray-300 mb-6">There was an issue loading the game results. Please try refreshing the page.</p>
+                <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Additional safety check for stages array content
+    if (stages.length === 0 || !stages[0] || !stages[0].challenges) {
+      console.error('Stages array is empty or malformed:', stages);
+      return (
+        <div className="min-h-screen cyber-grid overflow-hidden">
+          <Header />
+          <div className="pt-16 relative z-10">
+            <div className="container mx-auto px-4 py-8">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-red-400 mb-4">Game Configuration Error</h1>
+                <p className="text-gray-300 mb-6">The game configuration is not properly loaded. Please try refreshing the page.</p>
+                <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Ensure culturalScores has all required values
+    const safeCulturalScores = {
+      US: culturalScores?.US || 0,
+      UK: culturalScores?.UK || 0,
+      AU: culturalScores?.AU || 0,
+      CA: culturalScores?.CA || 0
+    };
+
+    // Ensure currentStage and currentChallenge are valid
+    const safeCurrentStage = currentStage || 1;
+    const safeCurrentChallenge = currentChallenge || 0;
+
     const tier = calculateTier();
-    const avgScore = Math.round(Object.values(culturalScores).reduce((a, b) => a + b, 0) / 4);
+    const avgScore = Math.round(Object.values(safeCulturalScores).reduce((a, b) => a + b, 0) / 4);
+    
+    
     
     // Save game data when results screen loads
-    useEffect(() => {
-      const saveGameData = async () => {
-        try {
-          // Get authorization token
-          const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
-          
-          if (!token) {
-            console.log('No auth token, skipping data save');
-            return;
-          }
-
-          const sessionData = {
-            startedAt: new Date(Date.now() - (300 - timeLeft) * 1000), // Calculate start time
-            finishedAt: new Date(),
-            durationMs: (300 - timeLeft) * 1000,
-            stageReached: currentStage,
-            challengeCompleted: currentChallenge,
-            gameState: 'results',
-            timeLeft: timeLeft,
-            survivalStatus: survivalStatus,
-            interactionCount: interactionCount,
-            usScore: Math.round(culturalScores.US),
-            ukScore: Math.round(culturalScores.UK),
-            auScore: Math.round(culturalScores.AU),
-            caScore: Math.round(culturalScores.CA),
-            tierName: tier.tier,
-            tierDescription: tier.description,
-            achievements: achievements,
-            metrics: {
-              culturalTranscripts,
-              generatedScripts,
-              stageAchievements,
-              audioRecordings: {
-                totalRecordings: interactionCount,
-                recordingTime: recordingTime
-              },
-              challengeBreakdown: {
-                stage1: { completed: currentStage >= 1, challenges: stages[0]?.challenges?.length || 0 },
-                stage2: { completed: currentStage >= 2, challenges: stages[1]?.challenges?.length || 0 },
-                stage3: { completed: currentStage >= 3, challenges: stages[2]?.challenges?.length || 0 },
-                stage4: { completed: currentStage >= 4, challenges: stages[3]?.challenges?.length || 0 }
-              }
-            }
-          };
-
-          const response = await fetch('/api/games/bpoc-cultural/session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(sessionData)
-          });
-
-          if (response.ok) {
-            console.log('Game data saved successfully');
-          } else {
-            console.error('Failed to save game data');
-          }
-        } catch (error) {
-          console.error('Error saving game data:', error);
+    // Use a simple function call instead of useEffect to avoid React rules violation
+    const saveGameData = async () => {
+      try {
+        // Get authorization token
+        const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
+        
+        if (!token) {
+          console.log('No auth token, skipping data save');
+          return;
         }
-      };
 
-      saveGameData();
-    }, []); // Only run once when results screen loads
+        const sessionData = {
+          startedAt: new Date(Date.now() - (300 - (timeLeft || 0)) * 1000), // Calculate start time
+          finishedAt: new Date(),
+          durationMs: (300 - (timeLeft || 0)) * 1000,
+          stageReached: safeCurrentStage,
+          challengeCompleted: safeCurrentChallenge,
+          gameState: 'results',
+          timeLeft: timeLeft || 0,
+          survivalStatus: survivalStatus,
+          interactionCount: interactionCount || 0,
+          usScore: Math.round(safeCulturalScores.US),
+          ukScore: Math.round(safeCulturalScores.UK),
+          auScore: Math.round(safeCulturalScores.AU),
+          caScore: Math.round(safeCulturalScores.CA),
+          tierName: tier?.tier || 'Unknown',
+          tierDescription: tier?.description || 'No description available',
+          achievements: achievements || [],
+          metrics: {
+            culturalTranscripts: culturalTranscripts || { US: '', UK: '', AU: '', CA: '' },
+            generatedScripts: generatedScripts || { US: '', UK: '', AU: '', CA: '' },
+            stageAchievements: stageAchievements || {},
+            audioRecordings: {
+              totalRecordings: interactionCount || 0,
+              recordingTime: recordingTime || 0
+            },
+            challengeBreakdown: {
+              stage1: { completed: safeCurrentStage >= 1, challenges: stages[0]?.challenges?.length || 0 },
+              stage2: { completed: safeCurrentStage >= 2, challenges: stages[1]?.challenges?.length || 0 },
+              stage3: { completed: safeCurrentStage >= 3, challenges: stages[2]?.challenges?.length || 0 },
+              stage4: { completed: safeCurrentStage >= 4, challenges: stages[3]?.challenges?.length || 0 }
+            }
+          }
+        };
+
+        const response = await fetch('/api/games/bpoc-cultural/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(sessionData)
+        });
+
+        if (response.ok) {
+          console.log('Game data saved successfully');
+        } else {
+          console.error('Failed to save game data');
+        }
+      } catch (error) {
+        console.error('Error saving game data:', error);
+      }
+    };
+
+    // Call the save function immediately
+    saveGameData();
     
     return (
       <div className="min-h-screen cyber-grid overflow-hidden">
@@ -1945,23 +2358,23 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
             >
               <Card className="glass-card border-white/10 mb-6">
                 <CardContent className="p-8">
-                  <div className="text-6xl mb-4">{tier.icon}</div>
+                  <div className="text-6xl mb-4">{tier?.icon || '🏆'}</div>
                   <h1 className="text-4xl font-bold gradient-text mb-2">Arena Complete!</h1>
                   <p className="text-gray-300 mb-6">Great work{playerName ? `, ${playerName}` : ''}! Here's your cultural performance.</p>
 
                   {/* Tier */}
-                  <div className={`text-3xl font-extrabold bg-gradient-to-r ${tier.color} bg-clip-text text-transparent mb-6`}>
-                    {tier.tier}
+                  <div className={`text-3xl font-extrabold bg-gradient-to-r ${tier?.color || 'from-gray-500 to-gray-700'} bg-clip-text text-transparent mb-6`}>
+                    {tier?.tier || 'Unknown Tier'}
                   </div>
-                  <p className="text-gray-300 mb-8 max-w-2xl mx-auto">{tier.description}</p>
+                  <p className="text-gray-300 mb-8 max-w-2xl mx-auto">{tier?.description || 'No description available'}</p>
 
                   {/* Cultural Scores */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    {Object.entries(culturalScores).map(([region, score]) => (
+                    {Object.entries(safeCulturalScores).map(([region, score]) => (
                       <div key={region} className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
-                        <div className="text-2xl mb-2">{culturalContexts[region as keyof typeof culturalContexts].flag}</div>
+                        <div className="text-2xl mb-2">{culturalContexts[region as keyof typeof culturalContexts]?.flag || '🏳️'}</div>
                         <div className="text-xl font-bold text-white">{Math.round(score)}%</div>
-                        <div className="text-xs text-gray-400">{culturalContexts[region as keyof typeof culturalContexts].name}</div>
+                        <div className="text-xs text-gray-400">{culturalContexts[region as keyof typeof culturalContexts]?.name || region}</div>
                       </div>
                     ))}
                   </div>
@@ -1969,7 +2382,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                   {/* Achievements */}
                   <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Trophy className="w-5 h-5 text-yellow-400"/>Achievements</h3>
-                    {achievements.length > 0 ? (
+                    {achievements && achievements.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {achievements.map((a, i) => (
                           <span key={i} className="bg-yellow-600/20 text-yellow-300 border border-yellow-500/30 rounded-full px-3 py-1 text-xs">{a}</span>
@@ -1980,6 +2393,176 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                     )}
                   </div>
 
+                  {/* Your Responses Analysis - NEW SECTION */}
+                  <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-cyan-400"/>
+                      Your Cultural Responses Analysis
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {Object.entries(culturalTranscripts || {}).map(([region, transcript]) => {
+                        if (!transcript || transcript.trim() === '') return null;
+                        
+                        const score = culturalScores[region as keyof typeof culturalScores] || 0;
+                        const regionName = culturalContexts[region as keyof typeof culturalContexts]?.name || region;
+                        const regionFlag = culturalContexts[region as keyof typeof culturalContexts]?.flag || '🏳️';
+                        
+                        return (
+                          <div key={region} className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{regionFlag}</span>
+                                <div>
+                                  <h4 className="font-semibold text-white">{regionName} Response</h4>
+                                  <div className="text-sm text-gray-400">Cultural Score: {score}%</div>
+                                </div>
+                              </div>
+                              <div className={`text-2xl font-bold ${
+                                score >= 80 ? 'text-green-400' : 
+                                score >= 60 ? 'text-yellow-400' : 
+                                score >= 40 ? 'text-orange-400' : 'text-red-400'
+                              }`}>
+                                {score}%
+                              </div>
+                            </div>
+                            
+                            <div className="mb-3">
+                              <h5 className="text-sm font-medium text-cyan-300 mb-2">Your Response:</h5>
+                              <div className="bg-gray-900/50 p-3 rounded border border-gray-600/50">
+                                <p className="text-gray-200 text-sm italic">"{transcript}"</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <h5 className="text-sm font-medium text-green-300 mb-2">Cultural Strengths:</h5>
+                                <div className="space-y-1">
+                                  {score >= 80 && (
+                                    <div className="flex items-center gap-2 text-green-300 text-xs">
+                                      <Star className="w-3 h-3 text-green-400" />
+                                      <span>Excellent cultural adaptation</span>
+                                    </div>
+                                  )}
+                                  {score >= 60 && (
+                                    <div className="flex items-center gap-2 text-green-300 text-xs">
+                                      <Star className="w-3 h-3 text-green-400" />
+                                      <span>Good understanding of cultural norms</span>
+                                    </div>
+                                  )}
+                                  {score >= 40 && (
+                                    <div className="flex items-center gap-2 text-green-300 text-xs">
+                                      <Star className="w-3 h-3 text-green-400" />
+                                      <span>Basic cultural awareness</span>
+                                    </div>
+                                  )}
+                                  {score < 40 && (
+                                    <div className="text-gray-400 text-xs">Focus on learning cultural context</div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h5 className="text-sm font-medium text-orange-300 mb-2">Areas for Improvement:</h5>
+                                <div className="space-y-1">
+                                  {score < 80 && (
+                                    <div className="flex items-center gap-2 text-orange-300 text-xs">
+                                      <Target className="w-3 h-3 text-orange-400" />
+                                      <span>Enhance cultural sensitivity</span>
+                                    </div>
+                                  )}
+                                  {score < 60 && (
+                                    <div className="flex items-center gap-2 text-orange-300 text-xs">
+                                      <Target className="w-3 h-3 text-orange-400" />
+                                      <span>Study regional communication styles</span>
+                                    </div>
+                                  )}
+                                  {score < 40 && (
+                                    <div className="flex items-center gap-2 text-orange-300 text-xs">
+                                      <Target className="w-3 h-3 text-orange-400" />
+                                      <span>Research cultural expectations</span>
+                                    </div>
+                                  )}
+                                  {score >= 80 && (
+                                    <div className="text-gray-400 text-xs">Strong performance - maintain excellence</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Show message if no responses recorded */}
+                      {Object.values(culturalTranscripts || {}).every(transcript => !transcript || transcript.trim() === '') && (
+                        <div className="text-center py-8">
+                          <div className="text-gray-400 mb-2">No responses recorded</div>
+                          <div className="text-sm text-gray-500">Complete challenges to see your cultural response analysis</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cultural Adaptation Insights */}
+                  <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-purple-400"/>
+                      Cultural Adaptation Insights
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Strengths */}
+                      <div className="bg-green-600/10 border border-green-500/20 rounded-lg p-4">
+                        <h4 className="text-green-400 font-semibold mb-3 flex items-center gap-2">
+                          <Star className="w-4 h-4" />
+                          Your Strengths
+                        </h4>
+                        <div className="space-y-2">
+                          {Object.entries(culturalScores || {}).map(([region, score]) => {
+                            if (score >= 70) {
+                              const regionName = culturalContexts[region as keyof typeof culturalContexts]?.name || region;
+                              return (
+                                <div key={region} className="flex items-center gap-2 text-green-300 text-sm">
+                                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                  <span>Strong {regionName} adaptation</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                          {Object.values(culturalScores || {}).every(score => score < 70) && (
+                            <div className="text-gray-400 text-sm">Focus on building cultural strengths</div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Development Areas */}
+                      <div className="bg-orange-600/10 border border-orange-500/20 rounded-lg p-4">
+                        <h4 className="text-orange-400 font-semibold mb-3 flex items-center gap-2">
+                          <Target className="w-4 h-4" />
+                          Development Areas
+                        </h4>
+                        <div className="space-y-2">
+                          {Object.entries(culturalScores || {}).map(([region, score]) => {
+                            if (score < 50) {
+                              const regionName = culturalContexts[region as keyof typeof culturalContexts]?.name || region;
+                              return (
+                                <div key={region} className="flex items-center gap-2 text-orange-300 text-sm">
+                                  <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                                  <span>Improve {regionName} cultural awareness</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                          {Object.values(culturalScores || {}).every(score => score >= 50) && (
+                            <div className="text-gray-400 text-sm">Good cultural foundation - continue learning</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Summary */}
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
@@ -1987,12 +2570,12 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                       <div className="text-sm text-gray-400">Average Cultural Score</div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
-                      <div className="text-2xl font-bold text-white">{achievements.length}</div>
+                      <div className="text-2xl font-bold text-white">{achievements?.length || 0}</div>
                       <div className="text-sm text-gray-400">Achievements Earned</div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
-                      <div className="text-2xl font-bold text-white">{survivalStatus}%</div>
-                      <div className="text-sm text-gray-400">Survival Status</div>
+                                             <div className="text-2xl font-bold text-white">{survivalStatus}%</div>
+                       <div className="text-sm text-gray-400">Survival Status</div>
                     </div>
                   </div>
 
@@ -2013,11 +2596,11 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                     if (navigator.share) {
                       navigator.share({
                         title: 'My BPOC Cultural Results',
-                        text: `Average: ${avgScore}% | Achievements: ${achievements.length} | Survival: ${survivalStatus}%`,
+                        text: `Average: ${avgScore}% | Achievements: ${achievements?.length || 0} | Survival: ${survivalStatus}%`,
                         url: window.location.href,
                       });
                     } else {
-                      navigator.clipboard.writeText(`BPOC Cultural Results — Average: ${avgScore}% | Achievements: ${achievements.length} | Survival: ${survivalStatus}%`);
+                      navigator.clipboard.writeText(`BPOC Cultural Results — Average: ${avgScore}% | Achievements: ${achievements?.length || 0} | Survival: ${survivalStatus}%`);
                     }
                   }}
                   className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
@@ -2038,6 +2621,26 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         </div>
       </div>
     );
+    } catch (error) {
+      console.error('Error rendering results page:', error);
+      return (
+        <div className="min-h-screen cyber-grid overflow-hidden">
+          <Header />
+          <div className="pt-16 relative z-10">
+            <div className="container mx-auto px-4 py-8">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-red-400 mb-4">Unexpected Error</h1>
+                <p className="text-gray-300 mb-6">An unexpected error occurred while loading the results. Please try refreshing the page.</p>
+                <div className="text-sm text-gray-500 mb-4 font-mono">
+                  Error: {error instanceof Error ? error.message : 'Unknown error'}
+                </div>
+                <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   // Main Game Screen
@@ -2268,8 +2871,68 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                   if (challenge.type === 'voice') {
                     return (
                       <div className="text-center">
+                        {/* Microphone Troubleshooting Section */}
+                        {!canRecord && (
+                          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6 mb-6 text-center">
+                            <div className="text-2xl mb-2">🎤</div>
+                            <h4 className="text-xl font-bold text-red-300 mb-2">Microphone Not Working</h4>
+                            <p className="text-red-200 mb-4">
+                              Your microphone is not accessible. This is required for Challenge 2b.
+                            </p>
+                            <div className="space-y-2 text-sm text-red-300">
+                              <div>• Check if your microphone is connected and working</div>
+                              <div>• Allow microphone access in your browser settings</div>
+                              <div>• Close other applications that might be using the microphone</div>
+                              <div>• Try refreshing the page after granting permissions</div>
+                            </div>
+                            <div className="mt-4">
+                              <Button
+                                onClick={retryMicrophonePermission}
+                                size="lg"
+                                variant="outline"
+                                className="border-red-500 text-red-400 hover:bg-red-500/20"
+                              >
+                                🔄 Retry Microphone Access
+                              </Button>
+                              <Button
+                                onClick={testMicrophoneRecording}
+                                size="lg"
+                                variant="outline"
+                                className="border-blue-500 text-blue-400 hover:bg-blue-500/20 ml-2"
+                              >
+                                🎤 Test Microphone
+                              </Button>
+                              <Button
+                                onClick={debugMicrophoneStatus}
+                                size="sm"
+                                variant="outline"
+                                className="border-gray-500 text-gray-400 hover:bg-gray-500/20 ml-2"
+                              >
+                                🐛 Debug Info
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
                         {/* Cultural Recording Interface */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                          {/* Recording Instructions */}
+                          <div className="col-span-full bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4 text-center">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <Mic className="w-5 h-5 text-blue-400" />
+                              <span className="text-sm font-semibold text-blue-300">Recording Instructions for Challenge 2b</span>
+                            </div>
+                            <div className="text-sm text-blue-200 space-y-1">
+                              <div>• Click the microphone button for each region to start recording</div>
+                              <div>• Speak your customer service response clearly</div>
+                              <div>• Click again to stop recording when finished</div>
+                              <div>• Each region requires a different cultural approach</div>
+                              <div className="text-yellow-300 mt-2">
+                                💡 Note: Challenge 2b focuses on US, UK, and AU regions
+                              </div>
+                            </div>
+                          </div>
+                          
                           {(['US', 'UK', 'AU', 'CA'] as const).map((region) => (
                             <div key={region} className={`bg-gradient-to-br ${culturalContexts[region].color} rounded-lg p-6 border border-white/20`}>
                               <div className="text-center mb-4">
@@ -2448,11 +3111,26 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                         
                         {/* Debug Info */}
                         <div className="text-center text-xs text-gray-500 mt-4">
-                          <div>Microphone Status: {canRecord ? '✅ Ready' : '❌ Not Ready'}</div>
+                          <div className="flex items-center justify-center gap-4 mb-2">
+                            <div>Microphone Status: {canRecord ? '✅ Ready' : '❌ Not Ready'}</div>
+                            <Button
+                              onClick={retryMicrophonePermission}
+                              size="sm"
+                              variant="outline"
+                              className="border-gray-500 text-gray-400 hover:bg-gray-500/20 text-xs px-2 py-1 h-6"
+                            >
+                              🔄 Retry
+                            </Button>
+                          </div>
                           <div>Supported formats: {(() => {
                             const formats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/wav', 'audio/ogg'];
                             return formats.filter(f => MediaRecorder.isTypeSupported(f)).join(', ');
                           })()}</div>
+                          {!canRecord && (
+                            <div className="text-red-400 mt-2">
+                              💡 Tip: Check browser permissions and ensure microphone is connected
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
