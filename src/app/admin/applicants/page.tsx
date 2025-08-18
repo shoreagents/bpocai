@@ -22,7 +22,9 @@ import {
   MapPin,
   Filter,
   SortAsc,
-  Eye
+  Eye,
+  AlertTriangle,
+  BarChart3
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -214,44 +216,44 @@ export default function Page() {
       <div className="space-y-8">
         {/* Header Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="glass-card bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
+          <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-blue-300 font-medium">Total Applicants</p>
+                  <p className="text-sm text-gray-200 font-medium">Total Applicants</p>
                   <p className="text-3xl font-bold text-white">{totalApplicants}</p>
-                  <p className="text-xs text-blue-200">Across all jobs</p>
+                  <p className="text-xs text-cyan-200">Across all jobs</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
+          <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-300 font-medium">Active Jobs</p>
+                  <p className="text-sm text-gray-200 font-medium">Active Jobs</p>
                   <p className="text-3xl font-bold text-white">{activeJobs}</p>
-                  <p className="text-xs text-green-200">With applicants</p>
+                  <p className="text-xs text-green-200">Currently open</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border-yellow-500/30">
+          <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-yellow-300 font-medium">High Priority</p>
+                  <p className="text-sm text-gray-200 font-medium">High Priority</p>
                   <p className="text-3xl font-bold text-white">{highPriorityJobs}</p>
                   <p className="text-xs text-yellow-200">Urgent positions</p>
                 </div>
@@ -259,18 +261,18 @@ export default function Page() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
+          <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-purple-300 font-medium">Avg. Applicants</p>
+                  <p className="text-sm text-gray-200 font-medium">Avg. Applicants</p>
                   <p className="text-3xl font-bold text-white">
                     {activeJobs > 0 ? Math.round(totalApplicants / activeJobs) : 0}
                   </p>
-                  <p className="text-xs text-purple-200">Per job</p>
+                  <p className="text-xs text-purple-200">Per job posting</p>
                 </div>
               </div>
             </CardContent>

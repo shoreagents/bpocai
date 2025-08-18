@@ -288,15 +288,15 @@ export default function AnalysisPage() {
             >
               <Card className="glass-card hover:bg-white/5 transition-all duration-200">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 bg-gradient-to-br ${card.color} rounded-xl flex items-center justify-center`}>
+                      <card.icon className="w-6 h-6 text-white" />
+                    </div>
                     <div>
                       <p className="text-sm text-gray-400">{card.title}</p>
                       <p className="text-2xl font-bold text-white mt-1">{card.value}</p>
                       <p className="text-xs text-gray-500 mt-1">{card.description}</p>
                       <p className="text-xs text-green-400 mt-2">{card.trend}</p>
-                    </div>
-                    <div className={`w-12 h-12 bg-gradient-to-br ${card.color} rounded-lg flex items-center justify-center`}>
-                      <card.icon className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </CardContent>
