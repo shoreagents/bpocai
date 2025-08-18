@@ -41,5 +41,5 @@ CREATE TRIGGER applications_after_insert_inc_applicants
 INSERT INTO applications (user_id, job_id, resume_id, resume_slug, status, position) 
 VALUES 
     ('00000000-0000-0000-0000-000000000001', 1, '00000000-0000-0000-0000-000000000002', 'sample-resume-1', 'submitted', 0),
-    ('00000000-0000-0000-0000-000000000001', 2, '00000000-0000-0000-0000-000000000002', 'sample-resume-1', 'screened', 1)
+    ('00000000-0000-0000-0000-000000000001', 2, '00000000-0000-0000-0000-000000000002', 'sample-resume-1', 'qualified', 1)
 ON CONFLICT (id) DO NOTHING;

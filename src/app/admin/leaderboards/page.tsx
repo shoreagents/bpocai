@@ -1,385 +1,414 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Trophy, 
-  ChevronDown, 
-  Gamepad2, 
-  ClipboardList,
-  TrendingUp,
-  Clock,
-  Medal,
-  Crown,
-  Star,
-  Users,
-  Target,
-  BarChart3
+	Trophy, 
+	Gamepad2, 
+	ClipboardList,
+	Users,
+	Target,
+	BarChart3,
+	MoreHorizontal,
+	Crown,
+	Medal
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 } from '@/components/ui/select'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
 } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
 import AdminLayout from '@/components/layout/AdminLayout'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog'
 
-const assessmentOptions = [
-  { value: 'disc-personality', label: 'DISC Personality', icon: ClipboardList },
-  { value: 'typing-speed', label: 'Typing Speed Test', icon: ClipboardList },
-  { value: 'logical-reasoning', label: 'Logical Reasoning', icon: ClipboardList },
-  { value: 'communication-skills', label: 'Communication Skills', icon: ClipboardList },
-  { value: 'workplace-judgment', label: 'Workplace Judgment', icon: ClipboardList }
-]
-
-const gameOptions = [
-  { value: 'typing-hero', label: 'Typing Hero', icon: Gamepad2 },
-  { value: 'disc-personality-game', label: 'BPOC DISC', icon: Gamepad2 },
-  { value: 'ultimate', label: 'BPOC Ultimate', icon: Gamepad2 },
-  { value: 'bpoc-cultural', label: 'BPOC Cultural', icon: Gamepad2 }
-]
-
-// Empty data array for now
-const mockLeaderboardData: any[] = []
+const GAME_LABELS: Record<string, string> = {
+	'typing-hero': 'Typing Hero',
+	'bpoc-cultural': 'BPOC Cultural',
+	'ultimate': 'Ultimate',
+	'disc-personality': 'DISC Personality',
+}
+function getGameName(id: string): string { return GAME_LABELS[id] || id }
 
 export default function LeaderboardsPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [selectedItem, setSelectedItem] = useState<string>('')
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [sortBy, setSortBy] = useState('top') // 'top' or 'recent'
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+	const [category, setCategory] = useState<'game' | 'applicants' | 'engagement' | 'overall'>('overall')
+	const [period, setPeriod] = useState<'weekly' | 'monthly' | 'all'>('weekly')
+	const [gameId, setGameId] = useState<string>('bpoc-cultural')
+	const [rows, setRows] = useState<any[]>([])
+	const [total, setTotal] = useState<number>(0)
+	const [loading, setLoading] = useState<boolean>(false)
+	const [error, setError] = useState<string>('')
 
-  const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value)
-    setSelectedItem('')
-    setShowLeaderboard(false)
-  }
+	const [openUserId, setOpenUserId] = useState<string | null>(null)
+	const [openUserInfo, setOpenUserInfo] = useState<{ full_name?: string | null; avatar_url?: string | null } | null>(null)
+	const [openUserResumeSlug, setOpenUserResumeSlug] = useState<string | null>(null)
+	const [breakdown, setBreakdown] = useState<any | null>(null)
+	const [loadingBreakdown, setLoadingBreakdown] = useState<boolean>(false)
 
-  const handleItemSelect = (value: string) => {
-    setSelectedItem(value)
-    setShowLeaderboard(true)
-    setCurrentPage(1)
-  }
+	const fetchRows = async () => {
+		try {
+			setLoading(true)
+			setError('')
+			const params = new URLSearchParams()
+			params.set('category', category)
+			if (category === 'game') { params.set('period', period); params.set('gameId', gameId) }
+			params.set('limit', '50')
+			const res = await fetch(`/api/leaderboards?${params.toString()}&source=tables`, { cache: 'no-store' })
+			if (!res.ok) throw new Error('Failed to load')
+			const data = await res.json()
+			setRows(data.results || [])
+			setTotal(data.total || 0)
+		} catch (e: any) {
+			setError(e?.message || 'Failed to load')
+			setRows([])
+			setTotal(0)
+		} finally {
+			setLoading(false)
+		}
+	}
 
-  const handleSortChange = (value: string) => {
-    setSortBy(value)
-    setCurrentPage(1)
-  }
+	useEffect(() => { fetchRows() }, [category, period, gameId])
 
-  const getOptions = () => {
-    return selectedCategory === 'assessments' ? assessmentOptions : gameOptions
-  }
+	const handleDelete = async (row: any) => {
+		try {
+			const body: any = { category, userId: row.userId }
+			if (category === 'game') { body.period = period; body.gameId = gameId }
+			const res = await fetch('/api/admin/leaderboards', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body)
+			})
+			if (!res.ok) throw new Error('Delete failed')
+			await fetchRows()
+		} catch {
+			// no-op
+		}
+	}
 
-  const getItemDisplayName = () => {
-    const options = getOptions()
-    const item = options.find(opt => opt.value === selectedItem)
-    return item ? item.label : selectedItem
-  }
+	const formatNumber = (n: any) => {
+		const v = Number(n)
+		if (!Number.isFinite(v)) return '-'
+		return Math.round(v)
+	}
 
-  const getScoreDisplay = (score: number) => {
-    if (selectedItem === 'typing-hero') return `${score} WPM`
-    if (selectedItem === 'ultimate') return `${score}%`
-    return score.toString()
-  }
+	const openBreakdown = async (row: any) => {
+		setOpenUserId(row.userId)
+		setOpenUserInfo(row.user || null)
+		setOpenUserResumeSlug(null)
+		setLoadingBreakdown(true)
+		setBreakdown(null)
+		try {
+			const [bRes, rRes] = await Promise.all([
+				fetch(`/api/leaderboards/user/${row.userId}`, { cache: 'no-store' }),
+				fetch(`/api/users/${row.userId}/resume`, { cache: 'no-store' })
+			])
+			const b = bRes.ok ? await bRes.json() : null
+			const r = rRes.ok ? await rRes.json() : null
+			setBreakdown(b)
+			setOpenUserResumeSlug(r?.slug || null)
+		} catch {
+			setBreakdown(null)
+		} finally {
+			setLoadingBreakdown(false)
+		}
+	}
 
-  // Get sorted data based on sortBy value
-  const getSortedData = () => {
-    if (sortBy === 'recent') {
-      return [...mockLeaderboardData].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      )
-    }
-    return mockLeaderboardData // Already sorted by rank/score
-  }
+	const selectedRow = useMemo(() => rows.find((r: any) => r.userId === openUserId) || null, [rows, openUserId])
 
-  // Get paginated data
-  const getPaginatedData = () => {
-    const sorted = getSortedData()
-    const start = (currentPage - 1) * itemsPerPage
-    return sorted.slice(start, start + itemsPerPage)
-  }
+	const goToResume = async (e: React.MouseEvent, userId: string) => {
+		e.stopPropagation()
+		try {
+			const res = await fetch(`/api/users/${userId}/resume`, { cache: 'no-store' })
+			if (!res.ok) return
+			const data = await res.json()
+			if (data?.slug) window.open(`/${data.slug}`, '_blank')
+		} catch {}
+	}
 
-  const totalPages = Math.ceil(mockLeaderboardData.length / itemsPerPage)
+	return (
+		<AdminLayout title="Leaderboards" description="Moderate leaderboard data">
+			<div className="space-y-6">
+				<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<Card className="glass-card border-white/10">
+						<CardHeader><CardTitle className="text-white">Category</CardTitle></CardHeader>
+						<CardContent>
+							<Select value={category} onValueChange={(v: any) => setCategory(v)}>
+								<SelectTrigger className="w-full"><SelectValue placeholder="Category" /></SelectTrigger>
+								<SelectContent>
+									<SelectItem value="overall">Overall</SelectItem>
+									<SelectItem value="game">Games</SelectItem>
+									<SelectItem value="applicants">Applications</SelectItem>
+									<SelectItem value="engagement">Engagement</SelectItem>
+								</SelectContent>
+							</Select>
+						</CardContent>
+					</Card>
+					{category === 'game' && (
+						<Card className="glass-card border-white/10">
+							<CardHeader><CardTitle className="text-white">Period</CardTitle></CardHeader>
+							<CardContent>
+								<Select value={period} onValueChange={(v: any) => setPeriod(v)}>
+									<SelectTrigger className="w-full"><SelectValue placeholder="Period" /></SelectTrigger>
+									<SelectContent>
+										<SelectItem value="weekly">Weekly</SelectItem>
+										<SelectItem value="monthly">Monthly</SelectItem>
+										<SelectItem value="all">All-time</SelectItem>
+									</SelectContent>
+								</Select>
+							</CardContent>
+						</Card>
+					)}
+					{category === 'game' && (
+						<Card className="glass-card border-white/10">
+							<CardHeader><CardTitle className="text-white">Game</CardTitle></CardHeader>
+							<CardContent>
+								<Select value={gameId} onValueChange={(v: any) => setGameId(v)}>
+									<SelectTrigger className="w-full"><SelectValue placeholder="Game" /></SelectTrigger>
+									<SelectContent>
+										<SelectItem value="bpoc-cultural">BPOC Cultural</SelectItem>
+										<SelectItem value="typing-hero">Typing Hero</SelectItem>
+										<SelectItem value="ultimate">Ultimate</SelectItem>
+										<SelectItem value="disc-personality">DISC Personality</SelectItem>
+									</SelectContent>
+								</Select>
+							</CardContent>
+						</Card>
+					)}
+				</motion.div>
 
-  return (
-    <AdminLayout title="Leaderboards" description="View rankings and statistics">
-      <div className="space-y-6">
-        {/* Selection Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-        >
-          {/* Category Selection */}
-          <Card className="glass-card border-white/10 hover:border-purple-500/30 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <TrendingUp className="h-5 w-5 text-purple-400" />
-                Select Category
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose category..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="assessments">
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4" />
-                      Assessments
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="games">
-                    <div className="flex items-center gap-2">
-                      <Gamepad2 className="h-4 w-4" />
-                      Games
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+				<Card className="glass-card border-white/10">
+					<CardHeader>
+						<CardTitle className="text-white">Results ({total})</CardTitle>
+					</CardHeader>
+					<CardContent>
+						{loading ? (
+							<div className="text-gray-400 py-10 text-center">Loading…</div>
+						) : error ? (
+							<div className="text-red-400 py-10 text-center">{error}</div>
+						) : rows.length === 0 ? (
+							<div className="text-gray-400 py-10 text-center">No data</div>
+						) : (
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-[80px]">Position</TableHead>
+										<TableHead>User</TableHead>
+										{category === 'game' && <TableHead className="text-right">Best</TableHead>}
+										{category === 'game' && <TableHead className="text-right">Plays</TableHead>}
+										{category === 'game' && <TableHead className="text-right">Last Played</TableHead>}
+										{category !== 'game' && category !== 'overall' && <TableHead className="text-right">Score</TableHead>}
+										{category === 'overall' && <TableHead className="text-right">Overall</TableHead>}
+										{category === 'overall' && <TableHead className="text-right">Games</TableHead>}
+										{category === 'overall' && <TableHead className="text-right">Applications</TableHead>}
+										{category === 'overall' && <TableHead className="text-right">Engagement</TableHead>}
+										<TableHead className="w-[60px] text-right">Actions</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{rows.map((r: any) => (
+										<TableRow key={r.userId} className="cursor-pointer" onClick={() => openBreakdown(r)}>
+											<TableCell className="font-medium">#{r.rank || '-'}</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-2">
+													<div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
+														{r.user?.avatar_url ? (
+															<img src={r.user.avatar_url} alt={r.user?.full_name || r.userId} className="w-full h-full object-cover" />
+														) : null}
+													</div>
+													<div className="min-w-0">
+														<div className="truncate text-white">{r.user?.full_name || r.userId}</div>
+													</div>
+												</div>
+											</TableCell>
+											{category === 'game' && <TableCell className="text-right">{formatNumber(r.bestScore)}</TableCell>}
+											{category === 'game' && <TableCell className="text-right">{formatNumber(r.plays)}</TableCell>}
+											{category === 'game' && <TableCell className="text-right">{r.lastPlayed ? new Date(r.lastPlayed).toLocaleDateString() : '-'}</TableCell>}
+											{category !== 'game' && category !== 'overall' && <TableCell className="text-right">{formatNumber(r.score)}</TableCell>}
+											{category === 'overall' && <TableCell className="text-right">{formatNumber(r.score)}</TableCell>}
+											{category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.game_norm)}</TableCell>}
+											{category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.applicant_norm)}</TableCell>}
+											{category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.engagement_norm)}</TableCell>}
+											<TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button variant="ghost" size="icon" className="h-8 w-8">
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-white">
+														<DropdownMenuLabel>Actions</DropdownMenuLabel>
+														<DropdownMenuItem onClick={() => handleDelete(r)} className="text-red-400 focus:text-red-400">
+															Delete
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						)}
+					</CardContent>
+				</Card>
+			</div>
 
-          {/* Item Selection */}
-          <Card className="glass-card border-white/10 hover:border-blue-500/30 transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Medal className="h-5 w-5 text-blue-400" />
-                Select {selectedCategory === 'assessments' ? 'Assessment' : selectedCategory === 'games' ? 'Game' : 'Item'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select 
-                value={selectedItem} 
-                onValueChange={handleItemSelect}
-                disabled={!selectedCategory}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={`Choose ${selectedCategory === 'assessments' ? 'assessment' : selectedCategory === 'games' ? 'game' : 'item'}...`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {getOptions().map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center gap-2">
-                        <option.icon className="h-4 w-4" />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-        </motion.div>
+			<Dialog open={!!openUserId} onOpenChange={(o) => { if (!o) { setOpenUserId(null); setBreakdown(null) } }}>
+				<DialogContent className="bg-gray-900 border-gray-700 text-white w-[98vw] max-w-none sm:max-w-[1600px] md:max-w-[1600px] lg:max-w-[1700px] xl:max-w-[1800px]">
+					<DialogHeader>
+						<DialogTitle className="text-xl flex items-center gap-3">
+							<span>🎯 User Score Breakdown</span>
+							{selectedRow?.rank && (
+								<Badge className="bg-cyan-500/20 border-cyan-500/30 text-cyan-300">Rank #{selectedRow.rank}</Badge>
+							)}
+						</DialogTitle>
+					</DialogHeader>
+					{/* User quick info */}
+					{selectedRow && (
+						<div className="flex items-center gap-3 mb-2">
+							<div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
+								{selectedRow.user?.avatar_url ? (
+									<img src={selectedRow.user.avatar_url} alt={selectedRow.user?.full_name || selectedRow.userId} className="w-full h-full object-cover" />
+								) : null}
+							</div>
+							<button
+								onClick={(e) => goToResume(e as any, selectedRow.userId)}
+								className="text-cyan-300 hover:underline truncate"
+								title="Open resume"
+							>
+								{selectedRow.user?.full_name || selectedRow.userId}
+							</button>
+							<Badge className="bg-amber-500/20 border-amber-500/30 text-amber-300">Hire‑ready</Badge>
+						</div>
+					)}
+					{loadingBreakdown && (
+						<div className="text-gray-400">Loading...</div>
+					)}
+					{!loadingBreakdown && breakdown && (
+						<div className="space-y-6">
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								{/* Games */}
+								<div className="bg-white/5 rounded p-4 md:col-span-1">
+									<div className="font-semibold mb-2">Games 🎮</div>
+									<div className="overflow-x-auto">
+										<Table>
+											<TableHeader>
+												<TableRow className="hover:bg-transparent">
+													<TableHead className="text-gray-300">Game</TableHead>
+													<TableHead className="text-right text-gray-300">Best</TableHead>
+													<TableHead className="text-right text-gray-300">Plays</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{(breakdown.games || []).map((g: any, idx: number) => (
+													<TableRow key={`${g.game_id}-${idx}`} className="hover:bg-transparent">
+														<TableCell>{getGameName(g.game_id)}</TableCell>
+														<TableCell className="text-right">{g.best_score}</TableCell>
+														<TableCell className="text-right">{g.plays}</TableCell>
+													</TableRow>
+												))}
+											</TableBody>
+										</Table>
+									</div>
+								</div>
 
-        {!showLeaderboard ? (
-          <>
-            {/* Instructions */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="glass-card border-white/10">
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <Trophy className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Select a Category and Item</h3>
-                    <p className="text-gray-400">
-                      Choose an assessment or game from the dropdowns above to view detailed leaderboards, 
-                      rankings, and performance statistics. You can view top performers or recent activity.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </>
-        ) : (
-          <>
-            {/* Leaderboard Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="glass-card border-white/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-yellow-500/20 rounded-lg">
-                        <Trophy className="h-5 w-5 text-yellow-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Top Score</p>
-                        <p className="text-xl font-bold text-white">{getScoreDisplay(98)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="glass-card border-white/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500/20 rounded-lg">
-                        <Users className="h-5 w-5 text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Total Players</p>
-                        <p className="text-xl font-bold text-white">156</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="glass-card border-white/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/20 rounded-lg">
-                        <Target className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Avg Score</p>
-                        <p className="text-xl font-bold text-white">{getScoreDisplay(85)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="glass-card border-white/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500/20 rounded-lg">
-                        <BarChart3 className="h-5 w-5 text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-400">Active Today</p>
-                        <p className="text-xl font-bold text-white">24</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Leaderboard Table */}
-              <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-4">
-                    <CardTitle className="flex items-center gap-2 text-white">
-                      <Trophy className="h-5 w-5 text-yellow-400" />
-                      {getItemDisplayName()} Leaderboard
-                    </CardTitle>
-                    <Select value={sortBy} onValueChange={handleSortChange}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Sort by..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="top">Top Performers</SelectItem>
-                        <SelectItem value="recent">Recently Played</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {mockLeaderboardData.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-300 mb-2">No leaderboard data found</h3>
-                      <p className="text-gray-500">
-                        No players have completed this {selectedCategory === 'assessments' ? 'assessment' : 'game'} yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[100px]">Rank</TableHead>
-                            <TableHead>Player</TableHead>
-                            <TableHead>Score</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Badge</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getPaginatedData().map((entry) => (
-                            <TableRow key={entry.rank}>
-                              <TableCell className="font-medium">#{entry.rank}</TableCell>
-                              <TableCell>{entry.name}</TableCell>
-                              <TableCell>{getScoreDisplay(entry.score)}</TableCell>
-                              <TableCell>{entry.date}</TableCell>
-                              <TableCell>
-                                <Badge variant="secondary" className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                                  {entry.badge}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-
-                      {totalPages > 1 && (
-                        <div className="mt-6 flex justify-center">
-                          <Pagination>
-                            <PaginationContent>
-                              <PaginationItem>
-                                <PaginationPrevious 
-                                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                                />
-                              </PaginationItem>
-                              {Array.from({ length: totalPages }).map((_, i) => (
-                                <PaginationItem key={i + 1}>
-                                  <PaginationLink
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    isActive={currentPage === i + 1}
-                                  >
-                                    {i + 1}
-                                  </PaginationLink>
-                                </PaginationItem>
-                              ))}
-                              <PaginationItem>
-                                <PaginationNext 
-                                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                                />
-                              </PaginationItem>
-                            </PaginationContent>
-                          </Pagination>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </>
-        )}
-      </div>
-    </AdminLayout>
-  )
+								{/* Applications & Engagement */}
+								<div className="bg-white/5 rounded p-4 md:col-span-2">
+									<div className="font-semibold mb-2">Applications 📄 & Engagement ✨</div>
+									<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+										<div>
+											<div className="mb-1 font-medium">Applications (total: {breakdown.applications?.total ?? 0})</div>
+											<div className="overflow-x-auto">
+												<Table>
+													<TableHeader>
+														<TableRow className="hover:bg-transparent">
+															<TableHead className="text-gray-300">Job ID</TableHead>
+															<TableHead className="text-gray-300">Status</TableHead>
+															<TableHead className="text-right text-gray-300">Points</TableHead>
+														</TableRow>
+													</TableHeader>
+													<TableBody>
+														{(breakdown.applications?.items || []).map((i: any, idx: number) => (
+															<TableRow key={`${i.job_id}-${idx}`} className="hover:bg-transparent">
+																<TableCell>{i.job_id}</TableCell>
+																<TableCell>{i.status}</TableCell>
+																<TableCell className="text-right">{i.points}</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											</div>
+										</div>
+										<div>
+											<div className="mb-1 font-medium">Engagement (total: {breakdown.engagement?.total ?? 0})</div>
+											<div className="overflow-x-auto">
+												<Table>
+													<TableHeader>
+														<TableRow className="hover:bg-transparent">
+															<TableHead className="text-gray-300">Action</TableHead>
+															<TableHead className="text-right text-gray-300">Points</TableHead>
+														</TableRow>
+													</TableHeader>
+													<TableBody>
+														{(breakdown.engagement?.items || []).map((i: any, idx: number) => (
+															<TableRow key={`${i.label}-${idx}`} className="hover:bg-transparent">
+																<TableCell>{i.label}</TableCell>
+																<TableCell className="text-right">{i.points}</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							{/* Totals row under tables */}
+							<div className="flex flex-wrap items-center gap-3 text-sm mt-4">
+								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+									<span className="text-gray-400 mr-2">🎮 Games</span>
+									<span className="text-white font-semibold">{(breakdown.games || []).reduce((sum: number, g: any) => sum + (g.best_score || 0), 0)}</span>
+								</div>
+								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+									<span className="text-gray-400 mr-2">🏆 Overall</span>
+									<span className="text-white font-semibold">{breakdown.overall?.overall_score ?? 0}</span>
+								</div>
+								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+									<span className="text-gray-400 mr-2">📄 Applications</span>
+									<span className="text-white font-semibold">{breakdown.applications?.total ?? 0}</span>
+								</div>
+								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+									<span className="text-gray-400 mr-2">✨ Engagement</span>
+									<span className="text-white font-semibold">{breakdown.engagement?.total ?? 0}</span>
+								</div>
+							</div>
+						</div>
+						)}
+					</DialogContent>
+				</Dialog>
+		</AdminLayout>
+	)
 }

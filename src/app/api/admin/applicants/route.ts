@@ -86,8 +86,8 @@ export async function PATCH(request: NextRequest) {
 
       // Validate status against the enum
       const validStatuses = [
-        'submitted', 'screened', 'for verification', 'verified', 
-        'initial interview', 'final interview', 'failed', 'passed', 
+        'submitted', 'qualified', 'for verification', 'verified', 
+        'initial interview', 'final interview', 'not qualified', 'passed', 
         'rejected', 'withdrawn', 'hired'
       ]
       
@@ -129,8 +129,8 @@ export async function PATCH(request: NextRequest) {
 
     // Validate status against the enum
     const validStatuses = [
-      'submitted', 'screened', 'for verification', 'verified', 
-      'initial interview', 'final interview', 'failed', 'passed', 
+      'submitted', 'qualified', 'for verification', 'verified', 
+      'initial interview', 'final interview', 'not qualified', 'passed', 
       'rejected', 'withdrawn', 'hired'
     ]
     

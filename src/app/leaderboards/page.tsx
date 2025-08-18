@@ -2,581 +2,701 @@
 
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/layout/Header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { 
   ArrowLeft,
   Trophy,
-  Medal,
-  Crown,
-  Target,
-  TrendingUp,
-  Users,
-  Calendar,
-  Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
-  ChevronDown
+  Crown,
+  Medal,
+  Sparkles,
+  Stars
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+const GAME_LABELS: Record<string, string> = {
+  'typing-hero': 'Typing Hero',
+  'bpoc-cultural': 'BPOC Cultural',
+  'ultimate': 'Ultimate',
+  'disc-personality': 'DISC Personality',
+}
+
+const GAME_EMOJI: Record<string, string> = {
+  'typing-hero': '⌨️',
+  'bpoc-cultural': '🌍',
+  'ultimate': '🧭',
+  'disc-personality': '🧠',
+}
+
+function getGameName(id: string): string {
+  return GAME_LABELS[id] || id
+}
+
+function getGameEmoji(id: string): string {
+  return GAME_EMOJI[id] || '🎮'
+}
+
+function getCategoryEmoji(c: string) {
+  if (c === 'overall') return '🏆'
+  if (c === 'game') return '🎮'
+  if (c === 'applicants') return '📄'
+  if (c === 'engagement') return '✨'
+  return '⭐'
+}
+
+function getPeriodLabel(p: string) {
+  if (p === 'weekly') return 'Weekly'
+  if (p === 'monthly') return 'Monthly'
+  return 'All‑time'
+}
+
+type Category = 'overall' | 'game' | 'applicants' | 'engagement'
+type Period = 'weekly' | 'monthly' | 'all'
+
+interface UserInfo { full_name: string | null; avatar_url: string | null }
+
+interface GameResult { rank: number; userId: string; bestScore: number; plays: number; lastPlayed: string; user: UserInfo | null }
+interface SimpleResult { rank: number; userId: string; score: number; user: UserInfo | null }
+interface OverallResult extends SimpleResult { components?: { game_norm: number; applicant_norm: number; engagement_norm: number } }
 
 export default function LeaderboardsPage() {
-  const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterLevel, setFilterLevel] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isPageSelectorOpen, setIsPageSelectorOpen] = useState(false);
-  const itemsPerPage = 5;
-  const filterRef = useRef<HTMLDivElement>(null);
-  const pageSelectorRef = useRef<HTMLDivElement>(null);
+	const router = useRouter()
+	const [category, setCategory] = useState<Category>('overall')
+	const [period, setPeriod] = useState<Period>('weekly')
+	const [gameId, setGameId] = useState<string>('bpoc-cultural')
+	const [page, setPage] = useState<number>(1)
+	const [pageSize] = useState<number>(10)
+	const [loading, setLoading] = useState<boolean>(false)
+	const [error, setError] = useState<string>('')
+	const [total, setTotal] = useState<number>(0)
+	const [results, setResults] = useState<Array<GameResult | SimpleResult | OverallResult>>([])
+	const [openUserId, setOpenUserId] = useState<string | null>(null)
+	const [userBreakdown, setUserBreakdown] = useState<any | null>(null)
+	const [userResumeSlug, setUserResumeSlug] = useState<string | null>(null)
+	const [loadingBreakdown, setLoadingBreakdown] = useState(false)
 
-  // Close dropdowns when clicking outside or pressing Escape
+	const offset = useMemo(() => (page - 1) * pageSize, [page, pageSize])
+	const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
-        setIsFilterOpen(false);
-      }
-      if (pageSelectorRef.current && !pageSelectorRef.current.contains(event.target as Node)) {
-        setIsPageSelectorOpen(false);
-      }
-    };
+		const fetchData = async () => {
+			try {
+				setLoading(true)
+				setError('')
+				const params = new URLSearchParams()
+				params.set('category', category)
+				params.set('limit', String(pageSize))
+				params.set('offset', String(offset))
+				if (category === 'game') {
+					params.set('period', period)
+					params.set('gameId', gameId)
+				}
+				const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
+				if (!res.ok) throw new Error(`Failed: ${res.status}`)
+				const data = await res.json()
+				setTotal(data.total || 0)
+				setResults(data.results || [])
+			} catch (e: any) {
+				setError(e?.message || 'Failed to load leaderboards')
+				setTotal(0)
+				setResults([])
+			} finally {
+				setLoading(false)
+			}
+		}
+		fetchData()
+	}, [category, period, gameId, page, pageSize, offset])
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsFilterOpen(false);
-        setIsPageSelectorOpen(false);
-      }
-    };
+	useEffect(() => { setPage(1) }, [category, period, gameId])
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
+	useEffect(() => {
+		const load = async () => {
+			if (!openUserId) return
+			try {
+				setLoadingBreakdown(true)
+				const [bRes, rRes] = await Promise.all([
+					fetch(`/api/leaderboards/user/${openUserId}`, { cache: 'no-store' }),
+					fetch(`/api/users/${openUserId}/resume`, { cache: 'no-store' })
+				])
+				const b = bRes.ok ? await bRes.json() : null
+				const r = rRes.ok ? await rRes.json() : null
+				setUserBreakdown(b)
+				setUserResumeSlug(r?.slug || null)
+			} finally {
+				setLoadingBreakdown(false)
+			}
+		}
+		load()
+	}, [openUserId])
 
-  // Mock leaderboard data - expanded for pagination demo
-  const allPerformers = [
-    {
-      rank: 1,
-      name: 'Maria Santos',
-      company: 'Amazon',
-      position: 'Senior Customer Service Rep',
-      score: 2847,
-      achievements: 12,
-      level: 'Expert',
-      avatar: '👩‍💼'
-    },
-    {
-      rank: 2,
-      name: 'Juan Cruz',
-      company: 'Google',
-      position: 'Technical Support Specialist',
-      score: 2756,
-      achievements: 10,
-      level: 'Advanced',
-      avatar: '👨‍💻'
-    },
-    {
-      rank: 3,
-      name: 'Ana Rodriguez',
-      company: 'Microsoft',
-      position: 'Sales Representative',
-      score: 2689,
-      achievements: 11,
-      level: 'Expert',
-      avatar: '👩‍💼'
-    },
-    {
-      rank: 4,
-      name: 'Carlos Mendoza',
-      company: 'Meta',
-      position: 'Content Moderator',
-      score: 2634,
-      achievements: 8,
-      level: 'Advanced',
-      avatar: '👨‍💼'
-    },
-    {
-      rank: 5,
-      name: 'Sofia Garcia',
-      company: 'Apple',
-      position: 'Technical Support Engineer',
-      score: 2591,
-      achievements: 9,
-      level: 'Advanced',
-      avatar: '👩‍🔧'
-    },
-    {
-      rank: 6,
-      name: 'Miguel Fernandez',
-      company: 'Shopify',
-      position: 'Customer Success Manager',
-      score: 2543,
-      achievements: 7,
-      level: 'Intermediate',
-      avatar: '👨‍💼'
-    },
-    {
-      rank: 7,
-      name: 'Isabella Torres',
-      company: 'Zoom',
-      position: 'Technical Support Specialist',
-      score: 2498,
-      achievements: 8,
-      level: 'Advanced',
-      avatar: '👩‍💻'
-    },
-    {
-      rank: 8,
-      name: 'Diego Morales',
-      company: 'Spotify',
-      position: 'Content Moderator',
-      score: 2445,
-      achievements: 6,
-      level: 'Intermediate',
-      avatar: '👨‍🎵'
-    },
-    {
-      rank: 9,
-      name: 'Carmen Silva',
-      company: 'Netflix',
-      position: 'Customer Experience Associate',
-      score: 2398,
-      achievements: 9,
-      level: 'Advanced',
-      avatar: '👩‍📺'
-    },
-    {
-      rank: 10,
-      name: 'Roberto Dela Cruz',
-      company: 'PayPal',
-      position: 'Financial Support Specialist',
-      score: 2356,
-      achievements: 5,
-      level: 'Intermediate',
-      avatar: '👨‍💳'
-    },
-    {
-      rank: 11,
-      name: 'Francesca Lopez',
-      company: 'Uber',
-      position: 'Operations Coordinator',
-      score: 2312,
-      achievements: 7,
-      level: 'Advanced',
-      avatar: '👩‍🚗'
-    },
-    {
-      rank: 12,
-      name: 'Antonio Reyes',
-      company: 'Tesla',
-      position: 'Customer Support Engineer',
-      score: 2267,
-      achievements: 6,
-      level: 'Intermediate',
-      avatar: '👨‍⚡'
-    }
-  ];
+	const openUserModal = (userId: string) => setOpenUserId(userId)
+	const closeUserModal = () => { setOpenUserId(null); setUserBreakdown(null); setUserResumeSlug(null) }
 
-  const monthlyStats = [
-    { label: 'Total Active Users', value: '2,847', icon: Users, color: 'text-cyan-400' },
-    { label: 'Assessments Completed', value: '8,291', icon: Target, color: 'text-green-400' },
-    { label: 'Jobs Applied', value: '1,562', icon: TrendingUp, color: 'text-purple-400' },
-    { label: 'Career Level Ups', value: '234', icon: Crown, color: 'text-yellow-400' }
-  ];
+	const goToResume = async (e: React.MouseEvent, userId: string) => {
+		e.stopPropagation()
+		try {
+			const res = await fetch(`/api/users/${userId}/resume`, { cache: 'no-store' })
+			if (!res.ok) return
+			const data = await res.json()
+			if (data?.slug) router.push(`/${data.slug}`)
+		} catch {}
+	}
 
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="w-6 h-6 text-yellow-400" />;
-      case 2:
-        return <Medal className="w-6 h-6 text-gray-300" />;
-      case 3:
-        return <Medal className="w-6 h-6 text-amber-600" />;
-      default:
-        return <span className="w-6 h-6 flex items-center justify-center text-gray-400 font-bold">#{rank}</span>;
-    }
-  };
+	const RankBadge = ({ rank }: { rank: number }) => {
+		if (rank === 1) return (
+			<div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+				<Crown className="w-6 h-6 text-white" />
+			</div>
+		)
+		if (rank === 2) return (
+			<div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center shadow-lg shadow-gray-400/20">
+				<Medal className="w-6 h-6 text-white" />
+			</div>
+		)
+		if (rank === 3) return (
+			<div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-700 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+				<Medal className="w-6 h-6 text-white" />
+			</div>
+		)
+		return (
+			<div className="w-12 h-12 rounded-full bg-white/5 text-cyan-300 border border-cyan-400/30 flex items-center justify-center text-sm font-bold">
+				#{rank}
+			</div>
+		)
+	}
 
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Expert':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'Advanced':
-        return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
-      case 'Intermediate':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      default:
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-    }
-  };
+	const Bar = ({ value, color }: { value: number; color: string }) => (
+		<div className="h-2 w-full bg-white/10 rounded overflow-hidden">
+			<div className={`h-full ${color}`} style={{ width: `${Math.max(0, Math.min(100, Math.round(value)))}%` }} />
+		</div>
+	)
 
-  // Filter and paginate data
-  const filteredPerformers = useMemo(() => {
-    return allPerformers.filter((performer) => {
-      const matchesSearch = performer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          performer.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          performer.position.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLevel = filterLevel === 'all' || performer.level === filterLevel;
-      return matchesSearch && matchesLevel;
-    });
-  }, [searchTerm, filterLevel]);
+	// Hide zero-value rows per category
+	const filteredResults = useMemo(() => {
+		if (!results || results.length === 0) return []
+		if (category === 'game') {
+			return (results as GameResult[]).filter(r => (r?.bestScore ?? 0) > 0)
+		}
+		if (category === 'overall' || category === 'applicants' || category === 'engagement') {
+			return (results as SimpleResult[]).filter(r => (r?.score ?? 0) > 0)
+		}
+		return results
+	}, [results, category])
 
-  const totalPages = Math.ceil(filteredPerformers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPerformers = filteredPerformers.slice(startIndex, startIndex + itemsPerPage);
+	// Selected user for modal header
+	const selectedUser = useMemo(() => {
+		return (filteredResults as any[]).find((r: any) => r.userId === openUserId) || null
+	}, [filteredResults, openUserId])
 
-  // Reset to first page when filters change
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
+	const renderRankCell = (rank: number) => (
+		<div className="flex items-center justify-center">
+			<RankBadge rank={rank} />
+		</div>
+	)
 
-  const handleFilterChange = (level: string) => {
-    setFilterLevel(level);
-    setCurrentPage(1);
-    setIsFilterOpen(false);
-  };
+	const renderUserCell = (row: any) => (
+		<div className="flex items-center gap-3 min-w-0">
+			<div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
+				{row.user?.avatar_url ? (
+					<img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
+				) : (
+					<span className="text-gray-400 text-xs">N/A</span>
+				)}
+			</div>
+			<button onClick={(e) => goToResume(e, row.userId)} className="text-left truncate text-cyan-300 hover:underline">
+				{row.user?.full_name || row.userId}
+			</button>
+			{row.rank <= 3 && <Badge className="bg-cyan-500/20 border-cyan-400/30 text-cyan-300">Top {row.rank}</Badge>}
+		</div>
+	)
 
-  const getLevelLabel = (level: string) => {
-    switch (level) {
-      case 'all': return 'All Levels';
-      case 'Expert': return 'Expert';
-      case 'Advanced': return 'Advanced';
-      case 'Intermediate': return 'Intermediate';
-      default: return 'All Levels';
-    }
-  };
+	const renderRow = (row: any, index: number) => {
+		const rank = row.rank
+		const name = row.user?.full_name || row.userId
+		const avatar = row.user?.avatar_url || ''
+		return (
+			<motion.div key={`${row.userId}-${rank}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * index }}>
+				<Card className="glass-card border-white/10 hover:border-cyan-400/30 transition hover:translate-x-0.5 cursor-pointer" onClick={() => openUserModal(row.userId)}>
+					<CardContent className="p-5">
+						<div className="flex items-center gap-5">
+							<RankBadge rank={rank} />
+							<div className="w-12 h-12 rounded-full bg-white/10 overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
+								{avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-gray-400 text-sm">N/A</span>}
+							</div>
+							<div className="flex-1 min-w-0">
+								<div className="text-white font-semibold truncate flex items-center gap-2">
+									<a
+										href={userResumeSlug ? `/${userResumeSlug}` : '#'}
+										onClick={(e) => { e.stopPropagation(); if (!userResumeSlug) { e.preventDefault() } }}
+										className={`hover:underline ${userResumeSlug ? 'text-cyan-300' : 'text-white/80 cursor-not-allowed'}`}
+									>
+										{name}
+									</a>
+									{rank <= 3 && <Badge className="bg-cyan-500/20 border-cyan-400/30 text-cyan-300">Top {rank}</Badge>}
+								</div>
+								<div className="text-xs text-gray-400 truncate">
+									{category === 'game' && `Best: ${row.bestScore} • Plays: ${row.plays}`}
+									{category === 'applicants' && `Score: ${row.score}`}
+									{category === 'engagement' && `Score: ${row.score}`}
+									{category === 'overall' && `Overall: ${row.score}`}
+								</div>
+								{/* Breakdown */}
+								{category === 'overall' && (
+									<div className="mt-2 space-y-2">
+										<div className="flex items-center gap-2 text-[11px] text-gray-300">
+											<span className="w-20">Games</span>
+											<Bar value={row.components?.game_norm ?? 0} color="bg-cyan-500" />
+											<span className="w-10 text-right">{Math.round(row.components?.game_norm ?? 0)}</span>
+										</div>
+										<div className="flex items-center gap-2 text-[11px] text-gray-300">
+											<span className="w-20">Applications</span>
+											<Bar value={row.components?.applicant_norm ?? 0} color="bg-purple-500" />
+											<span className="w-10 text-right">{Math.round(row.components?.applicant_norm ?? 0)}</span>
+										</div>
+										<div className="flex items-center gap-2 text-[11px] text-gray-300">
+											<span className="w-20">Engagement</span>
+											<Bar value={row.components?.engagement_norm ?? 0} color="bg-amber-500" />
+											<span className="w-10 text-right">{Math.round(row.components?.engagement_norm ?? 0)}</span>
+										</div>
+									</div>
+								)}
+								{category === 'game' && (
+									<div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+										<Badge variant="secondary" className="bg-white/10 border-white/20 text-white">Best {row.bestScore}</Badge>
+										<Badge variant="secondary" className="bg-white/10 border-white/20 text-white">Plays {row.plays}</Badge>
+										{row.lastPlayed && <span className="text-gray-400">Last played {new Date(row.lastPlayed).toLocaleDateString()}</span>}
+									</div>
+								)}
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			</motion.div>
+		)
+	}
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
-      {/* Background Effects */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+        {/* Animated gradient bubbles */}
+        <div className="absolute -top-10 -left-10 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-16 -right-16 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-amber-500/10 rounded-full blur-3xl" />
       </div>
-
       <Header />
-      
       <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          {/* Fun hero banner */}
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
+            className="relative mb-8 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-white/5 via-white/0 to-white/5"
           >
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.back()}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
-              <div className="flex items-center">
-                <Trophy className="h-12 w-12 text-cyan-400 mr-4" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_-10%,rgba(34,211,238,0.15),transparent_60%),radial-gradient(circle_at_80%_120%,rgba(168,85,247,0.12),transparent_60%)]" />
+            <div className="relative flex items-center justify-between p-5 md:p-7">
+              <div className="flex items-center gap-4">
+                <Trophy className="h-10 w-10 text-cyan-400" />
                 <div>
-                  <h1 className="text-4xl font-bold gradient-text">Leaderboards</h1>
-                  <p className="text-gray-400">Top performers in the BPO community</p>
+                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-amber-300 bg-clip-text text-transparent">
+                    Leaderboards — Rise to the Top!
+                  </h1>
+                  <p className="text-gray-400">Compete, improve, and collect crowns {getCategoryEmoji('overall')}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search performers..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                />
-              </div>
-              <div className="flex items-center gap-2 relative">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <div className="relative" ref={filterRef}>
-                  <button
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm flex items-center gap-2 min-w-[120px] justify-between hover:bg-white/20 transition-colors"
-                  >
-                    <span>{getLevelLabel(filterLevel)}</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                  
-                  {isFilterOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-full bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50">
-                      {['all', 'Expert', 'Advanced', 'Intermediate'].map((level) => (
-                        <button
-                          key={level}
-                          onClick={() => handleFilterChange(level)}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                            filterLevel === level ? 'bg-cyan-500/20 text-cyan-400' : 'text-white'
-                          }`}
-                        >
-                          {getLevelLabel(level)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <div className="hidden md:flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
+                  <span>{getCategoryEmoji('' + category)}</span> Live Rankings
+                </span>
               </div>
             </div>
           </motion.div>
 
-          {/* Monthly Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-          >
-            {monthlyStats.map((stat, index) => (
-              <Card key={index} className="glass-card border-white/10 hover:border-cyan-400/30 transition-colors">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400 mb-1">{stat.label}</p>
-                      <p className="text-2xl font-bold text-white">{stat.value}</p>
+          {/* Simple intro sentence */}
+          <div className="mb-4 text-sm text-gray-300">
+            Here are our top candidates — users ahead toward getting hired.
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Column */}
+            <div className="lg:col-span-2">
+              {/* Controls */}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+                  <SelectTrigger className="w-40 bg-white/10 border border-white/20 text-white">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 text-white border-gray-700">
+                    <SelectItem value="overall">Overall</SelectItem>
+                    <SelectItem value="game">Games</SelectItem>
+                    <SelectItem value="applicants">Applications</SelectItem>
+                    <SelectItem value="engagement">Engagement</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {category === 'game' && (
+                  <>
+                    <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+                      <SelectTrigger className="w-32 bg-white/10 border border-white/20 text-white">
+                        <SelectValue placeholder="Period" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-900 text-white border-gray-700">
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="all">All-time</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={gameId} onValueChange={(v) => setGameId(v)}>
+                      <SelectTrigger className="w-52 bg-white/10 border border-white/20 text-white">
+                        <SelectValue placeholder="Game" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-900 text-white border-gray-700">
+                        <SelectItem value="bpoc-cultural">BPOC Cultural</SelectItem>
+                        <SelectItem value="typing-hero">Typing Hero</SelectItem>
+                        <SelectItem value="ultimate">Ultimate</SelectItem>
+                        <SelectItem value="disc-personality">DISC Personality</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
+
+              {/* Accent bar above table */}
+              <div className="h-1 rounded-full mb-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-amber-500 animate-pulse" />
+
+              {/* Table container (table itself unchanged) */}
+              <Card className="glass-card border-white/10 mb-4">
+                <CardContent className="p-0 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-[80px] text-gray-300">Rank</TableHead>
+                        <TableHead className="text-gray-300">User</TableHead>
+                        {category === 'overall' && (<>
+                          <TableHead className="text-right text-gray-300">Overall</TableHead>
+                          <TableHead className="text-right text-gray-300">Games</TableHead>
+                          <TableHead className="text-right text-gray-300">Applications</TableHead>
+                          <TableHead className="text-right text-gray-300">Engagement</TableHead>
+                        </>)}
+                        {category === 'game' && (<>
+                          <TableHead className="text-right text-gray-300">Best</TableHead>
+                          <TableHead className="text-right text-gray-300">Plays</TableHead>
+                          <TableHead className="text-right text-gray-300">Last Played</TableHead>
+                        </>)}
+                        {category === 'applicants' && (
+                          <TableHead className="text-right text-gray-300">Applications</TableHead>
+                        )}
+                        {category === 'engagement' && (
+                          <TableHead className="text-right text-gray-300">Engagement</TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loading && (
+                        <TableRow><TableCell colSpan={7} className="text-gray-400">Loading...</TableCell></TableRow>
+                      )}
+                      {!loading && error && (
+                        <TableRow><TableCell colSpan={7} className="text-red-400">{error}</TableCell></TableRow>
+                      )}
+                      {!loading && !error && filteredResults.length === 0 && (
+                        <TableRow><TableCell colSpan={7} className="text-gray-400">No results</TableCell></TableRow>
+                      )}
+                      {!loading && !error && filteredResults.map((row: any) => (
+                        <TableRow key={`${row.userId}-${row.rank}`} className="hover:bg-white/5 cursor-pointer" onClick={() => setOpenUserId(row.userId)}>
+                          <TableCell>{renderRankCell(row.rank)}</TableCell>
+                          <TableCell>{renderUserCell(row)}</TableCell>
+                          {category === 'overall' && (<>
+                            <TableCell className="text-right">{row.score}</TableCell>
+                            <TableCell className="text-right">{Math.round(row.components?.game_norm ?? 0)}</TableCell>
+                            <TableCell className="text-right">{Math.round(row.components?.applicant_norm ?? 0)}</TableCell>
+                            <TableCell className="text-right">{Math.round(row.components?.engagement_norm ?? 0)}</TableCell>
+                          </>)}
+                          {category === 'game' && (<>
+                            <TableCell className="text-right">{row.bestScore}</TableCell>
+                            <TableCell className="text-right">{row.plays}</TableCell>
+                            <TableCell className="text-right">{row.lastPlayed ? new Date(row.lastPlayed).toLocaleDateString() : '-'}</TableCell>
+                          </>)}
+                          {category === 'applicants' && (
+                            <TableCell className="text-right">{row.score}</TableCell>
+                          )}
+                          {category === 'engagement' && (
+                            <TableCell className="text-right">{row.score}</TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* Pagination */}
+              {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6">
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50">
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <div className="text-gray-300 text-sm">Page {page}</div>
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} className="border-white/20 text-white hover:bg-white/10">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                     </div>
-                    <stat.icon className={`w-8 h-8 ${stat.color}`} />
+                  )}
+                </div>
+
+            {/* Sidebar */}
+            <div className="lg:col-span-1">
+              <Card className="glass-card border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white">How Scoring Works</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6 text-xs text-gray-300">
+                  <div>
+                    <div className="mb-2 text-white font-semibold">Overall Weights</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-separate border-spacing-y-1">
+                        <thead className="text-gray-400">
+                          <tr>
+                            <th className="text-left">Component</th>
+                            <th className="text-left">How</th>
+                            <th className="text-right">Weight</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white/5">
+                            <td className="px-2 py-1">Games</td>
+                            <td className="px-2 py-1">Avg of your best per game vs game max</td>
+                            <td className="px-2 py-1 text-right">60%</td>
+                          </tr>
+                          <tr className="bg-white/5">
+                            <td className="px-2 py-1">Applications</td>
+                            <td className="px-2 py-1">Your total milestone points vs top</td>
+                            <td className="px-2 py-1 text-right">30%</td>
+                          </tr>
+                          <tr className="bg-white/5">
+                            <td className="px-2 py-1">Engagement</td>
+                            <td className="px-2 py-1">Completions and profile bonuses vs top</td>
+                            <td className="px-2 py-1 text-right">10%</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-white font-semibold">Game Scores</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-separate border-spacing-y-1">
+                        <thead className="text-gray-400">
+                          <tr>
+                            <th className="text-left">Game</th>
+                            <th className="text-left">Score Formula</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white/5"><td className="px-2 py-1">Typing Hero</td><td className="px-2 py-1">round(WPM × Accuracy/100)</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">BPOC Cultural</td><td className="px-2 py-1">Average of region scores</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">Ultimate</td><td className="px-2 py-1">Average of smart, motivated, integrity, business</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">DISC Personality</td><td className="px-2 py-1">Average of D, I, S, C</td></tr>
+                        </tbody>
+                      </table>
+              </div>
+            </div>
+
+                  <div>
+                    <div className="mb-2 text-white font-semibold">Applications Points</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-separate border-spacing-y-1">
+                        <thead className="text-gray-400">
+                          <tr>
+                            <th className="text-left">Status</th>
+                            <th className="text-right">Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white/5"><td className="px-2 py-1">submitted</td><td className="px-2 py-1 text-right">5</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">qualified</td><td className="px-2 py-1 text-right">15</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">for verification</td><td className="px-2 py-1 text-right">20</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">verified</td><td className="px-2 py-1 text-right">25</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">initial interview</td><td className="px-2 py-1 text-right">35</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">final interview</td><td className="px-2 py-1 text-right">50</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">passed</td><td className="px-2 py-1 text-right">60</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">hired</td><td className="px-2 py-1 text-right">100</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mt-1 text-[10px] text-gray-400">Highest status per job only. No double counting.</p>
+                  </div>
+
+                    <div>
+                    <div className="mb-2 text-white font-semibold">Engagement Points</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-separate border-spacing-y-1">
+                        <thead className="text-gray-400">
+                          <tr>
+                            <th className="text-left">Action</th>
+                            <th className="text-right">Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="bg-white/5"><td className="px-2 py-1">Complete a game (first time)</td><td className="px-2 py-1 text-right">+5</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">Complete all 4 games</td><td className="px-2 py-1 text-right">+20</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">First avatar uploaded</td><td className="px-2 py-1 text-right">+5</td></tr>
+                          <tr className="bg-white/5"><td className="px-2 py-1">First resume created</td><td className="px-2 py-1 text-right">+10</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mt-1 text-[10px] text-gray-400">Engagement points are one‑time bonuses.</p>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </motion.div>
-
-          {/* Current Period */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-8"
-          >
-            <div className="glass-card p-4 rounded-lg">
-              <div className="flex items-center justify-between text-sm text-gray-300">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>Current Period: July 2025</span>
-                </div>
-                <span>Rankings updated daily</span>
-              </div>
             </div>
-          </motion.div>
-
-          {/* Top Performers */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">🏆 Top Performers</h2>
-              <p className="text-gray-400">Leading professionals based on assessments, achievements, and career progress</p>
             </div>
 
-            <div className="space-y-4">
-              {paginatedPerformers.map((performer, index) => (
-                <motion.div
-                  key={performer.rank}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                >
-                  <Card className="glass-card border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02]">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-6">
-                        {/* Rank */}
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white/5">
-                          {getRankIcon(performer.rank)}
-                        </div>
-
-                        {/* Avatar */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-full flex items-center justify-center text-2xl">
-                          {performer.avatar}
-                        </div>
-
-                        {/* User Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-semibold text-white">{performer.name}</h3>
-                            <Badge className={`${getLevelColor(performer.level)} text-xs`}>
-                              {performer.level}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-300 mb-1">{performer.position}</p>
-                          <p className="text-sm text-gray-400">{performer.company}</p>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-cyan-400 mb-1">
-                            {performer.score.toLocaleString()}
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            {performer.achievements} achievements
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="flex items-center justify-between mt-8 py-4"
-              >
-                {/* Left side - Navigation */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  
-                  {/* Show first few pages, ellipsis, and last page if needed */}
-                  {totalPages <= 7 ? (
-                    // Show all pages if 7 or fewer
-                    Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className={currentPage === page 
-                          ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white" 
-                          : "border-white/20 text-white hover:bg-white/10"
-                        }
-                      >
-                        {page}
-                      </Button>
-                    ))
-                  ) : (
-                    // Show condensed version with ellipsis
-                    <>
-                      {[1, 2, 3].map((page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className={currentPage === page 
-                            ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white" 
-                            : "border-white/20 text-white hover:bg-white/10"
-                          }
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                      
-                      {currentPage > 4 && totalPages > 7 && (
-                        <span className="text-gray-400 px-2">...</span>
-                      )}
-                      
-                      <Button
-                        variant={currentPage === totalPages ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(totalPages)}
-                        className={currentPage === totalPages 
-                          ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white" 
-                          : "border-white/20 text-white hover:bg-white/10"
-                        }
-                      >
-                        {totalPages}
-                      </Button>
-                    </>
+          {/* Breakdown Modal */}
+          <Dialog open={!!openUserId} onOpenChange={(o) => { if (!o) { setOpenUserId(null); setUserBreakdown(null) } }}>
+            <DialogContent className="bg-gray-900 border-gray-700 text-white w-[98vw] max-w-none sm:max-w-[1600px] md:max-w-[1600px] lg:max-w-[1700px] xl:max-w-[1800px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl flex items-center gap-3">
+                  <span>🎯 User Score Breakdown</span>
+                  {selectedUser?.rank && (
+                    <Badge className="bg-cyan-500/20 border-cyan-500/30 text-cyan-300">Rank #{selectedUser.rank}</Badge>
                   )}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Right side - Page selector */}
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm">Page</span>
-                  <div className="relative" ref={pageSelectorRef}>
-                    <button
-                      onClick={() => setIsPageSelectorOpen(!isPageSelectorOpen)}
-                      className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm flex items-center gap-2 min-w-[60px] justify-between hover:bg-white/20 transition-colors"
-                    >
-                      <span>{currentPage}</span>
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                    
-                    {isPageSelectorOpen && (
-                      <div className="absolute top-full right-0 mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            onClick={() => {
-                              setCurrentPage(page);
-                              setIsPageSelectorOpen(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors min-w-[60px] ${
-                              currentPage === page ? 'bg-cyan-500/20 text-cyan-400' : 'text-white'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                </DialogTitle>
+              </DialogHeader>
+              {/* User quick info */}
+              {selectedUser && (
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
+                    {selectedUser.user?.avatar_url ? (
+                      <img src={selectedUser.user.avatar_url} alt={selectedUser.user?.full_name || selectedUser.userId} className="w-full h-full object-cover" />
+                    ) : null}
                   </div>
-                  <span className="text-gray-400 text-sm">of {totalPages}</span>
+                  <button
+                    onClick={(e) => goToResume(e as any, selectedUser.userId)}
+                    className="text-cyan-300 hover:underline truncate"
+                    title="Open resume"
+                  >
+                    {selectedUser.user?.full_name || selectedUser.userId}
+                  </button>
+                  <Badge className="bg-amber-500/20 border-amber-500/30 text-amber-300">Hire‑ready</Badge>
                 </div>
-              </motion.div>
-            )}
-          </motion.div>
+              )}
+              {loadingBreakdown && (
+                <div className="text-gray-400">Loading...</div>
+              )}
+              {!loadingBreakdown && userBreakdown && (
+                <div className="space-y-6">
+                  {/* Content */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Games */}
+                    <div className="bg-white/5 rounded p-4 md:col-span-1">
+                      <div className="font-semibold mb-2">Games 🎮</div>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="text-gray-300">Game</TableHead>
+                              <TableHead className="text-right text-gray-300">Best</TableHead>
+                              <TableHead className="text-right text-gray-300">Plays</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(userBreakdown.games || []).map((g: any, idx: number) => (
+                              <TableRow key={`${g.game_id}-${idx}`} className="hover:bg-transparent">
+                                <TableCell>{getGameName(g.game_id)}</TableCell>
+                                <TableCell className="text-right">{g.best_score}</TableCell>
+                                <TableCell className="text-right">{g.plays}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
 
-          {/* Results Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6"
-          >
-            <div className="glass-card p-4 rounded-lg">
-              <div className="flex items-center justify-between text-sm text-gray-300">
-                <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredPerformers.length)} of {filteredPerformers.length} performers
-                  {searchTerm && ` matching "${searchTerm}"`}
-                  {filterLevel !== 'all' && ` with ${filterLevel} level`}
-                </span>
-                <span>Page {currentPage} of {totalPages}</span>
-              </div>
+                    {/* Applications & Engagement */}
+                    <div className="bg-white/5 rounded p-4 md:col-span-2">
+                      <div className="font-semibold mb-2">Applications 📄 & Engagement ✨</div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                          <div className="mb-1 font-medium">Applications (total: {userBreakdown.applications?.total ?? 0})</div>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="hover:bg-transparent">
+                                  <TableHead className="text-gray-300">Job ID</TableHead>
+                                  <TableHead className="text-gray-300">Status</TableHead>
+                                  <TableHead className="text-right text-gray-300">Points</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {(userBreakdown.applications?.items || []).map((i: any, idx: number) => (
+                                  <TableRow key={`${i.job_id}-${idx}`} className="hover:bg-transparent">
+                                    <TableCell>{i.job_id}</TableCell>
+                                    <TableCell>{i.status}</TableCell>
+                                    <TableCell className="text-right">{i.points}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-1 font-medium">Engagement (total: {userBreakdown.engagement?.total ?? 0})</div>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="hover:bg-transparent">
+                                  <TableHead className="text-gray-300">Action</TableHead>
+                                  <TableHead className="text-right text-gray-300">Points</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {(userBreakdown.engagement?.items || []).map((i: any, idx: number) => (
+                                  <TableRow key={`${i.label}-${idx}`} className="hover:bg-transparent">
+                                    <TableCell>{i.label}</TableCell>
+                                    <TableCell className="text-right">{i.points}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
             </div>
-          </motion.div>
 
-
+                  {/* Totals row under tables */}
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+                      <span className="text-gray-400 mr-2">🎮 Games</span>
+                      <span className="text-white font-semibold">{(userBreakdown.games || []).reduce((sum: number, g: any) => sum + (g.best_score || 0), 0)}</span>
+                    </div>
+                    <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+                      <span className="text-gray-400 mr-2">🏆 Overall</span>
+                      <span className="text-white font-semibold">{userBreakdown.overall?.overall_score ?? 0}</span>
+                    </div>
+                    <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+                      <span className="text-gray-400 mr-2">📄 Applications</span>
+                      <span className="text-white font-semibold">{userBreakdown.applications?.total ?? 0}</span>
+                    </div>
+                    <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+                      <span className="text-gray-400 mr-2">✨ Engagement</span>
+                      <span className="text-white font-semibold">{userBreakdown.engagement?.total ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
-  );
+	)
 } 

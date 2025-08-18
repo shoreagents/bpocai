@@ -36,7 +36,7 @@ interface JobApplication {
   companyLogo?: string;
   location: string;
   salary?: string;
-  status: 'submitted' | 'screened' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'failed' | 'passed' | 'rejected' | 'withdrawn' | 'hired';
+  status: 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired';
   appliedDate: string;
   lastUpdated: string;
   jobDescription?: string;
@@ -57,8 +57,8 @@ const statusConfig = {
     color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', 
     icon: Clock 
   },
-  screened: { 
-    label: 'Screened', 
+  qualified: { 
+    label: 'Qualified', 
     description: 'Your application has passed initial screening and is under review',
     color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', 
     icon: Eye 
@@ -87,8 +87,8 @@ const statusConfig = {
     color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', 
     icon: CheckCircle 
   },
-  failed: { 
-    label: 'Failed', 
+  'not qualified': { 
+    label: 'Not Qualified', 
     description: 'Your application did not meet the requirements for this position',
     color: 'bg-red-500/20 text-red-400 border-red-500/30', 
     icon: XCircle 
