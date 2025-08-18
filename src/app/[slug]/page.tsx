@@ -82,9 +82,11 @@ export default function SavedResumePage() {
   const [discLatest, setDiscLatest] = useState<any | null>(null);
   const [ultimateStats, setUltimateStats] = useState<any | null>(null);
   const [ultimateLatest, setUltimateLatest] = useState<any | null>(null);
+
   const [bpocCulturalLatest, setBpocCulturalLatest] = useState<any | null>(null);
   const [bpocCulturalAll, setBpocCulturalAll] = useState<any[] | null>(null);
   const [bpocCulturalSessions, setBpocCulturalSessions] = useState<Record<string, any>>({});
+
 
   // Starfield state
   const [stars, setStars] = useState<Array<{
@@ -195,12 +197,14 @@ export default function SavedResumePage() {
           setUltimateStats(u.stats || null)
           setUltimateLatest(u.latestSession || null)
         }
+
         const bres = await fetch(`/api/games/bpoc-cultural/public/${resume.userId}`, { cache: 'no-store' })
         if (bres.ok) {
           const b = await bres.json()
           setBpocCulturalLatest(b.latestResult || null)
           setBpocCulturalAll(Array.isArray(b.results) ? b.results : null)
           setBpocCulturalSessions(b.sessionsById || {})
+
         }
       } catch {}
     })()
@@ -1408,6 +1412,7 @@ export default function SavedResumePage() {
                         <Globe className="w-5 h-5 text-cyan-400" />
                         <CardTitle className="text-white">BPOC Cultural</CardTitle>
                       </CardHeader>
+
                       <CardContent className="text-sm text-gray-300 space-y-3">
                         {bpocCulturalLatest ? (
                           <>
@@ -1485,6 +1490,7 @@ export default function SavedResumePage() {
                         ) : (
                           <div className="text-gray-400">No data yet.</div>
                         )}
+
                       </CardContent>
                     </Card>
 

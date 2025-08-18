@@ -240,9 +240,9 @@ export default function ResumesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="glass-card">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Total Resumes</p>
@@ -253,45 +253,45 @@ export default function ResumesPage() {
             </CardContent>
           </Card>
 
-                     <Card className="glass-card">
-             <CardContent className="p-6">
-               <div className="flex items-center space-x-3">
-                 <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                   <Eye className="w-5 h-5 text-white" />
-                 </div>
-                 <div>
-                   <p className="text-sm text-gray-400">Total Views</p>
-                   <p className="text-2xl font-bold text-white">
-                     {resumes.reduce((sum, r) => sum + r.view_count, 0)}
-                   </p>
-                   <p className="text-xs text-green-400">All resumes</p>
-                 </div>
-               </div>
-             </CardContent>
-           </Card>
-
-           <Card className="glass-card">
-             <CardContent className="p-6">
-               <div className="flex items-center space-x-3">
-                 <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
-                   <FileText className="w-5 h-5 text-white" />
-                 </div>
-                 <div>
-                   <p className="text-sm text-gray-400">Templates</p>
-                   <p className="text-2xl font-bold text-white">
-                     {new Set(resumes.map(r => r.template_used)).size}
-                   </p>
-                   <p className="text-xs text-yellow-400">Unique templates</p>
-                 </div>
-               </div>
-             </CardContent>
-           </Card>
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <Eye className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Total Views</p>
+                  <p className="text-2xl font-bold text-white">
+                    {resumes.reduce((sum, r) => sum + r.view_count, 0)}
+                  </p>
+                  <p className="text-xs text-green-400">All resumes</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="glass-card">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Templates</p>
+                  <p className="text-2xl font-bold text-white">
+                    {new Set(resumes.map(r => r.template_used)).size}
+                  </p>
+                  <p className="text-xs text-yellow-400">Unique templates</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Users</p>

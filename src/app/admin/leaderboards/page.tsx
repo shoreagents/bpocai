@@ -12,7 +12,9 @@ import {
 	MoreHorizontal,
 	Crown,
 	Medal,
+
   RefreshCw
+
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,6 +63,8 @@ export default function LeaderboardsPage() {
 	const [gameId, setGameId] = useState<string>('bpoc-cultural')
 	const [rows, setRows] = useState<any[]>([])
 	const [total, setTotal] = useState<number>(0)
+	const [page, setPage] = useState<number>(1)
+	const [pageSize, setPageSize] = useState<number>(10)
 	const [loading, setLoading] = useState<boolean>(false)
 	const [error, setError] = useState<string>('')
 
@@ -72,6 +76,24 @@ export default function LeaderboardsPage() {
 	const [refreshing, setRefreshing] = useState<boolean>(false)
 	const [refreshNonce, setRefreshNonce] = useState<number>(0)
 
+	const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
+
+	const pageItems = useMemo<(number | string)[]>(() => {
+		const items: Array<number | string> = []
+		if (totalPages <= 7) {
+			for (let i = 1; i <= totalPages; i += 1) items.push(i)
+			return items
+		}
+		items.push(1)
+		const start = Math.max(2, page - 1)
+		const end = Math.min(totalPages - 1, page + 1)
+		if (start > 2) items.push('...')
+		for (let i = start; i <= end; i += 1) items.push(i)
+		if (end < totalPages - 1) items.push('...')
+		items.push(totalPages)
+		return items
+	}, [totalPages, page])
+
 	const fetchRows = async () => {
 		try {
 			setLoading(true)
@@ -79,9 +101,11 @@ export default function LeaderboardsPage() {
 			const params = new URLSearchParams()
 			params.set('category', category)
 			if (category === 'game') { params.set('period', period); params.set('gameId', gameId) }
+
 			params.set('limit', '50')
 			params.set('source', 'live')
 			const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
+
 			if (!res.ok) throw new Error('Failed to load')
 			const data = await res.json()
 			setRows(data.results || [])
@@ -95,7 +119,9 @@ export default function LeaderboardsPage() {
 		}
 	}
 
+
 	useEffect(() => { fetchRows() }, [category, period, gameId, refreshNonce])
+
 
 	const handleDelete = async (row: any) => {
 		try {
@@ -242,6 +268,7 @@ export default function LeaderboardsPage() {
 						) : rows.length === 0 ? (
 							<div className="text-gray-400 py-10 text-center">No data</div>
 						) : (
+
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -269,6 +296,7 @@ export default function LeaderboardsPage() {
 															<img src={r.user.avatar_url} alt={r.user?.full_name || r.userId} className="w-full h-full object-cover" />
 														) : null}
 													</div>
+
 													<div className="min-w-0">
 														<div className="truncate text-white">{r.user?.full_name || r.userId}</div>
 													</div>
@@ -296,14 +324,51 @@ export default function LeaderboardsPage() {
 														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                  )}
-                </CardContent>
-              </Card>
+
+											</TableCell>
+										</TableRow>
+										))}
+									</TableBody>
+								</Table>
+								{total > 0 && (
+									<div className="flex items-center justify-end mt-6 gap-3">
+										<Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50">
+											<ChevronLeft className="w-4 h-4" />
+										</Button>
+										<div className="flex items-center gap-2">
+											{pageItems.map((it, idx) => (
+												typeof it === 'number' ? (
+													<Button key={idx} variant={it === page ? 'secondary' : 'outline'} size="sm" onClick={() => setPage(it)} className={`h-8 px-3 ${it === page ? 'bg-white/10 text-white' : 'text-gray-300 border-white/20 hover:bg-white/10'}`}>
+														{it}
+													</Button>
+												) : (
+													<span key={idx} className="text-gray-400 px-2">…</span>
+												)
+											))}
+										</div>
+										<div className="text-gray-300 text-sm px-3 py-1 rounded bg-white/5 border border-white/10">Page {page} of {totalPages}</div>
+										<Select value={String(pageSize)} onValueChange={(v: string) => { setPageSize(Number(v)); setPage(1) }}>
+											<SelectTrigger className="w-[120px] h-8">
+												<SelectValue placeholder="Page size" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="5">5 / page</SelectItem>
+												<SelectItem value="10">10 / page</SelectItem>
+												<SelectItem value="15">15 / page</SelectItem>
+												<SelectItem value="20">20 / page</SelectItem>
+												<SelectItem value="25">25 / page</SelectItem>
+											</SelectContent>
+										</Select>
+										<Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages} className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50">
+											<ChevronRight className="w-4 h-4" />
+										</Button>
+									</div>
+								)}
+							</>
+						)}
+					</CardContent>
+				</Card>
+
 			</div>
 
 			<Dialog open={!!openUserId} onOpenChange={(o) => { if (!o) { setOpenUserId(null); setBreakdown(null) } }}>
@@ -337,7 +402,7 @@ export default function LeaderboardsPage() {
 					{loadingBreakdown && (
 						<div className="text-gray-400">Loading...</div>
 					)}
-					{!loadingBreakdown && breakdown && (
+					{!loadingBreakdown && breakdown &&
 						<div className="space-y-6">
 							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 								{/* Games */}
@@ -415,28 +480,30 @@ export default function LeaderboardsPage() {
 										</div>
 									</div>
 								</div>
+								{/* Totals row under tables */}
+								<div className="flex flex-wrap items-center gap-3 text-sm mt-4">
+									<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+										<span className="text-gray-400 mr-2">🎮 Games</span>
+										<span className="text-white font-semibold">{(breakdown.games || []).reduce((sum: number, g: any) => sum + (g.best_score || 0), 0)}</span>
+									</div>
+									<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+										<span className="text-gray-400 mr-2">🏆 Overall</span>
+										<span className="text-white font-semibold">{breakdown.overall?.overall_score ?? 0}</span>
+									</div>
+									<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+										<span className="text-gray-400 mr-2">📄 Applications</span>
+										<span className="text-white font-semibold">{breakdown.applications?.total ?? 0}</span>
+									</div>
+									<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
+										<span className="text-gray-400 mr-2">✨ Engagement</span>
+										<span className="text-white font-semibold">{breakdown.engagement?.total ?? 0}</span>
+									</div>
+								</div>
 							</div>
-							{/* Totals row under tables */}
-							<div className="flex flex-wrap items-center gap-3 text-sm mt-4">
-								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-									<span className="text-gray-400 mr-2">🎮 Games</span>
-									<span className="text-white font-semibold">{(breakdown.games || []).reduce((sum: number, g: any) => sum + (g.best_score || 0), 0)}</span>
-								</div>
-								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-									<span className="text-gray-400 mr-2">🏆 Overall</span>
-									<span className="text-white font-semibold">{breakdown.overall?.overall_score ?? 0}</span>
-								</div>
-								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-									<span className="text-gray-400 mr-2">📄 Applications</span>
-									<span className="text-white font-semibold">{breakdown.applications?.total ?? 0}</span>
-								</div>
-								<div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-									<span className="text-gray-400 mr-2">✨ Engagement</span>
-									<span className="text-white font-semibold">{breakdown.engagement?.total ?? 0}</span>
-								</div>
-							</div>
+
       </div>
 						)}
+
 					</DialogContent>
 				</Dialog>
     </AdminLayout>

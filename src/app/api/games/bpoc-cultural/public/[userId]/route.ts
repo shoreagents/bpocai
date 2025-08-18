@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
 
 export async function GET(
+
 	_request: NextRequest,
 	{ params }: { params: { userId: string } }
 ) {
@@ -67,5 +68,6 @@ export async function GET(
 		return NextResponse.json({ error: 'Failed to load' }, { status: 500 })
 	}
 }
+
 
 
