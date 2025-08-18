@@ -58,7 +58,7 @@ export default function ApplicantsJobDetailPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 	const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'screened' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'failed' | 'passed' | 'rejected' | 'withdrawn' | 'hired'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired'>('all')
 	const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'status_asc' | 'status_desc'>('newest')
   const [viewSlug, setViewSlug] = useState<string | null>(null)
   
@@ -126,12 +126,12 @@ export default function ApplicantsJobDetailPage() {
   const getStatusStats = () => {
     const stats = {
       submitted: 0,
-      screened: 0,
+      qualified: 0,
       'for verification': 0,
       verified: 0,
       'initial interview': 0,
       'final interview': 0,
-      failed: 0,
+      'not qualified': 0,
       passed: 0,
       rejected: 0,
       withdrawn: 0,
@@ -149,7 +149,7 @@ export default function ApplicantsJobDetailPage() {
 
   const statusStats = getStatusStats()
   const totalApplicants = apps.length
-  const activeApplicants = apps.filter(app => !['rejected', 'withdrawn', 'hired', 'failed'].includes(app.status)).length
+  const activeApplicants = apps.filter(app => !['rejected', 'withdrawn', 'hired', 'not qualified'].includes(app.status)).length
 
   // Admin functions
   const handleStatusEdit = (applicationId: string, currentStatus: string) => {
@@ -370,7 +370,7 @@ export default function ApplicantsJobDetailPage() {
                 <div>
                   <p className="text-sm text-purple-300 font-medium">In Progress</p>
                   <p className="text-2xl font-bold text-white">
-                    {statusStats.screened + statusStats['for verification'] + statusStats.verified + statusStats['initial interview'] + statusStats['final interview']}
+                    {statusStats.qualified + statusStats['for verification'] + statusStats.verified + statusStats['initial interview'] + statusStats['final interview']}
                   </p>
                 </div>
               </div>
@@ -419,12 +419,12 @@ export default function ApplicantsJobDetailPage() {
                 <SelectContent className="bg-gray-900 border-gray-700">
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="screened">Screened</SelectItem>
+                  <SelectItem value="qualified">Qualified</SelectItem>
                   <SelectItem value="for verification">For Verification</SelectItem>
                   <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="initial interview">Initial Interview</SelectItem>
                   <SelectItem value="final interview">Final Interview</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="not qualified">Not Qualified</SelectItem>
                   <SelectItem value="passed">Passed</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="withdrawn">Withdrawn</SelectItem>
@@ -522,12 +522,12 @@ export default function ApplicantsJobDetailPage() {
                                 </SelectTrigger>
                                 <SelectContent className="bg-gray-900 border-gray-700">
                                   <SelectItem value="submitted">Submitted</SelectItem>
-                                  <SelectItem value="screened">Screened</SelectItem>
+                                  <SelectItem value="qualified">Qualified</SelectItem>
                                   <SelectItem value="for verification">For Verification</SelectItem>
                                   <SelectItem value="verified">Verified</SelectItem>
                                   <SelectItem value="initial interview">Initial Interview</SelectItem>
                                   <SelectItem value="final interview">Final Interview</SelectItem>
-                                  <SelectItem value="failed">Failed</SelectItem>
+                                  <SelectItem value="not qualified">Not Qualified</SelectItem>
                                   <SelectItem value="passed">Passed</SelectItem>
                                   <SelectItem value="rejected">Rejected</SelectItem>
                                   <SelectItem value="withdrawn">Withdrawn</SelectItem>
@@ -684,11 +684,11 @@ export default function ApplicantsJobDetailPage() {
 function statusClass(status: string): string {
   const s = String(status || '').toLowerCase()
   if (s === 'hired') return 'bg-green-500/20 text-green-300 border-green-500/30'
-  if (s === 'rejected' || s === 'failed') return 'bg-red-500/20 text-red-300 border-red-500/30'
+  if (s === 'rejected' || s === 'not qualified') return 'bg-red-500/20 text-red-300 border-red-500/30'
   if (s === 'passed') return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
   if (s === 'initial interview' || s === 'final interview') return 'bg-purple-500/20 text-purple-300 border-purple-500/30'
   if (s === 'verified') return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-  if (s === 'screened') return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+  if (s === 'qualified') return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
   if (s === 'for verification') return 'bg-amber-500/20 text-amber-300 border-amber-500/30'
   if (s === 'withdrawn') return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
   return 'bg-gray-500/20 text-gray-300 border-gray-500/30'
@@ -698,11 +698,11 @@ function getStatusIcon(status: string): React.ReactNode {
   const s = String(status || '').toLowerCase()
   switch (s) {
     case 'hired': return <CheckCircle className="w-3 h-3" />
-    case 'rejected': case 'failed': return <XCircle className="w-3 h-3" />
+    case 'rejected': case 'not qualified': return <XCircle className="w-3 h-3" />
     case 'passed': return <CheckCircle className="w-3 h-3" />
     case 'initial interview': case 'final interview': return <Play className="w-3 h-3" />
     case 'verified': return <CheckCircle className="w-3 h-3" />
-    case 'screened': return <Eye className="w-3 h-3" />
+    case 'qualified': return <Eye className="w-3 h-3" />
     case 'for verification': return <AlertCircle className="w-3 h-3" />
     case 'withdrawn': return <Pause className="w-3 h-3" />
     default: return <Clock className="w-3 h-3" />
