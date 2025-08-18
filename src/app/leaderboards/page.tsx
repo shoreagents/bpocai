@@ -339,7 +339,6 @@ export default function LeaderboardsPage() {
                 </span>
               </div>
             </div>
-          </motion.div>
 
           {/* Simple intro sentence */}
           <div className="mb-4 text-sm text-gray-300">
