@@ -3,33 +3,34 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
-	Trophy, 
-	Gamepad2, 
-	ClipboardList,
-	Users,
-	Target,
+  Trophy, 
+  Gamepad2, 
+  ClipboardList,
+  Users,
+  Target,
 	BarChart3,
 	MoreHorizontal,
 	Crown,
-	Medal
+	Medal,
+  RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table"
 import AdminLayout from '@/components/layout/AdminLayout'
 import {
@@ -68,6 +69,8 @@ export default function LeaderboardsPage() {
 	const [openUserResumeSlug, setOpenUserResumeSlug] = useState<string | null>(null)
 	const [breakdown, setBreakdown] = useState<any | null>(null)
 	const [loadingBreakdown, setLoadingBreakdown] = useState<boolean>(false)
+	const [refreshing, setRefreshing] = useState<boolean>(false)
+	const [refreshNonce, setRefreshNonce] = useState<number>(0)
 
 	const fetchRows = async () => {
 		try {
@@ -77,7 +80,8 @@ export default function LeaderboardsPage() {
 			params.set('category', category)
 			if (category === 'game') { params.set('period', period); params.set('gameId', gameId) }
 			params.set('limit', '50')
-			const res = await fetch(`/api/leaderboards?${params.toString()}&source=tables`, { cache: 'no-store' })
+			params.set('source', 'live')
+			const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
 			if (!res.ok) throw new Error('Failed to load')
 			const data = await res.json()
 			setRows(data.results || [])
@@ -91,7 +95,7 @@ export default function LeaderboardsPage() {
 		}
 	}
 
-	useEffect(() => { fetchRows() }, [category, period, gameId])
+	useEffect(() => { fetchRows() }, [category, period, gameId, refreshNonce])
 
 	const handleDelete = async (row: any) => {
 		try {
@@ -123,7 +127,7 @@ export default function LeaderboardsPage() {
 		setBreakdown(null)
 		try {
 			const [bRes, rRes] = await Promise.all([
-				fetch(`/api/leaderboards/user/${row.userId}`, { cache: 'no-store' }),
+				fetch(`/api/leaderboards/user/${row.userId}?source=live`, { cache: 'no-store' }),
 				fetch(`/api/users/${row.userId}/resume`, { cache: 'no-store' })
 			])
 			const b = bRes.ok ? await bRes.json() : null
@@ -134,6 +138,26 @@ export default function LeaderboardsPage() {
 			setBreakdown(null)
 		} finally {
 			setLoadingBreakdown(false)
+		}
+	}
+
+	const refreshLeaderboards = async () => {
+		try {
+			setRefreshing(true)
+			await fetch('/api/leaderboards/recompute', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ periods: ['weekly','monthly','all'], games: ['typing-hero','disc-personality','ultimate','bpoc-cultural'] })
+			})
+			setRefreshNonce(n => n + 1)
+			if (openUserId) {
+				try {
+					const bRes = await fetch(`/api/leaderboards/user/${openUserId}?source=live`, { cache: 'no-store' })
+					if (bRes.ok) setBreakdown(await bRes.json())
+				} catch {}
+			}
+		} finally {
+			setRefreshing(false)
 		}
 	}
 
@@ -149,41 +173,47 @@ export default function LeaderboardsPage() {
 		} catch {}
 	}
 
-	return (
+  return (
 		<AdminLayout title="Leaderboards" description="Moderate leaderboard data">
-			<div className="space-y-6">
+      <div className="space-y-6">
 				<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<Card className="glass-card border-white/10">
 						<CardHeader><CardTitle className="text-white">Category</CardTitle></CardHeader>
-						<CardContent>
-							<Select value={category} onValueChange={(v: any) => setCategory(v)}>
-								<SelectTrigger className="w-full"><SelectValue placeholder="Category" /></SelectTrigger>
-								<SelectContent>
-									<SelectItem value="overall">Overall</SelectItem>
-									<SelectItem value="game">Games</SelectItem>
-									<SelectItem value="applicants">Applications</SelectItem>
-									<SelectItem value="engagement">Engagement</SelectItem>
-								</SelectContent>
-							</Select>
-						</CardContent>
-					</Card>
+            <CardContent>
+							<div className="flex items-center gap-2">
+								<Select value={category} onValueChange={(v: any) => setCategory(v)}>
+									<SelectTrigger className="w-full"><SelectValue placeholder="Category" /></SelectTrigger>
+									<SelectContent>
+										<SelectItem value="overall">Overall</SelectItem>
+										<SelectItem value="game">Games</SelectItem>
+										<SelectItem value="applicants">Applications</SelectItem>
+										<SelectItem value="engagement">Engagement</SelectItem>
+									</SelectContent>
+								</Select>
+								<Button onClick={refreshLeaderboards} disabled={refreshing} className="ml-auto bg-white/10 border border-white/20 hover:bg-white/20 text-white">
+									<RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+									{refreshing ? 'Refreshing…' : 'Refresh'}
+								</Button>
+							</div>
+            </CardContent>
+          </Card>
 					{category === 'game' && (
 						<Card className="glass-card border-white/10">
 							<CardHeader><CardTitle className="text-white">Period</CardTitle></CardHeader>
-							<CardContent>
+            <CardContent>
 								<Select value={period} onValueChange={(v: any) => setPeriod(v)}>
 									<SelectTrigger className="w-full"><SelectValue placeholder="Period" /></SelectTrigger>
-									<SelectContent>
+                <SelectContent>
 										<SelectItem value="weekly">Weekly</SelectItem>
 										<SelectItem value="monthly">Monthly</SelectItem>
 										<SelectItem value="all">All-time</SelectItem>
-									</SelectContent>
-								</Select>
-							</CardContent>
-						</Card>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 					)}
 					{category === 'game' && (
-						<Card className="glass-card border-white/10">
+              <Card className="glass-card border-white/10">
 							<CardHeader><CardTitle className="text-white">Game</CardTitle></CardHeader>
 							<CardContent>
 								<Select value={gameId} onValueChange={(v: any) => setGameId(v)}>
@@ -195,16 +225,16 @@ export default function LeaderboardsPage() {
 										<SelectItem value="disc-personality">DISC Personality</SelectItem>
 									</SelectContent>
 								</Select>
-							</CardContent>
-						</Card>
+                </CardContent>
+              </Card>
 					)}
-				</motion.div>
+            </motion.div>
 
-				<Card className="glass-card border-white/10">
-					<CardHeader>
+              <Card className="glass-card border-white/10">
+                <CardHeader>
 						<CardTitle className="text-white">Results ({total})</CardTitle>
-					</CardHeader>
-					<CardContent>
+                </CardHeader>
+                <CardContent>
 						{loading ? (
 							<div className="text-gray-400 py-10 text-center">Loading…</div>
 						) : error ? (
@@ -212,9 +242,9 @@ export default function LeaderboardsPage() {
 						) : rows.length === 0 ? (
 							<div className="text-gray-400 py-10 text-center">No data</div>
 						) : (
-							<Table>
-								<TableHeader>
-									<TableRow>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
 										<TableHead className="w-[80px]">Position</TableHead>
 										<TableHead>User</TableHead>
 										{category === 'game' && <TableHead className="text-right">Best</TableHead>}
@@ -226,13 +256,13 @@ export default function LeaderboardsPage() {
 										{category === 'overall' && <TableHead className="text-right">Applications</TableHead>}
 										{category === 'overall' && <TableHead className="text-right">Engagement</TableHead>}
 										<TableHead className="w-[60px] text-right">Actions</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
 									{rows.map((r: any) => (
 										<TableRow key={r.userId} className="cursor-pointer" onClick={() => openBreakdown(r)}>
 											<TableCell className="font-medium">#{r.rank || '-'}</TableCell>
-											<TableCell>
+                              <TableCell>
 												<div className="flex items-center gap-2">
 													<div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
 														{r.user?.avatar_url ? (
@@ -266,14 +296,14 @@ export default function LeaderboardsPage() {
 														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						)}
-					</CardContent>
-				</Card>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                  )}
+                </CardContent>
+              </Card>
 			</div>
 
 			<Dialog open={!!openUserId} onOpenChange={(o) => { if (!o) { setOpenUserId(null); setBreakdown(null) } }}>
@@ -405,10 +435,10 @@ export default function LeaderboardsPage() {
 									<span className="text-white font-semibold">{breakdown.engagement?.total ?? 0}</span>
 								</div>
 							</div>
-						</div>
+      </div>
 						)}
 					</DialogContent>
 				</Dialog>
-		</AdminLayout>
-	)
+    </AdminLayout>
+  )
 }

@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = params.id
+    const { id: userId } = await Promise.resolve(params)
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
     const res = await pool.query(

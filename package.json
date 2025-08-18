@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.60.0",
     "@lottiefiles/dotlottie-react": "^0.14.4",
     "@opendocsg/pdf2md": "^0.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",

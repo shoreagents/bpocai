@@ -22,6 +22,7 @@ import {
   Flag, Users, Zap, Trophy, Crown, Skull, Volume2, 
   MessageSquare, Globe, Target, Star, ArrowLeft, Share, AlertTriangle
 } from 'lucide-react';
+import { PacmanLoader } from 'react-spinners';
 
 const CulturalCommunicationArena = () => {
   const router = useRouter();
@@ -59,6 +60,10 @@ const CulturalCommunicationArena = () => {
   const [canRecord, setCanRecord] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [hasSavedResults, setHasSavedResults] = useState(false);
+  const [analysisSummary, setAnalysisSummary] = useState<string | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
 
   // Combo challenge state
   const [comboVoiceDone, setComboVoiceDone] = useState(false);
@@ -251,7 +256,95 @@ const CulturalCommunicationArena = () => {
     };
   }, [audioUrl]);
 
+  // Save game data once when results screen is reached
+  useEffect(() => {
+    if (gameState !== 'results' || hasSavedResults) return;
+    (async () => {
+      try {
+        const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
+        if (!token) {
+          setHasSavedResults(true);
+          return;
+        }
+        const sessionData = {
+          startedAt: new Date(Date.now() - (300 - timeLeft) * 1000),
+          finishedAt: new Date(),
+          durationMs: (300 - timeLeft) * 1000,
+          stageReached: currentStage,
+          challengeCompleted: currentChallenge,
+          gameState: 'results',
+          timeLeft: timeLeft,
+          survivalStatus: survivalStatus,
+          interactionCount: interactionCount,
+          usScore: Math.round(culturalScores.US),
+          ukScore: Math.round(culturalScores.UK),
+          auScore: Math.round(culturalScores.AU),
+          caScore: Math.round(culturalScores.CA),
+          tierName: calculateTier().tier,
+          tierDescription: calculateTier().description,
+          achievements: achievements,
+          metrics: {
+            culturalTranscripts,
+            generatedScripts,
+            stageAchievements,
+            audioRecordings: {
+              totalRecordings: interactionCount,
+              recordingTime: recordingTime
+            },
+            challengeBreakdown: {
+              stage1: { completed: currentStage >= 1, challenges: stages[0]?.challenges?.length || 0 },
+              stage2: { completed: currentStage >= 2, challenges: stages[1]?.challenges?.length || 0 },
+              stage3: { completed: currentStage >= 3, challenges: stages[2]?.challenges?.length || 0 },
+              stage4: { completed: currentStage >= 4, challenges: stages[3]?.challenges?.length || 0 }
+            }
+          },
+          // Voice (1A) and Angry (2B) transcripts per region
+          c1a_us_text: culturalTranscripts.US || null,
+          c1a_uk_text: culturalTranscripts.UK || null,
+          c1a_au_text: culturalTranscripts.AU || null,
+          c1a_ca_text: culturalTranscripts.CA || null,
+          // Writing inputs from window map
+          ...(typeof window !== 'undefined' && (window as any).bpocWriting ? (window as any).bpocWriting : {})
+        };
+        const response = await fetch('/api/games/bpoc-cultural/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-user-id': String((await (await import('@/lib/auth-helpers')).getUserId()) || '') },
+          body: JSON.stringify(sessionData)
+        });
+        const saved = await response.json().catch(() => ({} as any))
+        const sessionId = saved?.sessionId
+        // Trigger analysis once saved
+        if (sessionId) {
+          setAnalysisLoading(true)
+          try {
+            const ares = await fetch('/api/games/bpoc-cultural/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: (await (await import('@/lib/auth-helpers')).getUserId()) || undefined, sessionId })
+            })
+            if (ares.ok) {
+              const adata = await ares.json()
+              setAnalysisSummary(adata?.summary || null)
+              setAnalysisResult(adata?.result || null)
+            }
+          } finally {
+            setAnalysisLoading(false)
+          }
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setHasSavedResults(true);
+      }
+    })();
+  }, [gameState, hasSavedResults]);
 
+  // Immediately show loading indicator on results screen
+  useEffect(() => {
+    if (gameState === 'results' && !analysisSummary) {
+      setAnalysisLoading(true);
+    }
+  }, [gameState]);
 
   // Helper: add achievement (global + per-stage)
   const addAchievement = (label: string) => {
@@ -288,24 +381,8 @@ const CulturalCommunicationArena = () => {
       name: "Cultural Bootcamp",
       description: "Master the fundamentals of cross-cultural communication",
       scenario: "You're a new BPO agent joining a global team. Your first task is to introduce yourself to different regional teams and adapt your communication style to match their cultural expectations.",
-      instructions: "Complete all three challenges to demonstrate your basic cultural awareness and adaptability. Each challenge tests different aspects of cultural communication.",
+      instructions: "Complete both challenges to demonstrate your basic cultural awareness and adaptability.",
       challenges: [
-        {
-          title: "The Voice Identity Test",
-          description: "Introduce yourself to 4 different client teams",
-          scenario: "Record 4 different 30-second introductions for different cultural contexts. Each team has different communication preferences and cultural norms.",
-          instructions: "Record a brief self-introduction (15-30 seconds) that matches each region's communication style. Focus on tone, formality level, and cultural appropriateness. Avoid robotic tones, fake accents, or nervous stammering.",
-          type: "voice",
-          timeLimit: 120,
-          regions: ['US', 'UK', 'AU', 'CA'],
-          eliminationTriggers: [
-            "Same robotic tone for all cultures",
-            "Fake accent attempts", 
-            "Nervous stammering or excessive 'ums'",
-            "Cannot be clearly understood by native speakers",
-            "Wrong energy level for cultural context"
-          ]
-        },
         {
           title: "The Writing Style Chameleon",
           description: "Same message, 4 different cultural styles",
@@ -339,39 +416,23 @@ const CulturalCommunicationArena = () => {
       ]
     },
     {
-      name: "Client Integration Arena", 
+      name: "Client Integration Arena",
       description: "Handle real-world client interactions with cultural sensitivity",
-      scenario: "You're now handling live client interactions. You'll face angry customers and team coordination challenges that require immediate cultural adaptation under pressure.",
-      instructions: "Navigate through customer service scenarios and team coordination challenges. Your survival depends on maintaining cultural appropriateness while solving problems.",
+      scenario: "You're now handling live client interactions. You'll face team coordination challenges that require immediate cultural adaptation under pressure.",
+      instructions: "Navigate through coordination challenges. Your survival depends on maintaining cultural appropriateness while solving problems.",
       challenges: [
         {
           title: "The Cultural Style Switch",
-          description: "Same business problem, 4 different cultural approaches",
+          description: "Same business problem, 4 different cultural approaches (writing)",
           scenario: "Client's social media campaign is 20% below target metrics. Explain the situation to 4 different clients using their preferred communication style.",
-          instructions: "Provide voice response (45 seconds) and writing follow-up (15 seconds) for each culture. Adapt your approach to match each region's communication preferences while maintaining professional quality.",
-          type: "style_switch",
-          timeLimit: 180,
+          instructions: "Provide a concise written response for each culture. Adapt your approach to match each region's communication preferences while maintaining professional quality.",
+          type: "writing",
+          timeLimit: 120,
           regions: ['US', 'UK', 'AU', 'CA'],
           eliminationTriggers: [
             "Same approach for all cultures",
             "Wrong formality level for any region",
-            "Mismatched voice and writing styles",
             "Cultural stereotyping or insensitivity"
-          ]
-        },
-        {
-          title: "The Angry Customer Gauntlet",
-          description: "De-escalate 3 increasingly difficult customers",
-          scenario: "You're working the customer service line and receiving calls from increasingly frustrated customers from different regions. Each requires a different approach to de-escalation.",
-          instructions: "Record voice responses to de-escalate each customer. Adapt your tone, language, and approach based on the customer's cultural background. Stay professional while showing cultural understanding.",
-          type: "voice",
-          timeLimit: 180,
-          regions: ['US', 'UK', 'AU'],
-          eliminationTriggers: [
-            "Nervous, defensive, or panicked voice delivery",
-            "Wrong cultural approach for any customer",
-            "Cannot handle profanity professionally",
-            "Blame-shifting or excuse-making responses"
           ]
         }
       ]
@@ -408,23 +469,23 @@ const CulturalCommunicationArena = () => {
           eliminationTriggers: [
             "Share personal information inappropriately",
             "Agree to inappropriate social meetings",
-            "Become confrontational about cultural comments",
-            "Take on unprofessional counselor role"
+            "Miss red flags in boundary-pushing behavior",
+            "Escalate conflict unnecessarily"
           ]
         },
         {
           title: "The Communication Breakdown Crisis",
-          description: "Fix multiple communication failures simultaneously",
-          scenario: "Multiple communication failures happening simultaneously. Each client has different complaints about your communication style and needs specific fixes.",
-          instructions: "Record individual voice messages (30 seconds each) addressing each client's specific communication concern. Take ownership of failures and provide specific solutions.",
+          description: "Resolve severe misunderstanding across cultures",
+          scenario: "There's a serious cultural misunderstanding causing project risk. Your task is to identify the core issue and write a de-escalation message that preserves the relationship.",
+          instructions: "Draft a clear, neutral, relationship-preserving message. Identify the misunderstanding without blame and propose next steps.",
           type: "crisis",
-          timeLimit: 150,
+          timeLimit: 120,
           regions: ['US', 'UK', 'AU', 'CA'],
           eliminationTriggers: [
-            "Defensive responses or blame-shifting",
-            "Generic solutions that don't address specific cultural needs",
-            "Nervous or uncertain voice delivery",
-            "Promises changes that contradict other clients' needs"
+            "Assign blame instead of resolving",
+            "Over-apologize without action",
+            "Ignore cultural subtext",
+            "Overly defensive tone"
           ]
         }
       ]
@@ -905,94 +966,26 @@ const CulturalCommunicationArena = () => {
       }
       console.log('Transcription successful:', transcript);
       
-      // Update transcript for this region
+      // Update transcript for this region (stored in metrics and later saved to DB on results)
       setCulturalTranscripts(prev => ({
         ...prev,
         [region]: transcript
       }));
       
-      // 2. Analyze cultural fit with Claude
-      const prompt = getRegionSpecificPrompt(region, transcript);
-      
-      console.log('Analyzing cultural fit with Claude...');
-      const analysisResponse = await fetch('/api/analyze-cultural', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, transcript, region })
-      });
-      
-      if (!analysisResponse.ok) {
-        const errorText = await analysisResponse.text();
-        console.error('Cultural Analysis API Error Response:', errorText);
-        throw new Error(`Cultural analysis failed: ${analysisResponse.status} - ${errorText}`);
-      }
-      
-      let analysis;
-      try {
-        const responseData = await analysisResponse.json();
-        analysis = responseData.analysis;
-        if (!analysis) {
-          throw new Error('No analysis in response');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse cultural analysis response:', parseError);
-        throw new Error('Invalid cultural analysis response format');
-      }
-      console.log('Cultural analysis successful:', analysis);
-      
-      // Update cultural score for this region
-      const score = analysis.score || getFallbackScore(region, transcript);
-      setCulturalScores(prev => ({
-        ...prev,
-        [region]: score
-      }));
-      
-      // Add achievements based on score
-      // Safety check to ensure stages and challenges exist
-      if (!stages[currentStage - 1] || !stages[currentStage - 1].challenges || !stages[currentStage - 1].challenges[currentChallenge]) {
-        console.warn('Challenge not found, skipping achievements');
-        return;
-      }
-      
-      const currentChallengeTitle = stages[currentStage - 1].challenges[currentChallenge].title;
-      
-      if (currentChallengeTitle === "The Angry Customer Gauntlet") {
-        // Achievements for customer service de-escalation
-        if (score >= 90) {
-          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} De-escalation Master`);
-        } else if (score >= 70) {
-          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} De-escalation Expert`);
-        }
-      } else {
-        // Original achievements for cultural introduction challenges
-        if (score >= 90) {
-          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} Cultural Master`);
-        } else if (score >= 70) {
-          addAchievement(`${culturalContexts[region as keyof typeof culturalContexts].flag} Cultural Learner`);
-        }
-      }
-      
-      console.log(`${region} cultural analysis complete. Score: ${score}`);
-      
-    } catch (error) {
-      console.error(`Error analyzing ${region} recording:`, error);
-      
-      // Use fallback scoring if AI analysis fails
-      const fallbackScore = getFallbackScore(region, '');
-      setCulturalScores(prev => ({
-        ...prev,
-        [region]: fallbackScore
-      }));
-      
-      // Show error message
-      alert(`Analysis failed for ${region}. Using fallback scoring.`);
-      
-    } finally {
-      // Clear transcription loading state for this region
+      // Disable downstream Claude analysis for now per request
+      // Simply end the transcribing state
       setIsTranscribing(prev => ({
         ...prev,
         [region]: false
       }));
+      
+    } catch (error: any) {
+      console.error(`Error analyzing ${region} recording:`, error?.message || error);
+      setIsTranscribing(prev => ({
+        ...prev,
+        [region]: false
+      }));
+      alert(`Failed to process ${region} recording. Please try again.`);
     }
   };
 
@@ -1501,7 +1494,6 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         }
       });
       
-      setCurrentResponse('');
       setInteractionCount((c) => c + 1);
       
       // Check for achievements based on performance
@@ -1515,11 +1507,34 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
       if (culturalAnalysis.AU > 85) addAchievement("🇦🇺 AU Communication Expert");
       if (culturalAnalysis.CA > 85) addAchievement("🇨🇦 CA Communication Expert");
 
-      // Flag for combo writing completion
+      // Persist the currentResponse into the correct challenge field (local state to be saved on results)
+      const challenge = stages[currentStage - 1]?.challenges?.[currentChallenge]
+      if (challenge) {
+        // Map writing-type challenges to state fields
+        // 1B, 1C, 2A, 3A, 3B, 3C are writing inputs
+        const title = String(challenge.title || '').toLowerCase()
+        setGeneratedScripts(prev => ({ ...prev })) // keep same shape
+        setCulturalTranscripts(prev => ({ ...prev })) // no-op, but ensures state refs stay stable
+        // Store into a dedicated map so it can be included on save
+        if ((window as any).bpocWriting == null) (window as any).bpocWriting = {}
+        const map = (window as any).bpocWriting as Record<string,string>
+        if (title.includes('writing style chameleon')) map.c1b_text = currentResponse
+        else if (title.includes('slang decoder')) map.c1c_text = currentResponse
+        else if (title.includes('cultural style switch')) map.c2a_text = currentResponse
+        else if (title.includes('cultural landmine')) map.c3a_text = currentResponse
+        else if (title.includes('professional boundary')) map.c3b_text = currentResponse
+        else if (title.includes('communication breakdown')) map.c3c_text = currentResponse
+      }
+
+      // Clear response and move to next challenge
+      setCurrentResponse('');
+
       const current = stages[currentStage - 1].challenges[currentChallenge];
       if (current.type === 'combo') {
         setComboWriteDone(true);
       }
+
+      nextChallenge();
     }
   };
 
@@ -1578,11 +1593,12 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         description: "Basic competency - Needs cultural development"
       };
     } else {
+      // Preserve internal scoring but avoid negative phrasing in UI
       return {
-        tier: "Cultural Disaster",
-        icon: "💀",
-        color: "from-red-600 to-red-800",
-        description: "DO NOT HIRE - Will create cultural friction"
+        tier: "Needs Development",
+        icon: "🧭",
+        color: "from-orange-500 to-orange-700",
+        description: "Early-stage cultural competency — see AI recommendations below"
       };
     }
   };
@@ -1833,75 +1849,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
   if (gameState === 'results') {
     const tier = calculateTier();
     const avgScore = Math.round(Object.values(culturalScores).reduce((a, b) => a + b, 0) / 4);
-    
-    // Save game data when results screen loads
-    useEffect(() => {
-      const saveGameData = async () => {
-        try {
-          // Get authorization token
-          const token = await (await import('@/lib/auth-helpers')).getSessionToken().catch(() => null);
-          
-          if (!token) {
-            console.log('No auth token, skipping data save');
-            return;
-          }
 
-          const sessionData = {
-            startedAt: new Date(Date.now() - (300 - timeLeft) * 1000), // Calculate start time
-            finishedAt: new Date(),
-            durationMs: (300 - timeLeft) * 1000,
-            stageReached: currentStage,
-            challengeCompleted: currentChallenge,
-            gameState: 'results',
-            timeLeft: timeLeft,
-            survivalStatus: survivalStatus,
-            interactionCount: interactionCount,
-            usScore: Math.round(culturalScores.US),
-            ukScore: Math.round(culturalScores.UK),
-            auScore: Math.round(culturalScores.AU),
-            caScore: Math.round(culturalScores.CA),
-            tierName: tier.tier,
-            tierDescription: tier.description,
-            achievements: achievements,
-            metrics: {
-              culturalTranscripts,
-              generatedScripts,
-              stageAchievements,
-              audioRecordings: {
-                totalRecordings: interactionCount,
-                recordingTime: recordingTime
-              },
-              challengeBreakdown: {
-                stage1: { completed: currentStage >= 1, challenges: stages[0]?.challenges?.length || 0 },
-                stage2: { completed: currentStage >= 2, challenges: stages[1]?.challenges?.length || 0 },
-                stage3: { completed: currentStage >= 3, challenges: stages[2]?.challenges?.length || 0 },
-                stage4: { completed: currentStage >= 4, challenges: stages[3]?.challenges?.length || 0 }
-              }
-            }
-          };
-
-          const response = await fetch('/api/games/bpoc-cultural/session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(sessionData)
-          });
-
-          if (response.ok) {
-            console.log('Game data saved successfully');
-          } else {
-            console.error('Failed to save game data');
-          }
-        } catch (error) {
-          console.error('Error saving game data:', error);
-        }
-      };
-
-      saveGameData();
-    }, []); // Only run once when results screen loads
-    
     return (
       <div className="min-h-screen cyber-grid overflow-hidden">
         {/* Background Effects */}
@@ -1949,52 +1897,87 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                   <h1 className="text-4xl font-bold gradient-text mb-2">Arena Complete!</h1>
                   <p className="text-gray-300 mb-6">Great work{playerName ? `, ${playerName}` : ''}! Here's your cultural performance.</p>
 
-                  {/* Tier */}
-                  <div className={`text-3xl font-extrabold bg-gradient-to-r ${tier.color} bg-clip-text text-transparent mb-6`}>
-                    {tier.tier}
-                  </div>
-                  <p className="text-gray-300 mb-8 max-w-2xl mx-auto">{tier.description}</p>
+                  {/* Tier hidden from UI per request; relying on AI analysis result */}
 
-                  {/* Cultural Scores */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    {Object.entries(culturalScores).map(([region, score]) => (
-                      <div key={region} className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
-                        <div className="text-2xl mb-2">{culturalContexts[region as keyof typeof culturalContexts].flag}</div>
-                        <div className="text-xl font-bold text-white">{Math.round(score)}%</div>
-                        <div className="text-xs text-gray-400">{culturalContexts[region as keyof typeof culturalContexts].name}</div>
+                  {/* AI Analysis Summary */}
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10 mb-6">
+                    <h3 className="text-lg font-semibold text-white mb-2">AI Cultural Analysis</h3>
+                    {analysisLoading && (
+                      <div className="flex flex-col items-center justify-center py-6 gap-3">
+                        <PacmanLoader color="#fbbf24" size={28} speedMultiplier={1.1} />
+                        <div className="text-gray-300 text-sm">Analyzing cultural responses…</div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Achievements */}
-                  <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><Trophy className="w-5 h-5 text-yellow-400"/>Achievements</h3>
-                    {achievements.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {achievements.map((a, i) => (
-                          <span key={i} className="bg-yellow-600/20 text-yellow-300 border border-yellow-500/30 rounded-full px-3 py-1 text-xs">{a}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-gray-400">No achievements this run. Try to adapt more precisely next time!</div>
+                    )}
+                    {!analysisLoading && analysisSummary && (
+                      <div className="text-sm text-gray-200 whitespace-pre-wrap">{analysisSummary}</div>
+                    )}
+                    {!analysisLoading && !analysisSummary && (
+                      <div className="text-gray-400 text-sm">Analysis will appear here after your results are saved.</div>
                     )}
                   </div>
 
-                  {/* Summary */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
-                      <div className="text-2xl font-bold text-white">{avgScore}%</div>
-                      <div className="text-sm text-gray-400">Average Cultural Score</div>
+                  {/* Detailed Analysis (if available) */}
+                  {analysisResult && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                      {/* Recommendation */}
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <div className="text-sm text-gray-300 mb-1">Hire Recommendation</div>
+                        <div className="text-xl font-bold text-white">
+                          {String(analysisResult.hire_recommendation || '').replace(/_/g, ' ').toUpperCase() || '—'}
+                        </div>
+                      </div>
+                      {/* Writing Score */}
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <div className="text-sm text-gray-300 mb-1">Writing Score</div>
+                        <div className="text-xl font-bold text-white">{analysisResult?.writing?.score ?? '—'}</div>
+                        <div className="text-xs text-gray-400">Style: {analysisResult?.writing?.style || '—'} • Tone: {analysisResult?.writing?.tone || '—'}</div>
+                      </div>
+                      {/* Per-Region Recommendation */}
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <div className="text-sm text-gray-300 mb-1">Per‑Region Recommendation</div>
+                        <div className="flex flex-wrap gap-2">
+                          {['US','UK','AU','CA'].map((r) => {
+                            const val = analysisResult?.per_region_recommendation?.[r]
+                            const color = val === 'hire' ? 'bg-green-600/20 text-green-300 border-green-500/30' : val === 'maybe' ? 'bg-yellow-600/20 text-yellow-300 border-yellow-500/30' : 'bg-red-600/20 text-red-300 border-red-500/30'
+                            return (
+                              <span key={r} className={`px-2 py-1 rounded border text-xs ${color}`}>{r}: {String(val || '—').toUpperCase()}</span>
+                            )
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
-                      <div className="text-2xl font-bold text-white">{achievements.length}</div>
-                      <div className="text-sm text-gray-400">Achievements Earned</div>
+                  )}
+
+                  {analysisResult && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Strengths & Risks */}
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <h4 className="text-white font-semibold mb-2">Strengths</h4>
+                        <ul className="list-disc pl-5 text-sm text-gray-200 space-y-1">
+                          {(analysisResult.strengths || []).map((s: string, i: number) => (
+                            <li key={`s-${i}`}>{s}</li>
+                          ))}
+                        </ul>
+                        <h4 className="text-white font-semibold mt-4 mb-2">Risks</h4>
+                        <ul className="list-disc pl-5 text-sm text-gray-200 space-y-1">
+                          {(analysisResult.risks || []).map((r: string, i: number) => (
+                            <li key={`r-${i}`}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Writing Analysis */}
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10 overflow-x-auto">
+                        <h4 className="text-white font-semibold mb-2">Writing Analysis</h4>
+                        <div className="text-xs text-gray-400 mb-2">Style: {analysisResult?.writing?.style || '—'} • Tone: {analysisResult?.writing?.tone || '—'} • Score: {analysisResult?.writing?.score ?? '—'}</div>
+                        <ul className="list-disc pl-5 text-sm text-gray-200 space-y-1">
+                          {(analysisResult?.writing?.issues || []).map((w: string, i: number) => (
+                            <li key={`w-${i}`}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
-                      <div className="text-2xl font-bold text-white">{survivalStatus}%</div>
-                      <div className="text-sm text-gray-400">Survival Status</div>
-                    </div>
-                  </div>
+                  )}
 
                 </CardContent>
               </Card>

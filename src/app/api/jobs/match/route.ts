@@ -90,6 +90,19 @@ export async function GET(request: NextRequest) {
       // Call Anthropic API for intelligent matching
       const matchScore = await analyzeJobMatchWithAI(analysisData);
 
+      // Persist the latest analysis as the basis for future counts
+      try {
+        await client.query(
+          `INSERT INTO job_match_results (user_id, job_id, score, reasoning, breakdown, analyzed_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())
+           ON CONFLICT (user_id, job_id)
+           DO UPDATE SET score = EXCLUDED.score, reasoning = EXCLUDED.reasoning, breakdown = EXCLUDED.breakdown, analyzed_at = NOW()`,
+          [userId, jobId, matchScore.score ?? 0, matchScore.reasoning ?? '', JSON.stringify(matchScore.breakdown ?? {})]
+        )
+      } catch (persistErr) {
+        console.warn('job_match_results upsert failed (table may not exist yet):', persistErr)
+      }
+
       return NextResponse.json({
         matchScore: matchScore.score,
         reasoning: matchScore.reasoning,
