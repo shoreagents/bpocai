@@ -49,6 +49,8 @@ export default function ProfileCard({ userId, showEditButton = true, className =
   const [professionalSummary, setProfessionalSummary] = useState<string>('');
   const [aiAnalysisScore, setAiAnalysisScore] = useState<number | null>(null);
   const [completedGames, setCompletedGames] = useState<number>(0);
+  const [jobMatchesCount, setJobMatchesCount] = useState<number>(0);
+  const [jobMatchesLoading, setJobMatchesLoading] = useState<boolean>(false);
   
   // Use provided userId or fall back to current user
   const targetUserId = userId || user?.id;
@@ -213,7 +215,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
     completedAssessments: 8,
     totalAssessments: 12,
     resumeScore: 87,
-    jobMatches: 24
+    jobMatches: 0
   };
 
   const [profileData, setProfileData] = useState({
@@ -350,6 +352,29 @@ export default function ProfileCard({ userId, showEditButton = true, className =
     })();
   }, [targetUserId]);
 
+  // Load Job Matches count based on active jobs analyzed
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!targetUserId) return;
+        setJobMatchesLoading(true)
+        const response = await fetch(`/api/user/job-matches-count?threshold=70`, {
+          headers: { 'x-user-id': targetUserId }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (typeof data.matches === 'number') {
+            setJobMatchesCount(data.matches)
+          }
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setJobMatchesLoading(false)
+      }
+    })()
+  }, [targetUserId])
+
 
 
   return (
@@ -453,7 +478,15 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                    <div className="text-xs text-gray-400">Games</div>
                  </div>
                  <div className="text-center p-3 bg-white/5 rounded-lg">
-                   <div className="text-2xl font-bold text-purple-400">{userStats.jobMatches}</div>
+                   <div className="text-2xl font-bold text-purple-400">
+                     {jobMatchesLoading ? (
+                       <span className="inline-flex items-center gap-2 text-purple-300">
+                         <Loader2 className="w-5 h-5 animate-spin" />
+                       </span>
+                     ) : (
+                       jobMatchesCount
+                     )}
+                   </div>
                    <div className="text-xs text-gray-400">Job Matches</div>
                  </div>
                </div>

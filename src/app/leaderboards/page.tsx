@@ -18,7 +18,9 @@ import {
   Medal,
   Sparkles,
   Stars,
-  Briefcase
+
+  RefreshCw
+
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -82,24 +84,15 @@ export default function LeaderboardsPage() {
 	const [userBreakdown, setUserBreakdown] = useState<any | null>(null)
 	const [userResumeSlug, setUserResumeSlug] = useState<string | null>(null)
 	const [loadingBreakdown, setLoadingBreakdown] = useState(false)
+	const [refreshing, setRefreshing] = useState(false)
+	const [refreshNonce, setRefreshNonce] = useState(0)
 
 	const offset = useMemo(() => (page - 1) * pageSize, [page, pageSize])
 	const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-	const pageItems = useMemo<(number | string)[]>(() => {
-		const items: Array<number | string> = []
-		if (totalPages <= 7) { for (let i = 1; i <= totalPages; i += 1) items.push(i); return items }
-		items.push(1)
-		const start = Math.max(2, page - 1)
-		const end = Math.min(totalPages - 1, page + 1)
-		if (start > 2) items.push('...')
-		for (let i = start; i <= end; i += 1) items.push(i)
-		if (end < totalPages - 1) items.push('...')
-		items.push(totalPages)
-		return items
-	}, [totalPages, page])
 
-  useEffect(() => {
+	useEffect(() => {
+
 		const fetchData = async () => {
 			try {
 				setLoading(true)
@@ -112,6 +105,7 @@ export default function LeaderboardsPage() {
 					params.set('period', period)
 					params.set('gameId', gameId)
 				}
+				params.set('source', 'live')
 				const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
 				if (!res.ok) throw new Error(`Failed: ${res.status}`)
 				const data = await res.json()
@@ -126,7 +120,7 @@ export default function LeaderboardsPage() {
 			}
 		}
 		fetchData()
-	}, [category, period, gameId, page, pageSize, offset])
+	}, [category, period, gameId, page, pageSize, offset, refreshNonce])
 
 	useEffect(() => { setPage(1) }, [category, period, gameId])
 
@@ -136,7 +130,7 @@ export default function LeaderboardsPage() {
 			try {
 				setLoadingBreakdown(true)
 				const [bRes, rRes] = await Promise.all([
-					fetch(`/api/leaderboards/user/${openUserId}`, { cache: 'no-store' }),
+					fetch(`/api/leaderboards/user/${openUserId}?source=live`, { cache: 'no-store' }),
 					fetch(`/api/users/${openUserId}/resume`, { cache: 'no-store' })
 				])
 				const b = bRes.ok ? await bRes.json() : null
@@ -148,7 +142,7 @@ export default function LeaderboardsPage() {
 			}
 		}
 		load()
-	}, [openUserId])
+	}, [openUserId, refreshNonce])
 
 	const openUserModal = (userId: string) => setOpenUserId(userId)
 	const closeUserModal = () => { setOpenUserId(null); setUserBreakdown(null); setUserResumeSlug(null) }
@@ -161,6 +155,28 @@ export default function LeaderboardsPage() {
 			const data = await res.json()
 			if (data?.slug) router.push(`/${data.slug}`)
 		} catch {}
+	}
+
+	const refreshLeaderboards = async () => {
+		try {
+			setRefreshing(true)
+			// Recompute cached tables so other views (like breakdown norms) can be fresh
+			await fetch('/api/leaderboards/recompute', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ periods: ['weekly','monthly','all'], games: ['typing-hero','disc-personality','ultimate','bpoc-cultural'] })
+			})
+			// Trigger main list and modal re-fetch
+			setRefreshNonce(n => n + 1)
+			if (openUserId) {
+				try {
+					const bRes = await fetch(`/api/leaderboards/user/${openUserId}?source=live`, { cache: 'no-store' })
+					if (bRes.ok) setUserBreakdown(await bRes.json())
+				} catch {}
+			}
+		} finally {
+			setRefreshing(false)
+		}
 	}
 
 	const RankBadge = ({ rank }: { rank: number }) => {
@@ -235,7 +251,7 @@ export default function LeaderboardsPage() {
 		const rank = row.rank
 		const name = row.user?.full_name || row.userId
 		const avatar = row.user?.avatar_url || ''
-		return (
+  return (
 			<motion.div key={`${row.userId}-${rank}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * index }}>
 				<Card className="glass-card border-white/10 hover:border-cyan-400/30 transition hover:translate-x-0.5 cursor-pointer" onClick={() => openUserModal(row.userId)}>
 					<CardContent className="p-5">
@@ -243,7 +259,7 @@ export default function LeaderboardsPage() {
 							<RankBadge rank={rank} />
 							<div className="w-12 h-12 rounded-full bg-white/10 overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
 								{avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-gray-400 text-sm">N/A</span>}
-							</div>
+      </div>
 							<div className="flex-1 min-w-0">
 								<div className="text-white font-semibold truncate flex items-center gap-2">
 									<a
@@ -273,26 +289,26 @@ export default function LeaderboardsPage() {
 											<span className="w-20">Applications</span>
 											<Bar value={row.components?.applicant_norm ?? 0} color="bg-purple-500" />
 											<span className="w-10 text-right">{Math.round(row.components?.applicant_norm ?? 0)}</span>
-										</div>
+                </div>
 										<div className="flex items-center gap-2 text-[11px] text-gray-300">
 											<span className="w-20">Engagement</span>
 											<Bar value={row.components?.engagement_norm ?? 0} color="bg-amber-500" />
 											<span className="w-10 text-right">{Math.round(row.components?.engagement_norm ?? 0)}</span>
-										</div>
-									</div>
+              </div>
+            </div>
 								)}
 								{category === 'game' && (
 									<div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
 										<Badge variant="secondary" className="bg-white/10 border-white/20 text-white">Best {row.bestScore}</Badge>
 										<Badge variant="secondary" className="bg-white/10 border-white/20 text-white">Plays {row.plays}</Badge>
 										{row.lastPlayed && <span className="text-gray-400">Last played {new Date(row.lastPlayed).toLocaleDateString()}</span>}
-									</div>
-								)}
-							</div>
-						</div>
-					</CardContent>
-				</Card>
-			</motion.div>
+                    </div>
+                  )}
+                </div>
+                  </div>
+                </CardContent>
+              </Card>
+          </motion.div>
 		)
 	}
 
@@ -315,8 +331,21 @@ export default function LeaderboardsPage() {
                     Compete, improve, and rise to the top of our rankings
                   </p>
                 </div>
+
+                </div>
+              <div className="hidden md:flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
+                  <span>{getCategoryEmoji('' + category)}</span> Live Rankings
+                </span>
               </div>
             </div>
+          </motion.div>
+
+          {/* Simple intro sentence */}
+          <div className="mb-4 text-sm text-gray-300">
+            Here are our top candidates — users ahead toward getting hired.
+            </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Column */}
@@ -361,6 +390,11 @@ export default function LeaderboardsPage() {
                     </Select>
                   </>
                 )}
+
+                <Button onClick={refreshLeaderboards} disabled={refreshing} className="ml-auto bg-white/10 border border-white/20 hover:bg-white/20 text-white">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  {refreshing ? 'Refreshing…' : 'Refresh'}
+                </Button>
               </div>
 
 
@@ -471,11 +505,9 @@ export default function LeaderboardsPage() {
                       </Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
 
-              {/* Pagination moved inside card */}
-            </div>
+                        </div>
+
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
@@ -519,8 +551,8 @@ export default function LeaderboardsPage() {
                           </tr>
                         </tbody>
                       </table>
-                    </div>
-                  </div>
+                          </div>
+                        </div>
 
                   <div>
                     <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-purple-400 rounded-full" /> Game Scores</div>
@@ -539,8 +571,8 @@ export default function LeaderboardsPage() {
                           <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">DISC Personality</td><td className="px-3 py-2">Average of D, I, S, C</td></tr>
                         </tbody>
                       </table>
-              </div>
-            </div>
+                          </div>
+                        </div>
 
                   <div>
                     <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-green-400 rounded-full" /> Applications Points</div>
@@ -585,10 +617,12 @@ export default function LeaderboardsPage() {
                         </tbody>
                       </table>
                     </div>
-                    <p className="mt-2 px-3 py-2 rounded bg-white/10 border border-white/20 text-[11px] text-gray-400">Engagement points are one‑time bonuses.</p>
-                  </div>
-                </CardContent>
-              </Card>
+
+                    <p className="mt-1 text-[10px] text-gray-400">Engagement points are one‑time bonuses.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
             </div>
             </div>
 
@@ -610,17 +644,17 @@ export default function LeaderboardsPage() {
                     {selectedUser.user?.avatar_url ? (
                       <img src={selectedUser.user.avatar_url} alt={selectedUser.user?.full_name || selectedUser.userId} className="w-full h-full object-cover" />
                     ) : null}
-                  </div>
-                  <button
+                </div>
+                    <button
                     onClick={(e) => goToResume(e as any, selectedUser.userId)}
                     className="text-cyan-300 hover:underline truncate"
                     title="Open resume"
-                  >
+                    >
                     {selectedUser.user?.full_name || selectedUser.userId}
-                  </button>
+                    </button>
                   <Badge className="bg-amber-500/20 border-amber-500/30 text-amber-300">Hire‑ready</Badge>
-                </div>
-              )}
+                      </div>
+                    )}
               {loadingBreakdown && (
                 <div className="text-gray-400">Loading...</div>
               )}
@@ -650,8 +684,8 @@ export default function LeaderboardsPage() {
                             ))}
                           </TableBody>
                         </Table>
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                     {/* Applications & Engagement */}
                     <div className="bg-white/5 rounded p-4 md:col-span-2">
@@ -702,7 +736,7 @@ export default function LeaderboardsPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+              </div>
             </div>
 
                   {/* Totals row under tables */}

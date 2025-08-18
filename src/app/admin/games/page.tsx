@@ -160,6 +160,11 @@ export default function GamesPage() {
   const [deleteStatType, setDeleteStatType] = useState<string>('')
   const [deleteStatName, setDeleteStatName] = useState<string>('')
 
+  // New: BPOC Cultural results admin view state
+  const [bpocResults, setBpocResults] = useState<any[]>([])
+  const [bpocSelected, setBpocSelected] = useState<any | null>(null)
+  const [bpocLoading, setBpocLoading] = useState<boolean>(false)
+
   const tabs: GameTab[] = [
     { id: 'typing-hero', name: 'Typing Hero', icon: Keyboard },
     { id: 'disc-personality', name: 'BPOC DISC', icon: Brain },
@@ -232,6 +237,22 @@ export default function GamesPage() {
     }
   }, [])
 
+  const fetchBpocResults = useCallback(async () => {
+    try {
+      setBpocLoading(true)
+      setError(null)
+      const res = await fetch('/api/admin/bpoc-cultural-results?limit=200', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to fetch BPOC cultural results')
+      const data = await res.json()
+      setBpocResults(Array.isArray(data.results) ? data.results : [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch BPOC cultural results')
+      setBpocResults([])
+    } finally {
+      setBpocLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (selectedTab === 'typing-hero') {
       fetchTypingHeroStats()
@@ -239,8 +260,10 @@ export default function GamesPage() {
       fetchUltimateStats()
     } else if (selectedTab === 'disc-personality') {
       fetchDiscPersonalityStats()
+    } else if (selectedTab === 'bpoc-cultural') {
+      fetchBpocResults()
     }
-  }, [selectedTab, fetchTypingHeroStats, fetchUltimateStats, fetchDiscPersonalityStats])
+  }, [selectedTab, fetchTypingHeroStats, fetchUltimateStats, fetchDiscPersonalityStats, fetchBpocResults])
 
   const gameData: GameData[] = [
     {
@@ -1062,6 +1085,169 @@ export default function GamesPage() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* BPOC Cultural Results */}
+        {selectedTab === 'bpoc-cultural' && (
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                BPOC Cultural Results
+              </CardTitle>
+              <div className="flex items-center gap-4 ml-auto">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+                {(searchTerm || filterType !== 'all') && (
+                  <Button onClick={clearAllFilters} variant="ghost" size="sm" className="text-gray-400 hover:text-white border border-white/20">Clear Filters</Button>
+                )}
+                <Button onClick={fetchBpocResults} variant="outline" className="border-white/20 text-white hover:bg-white/10">Refresh</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {bpocLoading ? (
+                <div className="text-center py-8 text-gray-400">Loading...</div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-400">{error}</div>
+              ) : (
+                <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10 hover:bg-white/5">
+                        <TableHead className="text-white font-medium">User</TableHead>
+                        <TableHead className="text-white font-medium">Summary</TableHead>
+                        <TableHead className="text-white font-medium">US</TableHead>
+                        <TableHead className="text-white font-medium">UK</TableHead>
+                        <TableHead className="text-white font-medium">AU</TableHead>
+                        <TableHead className="text-white font-medium">CA</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bpocResults
+                        .filter((r) => {
+                          if (!searchTerm) return true
+                          const hay = `${r.full_name || ''}`.toLowerCase()
+                          return hay.includes(searchTerm.toLowerCase())
+                        })
+                        .map((r) => {
+                          const res = r.result_json || {}
+                          const per = (res?.per_region_recommendation || {})
+                          return (
+                            <TableRow key={r.id} className="border-white/10 hover:bg-white/5">
+                              <TableCell onClick={() => setBpocSelected(r)} className="cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="w-8 h-8">
+                                    <AvatarImage src={r.avatar_url || ''} alt={r.full_name || r.user_id} />
+                                    <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">{String(r.full_name || '?').charAt(0).toUpperCase()}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-medium text-white">{r.full_name || r.user_id}</div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell onClick={() => setBpocSelected(r)} className="cursor-pointer max-w-[420px]">
+                                <div className="text-gray-300 truncate" title={r.summary_text || ''}>{r.summary_text || '—'}</div>
+                              </TableCell>
+                              <TableCell onClick={() => setBpocSelected(r)} className="cursor-pointer">{String(per?.US || per?.us || '—').toUpperCase()}</TableCell>
+                              <TableCell onClick={() => setBpocSelected(r)} className="cursor-pointer">{String(per?.UK || per?.uk || '—').toUpperCase()}</TableCell>
+                              <TableCell onClick={() => setBpocSelected(r)} className="cursor-pointer">{String(per?.AU || per?.au || '—').toUpperCase()}</TableCell>
+                              <TableCell onClick={() => setBpocSelected(r)} className="cursor-pointer">{String(per?.CA || per?.ca || '—').toUpperCase()}</TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-white">
+                                    <DropdownMenuItem
+                                      className="text-red-400 focus:text-red-400"
+                                      onClick={async () => {
+                                        try {
+                                          const resp = await fetch(`/api/admin/bpoc-cultural-results/${r.id}`, { method: 'DELETE' })
+                                          if (resp.ok) {
+                                            setBpocResults(prev => prev.filter(x => x.id !== r.id))
+                                          }
+                                        } catch {}
+                                      }}
+                                    >
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* BPOC Cultural Result Modal */}
+        {bpocSelected && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setBpocSelected(null)}>
+            <div className="bg-gray-900 border border-white/20 rounded-lg p-6 max-w-3xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-white font-semibold">BPOC Cultural Result</div>
+                <Button variant="ghost" className="border border-white/20" onClick={() => setBpocSelected(null)}>Close</Button>
+              </div>
+              <div className="text-sm text-gray-300 space-y-3">
+                <div>
+                  <div className="text-gray-400">User</div>
+                  <div className="text-white">{bpocSelected.full_name || bpocSelected.user_id} <span className="text-gray-400">{bpocSelected.email || ''}</span></div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Summary</div>
+                  <div className="text-white whitespace-pre-wrap">{bpocSelected.summary_text || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Hire Recommendation</div>
+                  <div className="text-white">{String(bpocSelected.result_json?.hire_recommendation || '—').replace(/_/g,' ').toUpperCase()}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Per‑Region</div>
+                  <div className="flex flex-wrap gap-2">
+                    {['US','UK','AU','CA'].map(r => (
+                      <Badge key={r} className="bg-white/10 border-white/20 text-white">{r}: {String(bpocSelected.result_json?.per_region_recommendation?.[r] || bpocSelected.result_json?.per_region_recommendation?.[r.toLowerCase()] || '—').toUpperCase()}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Writing</div>
+                  <div className="text-white text-sm">Score: {bpocSelected.result_json?.writing?.score ?? '—'} • Style: {bpocSelected.result_json?.writing?.style || '—'} • Tone: {bpocSelected.result_json?.writing?.tone || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Strengths</div>
+                  <div className="flex flex-wrap gap-2">
+                    {(bpocSelected.result_json?.strengths || []).map((s: string, i: number) => (
+                      <Badge key={`s-${i}`} className="bg-white/10 border-white/20 text-white">{s}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Risks</div>
+                  <div className="flex flex-wrap gap-2">
+                    {(bpocSelected.result_json?.risks || []).map((s: string, i: number) => (
+                      <Badge key={`r-${i}`} className="bg-white/10 border-white/20 text-white">{s}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">Result ID: {bpocSelected.id} • Session: {bpocSelected.session_id || '—'} • Model: {bpocSelected.model_provider} {bpocSelected.model_version}</div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Delete Confirmation Dialog */}

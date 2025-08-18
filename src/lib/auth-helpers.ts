@@ -18,4 +18,14 @@ export async function isAuthenticated(): Promise<boolean> {
     console.error('Error checking authentication:', error)
     return false
   }
+}
+
+export async function getUserId(): Promise<string | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user?.id || null
+  } catch (error) {
+    console.error('Error getting user id:', error)
+    return null
+  }
 } 

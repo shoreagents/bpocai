@@ -82,8 +82,11 @@ export default function SavedResumePage() {
   const [discLatest, setDiscLatest] = useState<any | null>(null);
   const [ultimateStats, setUltimateStats] = useState<any | null>(null);
   const [ultimateLatest, setUltimateLatest] = useState<any | null>(null);
-  const [culturalStats, setCulturalStats] = useState<any | null>(null);
-  const [culturalLatest, setCulturalLatest] = useState<any | null>(null);
+
+  const [bpocCulturalLatest, setBpocCulturalLatest] = useState<any | null>(null);
+  const [bpocCulturalAll, setBpocCulturalAll] = useState<any[] | null>(null);
+  const [bpocCulturalSessions, setBpocCulturalSessions] = useState<Record<string, any>>({});
+
 
   // Starfield state
   const [stars, setStars] = useState<Array<{
@@ -194,11 +197,14 @@ export default function SavedResumePage() {
           setUltimateStats(u.stats || null)
           setUltimateLatest(u.latestSession || null)
         }
-        const cres = await fetch(`/api/games/bpoc-cultural/public/${resume.userId}`, { cache: 'no-store' })
-        if (cres.ok) {
-          const c = await cres.json()
-          setCulturalStats(c.stats || null)
-          setCulturalLatest(c.latestSession || null)
+
+        const bres = await fetch(`/api/games/bpoc-cultural/public/${resume.userId}`, { cache: 'no-store' })
+        if (bres.ok) {
+          const b = await bres.json()
+          setBpocCulturalLatest(b.latestResult || null)
+          setBpocCulturalAll(Array.isArray(b.results) ? b.results : null)
+          setBpocCulturalSessions(b.sessionsById || {})
+
         }
       } catch {}
     })()
@@ -1406,32 +1412,85 @@ export default function SavedResumePage() {
                         <Globe className="w-5 h-5 text-cyan-400" />
                         <CardTitle className="text-white">BPOC Cultural</CardTitle>
                       </CardHeader>
-                      <CardContent className="text-sm text-gray-300 space-y-2">
-                        {culturalStats ? (
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>Survival Status: <span className="text-white font-semibold">{culturalStats.survival_status ?? '—'}%</span></div>
-                            <div>Cultural Score: <span className="text-white font-semibold">{culturalStats.cultural_score ?? '—'}</span></div>
-                            <div>US Score: <span className="text-white font-semibold">{culturalStats.us_score ?? '—'}</span></div>
-                            <div>UK Score: <span className="text-white font-semibold">{culturalStats.uk_score ?? '—'}</span></div>
-                            <div>AU Score: <span className="text-white font-semibold">{culturalStats.au_score ?? '—'}</span></div>
-                            <div>CA Score: <span className="text-white font-semibold">{culturalStats.ca_score ?? '—'}</span></div>
-                            <div>Total Sessions: <span className="text-white font-semibold">{culturalStats.total_sessions ?? 0}</span></div>
-                            <div>Best Session: <span className="text-white font-semibold">{culturalStats.best_session_score ?? '—'}</span></div>
-                          </div>
+
+                      <CardContent className="text-sm text-gray-300 space-y-3">
+                        {bpocCulturalLatest ? (
+                          <>
+                            {bpocCulturalLatest.summary && (
+                              <div>
+                                <div className="text-gray-400 mb-1">Latest Summary</div>
+                                <div className="text-white/90 whitespace-pre-wrap text-sm">{bpocCulturalLatest.summary}</div>
+                              </div>
+                            )}
+                            {bpocCulturalLatest.result && (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>Hire Recommendation: <span className="text-white font-semibold">{String(bpocCulturalLatest.result?.hire_recommendation || '—').replace(/_/g, ' ').toUpperCase()}</span></div>
+                                {bpocCulturalLatest.result?.writing?.score != null && (
+                                  <div>Writing Score: <span className="text-white font-semibold">{bpocCulturalLatest.result.writing.score}</span></div>
+                                )}
+                                <div className="col-span-2">
+                                  <div className="text-gray-400 mb-1">Per‑Region</div>
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    {['US','UK','AU','CA'].map(r => (
+                                      <span key={r} className="px-2 py-1 bg-white/5 rounded border border-white/10 text-white/90">
+                                        {r}: {String(bpocCulturalLatest.result?.per_region_recommendation?.[r] || '—').toUpperCase()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Strengths */}
+                            {Array.isArray(bpocCulturalLatest.result?.strengths) && bpocCulturalLatest.result.strengths.length > 0 && (
+                              <div>
+                                <div className="text-gray-400">Strengths</div>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {bpocCulturalLatest.result.strengths.map((s: string, i: number) => (
+                                    <span key={`str-${i}`} className="px-2 py-1 bg-white/5 rounded text-xs text-white/90 border border-white/10">{s}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Latest Session */}
+                            {bpocCulturalLatest.sessionId && bpocCulturalSessions[String(bpocCulturalLatest.sessionId)] && (
+                              <div className="mt-2 text-gray-400">
+                                <div className="text-xs">Latest Session</div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div>Date: <span className="text-white">{new Date(bpocCulturalSessions[String(bpocCulturalLatest.sessionId)].startedAt).toLocaleString()}</span></div>
+                                  {bpocCulturalSessions[String(bpocCulturalLatest.sessionId)].tierName && (
+                                    <div>Tier: <span className="text-white">{bpocCulturalSessions[String(bpocCulturalLatest.sessionId)].tierName}</span></div>
+                                  )}
+                                  <div>Survival: <span className="text-white">{bpocCulturalSessions[String(bpocCulturalLatest.sessionId)].survivalStatus ?? '—'}{bpocCulturalSessions[String(bpocCulturalLatest.sessionId)].survivalStatus != null ? '%' : ''}</span></div>
+                                  <div>Interactions: <span className="text-white">{bpocCulturalSessions[String(bpocCulturalLatest.sessionId)].interactionCount ?? '—'}</span></div>
+                                </div>
+                              </div>
+                            )}
+
+                            {Array.isArray(bpocCulturalAll) && bpocCulturalAll.length > 1 && (
+                              <div className="pt-2">
+                                <div className="text-gray-400 mb-1">All Results</div>
+                                <div className="space-y-2">
+                                  {bpocCulturalAll.map((r, i) => (
+                                    <div key={r.id || i} className="p-3 bg-white/5 rounded border border-white/10">
+                                      <div className="text-xs text-gray-400 mb-1">
+                                        Session: <span className="text-white">{r.sessionId || '—'}</span>
+                                        {r.sessionId && bpocCulturalSessions[String(r.sessionId)]?.startedAt && (
+                                          <span> • {new Date(bpocCulturalSessions[String(r.sessionId)].startedAt).toLocaleString()}</span>
+                                        )}
+                                      </div>
+                                      {r.summary && <div className="text-white/90 text-sm">{r.summary}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <div className="text-gray-400">No data yet.</div>
                         )}
-                        {culturalLatest && (
-                          <div className="mt-2 text-gray-400">
-                            <div className="text-xs">Latest Session</div>
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                              <div>Date: <span className="text-white">{new Date(culturalLatest.started_at).toLocaleString()}</span></div>
-                              <div>Survival: <span className="text-white">{culturalLatest.survival_status ?? '—'}%</span></div>
-                              <div>Cultural Score: <span className="text-white">{culturalLatest.cultural_score ?? '—'}</span></div>
-                              <div>Duration: <span className="text-white">{culturalLatest.duration_ms ? `${Math.round(culturalLatest.duration_ms / 1000)}s` : '—'}</span></div>
-                            </div>
-                          </div>
-                        )}
+
                       </CardContent>
                     </Card>
 

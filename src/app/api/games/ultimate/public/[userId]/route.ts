@@ -5,7 +5,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
-  const userId = params.userId
+  const { userId } = await Promise.resolve(params)
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
   try {

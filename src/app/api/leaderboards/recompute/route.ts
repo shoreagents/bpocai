@@ -28,16 +28,39 @@ async function fetchGameSessionRows(
 		return res.rows.filter((r: any) => Number.isFinite(Number(r.score)) && Number(r.score) > 0)
 	}
 	if (gid === 'bpoc-cultural') {
-		const q = `SELECT user_id,
-				CASE 
-				  WHEN ((us_score IS NOT NULL)::int + (uk_score IS NOT NULL)::int + (au_score IS NOT NULL)::int + (ca_score IS NOT NULL)::int) > 0
-				  THEN ROUND(((COALESCE(us_score,0) + COALESCE(uk_score,0) + COALESCE(au_score,0) + COALESCE(ca_score,0))::numeric)
-				       / NULLIF(((us_score IS NOT NULL)::int + (uk_score IS NOT NULL)::int + (au_score IS NOT NULL)::int + (ca_score IS NOT NULL)::int),0))::int
-				  ELSE NULL
-				END AS score,
-				updated_at
-			 FROM bpoc_cultural_sessions
-			 WHERE true ${timeClause}`
+		// Use AI results instead of sessions; score = average of per-region recommendations
+		const timeFilter = getPeriodStart(period) ? `AND COALESCE(created_at, now()) >= ${getPeriodStart(period)}` : ''
+		const q = `WITH latest AS (
+			SELECT DISTINCT ON (user_id)
+			  user_id,
+			  result_json,
+			  created_at,
+			  id
+			FROM bpoc_cultural_results
+			WHERE true ${timeFilter}
+			ORDER BY user_id, id DESC
+		), vals AS (
+			SELECT 
+			  user_id,
+			  result_json,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'US', result_json->'per_region_recommendation'->>'us')) WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS us,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'UK', result_json->'per_region_recommendation'->>'uk')) WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS uk,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'AU', result_json->'per_region_recommendation'->>'au')) WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS au,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'CA', result_json->'per_region_recommendation'->>'ca')) WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS ca,
+			  (CASE LOWER(result_json->>'hire_recommendation') WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS overall,
+			  COALESCE(created_at, now()) AS updated_at
+			FROM latest
+		)
+		SELECT 
+		  user_id,
+		  COALESCE(
+		    ROUND(((COALESCE(us,0) + COALESCE(uk,0) + COALESCE(au,0) + COALESCE(ca,0))::numeric
+		           / NULLIF(((us IS NOT NULL)::int + (uk IS NOT NULL)::int + (au IS NOT NULL)::int + (ca IS NOT NULL)::int), 0)
+		          )::int),
+		    COALESCE(overall, 0)
+		  ) AS score,
+		  updated_at
+		FROM vals`
 		const res = await pool.query(q)
 		return res.rows.filter((r: any) => Number.isFinite(Number(r.score)))
 	}
@@ -142,23 +165,24 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		// Engagement (all-time only)
+		// Engagement (all-time only) without game_sessions: derive completion flags from per-game tables
 		const gameList = ['typing-hero', 'disc-personality', 'ultimate', 'bpoc-cultural']
-		const [users, gamesAgg, resumes] = await Promise.all([
+		const [users, resumes, typingUsers, discUsers, ultimateUsers, bpocUsers] = await Promise.all([
 			pool.query(`SELECT id, avatar_url FROM users`),
-			pool.query(`SELECT user_id, game_id, COUNT(*) AS plays FROM game_sessions GROUP BY user_id, game_id`),
 			pool.query(`SELECT user_id, COUNT(*) AS cnt FROM saved_resumes GROUP BY user_id`),
+			pool.query(`SELECT DISTINCT user_id FROM typing_hero_sessions`),
+			pool.query(`SELECT DISTINCT user_id FROM disc_personality_sessions`),
+			pool.query(`SELECT DISTINCT user_id FROM ultimate_sessions`),
+			pool.query(`SELECT DISTINCT user_id FROM bpoc_cultural_sessions`),
 		])
 		const avatarMap = new Map<string, string | null>(users.rows.map((r: any) => [r.id, r.avatar_url]))
 		const resumeMap = new Map<string, number>(resumes.rows.map((r: any) => [r.user_id, Number(r.cnt)]))
 		const comp = new Map<string, Record<string, boolean>>()
 		for (const u of users.rows) comp.set(u.id, Object.fromEntries(gameList.map(g => [g, false])))
-		for (const row of gamesAgg.rows) {
-			const uid: string = row.user_id
-			const gid: string = row.game_id
-			if (!comp.has(uid)) comp.set(uid, Object.fromEntries(gameList.map(g => [g, false])))
-			if (gameList.includes(gid)) comp.get(uid)![gid] = true
-		}
+		for (const r of typingUsers.rows) { if (comp.has(r.user_id)) comp.get(r.user_id)!["typing-hero"] = true }
+		for (const r of discUsers.rows) { if (comp.has(r.user_id)) comp.get(r.user_id)!["disc-personality"] = true }
+		for (const r of ultimateUsers.rows) { if (comp.has(r.user_id)) comp.get(r.user_id)!["ultimate"] = true }
+		for (const r of bpocUsers.rows) { if (comp.has(r.user_id)) comp.get(r.user_id)!["bpoc-cultural"] = true }
 		for (const [uid, flags] of comp) {
 			let score = 0
 			for (const g of gameList) if (flags[g]) score += 5

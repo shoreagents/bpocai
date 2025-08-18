@@ -33,17 +33,48 @@ async function fetchGameSessionRows(
 	}
 
 	if (gid === 'bpoc-cultural') {
-		// score = average of non-null region scores
-		const q = `SELECT user_id,
-					CASE 
-					  WHEN ((us_score IS NOT NULL)::int + (uk_score IS NOT NULL)::int + (au_score IS NOT NULL)::int + (ca_score IS NOT NULL)::int) > 0
-					  THEN ROUND(((COALESCE(us_score,0) + COALESCE(uk_score,0) + COALESCE(au_score,0) + COALESCE(ca_score,0))::numeric)
-					       / NULLIF(((us_score IS NOT NULL)::int + (uk_score IS NOT NULL)::int + (au_score IS NOT NULL)::int + (ca_score IS NOT NULL)::int),0))::int
-					  ELSE NULL
-					END AS score,
-					updated_at
-			 FROM bpoc_cultural_sessions
-			 WHERE true ${timeClause}`
+		// Use AI results instead of sessions
+		// Score = average of per-region recommendations mapped to numbers (hire=100, maybe=70, do_not_hire=40)
+		// Case-insensitive region keys; fallback to overall hire_recommendation if regions missing
+		const timeFilter = getPeriodStart(period) ? `AND COALESCE(created_at, now()) >= ${getPeriodStart(period)}` : ''
+		const q = `WITH latest AS (
+			SELECT DISTINCT ON (user_id)
+			  user_id,
+			  result_json,
+			  created_at,
+			  id
+			FROM bpoc_cultural_results
+			WHERE true ${timeFilter}
+			ORDER BY user_id, id DESC
+		  ), vals AS (
+			SELECT 
+			  user_id,
+			  result_json,
+			  /* Region values with case-insensitive keys */
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'US', result_json->'per_region_recommendation'->>'us'))
+				 WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS us,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'UK', result_json->'per_region_recommendation'->>'uk'))
+				 WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS uk,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'AU', result_json->'per_region_recommendation'->>'au'))
+				 WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS au,
+			  (CASE LOWER(COALESCE(result_json->'per_region_recommendation'->>'CA', result_json->'per_region_recommendation'->>'ca'))
+				 WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS ca,
+			  /* Fallback overall */
+			  (CASE LOWER(result_json->>'hire_recommendation')
+				 WHEN 'hire' THEN 100 WHEN 'maybe' THEN 70 WHEN 'do_not_hire' THEN 40 ELSE NULL END) AS overall,
+			  COALESCE(created_at, now()) AS updated_at
+			FROM latest
+		  )
+		  SELECT 
+			user_id,
+			COALESCE(
+			  ROUND(((COALESCE(us,0) + COALESCE(uk,0) + COALESCE(au,0) + COALESCE(ca,0))::numeric
+					 / NULLIF(((us IS NOT NULL)::int + (uk IS NOT NULL)::int + (au IS NOT NULL)::int + (ca IS NOT NULL)::int), 0)
+					)::int),
+			  COALESCE(overall, 0)
+			) AS score,
+			updated_at
+		  FROM vals`
 		const res = await pool.query(q)
 		return res.rows.filter((r: any) => Number.isFinite(Number(r.score)))
 	}

@@ -6,16 +6,53 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = params.id
+    const { id: userId } = await Promise.resolve(params)
+    const source = new URL(_request.url).searchParams.get('source') || 'tables'
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
-    // Overall components
-    const overallRes = await pool.query(
-      `SELECT overall_score, game_norm, applicant_norm, engagement_norm
-       FROM leaderboard_overall_scores
-       WHERE user_id = $1`,
-      [userId]
-    )
+    // Overall components (live or tables)
+    let overallData: any = null
+    if (source === 'live') {
+      const gameNormRes = await pool.query(
+        `WITH per_game_max AS (
+           SELECT game_id, MAX(best_score) AS max_score
+           FROM leaderboard_game_scores
+           WHERE period = 'all'
+           GROUP BY game_id
+         ), per_user_game_norm AS (
+           SELECT l.user_id,
+                  AVG(100.0 * l.best_score / NULLIF(m.max_score,0)) AS game_norm
+           FROM leaderboard_game_scores l
+           JOIN per_game_max m ON m.game_id = l.game_id
+           WHERE l.period = 'all' AND l.user_id = $1
+           GROUP BY l.user_id
+         ), app AS (
+           SELECT score FROM leaderboard_applicant_scores WHERE period = 'all' AND user_id = $1
+         ), app_max AS (
+           SELECT MAX(score) AS max_app FROM leaderboard_applicant_scores WHERE period = 'all'
+         ), eng AS (
+           SELECT score FROM leaderboard_engagement_scores WHERE period = 'all' AND user_id = $1
+         ), eng_max AS (
+           SELECT MAX(score) AS max_eng FROM leaderboard_engagement_scores WHERE period = 'all'
+         )
+         SELECT 
+           COALESCE((SELECT game_norm FROM per_user_game_norm), 0) AS game_norm,
+           100.0 * COALESCE((SELECT score FROM app), 0) / NULLIF((SELECT max_app FROM app_max),0) AS applicant_norm,
+           100.0 * COALESCE((SELECT score FROM eng), 0) / NULLIF((SELECT max_eng FROM eng_max),0) AS engagement_norm`,
+        [userId]
+      )
+      const g = gameNormRes.rows[0] || { game_norm: 0, applicant_norm: 0, engagement_norm: 0 }
+      const overall = Math.round(0.6 * (g.game_norm || 0) + 0.3 * (g.applicant_norm || 0) + 0.1 * (g.engagement_norm || 0))
+      overallData = { overall_score: overall, game_norm: g.game_norm || 0, applicant_norm: g.applicant_norm || 0, engagement_norm: g.engagement_norm || 0 }
+    } else {
+      const overallRes = await pool.query(
+        `SELECT overall_score, game_norm, applicant_norm, engagement_norm
+         FROM leaderboard_overall_scores
+         WHERE user_id = $1`,
+        [userId]
+      )
+      overallData = overallRes.rows[0] || null
+    }
 
     // Applications details (per job current status -> points)
     const appsRes = await pool.query(
@@ -72,7 +109,7 @@ export async function GET(
     ]
     const engagementTotal = engagementItems.reduce((a, b) => a + b.points, 0)
 
-    // Per-game bests (all-time)
+    // Per-game bests (all-time) — already live enough from leaderboard table
     const gamesRes = await pool.query(
       `SELECT game_id, best_score, plays, last_played
        FROM leaderboard_game_scores
@@ -82,7 +119,7 @@ export async function GET(
     )
 
     return NextResponse.json({
-      overall: overallRes.rows[0] || null,
+      overall: overallData,
       applications: { total: applicationsTotal, items: applicationItems },
       engagement: { total: engScoreRes.rows[0]?.score ?? engagementTotal, items: engagementItems },
       games: gamesRes.rows || []
