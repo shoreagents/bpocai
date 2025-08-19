@@ -161,7 +161,15 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
           setErrors({ general: error.message })
         }
       } else if (data.user) {
+
         setShowVerifyDialog(true)
+
+        // Successful registration
+        console.log('Registration successful:', data.user.email)
+        // Show verification modal
+        setShowVerifyDialog(true)
+        // Optionally keep a small info banner in the sign-up form as well
+
         setSuccessMessage('Account created! Please verify your email to continue.')
       }
     } catch (error) {
