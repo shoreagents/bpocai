@@ -332,6 +332,18 @@ export default function DISCPersonalityGame() {
   const currentScenario = DISC_SCENARIOS[gameState.currentQuestion];
 
   const startGame = () => {
+    // Trigger header SignUp dialog if user is not logged in
+    if (typeof window !== 'undefined') {
+      try {
+        const token = localStorage.getItem('sb:token') || '';
+        if (!token) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('signup', 'true');
+          router.push(`${url.pathname}?${url.searchParams.toString()}`);
+          return;
+        }
+      } catch (_) {}
+    }
     setGameState(prev => ({ ...prev, gameStarted: true }));
   };
 

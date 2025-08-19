@@ -347,13 +347,8 @@ export default function LeaderboardsPage() {
                   </p>
                 </div>
 
-                </div>
-              <div className="hidden md:flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
-                  <span>{getCategoryEmoji('' + category)}</span> Live Rankings
-                </span>
-              </div>
-            </div>
+                                 </div>
+             </div>
 
           {/* Simple intro sentence */}
           <div className="mb-4 text-sm text-gray-300">

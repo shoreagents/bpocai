@@ -280,6 +280,19 @@ export default function Header({}: HeaderProps) {
     setIsMobileMenuOpen(false)
   }
 
+  // Remove signup query param when dialog closes so it can be re-triggered next time
+  const clearSignupQueryParam = () => {
+    if (typeof window === 'undefined') return
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.has('signup')) {
+        url.searchParams.delete('signup')
+        // Replace without adding history entry
+        router.replace(`${url.pathname}${url.search ? `?${url.searchParams.toString()}` : ''}`)
+      }
+    } catch {}
+  }
+
   return (
     <>
       <Suspense fallback={null}>
@@ -530,7 +543,10 @@ export default function Header({}: HeaderProps) {
       {/* Sign Up Dialog */}
       <SignUpForm 
         open={isSignUpDialogOpen} 
-        onOpenChange={setIsSignUpDialogOpen}
+        onOpenChange={(open) => {
+          setIsSignUpDialogOpen(open)
+          if (!open) clearSignupQueryParam()
+        }}
         onSwitchToLogin={handleSwitchToLogin}
       />
       

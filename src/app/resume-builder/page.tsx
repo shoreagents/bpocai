@@ -42,6 +42,15 @@ export default function ResumeBuilderPage() {
   // Individual file progress tracking
   const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
 
+  // Trigger header SignUp dialog via URL param when not logged in
+  const openSignup = () => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('signup', 'true');
+    // Preserve other params but ensure signup=true
+    router.push(`${url.pathname}?${url.searchParams.toString()}`);
+  };
+
   // Redirect users who already have a saved resume
   useEffect(() => {
     const checkSavedResume = async () => {
@@ -80,12 +89,13 @@ export default function ResumeBuilderPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
+    if (!user) { openSignup(); return; }
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
   }, []);
 
   const handleFiles = (files: File[]) => {
+    if (!user) { openSignup(); return; }
     const validFiles: File[] = [];
     const newErrors: string[] = [];
 
@@ -114,6 +124,7 @@ export default function ResumeBuilderPage() {
   };
 
   const addPortfolioLink = () => {
+    if (!user) { openSignup(); return; }
     if (!newLink.trim()) return;
 
     if (!isValidUrl(newLink)) {
@@ -188,6 +199,7 @@ export default function ResumeBuilderPage() {
 
   // Process uploaded files to JSON using OpenAI
   const processUploadedFiles = async () => {
+    if (!user) { openSignup(); return; }
     if (uploadedFiles.length === 0) return;
 
     // Clear previous logs and show processing

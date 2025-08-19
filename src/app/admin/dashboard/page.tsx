@@ -47,6 +47,9 @@ export default function DashboardPage() {
   const [gamePerformance, setGamePerformance] = useState<any[]>([])
   const [applicationTrends, setApplicationTrends] = useState<any[]>([])
   const [userRegistrationTrends, setUserRegistrationTrends] = useState<any[]>([])
+  const [gameRange, setGameRange] = useState<'7d'|'30d'|'90d'|'1y'|'all'>('30d')
+  const [applicationsRange, setApplicationsRange] = useState<'7d'|'30d'|'90d'>('7d')
+  const [registrationsRange, setRegistrationsRange] = useState<'7d'|'30d'|'90d'>('7d')
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -54,107 +57,148 @@ export default function DashboardPage() {
         setLoading(true)
         
         // Fetch total users
-        const usersResponse = await fetch('/api/admin/total-users')
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json()
-          setTotalUsers(usersData.total_users)
-        } else {
-          console.error('Failed to fetch total users')
+        try {
+          const usersResponse = await fetch('/api/admin/total-users')
+          if (usersResponse.ok) {
+            const usersData = await usersResponse.json()
+            setTotalUsers(usersData.total_users)
+          } else {
+            console.error('Failed to fetch total users:', usersResponse.status)
+            setTotalUsers(0)
+          }
+        } catch (error) {
+          console.error('Error fetching total users:', error)
+          setTotalUsers(0)
         }
         
         // Fetch total resumes
-        const resumesResponse = await fetch('/api/admin/total-resumes')
-        if (resumesResponse.ok) {
-          const resumesData = await resumesResponse.json()
-          setTotalResumes(resumesData.total_resumes)
-        } else {
-          console.error('Failed to fetch total resumes')
+        try {
+          const resumesResponse = await fetch('/api/admin/total-resumes')
+          if (resumesResponse.ok) {
+            const resumesData = await resumesResponse.json()
+            setTotalResumes(resumesData.total_resumes)
+          } else {
+            console.error('Failed to fetch total resumes:', resumesResponse.status)
+            setTotalResumes(0)
+          }
+        } catch (error) {
+          console.error('Error fetching total resumes:', error)
+          setTotalResumes(0)
         }
 
         // Fetch total applicants
-        const applicantsResponse = await fetch('/api/admin/total-applicants')
-        if (applicantsResponse.ok) {
-          const applicantsData = await applicantsResponse.json()
-          setTotalApplicants(applicantsData.total_applicants)
-        } else {
-          console.error('Failed to fetch total applicants')
+        try {
+          const applicantsResponse = await fetch('/api/admin/total-applicants')
+          if (applicantsResponse.ok) {
+            const applicantsData = await applicantsResponse.json()
+            setTotalApplicants(applicantsData.total_applicants)
+          } else {
+            console.error('Failed to fetch total applicants:', applicantsResponse.status)
+            setTotalApplicants(0)
+          }
+        } catch (error) {
+          console.error('Error fetching total applicants:', error)
+          setTotalApplicants(0)
         }
 
         // Fetch active jobs
-        const jobsResponse = await fetch('/api/admin/active-jobs')
-        if (jobsResponse.ok) {
-          const jobsData = await jobsResponse.json()
-          setActiveJobs(jobsData.active_jobs)
-        } else {
-          console.error('Failed to fetch active jobs')
+        try {
+          const jobsResponse = await fetch('/api/admin/active-jobs')
+          if (jobsResponse.ok) {
+            const jobsData = await jobsResponse.json()
+            setActiveJobs(jobsData.active_jobs)
+          } else {
+            console.error('Failed to fetch active jobs:', jobsResponse.status)
+            setActiveJobs(0)
+          }
+        } catch (error) {
+          console.error('Error fetching active jobs:', error)
+          setActiveJobs(0)
         }
 
         // Fetch recent activity
-        const activityResponse = await fetch('/api/admin/recent-activity')
-        console.log('🔍 Activity API response status:', activityResponse.status)
-        
-        if (activityResponse.ok) {
-          const activityData = await activityResponse.json()
-          console.log('✅ Activity data received:', activityData)
-          console.log('📊 Activity data structure:', {
-            hasRecentActivity: !!activityData.recent_activity,
-            recentActivityLength: activityData.recent_activity?.length,
-            recentActivityType: typeof activityData.recent_activity,
-            fullResponse: activityData
-          })
-          setRecentActivity(activityData.recent_activity || [])
-        } else {
-          console.error('❌ Failed to fetch recent activity:', activityResponse.status)
-          const errorText = await activityResponse.text()
-          console.error('❌ Error details:', errorText)
+        try {
+          const activityResponse = await fetch('/api/admin/recent-activity')
+          console.log('🔍 Activity API response status:', activityResponse.status)
+          
+          if (activityResponse.ok) {
+            const activityData = await activityResponse.json()
+            console.log('✅ Activity data received:', activityData)
+            console.log('📊 Activity data structure:', {
+              hasRecentActivity: !!activityData.recent_activity,
+              recentActivityLength: activityData.recent_activity?.length,
+              recentActivityType: typeof activityData.recent_activity,
+              fullResponse: activityData
+            })
+            setRecentActivity(activityData.recent_activity || [])
+          } else {
+            console.error('❌ Failed to fetch recent activity:', activityResponse.status)
+            const errorText = await activityResponse.text()
+            console.error('❌ Error details:', errorText)
+            setRecentActivity([])
+          }
+        } catch (error) {
+          console.error('❌ Error fetching recent activity:', error)
+          setRecentActivity([])
         }
 
         // Fetch game performance data
-        const gamePerformanceResponse = await fetch('/api/admin/game-performance')
-        console.log('🔍 Game Performance API response status:', gamePerformanceResponse.status)
-        
-        if (gamePerformanceResponse.ok) {
-          const gamePerformanceData = await gamePerformanceResponse.json()
-          console.log('✅ Game Performance data received:', gamePerformanceData)
-          console.log('📊 Game Performance data structure:', {
-            hasGamePerformance: !!gamePerformanceData.game_performance,
-            gamePerformanceLength: gamePerformanceData.game_performance?.length,
-            gamePerformanceType: typeof gamePerformanceData.game_performance,
-            fullResponse: gamePerformanceData
-          })
-          setGamePerformance(gamePerformanceData.game_performance || [])
-        } else {
-          console.error('❌ Failed to fetch game performance data:', gamePerformanceResponse.status)
-          const errorText = await gamePerformanceResponse.text()
-          console.error('❌ Error details:', errorText)
+        try {
+          const gamePerformanceResponse = await fetch(`/api/admin/game-performance?range=${gameRange}`)
+          console.log('🔍 Game Performance API response status:', gamePerformanceResponse.status)
+          
+          if (gamePerformanceResponse.ok) {
+            const gamePerformanceData = await gamePerformanceResponse.json()
+            console.log('✅ Game Performance data received:', gamePerformanceData)
+            console.log('📊 Game Performance data structure:', {
+              hasGamePerformance: !!gamePerformanceData.game_performance,
+              gamePerformanceLength: gamePerformanceData.game_performance?.length,
+              gamePerformanceType: typeof gamePerformanceData.game_performance,
+              fullResponse: gamePerformanceData
+            })
+            setGamePerformance(gamePerformanceData.game_performance || [])
+          } else {
+            console.error('❌ Failed to fetch game performance data:', gamePerformanceResponse.status)
+            const errorText = await gamePerformanceResponse.text()
+            console.error('❌ Error details:', errorText)
+            setGamePerformance([])
+          }
+        } catch (error) {
+          console.error('❌ Error fetching game performance data:', error)
+          setGamePerformance([])
         }
 
         // Fetch application trends data
-        const applicationTrendsResponse = await fetch('/api/admin/application-trends')
-        if (applicationTrendsResponse.ok) {
-          const applicationTrendsData = await applicationTrendsResponse.json()
-          setApplicationTrends(applicationTrendsData.application_trends)
-        } else {
-          console.error('Failed to fetch application trends data')
+        try {
+          const applicationTrendsResponse = await fetch(`/api/admin/application-trends?range=${applicationsRange}`)
+          if (applicationTrendsResponse.ok) {
+            const applicationTrendsData = await applicationTrendsResponse.json()
+            setApplicationTrends(applicationTrendsData.application_trends || [])
+          } else {
+            console.error('Failed to fetch application trends data:', applicationTrendsResponse.status)
+            setApplicationTrends([])
+          }
+        } catch (error) {
+          console.error('Error fetching application trends data:', error)
+          setApplicationTrends([])
         }
 
         // Fetch user registration trends data
-        const userRegistrationTrendsResponse = await fetch('/api/admin/user-registration-trends')
-        if (userRegistrationTrendsResponse.ok) {
-          const userRegistrationTrendsData = await userRegistrationTrendsResponse.json()
-          setUserRegistrationTrends(userRegistrationTrendsData.user_registration_trends)
-        } else {
-          console.error('Failed to fetch user registration trends data')
+        try {
+          const userRegistrationTrendsResponse = await fetch(`/api/admin/user-registration-trends?range=${registrationsRange}`)
+          if (userRegistrationTrendsResponse.ok) {
+            const userRegistrationTrendsData = await userRegistrationTrendsResponse.json()
+            setUserRegistrationTrends(userRegistrationTrendsData.user_registration_trends || [])
+          } else {
+            console.error('Failed to fetch user registration trends data:', userRegistrationTrendsResponse.status)
+            setUserRegistrationTrends([])
+          }
+        } catch (error) {
+          console.error('Error fetching user registration trends data:', error)
+          setUserRegistrationTrends([])
         }
 
-        // Test game data to see what exists
-        const testGameDataResponse = await fetch('/api/admin/test-game-data')
-        if (testGameDataResponse.ok) {
-          const testGameData = await testGameDataResponse.json()
-          console.log('🎮 Test game data:', testGameData)
-        } else {
-          console.error('Failed to fetch test game data')
-        }
+
         
       } catch (err) {
         console.error('Error fetching dashboard data:', err)
@@ -164,7 +208,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData()
-  }, [])
+  }, [gameRange, applicationsRange, registrationsRange])
 
   const getTypeBadge = (type: string) => {
     const variants = {
@@ -523,15 +567,21 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white">Recent Game Performance</CardTitle>
-                    <p className="text-sm text-gray-400">Latest game scores and achievements</p>
+                    <CardTitle className="text-white">Game User Distribution</CardTitle>
+                    <p className="text-sm text-gray-400">Number of users playing each game</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-green-400 font-medium">Live Data</p>
-                    <Button variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/10">
-                      <Gamepad2 className="w-3 h-3 mr-1" />
-                      Real-time
-                    </Button>
+                    <select
+                      value={gameRange}
+                      onChange={(e) => setGameRange(e.target.value as any)}
+                      className="bg-transparent border border-white/10 text-white text-sm rounded px-2 py-1"
+                    >
+                      <option value="7d">Last 7d</option>
+                      <option value="30d">Last 30d</option>
+                      <option value="90d">Last 90d</option>
+                      <option value="1y">Last 1y</option>
+                      <option value="all">All time</option>
+                    </select>
                   </div>
                 </div>
               </CardHeader>
@@ -539,20 +589,20 @@ export default function DashboardPage() {
                   <div className="h-64 bg-white/5 rounded-lg p-4">
                     {gamePerformance.length > 0 ? (
                       <BarChartComponent 
-                        data={gamePerformance.slice(0, 8).map((game, index) => ({
-                          name: game.userName,
-                          score: game.score || 0,
+                        data={gamePerformance.map((game, index) => ({
+                          name: game.displayName || game.gameType,
+                          users: game.userCount || 0,
                           gameType: game.gameType,
-                          displayText: game.displayText
+                          displayText: `${game.userCount} users`
                         }))}
-                        dataKey="score"
+                        dataKey="users"
                         fill="#10b981"
                       />
-                                         ) : (
-                       <div className="flex items-center justify-center h-full text-gray-400">
-                         <p>No recent game data</p>
-                       </div>
-                     )}
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400">
+                        <p>No game data available</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
             </Card>
@@ -569,11 +619,15 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-400">Daily job application activity</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-green-400 font-medium">Live Data</p>
-                    <Button variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/10">
-                      <ClipboardList className="w-3 h-3 mr-1" />
-                      Real-time
-                    </Button>
+                    <select
+                      value={applicationsRange}
+                      onChange={(e) => setApplicationsRange(e.target.value as any)}
+                      className="bg-transparent border border-white/10 text-white text-sm rounded px-2 py-1"
+                    >
+                      <option value="7d">Last 7d</option>
+                      <option value="30d">Last 30d</option>
+                      <option value="90d">Last 90d</option>
+                    </select>
                   </div>
                 </div>
               </CardHeader>
@@ -606,11 +660,15 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-400">Daily new user signups</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-green-400 font-medium">Live Data</p>
-                    <Button variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/10">
-                      <Users className="w-3 h-3 mr-1" />
-                      Real-time
-                    </Button>
+                    <select
+                      value={registrationsRange}
+                      onChange={(e) => setRegistrationsRange(e.target.value as any)}
+                      className="bg-transparent border border-white/10 text-white text-sm rounded px-2 py-1"
+                    >
+                      <option value="7d">Last 7d</option>
+                      <option value="30d">Last 30d</option>
+                      <option value="90d">Last 90d</option>
+                    </select>
                   </div>
                 </div>
               </CardHeader>
