@@ -49,7 +49,7 @@ export const signOut = async () => {
 		// Clear browser storage
 		if (typeof window !== 'undefined') {
 			// Clear localStorage items
-			const keysToRemove = []
+			const keysToRemove: string[] = []
 			for (let i = 0; i < localStorage.length; i++) {
 				const key = localStorage.key(i)
 				if (key && (key.includes('supabase') || key.includes('auth'))) {
@@ -81,13 +81,8 @@ export const signOut = async () => {
 	}
 }
 
-export const getCurrentUser = () => {
-	return supabase.auth.getUser()
-}
-
-export const getSession = () => {
-	return supabase.auth.getSession()
-}
+export const getCurrentUser = () => supabase.auth.getUser()
+export const getSession = () => supabase.auth.getSession()
 
 // Password reset helpers
 export const requestPasswordReset = async (email: string) => {
@@ -100,12 +95,31 @@ export const requestPasswordReset = async (email: string) => {
 }
 
 export const updatePassword = async (newPassword: string, accessToken?: string) => {
-	if (!accessToken) {
-		return await supabase.auth.updateUser({ password: newPassword })
+	try {
+		// First try with active session
+		const res = await supabase.auth.updateUser({ password: newPassword })
+		if (!res.error) return res
+		// If it failed because session missing and we have a token, fall through
+		if (!accessToken) return res
+	} catch (e) {
+		// ignore and try token fallback if available
+		if (!accessToken) throw e
 	}
-	// Use a temporary client with the provided access token
-	const temp = createClient(supabaseUrl, supabaseAnonKey, {
-		global: { headers: { Authorization: `Bearer ${accessToken}` } }
+
+	// Token fallback via GoTrue REST API
+	const url = `${supabaseUrl}/auth/v1/user`
+	const resp = await fetch(url, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+			'apikey': supabaseAnonKey,
+			'Authorization': `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify({ password: newPassword })
 	})
-	return await temp.auth.updateUser({ password: newPassword })
+	if (!resp.ok) {
+		const text = await resp.text()
+		return { data: null, error: { message: text || `HTTP ${resp.status}` } as unknown as Error }
+	}
+	return { data: await resp.json(), error: null as unknown as null }
 } 
