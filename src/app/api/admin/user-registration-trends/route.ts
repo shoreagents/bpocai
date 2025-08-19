@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const client = await pool.connect()
     
     try {
-      // Get daily user registration counts for the last 7 days
+      const { searchParams } = new URL(request.url)
+      const range = (searchParams.get('range') || '7d').toLowerCase()
+      const rangeToDays: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 }
+      const days = rangeToDays[range] ?? 7
+
+      // Get daily user registration counts for the selected window
       const userRegistrationTrendsQuery = `
         WITH date_series AS (
           SELECT generate_series(
-            CURRENT_DATE - INTERVAL '6 days',
+            CURRENT_DATE - INTERVAL '${days - 1} days',
             CURRENT_DATE,
             INTERVAL '1 day'
           )::date AS date
@@ -20,7 +25,7 @@ export async function GET(_request: NextRequest) {
             DATE(u.created_at) as registration_date,
             COUNT(*) as registration_count
           FROM users u
-          WHERE u.created_at >= CURRENT_DATE - INTERVAL '6 days'
+          WHERE u.created_at >= CURRENT_DATE - INTERVAL '${days - 1} days'
           GROUP BY DATE(u.created_at)
         )
         SELECT 

@@ -421,6 +421,18 @@ export default function TypingHeroPage() {
 
   // Start game with selected difficulty
   const startGame = (difficulty: DifficultyLevel = 'medium') => {
+    // Trigger header SignUp dialog if user is not logged in
+    if (typeof window !== 'undefined') {
+      try {
+        const token = localStorage.getItem('sb:token') || '';
+        if (!token) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('signup', 'true');
+          router.push(`${url.pathname}?${url.searchParams.toString()}`);
+          return;
+        }
+      } catch (_) {}
+    }
     if (!isDifficultyUnlocked(difficulty)) return;
     
     setCurrentDifficulty(difficulty);
