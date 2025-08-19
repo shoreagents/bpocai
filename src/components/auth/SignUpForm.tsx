@@ -602,8 +602,9 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
               {/* Create Account Button */}
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
-                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50"
+                disabled={isLoading || !agreedToTerms}
+                title={!agreedToTerms ? 'You must agree to the Terms of Service and Privacy Policy' : undefined}
               >
                 {isLoading ? (
                   <>
