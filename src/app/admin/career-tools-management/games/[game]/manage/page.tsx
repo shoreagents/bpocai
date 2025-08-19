@@ -399,6 +399,106 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
     }
   ]
 
+  // BPOC Cultural questions
+  const culturalQuestions: GameQuestion[] = [
+    {
+      id: 1,
+      type: 'cultural',
+      question: 'Challenge 1a: You are in a business meeting with American colleagues. During lunch, they order expensive meals and drinks. You are on a budget. What do you do?',
+      options: ['Order the same expensive items to fit in', 'Order something modest and explain your budget', 'Skip lunch entirely', 'Order something affordable without drawing attention'],
+      correctAnswer: 'Order something affordable without drawing attention',
+      explanation: 'Shows cultural awareness and financial responsibility while maintaining professionalism'
+    },
+    {
+      id: 2,
+      type: 'cultural',
+      question: 'Challenge 1b: After lunch, the team discusses weekend plans. They mention expensive activities like golf and fine dining. You prefer simpler activities. How do you respond?',
+      options: ['Pretend to be interested in their activities', 'Suggest alternative affordable activities', 'Stay quiet and nod along', 'Share your own simple weekend plans honestly'],
+      correctAnswer: 'Share your own simple weekend plans honestly',
+      explanation: 'Demonstrates authenticity and cultural confidence while respecting different lifestyles'
+    },
+    {
+      id: 3,
+      type: 'cultural',
+      question: 'Challenge 1c: The conversation turns to travel. They discuss luxury destinations. You have never traveled internationally. What is your approach?',
+      options: ['Make up travel stories to impress them', 'Honestly share your travel experiences', 'Change the subject quickly', 'Ask questions about their travels with genuine interest'],
+      correctAnswer: 'Ask questions about their travels with genuine interest',
+      explanation: 'Shows cultural curiosity and turns the situation into a learning opportunity'
+    },
+    {
+      id: 4,
+      type: 'cultural',
+      question: 'Challenge 2a: You are working with a team from different cultural backgrounds. A colleague makes a joke that seems inappropriate to you. How do you handle this?',
+      options: ['Laugh along to avoid conflict', 'Address it immediately in front of everyone', 'Ignore it completely', 'Address it privately and respectfully later'],
+      correctAnswer: 'Address it privately and respectfully later',
+      explanation: 'Demonstrates cultural sensitivity and conflict resolution skills'
+    },
+    {
+      id: 5,
+      type: 'cultural',
+      question: 'Challenge 2b: During a team presentation, you notice cultural differences in communication styles. Some team members are very direct, others are more indirect. How do you adapt?',
+      options: ['Use only your preferred style', 'Adapt your style to match the audience', 'Ask the team to standardize their approach', 'Observe and blend different styles appropriately'],
+      correctAnswer: 'Observe and blend different styles appropriately',
+      explanation: 'Shows cultural intelligence and adaptability in diverse environments'
+    },
+    {
+      id: 6,
+      type: 'cultural',
+      question: 'Challenge 2c: A client from a different culture expresses dissatisfaction in a way that seems rude to you. How do you respond?',
+      options: ['Respond with equal directness', 'Take offense and defend yourself', 'Consider cultural context and respond professionally', 'Escalate to management immediately'],
+      correctAnswer: 'Consider cultural context and respond professionally',
+      explanation: 'Demonstrates cultural understanding and professional maturity'
+    },
+    {
+      id: 7,
+      type: 'cultural',
+      question: 'Challenge 3a: You are invited to a cultural celebration with your international team. The customs are unfamiliar to you. What is your approach?',
+      options: ['Decline to avoid embarrassment', 'Participate fully and ask questions', 'Attend but stay in the background', 'Research the customs beforehand and participate respectfully'],
+      correctAnswer: 'Research the customs beforehand and participate respectfully',
+      explanation: 'Shows cultural respect and preparation while maintaining authenticity'
+    },
+    {
+      id: 8,
+      type: 'cultural',
+      question: 'Challenge 3b: During the celebration, you are offered food that seems unusual to you. How do you handle this situation?',
+      options: ['Refuse politely but firmly', 'Accept and try it with an open mind', 'Make excuses to avoid it', 'Ask about the ingredients first'],
+      correctAnswer: 'Accept and try it with an open mind',
+      explanation: 'Demonstrates cultural openness and respect for different traditions'
+    },
+    {
+      id: 9,
+      type: 'cultural',
+      question: 'Challenge 3c: A colleague asks about your cultural background and traditions. They seem genuinely interested. How do you share your culture?',
+      options: ['Share everything enthusiastically', 'Share selectively and appropriately', 'Avoid the topic entirely', 'Share only if they share theirs first'],
+      correctAnswer: 'Share selectively and appropriately',
+      explanation: 'Shows cultural confidence while maintaining professional boundaries'
+    },
+    {
+      id: 10,
+      type: 'cultural',
+      question: 'Challenge 4a: You are working on a project with deadlines that conflict with important cultural holidays in your community. How do you balance work and cultural obligations?',
+      options: ['Prioritize work over everything', 'Take time off regardless of project status', 'Communicate early and find a compromise', 'Work extra hours to accommodate both'],
+      correctAnswer: 'Communicate early and find a compromise',
+      explanation: 'Demonstrates cultural awareness and professional communication skills'
+    },
+    {
+      id: 11,
+      type: 'cultural',
+      question: 'Challenge 4b: Your team is planning a client meeting during a time that conflicts with your cultural practices. How do you address this?',
+      options: ['Attend regardless of conflicts', 'Request a schedule adjustment respectfully', 'Send a substitute without explanation', 'Make excuses to avoid the meeting'],
+      correctAnswer: 'Request a schedule adjustment respectfully',
+      explanation: 'Shows cultural respect while maintaining professional relationships'
+    },
+    {
+      id: 12,
+      type: 'cultural',
+      question: 'Challenge 4c: A client makes assumptions about your culture based on stereotypes. How do you respond?',
+      options: ['Correct them immediately and assertively', 'Ignore the comments entirely', 'Educate them respectfully and professionally', 'Confront them about their ignorance'],
+      correctAnswer: 'Educate them respectfully and professionally',
+      explanation: 'Demonstrates cultural leadership and professional communication'
+    }
+  ]
+
   // Initialize questions based on game type
   const getGameQuestions = () => {
     switch (resolvedParams.game) {
@@ -406,6 +506,8 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
         return discQuestions
       case 'ultimate':
         return ultimateQuestions
+      case 'bpoc-cultural':
+        return culturalQuestions
       default:
         return []
     }
@@ -449,6 +551,8 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
         return 'bg-pink-500/20 text-pink-400 border-pink-500/30'
       case 'ultimate':
         return 'bg-red-500/20 text-red-400 border-red-500/30'
+      case 'cultural':
+        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
       default:
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
     }
