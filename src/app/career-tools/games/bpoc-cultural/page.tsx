@@ -2578,56 +2578,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                   })()}
                   
                   {/* Voice Analysis Results Display */}
-                  {currentResponse && (
-                    <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-4 mb-4 max-w-2xl mx-auto">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Mic className="w-4 h-4 text-cyan-400" />
-                        <span className="text-sm font-semibold text-cyan-300">Voice Analysis Results</span>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="text-sm font-medium text-cyan-300 mb-2">Your Response:</h4>
-                          <p className="text-sm text-gray-200 bg-gray-800/50 p-3 rounded border border-gray-700">
-                            "{currentResponse}"
-                          </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="text-sm font-medium text-cyan-300 mb-1">Cultural Score:</h4>
-                            <div className="text-xl font-bold text-cyan-400">
-                              {(() => {
-                                const current = stages[currentStage - 1].challenges[currentChallenge];
-                                const currentRegion = current.regions?.[0] || 'US';
-                                return Math.round(culturalScores[currentRegion]);
-                              })()}%
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="text-sm font-medium text-cyan-300 mb-1">Current Region:</h4>
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">
-                                {(() => {
-                                  const current = stages[currentStage - 1].challenges[currentChallenge];
-                                  const currentRegion = current.regions?.[0] || 'US';
-                                  return culturalContexts[currentRegion]?.flag;
-                                })()}
-                              </span>
-                              <span className="text-sm text-gray-200">
-                                {(() => {
-                                  const current = stages[currentStage - 1].challenges[currentChallenge];
-                                  const currentRegion = current.regions?.[0] || 'US';
-                                  return culturalContexts[currentRegion]?.name;
-                                })()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Voice analysis card removed as requested */}
                   
                   {/* Elimination Triggers */}
                   {stages[currentStage - 1].challenges[currentChallenge].eliminationTriggers && (
