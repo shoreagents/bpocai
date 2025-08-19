@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,10 +27,46 @@ import {
   Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getSessionToken } from '@/lib/auth-helpers';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CareerGamesPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ completed: number; totalSessions: number; achievementPoints: number } | null>(null);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      try {
+        if (!user?.id) return
+        const res = await fetch(`/api/leaderboards/user/${user.id}`)
+        if (!res.ok) throw new Error(`Failed to load leaderboard user data: ${res.status}`)
+        const data = await res.json()
+        // Compute gamesCompleted from engagement items where game completed points > 0 for four games
+        const engagementItems: Array<{ label: string; points: number }> = data?.engagement?.items || []
+        const gameLabels = new Set([
+          'Typing Hero Completed',
+          'BPOC Cultural Completed',
+          'Ultimate Completed',
+          'DISC Personality Completed'
+        ])
+        const gamesCompleted = engagementItems.filter(i => gameLabels.has(i.label) && (i.points || 0) > 0).length
+        // Total sessions from leaderboard games plays
+        const gamesArr: Array<{ plays?: number }> = data?.games || []
+        const totalSessions = gamesArr.reduce((sum, g) => sum + (Number(g.plays || 0)), 0)
+        // Achievement points from engagement total
+        const achievementPoints = Number(data?.engagement?.total || 0)
+        setProgress({ completed: gamesCompleted, totalSessions, achievementPoints })
+      } catch (e) {
+        console.error('❌ Failed fetching games progress (leaderboard):', e)
+        setProgress({ completed: 0, totalSessions: 0, achievementPoints: 0 })
+      }
+    }
+    if (user?.id) {
+      fetchProgress()
+    }
+  }, [user?.id])
 
   const games = [
     {
@@ -241,58 +277,53 @@ export default function CareerGamesPage() {
           </div>
 
           {/* Progress Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Achievements */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 }}
-            >
-              <Card className="glass-card border-white/10 h-full">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Trophy className="w-5 h-5 text-red-400" />
-                    Recent Achievements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Trophy className="w-8 h-8 text-gray-500" />
-                    </div>
-                    <p className="text-gray-400 text-sm">
-                      No achievements yet. Start playing games to earn your first badge!
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
+          <div className="w-full max-w-4xl mx-auto">
             {/* Your Progress */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
             >
-              <Card className="glass-card border-white/10 h-full">
+              <Card className="glass-card border-white/10">
                 <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-white">
+                  <CardTitle className="flex items-center gap-2 text-white text-center justify-center">
                     <BarChart3 className="w-5 h-5 text-cyan-400" />
                     Your Progress
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Games Completed:</span>
-                    <span className="text-white font-medium">0 / 4</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Total Sessions:</span>
-                    <span className="text-white font-medium">0</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Achievement Points:</span>
-                    <span className="text-cyan-400 font-medium">0</span>
+                <CardContent>
+                  <div className="max-w-md mx-auto">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        <tr className="border-b border-white/10">
+                          <td className="py-3 text-gray-300">Games Completed</td>
+                          <td className="py-3 text-right text-white font-medium">
+                            {!user ? 'Please log in' : progress ? `${progress.completed} / 4` : 'Loading...'}
+                          </td>
+                        </tr>
+                        <tr className="border-b border-white/10">
+                          <td className="py-3 text-gray-300">Total Sessions</td>
+                          <td className="py-3 text-right text-white font-medium">
+                            {!user ? '—' : progress ? progress.totalSessions : 'Loading...'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 text-gray-300">Achievement Points</td>
+                          <td className="py-3 text-right text-cyan-400 font-medium">
+                            {!user ? '—' : progress ? progress.achievementPoints : 'Loading...'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    {user && !progress && (
+                      <div className="text-center py-4">
+                        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-gray-400 text-sm">Loading your progress...</p>
+                      </div>
+                    )}
+                    {!user && (
+                      <p className="text-center text-gray-400 text-sm mt-3">Please log in to view your progress</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
