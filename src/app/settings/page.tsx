@@ -708,7 +708,7 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <div>
+              <div className="hidden">
                 <label className="text-sm font-medium text-gray-300 mb-2 block">Bio</label>
                 <textarea
                   value={profileData.bio}

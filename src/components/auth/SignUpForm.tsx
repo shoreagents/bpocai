@@ -126,11 +126,22 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
 
     setIsLoading(true)
 
-    // Supabase registration
     try {
+      // 1) Check if email already exists in our DB first
+      const existsRes = await fetch(`/api/public/users/exists?email=${encodeURIComponent(formData.email)}`)
+      if (existsRes.ok) {
+        const { exists } = await existsRes.json()
+        if (exists) {
+          setErrors({ general: 'An account with this email already exists. Please sign in instead.' })
+          setIsLoading(false)
+          return
+        }
+      }
+
+      // 2) Proceed with Supabase registration
       const { data, error } = await signUp(
-        formData.email, 
-        formData.password, 
+        formData.email,
+        formData.password,
         {
           first_name: formData.firstName,
           last_name: formData.lastName,
@@ -142,7 +153,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
       )
       
       if (error) {
-        // Handle Supabase auth errors
         if (error.message.includes('User already registered')) {
           setErrors({ general: 'An account with this email already exists. Please sign in instead.' })
         } else if (error.message.includes('Password should be at least 6 characters')) {
@@ -151,11 +161,15 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
           setErrors({ general: error.message })
         }
       } else if (data.user) {
+
+        setShowVerifyDialog(true)
+
         // Successful registration
         console.log('Registration successful:', data.user.email)
         // Show verification modal
         setShowVerifyDialog(true)
         // Optionally keep a small info banner in the sign-up form as well
+
         setSuccessMessage('Account created! Please verify your email to continue.')
       }
     } catch (error) {
@@ -596,8 +610,9 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
               {/* Create Account Button */}
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
-                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50"
+                disabled={isLoading || !agreedToTerms}
+                title={!agreedToTerms ? 'You must agree to the Terms of Service and Privacy Policy' : undefined}
               >
                 {isLoading ? (
                   <>
