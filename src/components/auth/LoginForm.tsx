@@ -22,6 +22,7 @@ import {
   Loader2,
   Chrome
 } from 'lucide-react'
+import { requestPasswordReset } from '@/lib/supabase'
 
 interface LoginFormProps {
   open: boolean
@@ -36,6 +37,8 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({})
+  const [resetState, setResetState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [resetMessage, setResetMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,7 +71,6 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
       const { data, error } = await signIn(email, password)
       
       if (error) {
-        // Handle Supabase auth errors
         if (error.message.includes('Invalid login credentials')) {
           setErrors({ general: 'Invalid email or password. Please try again.' })
         } else if (error.message.includes('Email not confirmed')) {
@@ -77,10 +79,6 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
           setErrors({ general: error.message })
         }
       } else if (data.user) {
-        // Successful login
-        console.log('Login successful:', data.user.email)
-        
-        // Close dialog and reset form
         onOpenChange(false)
         setEmail('')
         setPassword('')
@@ -103,7 +101,6 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
         console.error('Google login error:', error)
         setErrors({ general: 'Failed to sign in with Google. Please try again.' })
       }
-      // Note: On success, the user will be redirected to the callback URL
     } catch (error) {
       console.error('Google login error:', error)
       setErrors({ general: 'An error occurred during Google sign in.' })
@@ -113,16 +110,35 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
   }
 
   const handleSwitchToSignUp = () => {
-    // Reset form state
     setEmail('')
     setPassword('')
     setShowPassword(false)
     setErrors({})
     setIsLoading(false)
-    
-    // Switch to sign up form
     if (onSwitchToSignUp) {
       onSwitchToSignUp()
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setErrors({ email: 'Enter your email to receive a reset link' })
+      return
+    }
+    try {
+      setResetState('sending')
+      setResetMessage('')
+      const { error } = await requestPasswordReset(email)
+      if (error) {
+        setResetState('error')
+        setResetMessage(error.message || 'Failed to send reset email')
+      } else {
+        setResetState('sent')
+        setResetMessage('Password reset email sent. Please check your inbox.')
+      }
+    } catch (e) {
+      setResetState('error')
+      setResetMessage('Failed to send reset email')
     }
   }
 
@@ -240,17 +256,17 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
             </div>
 
             {/* Forgot Password Link */}
-            <div className="text-right">
+            <div className="text-right space-y-2">
               <button
                 type="button"
                 className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
-                onClick={() => {
-                  // TODO: Implement forgot password
-                  console.log('Forgot password clicked')
-                }}
+                onClick={handleForgotPassword}
               >
-                Forgot password?
+                {resetState === 'sent' ? 'Email sent ✓' : 'Forgot password?'}
               </button>
+              {resetMessage && (
+                <div className={`text-xs ${resetState === 'error' ? 'text-red-400' : 'text-gray-400'}`}>{resetMessage}</div>
+              )}
             </div>
 
             {/* Sign In Button */}
