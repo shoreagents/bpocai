@@ -27,6 +27,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -49,6 +50,7 @@ import { PacmanLoader } from 'react-spinners';
 
 const CulturalCommunicationArena = () => {
   const router = useRouter();
+  const { user } = useAuth();
   const [gameState, setGameState] = useState('welcome');
   const [currentStage, setCurrentStage] = useState(1);
   const [currentChallenge, setCurrentChallenge] = useState(0);
@@ -468,18 +470,13 @@ const CulturalCommunicationArena = () => {
 
   const proceedToIntro = () => {
     // If not logged in, open signup dialog via URL param
-    if (typeof window !== 'undefined') {
-      // We cannot easily access auth user here without context; use header route
-      // Trigger only if no `x-user-id` token in local storage session
-      try {
-        const token = localStorage.getItem('sb:token') || '';
-        if (!token) {
-          const url = new URL(window.location.href);
-          url.searchParams.set('signup', 'true');
-          router.push(`${url.pathname}?${url.searchParams.toString()}`);
-          return;
-        }
-      } catch (_) {}
+    if (!user) {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('signup', 'true');
+        router.push(`${url.pathname}?${url.searchParams.toString()}`);
+        return;
+      }
     }
     console.log('Starting game from welcome screen...');
     console.log('Initial state values:', {

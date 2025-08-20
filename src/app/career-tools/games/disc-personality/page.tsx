@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -306,6 +307,7 @@ const DISC_SCENARIOS = [
 
 export default function DISCPersonalityGame() {
   const router = useRouter();
+  const { user } = useAuth();
   const [gameState, setGameState] = useState({
     currentQuestion: 0,
     scores: { D: 0, I: 0, S: 0, C: 0 },
@@ -333,16 +335,13 @@ export default function DISCPersonalityGame() {
 
   const startGame = () => {
     // Trigger header SignUp dialog if user is not logged in
-    if (typeof window !== 'undefined') {
-      try {
-        const token = localStorage.getItem('sb:token') || '';
-        if (!token) {
-          const url = new URL(window.location.href);
-          url.searchParams.set('signup', 'true');
-          router.push(`${url.pathname}?${url.searchParams.toString()}`);
-          return;
-        }
-      } catch (_) {}
+    if (!user) {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('signup', 'true');
+        router.push(`${url.pathname}?${url.searchParams.toString()}`);
+        return;
+      }
     }
     setGameState(prev => ({ ...prev, gameStarted: true }));
   };
