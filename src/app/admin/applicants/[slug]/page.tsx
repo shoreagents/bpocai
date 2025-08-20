@@ -333,59 +333,63 @@ export default function ApplicantsJobDetailPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="glass-card bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-blue-300 font-medium">Total Applicants</p>
+                  <p className="text-sm text-gray-400">Total Applicants</p>
                   <p className="text-2xl font-bold text-white">{totalApplicants}</p>
+                  <p className="text-xs text-green-400">All applications received</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-300 font-medium">Active</p>
+                  <p className="text-sm text-gray-400">Active</p>
                   <p className="text-2xl font-bold text-white">{activeApplicants}</p>
+                  <p className="text-xs text-green-400">Currently in process</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Play className="w-5 h-5 text-white" />
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                  <Play className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-purple-300 font-medium">In Progress</p>
+                  <p className="text-sm text-gray-400">In Progress</p>
                   <p className="text-2xl font-bold text-white">
                     {statusStats.qualified + statusStats['for verification'] + statusStats.verified + statusStats['initial interview'] + statusStats['final interview']}
                   </p>
+                  <p className="text-xs text-green-400">Under review</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="glass-card bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 border-cyan-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-cyan-300 font-medium">Hired</p>
+                  <p className="text-sm text-gray-400">Hired</p>
                   <p className="text-2xl font-bold text-white">{statusStats.hired}</p>
+                  <p className="text-xs text-green-400">Successfully placed</p>
                 </div>
               </div>
             </CardContent>
@@ -501,8 +505,8 @@ export default function ApplicantsJobDetailPage() {
                     </Avatar>
 
                     {/* Applicant Info */}
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="min-w-0">
                           <h3 className="font-semibold text-white text-lg truncate group-hover:text-blue-300 transition-colors">
                             {app.user?.full_name || app.user?.email || 'Applicant'}
@@ -574,10 +578,10 @@ export default function ApplicantsJobDetailPage() {
                         </div>
                       </div>
 
-                      <Separator className="bg-white/10" />
+                      <Separator className="bg-white/10 mb-3" />
 
-                      {/* Additional Details */}
-                      <div className="space-y-2 text-sm">
+                      {/* Additional Details - Flexible content area */}
+                      <div className="flex-1 space-y-2 text-sm mb-3">
                         {app.user?.position && (
                           <div className="flex items-center space-x-2 text-gray-300">
                             <User className="w-4 h-4 text-gray-400" />
@@ -605,8 +609,8 @@ export default function ApplicantsJobDetailPage() {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex space-x-2 pt-2">
+                      {/* Action Buttons - Always at bottom */}
+                      <div className="flex space-x-2 mt-auto">
                         <Button
                           variant="outline"
                           size="sm"

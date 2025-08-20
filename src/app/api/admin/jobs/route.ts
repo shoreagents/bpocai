@@ -6,9 +6,15 @@ export async function GET(request: NextRequest) {
     const result = await pool.query(`
       SELECT 
         j.*, 
-        m.company AS company_name
+        m.company AS company_name,
+        COALESCE(app_counts.applicant_count, 0) AS real_applicants
       FROM job_requests j
       LEFT JOIN members m ON m.company_id = j.company_id
+      LEFT JOIN (
+        SELECT job_id, COUNT(*) as applicant_count
+        FROM applications
+        GROUP BY job_id
+      ) app_counts ON app_counts.job_id = j.id
       WHERE j.status <> 'processed'
       ORDER BY j.created_at DESC
     `)
@@ -62,7 +68,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: String(row.id),
-        company: row.company || row.company_name || '',
+        company: 'ShoreAgents',
         companyLogo: row.company_logo || '🏢',
         title: row.title || row.position || row.job_title || '',
         location: row.location || row.city || row["location"] || '',
@@ -70,26 +76,32 @@ export async function GET(request: NextRequest) {
         salary,
         employmentType,
         postedDays,
-        applicants: row.applicants_count ?? row.applicants ?? 0,
+        applicants: row.real_applicants ?? 0,
         status: mapStatusFromEnum(row.status),
         priority: (row.priority as any) || derivedPriority,
         source: 'original',
       }
     })
 
-    // fetch processed
+    // fetch processed jobs with real applicant counts
     const processedRes = await pool.query(`
       SELECT 
         p.*, 
         m.company AS company_name,
-        COALESCE(p.priority, j.priority) AS merged_priority
+        COALESCE(p.priority, j.priority) AS merged_priority,
+        COALESCE(app_counts.applicant_count, 0) AS real_applicants
       FROM processed_job_requests p
       LEFT JOIN members m ON m.company_id = p.company_id
       LEFT JOIN job_requests j ON j.id = p.id
+      LEFT JOIN (
+        SELECT job_id, COUNT(*) as applicant_count
+        FROM applications
+        GROUP BY job_id
+      ) app_counts ON app_counts.job_id = p.id
       ORDER BY p.created_at DESC
     `)
     const processedJobs = processedRes.rows.map((row: any) => ({
-      ...rowToJobCard({ ...row, priority: row.merged_priority ?? row.priority }),
+      ...rowToJobCard({ ...row, priority: row.merged_priority ?? row.priority, applicants: row.real_applicants }),
       job_description: row.job_description,
       requirements: row.requirements,
       responsibilities: row.responsibilities,
@@ -353,7 +365,7 @@ function rowToJobCard(row: any) {
       : derivedPriority
   return {
     id: String(row.id),
-    company: row.company_name || 'Unknown Company',
+    company: 'ShoreAgents',
     companyLogo: row.company_logo || '🏢',
     title: row.job_title || 'Untitled Role',
     location: row.location || row["location"] || '',

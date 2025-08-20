@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getSessionToken } from '@/lib/auth-helpers'
-import { Plus, MoreHorizontal, Edit, Trash2, MapPin, User, CheckCircle, AlertCircle, Pause, X, Loader2 } from 'lucide-react'
+import { Plus, MoreHorizontal, Edit, Trash2, MapPin, User, CheckCircle, AlertCircle, Pause, X, Loader2, Briefcase } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -111,7 +111,18 @@ function JobsPage() {
         })
         if (mres.ok) {
           const mdata = await mres.json()
-          setMembers(mdata.members || [])
+          const existingMembers = mdata.members || []
+          
+          // Add ShoreAgents if it doesn't already exist
+          const hasShoreAgents = existingMembers.some((member: any) => member.company === 'ShoreAgents')
+          if (!hasShoreAgents) {
+            existingMembers.unshift({ company_id: 'shoreagents', company: 'ShoreAgents' })
+          }
+          
+          setMembers(existingMembers)
+        } else {
+          // If API fails, at least provide ShoreAgents as an option
+          setMembers([{ company_id: 'shoreagents', company: 'ShoreAgents' }])
         }
       } catch (e) {
         console.error('Failed to load job requests', e)
@@ -647,61 +658,75 @@ function JobsPage() {
                         className="cursor-pointer active:cursor-grabbing hover:scale-102 transition-transform outline-none focus:ring-2 focus:ring-purple-500/40 rounded-md"
                     >
                       <Card className="glass-card border-white/10 hover:border-white/15 transition-all duration-200">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
-                                <span className="text-sm">{job.companyLogo || '🏢'}</span>
-                              </div>
-                              <div>
-                                  <p className="font-medium text-white text-sm">{job.company || '—'}</p>
-                                <p className="text-xs text-gray-400">{job.postedDays} days ago</p>
-                              </div>
+                        <CardContent className="p-4">
+                          {/* Header with title and menu */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-white text-sm line-clamp-2 mb-1">
+                                {job.title || 'Untitled Role'}
+                              </h3>
+                              <p className="text-xs text-gray-400">{job.company || 'ShoreAgents'}</p>
                             </div>
-                                                         <DropdownMenu>
-                               <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e)=> e.stopPropagation()}>
-                                   <MoreHorizontal className="w-3 h-3" />
-                                 </Button>
-                               </DropdownMenuTrigger>
-                               <DropdownMenuContent className="glass-card border-white/10 backdrop-blur-md">
-                                 <DropdownMenuItem 
-                                   className="text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteJob(job.id) }}
-                                 >
-                                   <Trash2 className="mr-2 h-4 w-4" />
-                                   Delete
-                                 </DropdownMenuItem>
-                               </DropdownMenuContent>
-                             </DropdownMenu>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <h4 className="font-semibold text-white text-sm line-clamp-2">
-                              {job.title || 'Untitled Role'}
-                          </h4>
-                          
-                          <div className="space-y-2">
-                              {/* Salary */}
-                             <div className="flex items-center text-gray-300 text-xs">
-                               <span className="mr-1">₱</span>
-                               <span>{job.salary.replace('₱', '')}</span>
-                             </div>
-                              
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white flex-shrink-0" onClick={(e)=> e.stopPropagation()}>
+                                  <MoreHorizontal className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="glass-card border-white/10 backdrop-blur-md">
+                                <DropdownMenuItem 
+                                  className="text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteJob(job.id) }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
 
-                          <div className="flex items-center justify-between">
-                            <Badge className={getPriorityColor(job.priority)}>
-                              {getPriorityLabel(job.priority)}
-                            </Badge>
-                            <div className="flex gap-1">
-                              <Badge className={getLocationTypeColor(job.locationType)}>
-                                {getLocationTypeLabel(job.locationType)}
-                              </Badge>
-                              <Badge className="bg-white/10 text-white border-white/20">
-                                {job.employmentType[0]}
-                              </Badge>
+                          {/* Status indicator */}
+                          <div className="flex items-center mb-3">
+                            <div className={`w-2 h-2 rounded-full mr-2 ${
+                              column.id === 'job-request' 
+                                ? 'bg-yellow-500'
+                                : column.id === 'approved'
+                                  ? 'bg-orange-500'
+                                  : column.id === 'hiring'
+                                    ? 'bg-green-500'
+                                    : 'bg-gray-500'
+                            }`}></div>
+                            <span className="text-xs text-gray-400 capitalize">
+                              {column.id === 'job-request' ? 'New Request' : 
+                               column.id === 'approved' ? 'Approved' :
+                               column.id === 'hiring' ? 'Active' : 'Closed'}
+                            </span>
+                          </div>
+                          
+                          {/* Key info */}
+                          <div className="space-y-2 mb-3">
+                            <div className="flex items-center text-xs text-gray-300">
+                              <span className="font-medium">₱{job.salary.replace('₱', '')}</span>
                             </div>
+                            <div className="flex items-center justify-between text-xs text-gray-400">
+                              <span>{job.postedDays}d ago</span>
+                              <span>{job.applicants} applicants</span>
+                            </div>
+                          </div>
+
+                          {/* Priority badge */}
+                          <div className="flex justify-end">
+                            <Badge 
+                              className={`text-xs px-2 py-1 ${
+                                job.priority === 'high' 
+                                  ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                                  : job.priority === 'medium'
+                                    ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                    : 'bg-green-500/20 text-green-400 border-green-500/30'
+                              }`}
+                            >
+                              {job.priority}
+                            </Badge>
                           </div>
                         </CardContent>
                       </Card>

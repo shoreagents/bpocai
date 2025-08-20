@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -467,6 +468,7 @@ const BPOC_SCENARIOS = [
 
 export default function BPOCUltimateGame() {
   const router = useRouter();
+  const { user } = useAuth();
   const [gameState, setGameState] = useState('welcome');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [scores, setScores] = useState({
@@ -560,16 +562,13 @@ export default function BPOCUltimateGame() {
 
   const startGame = () => {
     // Trigger header SignUp dialog if user is not logged in
-    if (typeof window !== 'undefined') {
-      try {
-        const token = localStorage.getItem('sb:token') || '';
-        if (!token) {
-          const url = new URL(window.location.href);
-          url.searchParams.set('signup', 'true');
-          router.push(`${url.pathname}?${url.searchParams.toString()}`);
-          return;
-        }
-      } catch (_) {}
+    if (!user) {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('signup', 'true');
+        router.push(`${url.pathname}?${url.searchParams.toString()}`);
+        return;
+      }
     }
     setGameState('playing');
     setGameStartTime(Date.now());
