@@ -531,7 +531,7 @@ const CulturalCommunicationArena = () => {
       ]
     },
     {
-      name: "Client Integration Arena",
+      name: "Client Integration Arena", 
       description: "Handle real-world client interactions with cultural sensitivity",
       scenario: "You're now handling live client interactions. You'll face team coordination challenges that require immediate cultural adaptation under pressure.",
       instructions: "Navigate through coordination challenges. Your survival depends on maintaining cultural appropriateness while solving problems.",
@@ -2217,18 +2217,18 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
     // Safety checks to prevent runtime errors
     if (!stages || !Array.isArray(stages)) {
       console.error('Stages not properly initialized:', stages);
-      return (
-        <div className="min-h-screen cyber-grid overflow-hidden">
-          <Header />
-          <div className="pt-16 relative z-10">
-            <div className="container mx-auto px-4 py-8">
+    return (
+      <div className="min-h-screen cyber-grid overflow-hidden">
+        <Header />
+        <div className="pt-16 relative z-10">
+          <div className="container mx-auto px-4 py-8">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-red-400 mb-4">Game Error</h1>
                 <p className="text-gray-300 mb-6">There was an issue loading the game results. Please try refreshing the page.</p>
                 <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
         </div>
       );
     }
@@ -2245,12 +2245,12 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                 <h1 className="text-2xl font-bold text-red-400 mb-4">Game Configuration Error</h1>
                 <p className="text-gray-300 mb-6">The game configuration is not properly loaded. Please try refreshing the page.</p>
                 <Button onClick={() => window.location.reload()}>Refresh Page</Button>
-              </div>
             </div>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
     // Ensure culturalScores has all required values
     const safeCulturalScores = {
@@ -2268,7 +2268,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
 
     const avgScore = Math.round(Object.values(culturalScores).reduce((a, b) => a + b, 0) / 4);
 
-
+    
     return (
       <div className="min-h-screen cyber-grid overflow-hidden">
         {/* Background Effects */}
@@ -2357,7 +2357,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                       {/* Per-Region Recommendation */}
                       <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                         <div className="text-sm text-gray-300 mb-1">Per‑Region Recommendation</div>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2">
                           {['US','UK','AU','CA'].map((r) => {
                             const val = analysisResult?.per_region_recommendation?.[r]
                             const color = val === 'hire' ? 'bg-green-600/20 text-green-300 border-green-500/30' : val === 'maybe' ? 'bg-yellow-600/20 text-yellow-300 border-yellow-500/30' : 'bg-red-600/20 text-red-300 border-red-500/30'
@@ -2365,7 +2365,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                               <span key={r} className={`px-2 py-1 rounded border text-xs ${color}`}>{r}: {String(val || '—').toUpperCase()}</span>
                             )
                           })}
-                        </div>
+                      </div>
                       </div>
                     </div>
                   )}
@@ -2386,7 +2386,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                             <li key={`r-${i}`}>{r}</li>
                           ))}
                         </ul>
-                      </div>
+                  </div>
 
                       {/* Writing Analysis */}
                       <div className="bg-white/5 rounded-lg p-4 border border-white/10 overflow-x-auto">
@@ -2397,7 +2397,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                             <li key={`w-${i}`}>{w}</li>
                           ))}
                         </ul>
-                      </div>
+                    </div>
 
                     </div>
                   )}
@@ -2459,10 +2459,10 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                 </div>
                 <Button onClick={() => window.location.reload()}>Refresh Page</Button>
               </div>
-            </div>
           </div>
         </div>
-      );
+      </div>
+    );
     }
   }
 
@@ -2886,7 +2886,7 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                         {/* Debug Info */}
                         <div className="text-center text-xs text-gray-500 mt-4">
                           <div className="flex items-center justify-center gap-4 mb-2">
-                            <div>Microphone Status: {canRecord ? '✅ Ready' : '❌ Not Ready'}</div>
+                          <div>Microphone Status: {canRecord ? '✅ Ready' : '❌ Not Ready'}</div>
                             <Button
                               onClick={retryMicrophonePermission}
                               size="sm"

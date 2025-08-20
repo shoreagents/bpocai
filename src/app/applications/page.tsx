@@ -8,6 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   ArrowLeft,
   Briefcase,
@@ -22,7 +30,9 @@ import {
   Star,
   X,
   MoreVertical,
-  LogOut
+  LogOut,
+  ChevronDown,
+  Filter
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -128,6 +138,7 @@ export default function ApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -300,26 +311,50 @@ export default function ApplicationsPage() {
               transition={{ delay: 0.1 }}
               className="flex items-center gap-4"
             >
-              <label htmlFor="status-filter" className="text-white font-medium">
-                Filter by Status:
-              </label>
-              <select
-                id="status-filter"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-              >
-                <option value="all" className="bg-gray-800 text-white">All Applications ({applications.length})</option>
-                {Object.entries(statusConfig).map(([status, config]) => {
-                  const count = applications.filter(app => app.status === status).length;
-                  if (count === 0) return null;
-                  return (
-                    <option key={status} value={status} className="bg-gray-800 text-white">
-                      {config.label} ({count})
-                    </option>
-                  );
-                })}
-              </select>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <label htmlFor="status-filter" className="text-white font-medium">
+                  Filter by Status:
+                </label>
+              </div>
+              <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/10 text-white hover:bg-white/10 min-w-[200px] justify-between"
+                  >
+                    {selectedStatus === 'all' 
+                      ? `All Applications (${applications.length})`
+                      : `${getStatusLabel(selectedStatus)} (${applications.filter(app => app.status === selectedStatus).length})`
+                    }
+                    <ChevronDown className="w-3 h-3 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-gray-900 border-white/10 text-white">
+                  <DropdownMenuLabel>Application Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className={selectedStatus === 'all' ? 'bg-white/20' : ''}
+                    onClick={() => setSelectedStatus('all')}
+                  >
+                    All Applications ({applications.length})
+                  </DropdownMenuItem>
+                  {Object.entries(statusConfig).map(([status, config]) => {
+                    const count = applications.filter(app => app.status === status).length;
+                    if (count === 0) return null;
+                    return (
+                      <DropdownMenuItem
+                        key={status}
+                        className={selectedStatus === status ? 'bg-white/20' : ''}
+                        onClick={() => setSelectedStatus(status)}
+                      >
+                        {config.label} ({count})
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </motion.div>
 
             {/* Applications List */}
@@ -335,28 +370,22 @@ export default function ApplicationsPage() {
                   <p className="text-gray-400">Loading your applications...</p>
                 </div>
               ) : filteredApplications.length === 0 ? (
-                <Card className="glass-card border-white/10 text-center py-12">
+                <Card className="glass-card border-white/10 text-center py-16">
                   <CardContent>
-                    <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No applications found</h3>
-                    <p className="text-gray-400 mb-4">
+                    <Briefcase className="h-20 w-20 text-gray-400 mx-auto mb-6" />
+                    <h3 className="text-2xl font-semibold text-white mb-3">No applications found</h3>
+                    <p className="text-gray-400 mb-8 text-lg">
                       {selectedStatus === 'all' 
                         ? "You haven't applied to any jobs yet. Start your job search by browsing available positions!"
                         : `No applications with status "${getStatusLabel(selectedStatus)}" found.`
                       }
                     </p>
-                    <div className="space-y-3">
-                      <Button onClick={() => router.push('/jobs/job-matching')} className="w-full">
-                        Browse Available Jobs
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => router.push('/jobs/active')} 
-                        className="w-full"
-                      >
-                        View Active Job Postings
-                      </Button>
-                    </div>
+                    <Button 
+                      onClick={() => router.push('/jobs/job-matching')} 
+                      className="w-full max-w-md bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white border-0 text-lg py-4"
+                    >
+                      Browse Available Jobs
+                    </Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -369,222 +398,222 @@ export default function ApplicationsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 * index }}
                     >
-                                                                    <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
-                         <CardContent className="p-6">
-                           <div className="flex items-start justify-between mb-3">
-                             <div className="flex-1">
-                               <div className="flex items-center gap-3 mb-3">
-                                 <h3 className="text-xl font-semibold text-white">{application.jobTitle}</h3>
-                                 <Badge className={getStatusColor(application.status)}>
-                                   <StatusIcon className="h-3 w-3 mr-1" />
-                                   {getStatusLabel(application.status)}
-                                 </Badge>
-                               </div>
-                             </div>
-                             
-                             {/* 3-Dots Menu */}
-                             <div className="relative">
-                               <Button
-                                 variant="ghost"
-                                 size="sm"
-                                 onClick={() => setOpenMenuId(openMenuId === application.id ? null : application.id)}
-                                 className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800/50"
-                               >
-                                 <MoreVertical className="h-4 w-4" />
-                               </Button>
-                               
-                               {/* Dropdown Menu */}
-                               {openMenuId === application.id && (
-                                 <div className="dropdown-menu absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
-                                   <div className="py-1">
-                                     {application.status !== 'withdrawn' && application.status !== 'hired' && application.status !== 'rejected' && (
-                                       <button
-                                         onClick={() => withdrawApplication(application.id)}
-                                         className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"
-                                       >
-                                         <LogOut className="h-4 w-4" />
-                                         Withdraw Application
-                                       </button>
-                                     )}
-                                     {application.status === 'withdrawn' && (
-                                       <div className="px-4 py-2 text-sm text-gray-500">
-                                         Application Withdrawn
-                                       </div>
-                                     )}
-                                   </div>
-                                 </div>
-                               )}
-                             </div>
-                           </div>
-                           
-                           {/* Status Description */}
-                           <div className="mb-3">
-                             <p className="text-sm text-gray-300 italic">
-                               {getStatusDescription(application.status)}
-                             </p>
-                           </div>
-                           
-                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
-                             <div className="flex items-center gap-2">
-                               <Building className="h-4 w-4" />
-                               <span>{application.companyName}</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                               <Calendar className="h-4 w-4" />
-                               <span>Applied: {new Date(application.appliedDate).toLocaleDateString()}</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                               <FileText className="h-4 w-4" />
-                               <span>ID: {application.id.slice(0, 8)}...</span>
-                             </div>
-                           </div>
-                           
-                           {application.jobDescription && (
-                             <div className="mt-4">
-                               <p className="text-gray-300 text-sm line-clamp-2">
-                                 {application.jobDescription}
-                               </p>
-                               <Button 
-                                 variant="outline" 
-                                 size="sm" 
-                                 className="mt-2 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/10"
-                                 onClick={() => {
-                                   setSelectedApplication(application);
-                                   setIsModalOpen(true);
-                                 }}
-                               >
-                                 <Eye className="h-4 w-4 mr-2" />
-                                 View Full Description
-                               </Button>
-                             </div>
-                           )}
-                         </CardContent>
-                       </Card>
+                      <Card className="glass-card border-white/10 hover:border-white/20 transition-colors">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <h3 className="text-xl font-semibold text-white">{application.jobTitle}</h3>
+                                <Badge className={getStatusColor(application.status)}>
+                                  <StatusIcon className="h-3 w-3 mr-1" />
+                                  {getStatusLabel(application.status)}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            {/* 3-Dots Menu */}
+                            <div className="relative">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setOpenMenuId(openMenuId === application.id ? null : application.id)}
+                                className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800/50"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Dropdown Menu */}
+                              {openMenuId === application.id && (
+                                <div className="dropdown-menu absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                                  <div className="py-1">
+                                    {application.status !== 'withdrawn' && application.status !== 'hired' && application.status !== 'rejected' && (
+                                      <button
+                                        onClick={() => withdrawApplication(application.id)}
+                                        className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"
+                                      >
+                                        <LogOut className="h-4 w-4" />
+                                        Withdraw Application
+                                      </button>
+                                    )}
+                                    {application.status === 'withdrawn' && (
+                                      <div className="px-4 py-2 text-sm text-gray-500">
+                                        Application Withdrawn
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Status Description */}
+                          <div className="mb-3">
+                            <p className="text-sm text-gray-300 italic">
+                              {getStatusDescription(application.status)}
+                            </p>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
+                            <div className="flex items-center gap-2">
+                              <Building className="h-4 w-4" />
+                              <span>{application.companyName}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>Applied: {new Date(application.appliedDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              <span>ID: {application.id.slice(0, 8)}...</span>
+                            </div>
+                          </div>
+                          
+                          {application.jobDescription && (
+                            <div className="mt-4">
+                              <p className="text-gray-300 text-sm line-clamp-2">
+                                {application.jobDescription}
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-2 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/10"
+                                onClick={() => {
+                                  setSelectedApplication(application);
+                                  setIsModalOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Full Description
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     </motion.div>
                   );
                 })
               )}
-                         </motion.div>
-           </div>
-         </div>
-       </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
 
-       {/* Job Details Modal */}
-       {isModalOpen && selectedApplication && (
-         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <motion.div
-             initial={{ opacity: 0, scale: 0.95 }}
-             animate={{ opacity: 1, scale: 1 }}
-             exit={{ opacity: 0, scale: 0.95 }}
-             className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden"
-           >
-             {/* Modal Header */}
-             <div className="flex items-center justify-between p-6 border-b border-gray-700">
-               <div>
-                 <h2 className="text-2xl font-bold text-white">{selectedApplication.jobTitle}</h2>
-                 <p className="text-gray-400">{selectedApplication.companyName}</p>
-               </div>
-               <Button
-                 variant="ghost"
-                 size="sm"
-                 onClick={() => {
-                   setIsModalOpen(false);
-                   setSelectedApplication(null);
-                 }}
-                 className="text-gray-400 hover:text-white"
-               >
-                 <X className="h-5 w-5" />
-               </Button>
-             </div>
+      {/* Job Details Modal */}
+      {isModalOpen && selectedApplication && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <div>
+                <h2 className="text-2xl font-bold text-white">{selectedApplication.jobTitle}</h2>
+                <p className="text-gray-400">{selectedApplication.companyName}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedApplication(null);
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
 
-             {/* Modal Content */}
-             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-               <div className="space-y-6">
-                 {/* Job Description */}
-                 {selectedApplication.jobDescription && (
-                   <div>
-                     <h3 className="text-lg font-semibold text-white mb-3">Job Description</h3>
-                     <p className="text-gray-300 leading-relaxed">{selectedApplication.jobDescription}</p>
-                   </div>
-                 )}
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="space-y-6">
+                {/* Job Description */}
+                {selectedApplication.jobDescription && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3">Job Description</h3>
+                    <p className="text-gray-300 leading-relaxed">{selectedApplication.jobDescription}</p>
+                  </div>
+                )}
 
-                 {/* Responsibilities */}
-                 {selectedApplication.requirements && selectedApplication.requirements.length > 0 && (
-                   <div>
-                     <h3 className="text-lg font-semibold text-white mb-3">Responsibilities</h3>
-                     <ul className="space-y-2">
-                       {selectedApplication.requirements.map((req, index) => (
-                         <li key={index} className="flex items-start gap-2 text-gray-300">
-                           <span className="text-cyan-400 mt-1">•</span>
-                           <span>{req}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                 )}
+                {/* Responsibilities */}
+                {selectedApplication.requirements && selectedApplication.requirements.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3">Responsibilities</h3>
+                    <ul className="space-y-2">
+                      {selectedApplication.requirements.map((req, index) => (
+                        <li key={index} className="flex items-start gap-2 text-gray-300">
+                          <span className="text-cyan-400 mt-1">•</span>
+                          <span>{req}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-                 {/* Qualifications & Requirements */}
-                 {selectedApplication.requirements && selectedApplication.requirements.length > 0 && (
-                   <div>
-                     <h3 className="text-lg font-semibold text-white mb-3">Qualifications & Requirements</h3>
-                     <ul className="space-y-2">
-                       {selectedApplication.requirements.map((req, index) => (
-                         <li key={index} className="flex items-start gap-2 text-gray-300">
-                           <span className="text-cyan-400 mt-1">•</span>
-                           <span>{req}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                 )}
+                {/* Qualifications & Requirements */}
+                {selectedApplication.requirements && selectedApplication.requirements.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3">Qualifications & Requirements</h3>
+                    <ul className="space-y-2">
+                      {selectedApplication.requirements.map((req, index) => (
+                        <li key={index} className="flex items-start gap-2 text-gray-300">
+                          <span className="text-cyan-400 mt-1">•</span>
+                          <span>{req}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-                 {/* Perks & Benefits */}
-                 {selectedApplication.benefits && selectedApplication.benefits.length > 0 && (
-                   <div>
-                     <h3 className="text-lg font-semibold text-white mb-3">Perks & Benefits</h3>
-                     <ul className="space-y-2">
-                       {selectedApplication.benefits.map((benefit, index) => (
-                         <li key={index} className="flex items-start gap-2 text-gray-300">
-                           <span className="text-green-400 mt-1">✓</span>
-                           <span>{benefit}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                 )}
+                {/* Perks & Benefits */}
+                {selectedApplication.benefits && selectedApplication.benefits.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3">Perks & Benefits</h3>
+                    <ul className="space-y-2">
+                      {selectedApplication.benefits.map((benefit, index) => (
+                        <li key={index} className="flex items-start gap-2 text-gray-300">
+                          <span className="text-green-400 mt-1">✓</span>
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-                 {/* Additional Information */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
-                   {selectedApplication.workArrangement && (
-                     <div>
-                       <span className="text-sm text-gray-400">Work Arrangement:</span>
-                       <p className="text-white font-medium">{selectedApplication.workArrangement}</p>
-                     </div>
-                   )}
-                   {selectedApplication.experienceLevel && (
-                     <div>
-                       <span className="text-sm text-gray-400">Experience Level:</span>
-                       <p className="text-white font-medium">{selectedApplication.experienceLevel}</p>
-                     </div>
-                   )}
-                   {selectedApplication.industry && (
-                     <div>
-                       <span className="text-sm text-gray-400">Industry:</span>
-                       <p className="text-white font-medium">{selectedApplication.industry}</p>
-                     </div>
-                   )}
-                   {selectedApplication.department && (
-                     <div>
-                       <span className="text-sm text-gray-400">Department:</span>
-                       <p className="text-white font-medium">{selectedApplication.department}</p>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
-           </motion.div>
-         </div>
-       )}
-     </div>
-   );
- }
+                {/* Additional Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+                  {selectedApplication.workArrangement && (
+                    <div>
+                      <span className="text-sm text-gray-400">Work Arrangement:</span>
+                      <p className="text-white font-medium">{selectedApplication.workArrangement}</p>
+                    </div>
+                  )}
+                  {selectedApplication.experienceLevel && (
+                    <div>
+                      <span className="text-sm text-gray-400">Experience Level:</span>
+                      <p className="text-white font-medium">{selectedApplication.experienceLevel}</p>
+                    </div>
+                  )}
+                  {selectedApplication.industry && (
+                    <div>
+                      <span className="text-sm text-gray-400">Industry:</span>
+                      <p className="text-white font-medium">{selectedApplication.industry}</p>
+                    </div>
+                  )}
+                  {selectedApplication.department && (
+                    <div>
+                      <span className="text-sm text-gray-400">Department:</span>
+                      <p className="text-white font-medium">{selectedApplication.department}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+}

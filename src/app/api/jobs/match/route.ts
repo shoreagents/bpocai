@@ -49,7 +49,31 @@ export async function GET(request: NextRequest) {
 
       const job = jobResult.rows[0];
 
-              // Prepare data for Anthropic analysis
+      // Check if we already have a recent analysis for this user-job combination
+      try {
+        const existingResult = await client.query(`
+          SELECT score, reasoning, breakdown, analyzed_at
+          FROM job_match_results 
+          WHERE user_id = $1 AND job_id = $2
+          AND analyzed_at > NOW() - INTERVAL '24 hours'
+        `, [userId, jobId]);
+
+        if (existingResult.rows.length > 0) {
+          const cached = existingResult.rows[0];
+          console.log(`Using cached match result for user ${userId}, job ${jobId}`);
+          return NextResponse.json({
+            matchScore: cached.score,
+            reasoning: cached.reasoning,
+            breakdown: typeof cached.breakdown === 'string' ? JSON.parse(cached.breakdown) : cached.breakdown,
+            message: 'Using cached analysis result',
+            cached: true
+          });
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to check cached results (table may not exist):', cacheErr);
+      }
+
+      // Prepare data for Anthropic analysis
     const analysisData = {
       user: {
         name: user.full_name,
@@ -88,6 +112,7 @@ export async function GET(request: NextRequest) {
     });
 
       // Call Anthropic API for intelligent matching
+      console.log(`Performing new AI analysis for user ${userId}, job ${jobId}`);
       const matchScore = await analyzeJobMatchWithAI(analysisData);
 
       // Persist the latest analysis as the basis for future counts
@@ -107,7 +132,8 @@ export async function GET(request: NextRequest) {
         matchScore: matchScore.score,
         reasoning: matchScore.reasoning,
         breakdown: matchScore.breakdown,
-        message: 'AI-powered match analysis completed'
+        message: 'New AI-powered match analysis completed',
+        cached: false
       });
 
     } finally {
