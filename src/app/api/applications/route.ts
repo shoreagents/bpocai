@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
             resumeId: appRow.resumeId,
             resumeSlug: appRow.resumeSlug,
             jobTitle: jobDetails?.job_title || 'Unknown Position',
-            companyName: jobDetails?.company_name || 'Unknown Company',
+            companyName: 'ShoreAgents',
             location: 'Location not specified', // Default since location column doesn't exist
             salary,
             status: finalStatus,

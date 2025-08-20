@@ -45,7 +45,7 @@ export async function GET(_request: NextRequest) {
 
       return {
         id: String(row.id),
-        company: row.company_name || 'Unknown Company',
+        company: 'ShoreAgents',
         companyLogo: row.company_logo || '🏢',
         title: row.job_title || 'Untitled Role',
         location: row.location || row['location'] || '',
