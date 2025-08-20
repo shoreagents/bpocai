@@ -571,17 +571,27 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-400">Number of users playing each game</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={gameRange}
-                      onChange={(e) => setGameRange(e.target.value as any)}
-                      className="bg-transparent border border-white/10 text-white text-sm rounded px-2 py-1"
-                    >
-                      <option value="7d">Last 7d</option>
-                      <option value="30d">Last 30d</option>
-                      <option value="90d">Last 90d</option>
-                      <option value="1y">Last 1y</option>
-                      <option value="all">All time</option>
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-white/10 text-white hover:bg-white/10"
+                        >
+                          <Calendar className="w-3 h-3 mr-2" />
+                          {gameRange === '7d' ? 'Last 7d' : gameRange === '30d' ? 'Last 30d' : gameRange === '90d' ? 'Last 90d' : gameRange === '1y' ? 'Last 1y' : 'All time'}
+                          <ChevronDown className="w-3 h-3 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-gray-900 border-white/10 text-white">
+                        <DropdownMenuLabel>Time Range</DropdownMenuLabel>
+                        <DropdownMenuItem className={gameRange==='7d' ? 'bg-white/20' : ''} onClick={() => setGameRange('7d')}>Last 7d</DropdownMenuItem>
+                        <DropdownMenuItem className={gameRange==='30d' ? 'bg-white/20' : ''} onClick={() => setGameRange('30d')}>Last 30d</DropdownMenuItem>
+                        <DropdownMenuItem className={gameRange==='90d' ? 'bg-white/20' : ''} onClick={() => setGameRange('90d')}>Last 90d</DropdownMenuItem>
+                        <DropdownMenuItem className={gameRange==='1y' ? 'bg-white/20' : ''} onClick={() => setGameRange('1y')}>Last 1y</DropdownMenuItem>
+                        <DropdownMenuItem className={gameRange==='all' ? 'bg-white/20' : ''} onClick={() => setGameRange('all')}>All time</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
@@ -619,15 +629,25 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-400">Daily job application activity</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={applicationsRange}
-                      onChange={(e) => setApplicationsRange(e.target.value as any)}
-                      className="bg-transparent border border-white/10 text-white text-sm rounded px-2 py-1"
-                    >
-                      <option value="7d">Last 7d</option>
-                      <option value="30d">Last 30d</option>
-                      <option value="90d">Last 90d</option>
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-white/10 text-white hover:bg-white/10"
+                        >
+                          <Calendar className="w-3 h-3 mr-2" />
+                          {applicationsRange === '7d' ? 'Last 7d' : applicationsRange === '30d' ? 'Last 30d' : 'Last 90d'}
+                          <ChevronDown className="w-3 h-3 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-gray-900 border-white/10 text-white">
+                        <DropdownMenuLabel>Time Range</DropdownMenuLabel>
+                        <DropdownMenuItem className={applicationsRange==='7d' ? 'bg-white/20' : ''} onClick={() => setApplicationsRange('7d')}>Last 7d</DropdownMenuItem>
+                        <DropdownMenuItem className={applicationsRange==='30d' ? 'bg-white/20' : ''} onClick={() => setApplicationsRange('30d')}>Last 30d</DropdownMenuItem>
+                        <DropdownMenuItem className={applicationsRange==='90d' ? 'bg-white/20' : ''} onClick={() => setApplicationsRange('90d')}>Last 90d</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
@@ -660,15 +680,25 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-400">Daily new user signups</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={registrationsRange}
-                      onChange={(e) => setRegistrationsRange(e.target.value as any)}
-                      className="bg-transparent border border-white/10 text-white text-sm rounded px-2 py-1"
-                    >
-                      <option value="7d">Last 7d</option>
-                      <option value="30d">Last 30d</option>
-                      <option value="90d">Last 90d</option>
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-white/10 text-white hover:bg-white/10"
+                        >
+                          <Calendar className="w-3 h-3 mr-2" />
+                          {registrationsRange === '7d' ? 'Last 7d' : registrationsRange === '30d' ? 'Last 30d' : 'Last 90d'}
+                          <ChevronDown className="w-3 h-3 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-gray-900 border-white/10 text-white">
+                        <DropdownMenuLabel>Time Range</DropdownMenuLabel>
+                        <DropdownMenuItem className={registrationsRange==='7d' ? 'bg-white/20' : ''} onClick={() => setRegistrationsRange('7d')}>Last 7d</DropdownMenuItem>
+                        <DropdownMenuItem className={registrationsRange==='30d' ? 'bg-white/20' : ''} onClick={() => setRegistrationsRange('30d')}>Last 30d</DropdownMenuItem>
+                        <DropdownMenuItem className={registrationsRange==='90d' ? 'bg-white/20' : ''} onClick={() => setRegistrationsRange('90d')}>Last 90d</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
