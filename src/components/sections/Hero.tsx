@@ -31,7 +31,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { platformStats } from '@/lib/data'
 import { formatNumber } from '@/lib/utils'
 
 const typingText = [
@@ -55,6 +54,12 @@ export default function Hero() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [typingSpeed, setTypingSpeed] = useState(150)
   const [activeTab, setActiveTab] = useState(0)
+  const [platformStats, setPlatformStats] = useState({
+    totalUsers: 0,
+    activeResumes: 0,
+    activeJobs: 0
+  })
+  const [loading, setLoading] = useState(true)
 
   const handleBuildResume = () => {
     router.push('/resume-builder')
@@ -94,6 +99,25 @@ export default function Hero() {
 
     return () => clearTimeout(timer)
   }, [displayText, currentTypingIndex, isDeleting, typingSpeed])
+
+  // Fetch platform statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats/platform')
+        if (response.ok) {
+          const data = await response.json()
+          setPlatformStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch platform stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   const renderDemoContent = () => {
     const currentTab = demoTabs[activeTab]
@@ -372,7 +396,7 @@ export default function Hero() {
                 transition={{ delay: 0.3 }}
                 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight"
               >
-                <span className="text-white">BPOC.AI</span>
+                <span className="text-white">BPOC.IO</span>
                 <br />
                 <span className="gradient-text">Where BPO</span>
                 <br />
@@ -436,18 +460,24 @@ export default function Hero() {
               transition={{ delay: 1.2 }}
               className="flex items-center space-x-8 pt-6 border-t border-white/10"
             >
-              <div className="text-center">
-                <div className="text-2xl font-bold text-cyan-400">{formatNumber(platformStats.resumesBuilt)}+</div>
-                <div className="text-sm text-gray-400">Resumes Built</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">{formatNumber(platformStats.successRate)}%</div>
-                <div className="text-sm text-gray-400">Success Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-400">{platformStats.companies}+</div>
-                <div className="text-sm text-gray-400">Companies</div>
-              </div>
+                             <div className="text-center">
+                 <div className="text-2xl font-bold text-cyan-400">
+                   {loading ? '...' : formatNumber(platformStats.activeResumes)}
+                 </div>
+                 <div className="text-sm text-gray-400">Active Resumes</div>
+               </div>
+               <div className="text-center">
+                 <div className="text-2xl font-bold text-green-400">
+                   {loading ? '...' : formatNumber(platformStats.activeJobs)}
+                 </div>
+                 <div className="text-sm text-gray-400">Active Jobs</div>
+               </div>
+               <div className="text-center">
+                 <div className="text-2xl font-bold text-purple-400">
+                   {loading ? '...' : formatNumber(platformStats.totalUsers)}
+                 </div>
+                 <div className="text-sm text-gray-400">Total Users</div>
+               </div>
             </motion.div>
           </motion.div>
 
@@ -469,7 +499,7 @@ export default function Hero() {
                     <Sparkles className="w-6 h-6 text-black" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">BPOC.AI</h3>
+                    <h3 className="font-semibold text-white">BPOC.IO</h3>
                     <p className="text-sm text-gray-400">Interactive Demo</p>
                   </div>
                 </div>

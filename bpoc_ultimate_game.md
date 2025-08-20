@@ -512,7 +512,7 @@ FOR BPOC:
 
 ### **Market Positioning**
 ```
-"BPOC.AI doesn't just test skills - we reveal CHARACTER.
+"BPOC.IO doesn't just test skills - we reveal CHARACTER.
 
 Our proprietary 'BPO Hero's Journey' assessment combines personality, 
 logic, integrity, and business sense into one immersive experience.

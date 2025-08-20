@@ -77,7 +77,7 @@ export default function AboutPage() {
             
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Learn about our mission to transform BPO careers in the Philippines 
-              and discover the team behind BPOC.AI's innovative platform.
+              and discover the team behind BPOC.IO's innovative platform.
             </p>
           </motion.div>
 
@@ -142,7 +142,7 @@ export default function AboutPage() {
                 <div className="grid md:grid-cols-2 gap-8 items-center">
                   <div className="space-y-4">
                     <p className="text-gray-300 leading-relaxed">
-                      BPOC.AI was founded by industry veterans who witnessed firsthand the challenges 
+                      BPOC.IO was founded by industry veterans who witnessed firsthand the challenges 
                       faced by talented Filipinos in the BPO sector. Despite having incredible potential, 
                       many professionals struggled with outdated recruitment processes, lack of skill 
                       visibility, and limited career development resources.

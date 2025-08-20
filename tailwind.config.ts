@@ -50,7 +50,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // BPOC.AI Custom Colors
+        // BPOC.IO Custom Colors
         "cyber-blue": "#0ea5e9",
         "electric-purple": "#a855f7", 
         "neon-green": "#10b981",

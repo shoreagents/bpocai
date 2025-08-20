@@ -248,7 +248,7 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
             <DialogHeader className="text-center space-y-3">
               <DialogTitle className="text-2xl sm:text-3xl font-bold gradient-text flex items-center justify-center gap-3">
                 <UserPlus className="w-6 h-6 sm:w-8 sm:h-8" />
-                Join BPOC.AI
+                Join BPOC.IO
               </DialogTitle>
               <DialogDescription className="text-gray-300 text-sm sm:text-base">
                 Start your BPO career journey with our FREE platform

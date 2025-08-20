@@ -1240,7 +1240,7 @@ export default function SettingsPage() {
                 <Settings className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
                   <h1 className="text-4xl font-bold gradient-text">Settings</h1>
-                  <p className="text-gray-400">Customize your BPOC.AI experience and manage your account preferences</p>
+                  <p className="text-gray-400">Customize your BPOC.IO experience and manage your account preferences</p>
                 </div>
               </div>
             </div>

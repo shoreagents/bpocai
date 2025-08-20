@@ -316,7 +316,7 @@ export default function Header({}: HeaderProps) {
               </div>
             </motion.div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold gradient-text">BPOC.AI</span>
+              <span className="text-xl font-bold gradient-text">BPOC.IO</span>
               <span className="text-xs text-gray-400 -mt-1">Where BPO Careers Begin</span>
             </div>
           </Link>

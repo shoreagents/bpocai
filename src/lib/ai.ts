@@ -1,4 +1,4 @@
-// AI Integration for BPOC.AI Platform
+// AI Integration for BPOC.IO Platform
 // Using Claude API for resume analysis and career advice
 
 interface AIResponse {
