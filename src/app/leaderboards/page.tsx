@@ -19,7 +19,10 @@ import {
   Sparkles,
   Stars,
   Briefcase,
-  RefreshCw
+  RefreshCw,
+  Award,
+  Zap,
+  Star
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -196,24 +199,56 @@ export default function LeaderboardsPage() {
 
 	const RankBadge = ({ rank }: { rank: number }) => {
 		if (rank === 1) return (
-			<div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20">
-				<Crown className="w-6 h-6 text-white" />
-			</div>
+			<motion.div 
+				initial={{ scale: 0.8, rotate: -10 }}
+				animate={{ scale: 1, rotate: 0 }}
+				whileHover={{ scale: 1.1, rotate: 5 }}
+				className="relative w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500 flex items-center justify-center shadow-xl shadow-yellow-500/40 ring-3 ring-yellow-400/30"
+			>
+				<div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-200/30 to-transparent" />
+				<Crown className="w-6 h-6 text-yellow-900 drop-shadow-sm" />
+				<div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full flex items-center justify-center">
+					<Sparkles className="w-2 h-2 text-yellow-800" />
+				</div>
+			</motion.div>
 		)
 		if (rank === 2) return (
-			<div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center shadow-lg shadow-gray-400/20">
-				<Medal className="w-6 h-6 text-white" />
-			</div>
+			<motion.div 
+				initial={{ scale: 0.8, rotate: 10 }}
+				animate={{ scale: 1, rotate: 0 }}
+				whileHover={{ scale: 1.1, rotate: -3 }}
+				className="relative w-12 h-12 rounded-full bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400 flex items-center justify-center shadow-xl shadow-gray-400/30 ring-3 ring-gray-300/40"
+			>
+				<div className="absolute inset-0 rounded-full bg-gradient-to-br from-gray-100/40 to-transparent" />
+				<Medal className="w-6 h-6 text-gray-700 drop-shadow-sm" />
+				<div className="absolute -top-1 -right-1 w-3 h-3 bg-gray-200 rounded-full flex items-center justify-center">
+					<Star className="w-2 h-2 text-gray-600" />
+				</div>
+			</motion.div>
 		)
 		if (rank === 3) return (
-			<div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-700 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-				<Medal className="w-6 h-6 text-white" />
-			</div>
+			<motion.div 
+				initial={{ scale: 0.8, rotate: -5 }}
+				animate={{ scale: 1, rotate: 0 }}
+				whileHover={{ scale: 1.1, rotate: 2 }}
+				className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 via-orange-500 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30 ring-3 ring-orange-400/30"
+			>
+				<div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-300/30 to-transparent" />
+				<Award className="w-6 h-6 text-orange-100 drop-shadow-sm" />
+				<div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-400 rounded-full flex items-center justify-center">
+					<Zap className="w-2 h-2 text-orange-800" />
+				</div>
+			</motion.div>
 		)
 		return (
-			<div className="w-12 h-12 rounded-full bg-white/5 text-cyan-300 border border-cyan-400/30 flex items-center justify-center text-sm font-bold">
+			<motion.div 
+				initial={{ scale: 0.9 }}
+				animate={{ scale: 1 }}
+				whileHover={{ scale: 1.05 }}
+				className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-white/5 text-cyan-300 border-2 border-cyan-400/40 flex items-center justify-center text-sm font-bold shadow-lg shadow-cyan-500/20 hover:border-cyan-400/60 transition-all duration-200"
+			>
 				#{rank}
-			</div>
+			</motion.div>
 		)
 	}
 
@@ -241,26 +276,47 @@ export default function LeaderboardsPage() {
 	}, [filteredResults, openUserId])
 
 	const renderRankCell = (rank: number) => (
-		<div className="flex items-center justify-center">
+		<div className="flex items-center justify-center w-full h-full min-h-[60px]">
 			<RankBadge rank={rank} />
 		</div>
 	)
 
-	const renderUserCell = (row: any) => (
-		<div className="flex items-center gap-3 min-w-0">
-			<div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
-				{row.user?.avatar_url ? (
-					<img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
-				) : (
-					<span className="text-gray-400 text-xs">N/A</span>
-				)}
+	const renderUserCell = (row: any) => {
+		const getSpecialBadge = (rank: number) => {
+			if (rank === 1) return <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900 border-yellow-400/50 font-bold">🥇 Champion</Badge>
+			if (rank === 2) return <Badge className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 border-gray-300/50 font-semibold">🥈 Runner-up</Badge>
+			if (rank === 3) return <Badge className="bg-gradient-to-r from-orange-400 to-orange-500 text-orange-900 border-orange-400/50 font-semibold">🥉 3rd Place</Badge>
+			return null
+		}
+
+		return (
+			<div className="flex items-center gap-3 min-w-0">
+				<div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center ${
+					row.rank === 1 ? 'ring-3 ring-yellow-400/50 bg-yellow-50/10' :
+					row.rank === 2 ? 'ring-2 ring-gray-300/50 bg-gray-50/10' :
+					row.rank === 3 ? 'ring-2 ring-orange-400/50 bg-orange-50/10' :
+					'ring-2 ring-cyan-500/20 bg-white/10'
+				}`}>
+					{row.user?.avatar_url ? (
+						<img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
+					) : (
+						<span className="text-gray-400 text-xs">N/A</span>
+					)}
+				</div>
+				<div className="flex-1 min-w-0">
+					<button onClick={(e) => goToResume(e, row.userId)} className={`text-left truncate hover:underline font-semibold ${
+						row.rank === 1 ? 'text-yellow-300' :
+						row.rank === 2 ? 'text-gray-200' :
+						row.rank === 3 ? 'text-orange-300' :
+						'text-cyan-300'
+					}`}>
+						{row.user?.full_name || row.userId}
+					</button>
+					{getSpecialBadge(row.rank)}
+				</div>
 			</div>
-			<button onClick={(e) => goToResume(e, row.userId)} className="text-left truncate text-cyan-300 hover:underline">
-				{row.user?.full_name || row.userId}
-			</button>
-			{row.rank <= 3 && <Badge className="bg-cyan-500/20 border-cyan-400/30 text-cyan-300">Top {row.rank}</Badge>}
-		</div>
-	)
+		)
+	}
 
 	const renderRow = (row: any, index: number) => {
 		const rank = row.rank
@@ -333,22 +389,153 @@ export default function LeaderboardsPage() {
        <div className="pt-16 relative z-10">
          <div className="container max-w-7xl mx-auto px-4 py-8">
                        {/* Header */}
-            <div className="mb-8">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center">
-                  <Briefcase className="w-6 h-6 text-cyan-400" />
-                </div>
+                <motion.div 
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 flex items-center justify-center shadow-xl shadow-yellow-500/30"
+                >
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-yellow-200/40 to-transparent" />
+                  <Trophy className="w-8 h-8 text-yellow-900 drop-shadow-lg" />
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.5, 1, 0.5]
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-300 rounded-full flex items-center justify-center"
+                  >
+                    <Sparkles className="w-3 h-3 text-yellow-800" />
+                  </motion.div>
+                </motion.div>
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-bold text-white">
-                    Leaderboards
-                  </h1>
-                  <p className="text-lg text-gray-300">
-                    Compete, improve, and rise to the top of our rankings
-                  </p>
+                  <motion.h1 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent"
+                  >
+                    🏆 Leaderboards
+                  </motion.h1>
+                  <motion.p 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-lg text-gray-300"
+                  >
+                    Compete, improve, and rise to the top of our rankings 🚀
+                  </motion.p>
                 </div>
 
                                  </div>
-             </div>
+             </motion.div>
+
+          {/* Top 3 Podium */}
+          {!loading && !error && filteredResults.length >= 3 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mb-8"
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">🏆 Hall of Fame</h2>
+                <p className="text-gray-400">Our top 3 champions leading the way!</p>
+              </div>
+              
+              <div className="flex items-end justify-center gap-4 max-w-3xl mx-auto">
+                {/* 2nd Place */}
+                <motion.div
+                  initial={{ scale: 0, y: 50 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ delay: 0.6, type: "spring" }}
+                  className="relative flex-1 max-w-xs"
+                >
+                  <div className="bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400 rounded-t-lg p-4 h-32 flex flex-col items-center justify-center shadow-xl">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 ring-4 ring-gray-300/50 mb-2">
+                      {filteredResults[1]?.user?.avatar_url ? (
+                        <img src={filteredResults[1].user.avatar_url} alt={filteredResults[1].user?.full_name || filteredResults[1].userId} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gray-400 flex items-center justify-center text-gray-700 font-bold">2</div>
+                      )}
+                    </div>
+                    <div className="text-gray-800 font-bold text-sm text-center truncate w-full">{filteredResults[1]?.user?.full_name || filteredResults[1]?.userId}</div>
+                  </div>
+                  <div className="bg-gray-500 text-white text-center py-2 rounded-b-lg font-bold">
+                    🥈 2nd Place
+                  </div>
+                </motion.div>
+
+                {/* 1st Place */}
+                <motion.div
+                  initial={{ scale: 0, y: 50 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ delay: 0.7, type: "spring" }}
+                  className="relative flex-1 max-w-xs"
+                >
+                  <div className="bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500 rounded-t-lg p-4 h-40 flex flex-col items-center justify-center shadow-2xl shadow-yellow-500/30 ring-4 ring-yellow-400/50">
+                    <motion.div
+                      animate={{ 
+                        rotate: [0, 5, -5, 0],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ 
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute -top-3 left-1/2 transform -translate-x-1/2"
+                    >
+                      <Crown className="w-8 h-8 text-yellow-800" />
+                    </motion.div>
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-yellow-200/30 ring-4 ring-yellow-300/70 mb-2 mt-4">
+                      {filteredResults[0]?.user?.avatar_url ? (
+                        <img src={filteredResults[0].user.avatar_url} alt={filteredResults[0].user?.full_name || filteredResults[0].userId} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-yellow-300 flex items-center justify-center text-yellow-900 font-bold text-xl">👑</div>
+                      )}
+                    </div>
+                    <div className="text-yellow-900 font-bold text-sm text-center truncate w-full">{filteredResults[0]?.user?.full_name || filteredResults[0]?.userId}</div>
+                  </div>
+                  <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-yellow-900 text-center py-2 rounded-b-lg font-bold">
+                    🥇 Champion
+                  </div>
+                </motion.div>
+
+                {/* 3rd Place */}
+                <motion.div
+                  initial={{ scale: 0, y: 50 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ delay: 0.8, type: "spring" }}
+                  className="relative flex-1 max-w-xs"
+                >
+                  <div className="bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 rounded-t-lg p-4 h-28 flex flex-col items-center justify-center shadow-xl">
+                    <div className="w-14 h-14 rounded-full overflow-hidden bg-orange-200/30 ring-4 ring-orange-300/50 mb-2">
+                      {filteredResults[2]?.user?.avatar_url ? (
+                        <img src={filteredResults[2].user.avatar_url} alt={filteredResults[2].user?.full_name || filteredResults[2].userId} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-orange-400 flex items-center justify-center text-orange-900 font-bold">3</div>
+                      )}
+                    </div>
+                    <div className="text-orange-900 font-bold text-sm text-center truncate w-full">{filteredResults[2]?.user?.full_name || filteredResults[2]?.userId}</div>
+                  </div>
+                  <div className="bg-orange-600 text-orange-100 text-center py-2 rounded-b-lg font-bold">
+                    🥉 3rd Place
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Simple intro sentence */}
           <div className="mb-4 text-sm text-gray-300">
@@ -414,7 +601,7 @@ export default function LeaderboardsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[80px] text-gray-300">Rank</TableHead>
+                        <TableHead className="w-[80px] text-gray-300 text-center">Rank</TableHead>
                         <TableHead className="text-gray-300">User</TableHead>
                         {category === 'overall' && (<>
                           <TableHead className="text-right text-gray-300">Overall</TableHead>
@@ -456,10 +643,25 @@ export default function LeaderboardsPage() {
                       {!loading && !error && filteredResults.length === 0 && (
                         <TableRow><TableCell colSpan={7} className="text-gray-400">No results</TableCell></TableRow>
                       )}
-                      {!loading && !error && filteredResults.map((row: any) => (
-                        <TableRow key={`${row.userId}-${row.rank}`} className="hover:bg-white/5 cursor-pointer border-b border-white/10" onClick={() => setOpenUserId(row.userId)}>
-                          <TableCell>{renderRankCell(row.rank)}</TableCell>
-                          <TableCell>{renderUserCell(row)}</TableCell>
+                      {!loading && !error && filteredResults.map((row: any) => {
+                        const getRowStyling = (rank: number) => {
+                          if (rank === 1) return "hover:bg-yellow-500/10 cursor-pointer border-b border-yellow-400/20 bg-gradient-to-r from-yellow-500/5 to-transparent"
+                          if (rank === 2) return "hover:bg-gray-300/10 cursor-pointer border-b border-gray-300/20 bg-gradient-to-r from-gray-400/5 to-transparent"
+                          if (rank === 3) return "hover:bg-orange-500/10 cursor-pointer border-b border-orange-400/20 bg-gradient-to-r from-orange-500/5 to-transparent"
+                          return "hover:bg-white/5 cursor-pointer border-b border-white/10"
+                        }
+                        
+                        return (
+                          <motion.tr 
+                            key={`${row.userId}-${row.rank}`} 
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 * (row.rank - 1) }}
+                            className={getRowStyling(row.rank)}
+                            onClick={() => setOpenUserId(row.userId)}
+                          >
+                            <TableCell className="text-center">{renderRankCell(row.rank)}</TableCell>
+                            <TableCell>{renderUserCell(row)}</TableCell>
                           {category === 'overall' && (<>
                             <TableCell className="text-right">{row.score}</TableCell>
                             <TableCell className="text-right">{Math.round(row.components?.game_norm ?? 0)}</TableCell>
@@ -477,8 +679,9 @@ export default function LeaderboardsPage() {
                           {category === 'engagement' && (
                             <TableCell className="text-right">{row.score}</TableCell>
                           )}
-                        </TableRow>
-                      ))}
+                          </motion.tr>
+                        )
+                      })}
                     </TableBody>
                   </Table>
 

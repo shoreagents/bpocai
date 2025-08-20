@@ -8,10 +8,14 @@ import Header from '@/components/layout/Header'
 import Hero from '@/components/sections/Hero'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   BrainIcon,
   GamepadIcon,
@@ -29,13 +33,73 @@ import {
   MessageSquare,
   Calculator,
   BarChart,
-  X
+  X,
+  Crown,
+  Medal,
+  Award
 } from 'lucide-react'
 import { formatNumber } from '@/lib/utils'
 
 export default function HomePage() {
   const router = useRouter()
   const { user } = useAuth()
+  const [showProfileModal, setShowProfileModal] = useState(false)
+
+  // RankBadge component for leaderboards
+  const RankBadge = ({ rank }: { rank: number }) => {
+    if (rank === 1) return (
+      <motion.div 
+        initial={{ scale: 0.8, rotate: -10 }}
+        animate={{ scale: 1, rotate: 0 }}
+        whileHover={{ scale: 1.1, rotate: 5 }}
+        className="relative w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500 flex items-center justify-center shadow-xl shadow-yellow-500/40 ring-3 ring-yellow-400/30"
+      >
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-200/30 to-transparent" />
+        <Crown className="w-6 h-6 text-yellow-900 drop-shadow-sm" />
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full flex items-center justify-center">
+          <Sparkles className="w-2 h-2 text-yellow-800" />
+        </div>
+      </motion.div>
+    )
+    if (rank === 2) return (
+      <motion.div 
+        initial={{ scale: 0.8, rotate: 10 }}
+        animate={{ scale: 1, rotate: 0 }}
+        whileHover={{ scale: 1.1, rotate: -3 }}
+        className="relative w-12 h-12 rounded-full bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400 flex items-center justify-center shadow-xl shadow-gray-400/30 ring-3 ring-gray-300/40"
+      >
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gray-100/40 to-transparent" />
+        <Medal className="w-6 h-6 text-gray-700 drop-shadow-sm" />
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gray-200 rounded-full flex items-center justify-center">
+          <Star className="w-2 h-2 text-gray-600" />
+        </div>
+      </motion.div>
+    )
+    if (rank === 3) return (
+      <motion.div 
+        initial={{ scale: 0.8, rotate: -5 }}
+        animate={{ scale: 1, rotate: 0 }}
+        whileHover={{ scale: 1.1, rotate: 2 }}
+        className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-600 via-orange-500 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30 ring-3 ring-orange-400/30"
+      >
+        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-300/30 to-transparent" />
+        <Award className="w-6 h-6 text-orange-100 drop-shadow-sm" />
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-400 rounded-full flex items-center justify-center">
+          <Zap className="w-2 h-2 text-orange-800" />
+        </div>
+      </motion.div>
+    )
+    return (
+      <motion.div 
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.05 }}
+        className="w-12 h-12 rounded-full bg-gradient-to-br from-white/10 to-white/5 text-cyan-300 border-2 border-cyan-400/40 flex items-center justify-center text-sm font-bold shadow-lg shadow-cyan-500/20 hover:border-cyan-400/60 transition-all duration-200"
+      >
+        #{rank}
+      </motion.div>
+    )
+  }
   const [platformStats, setPlatformStats] = useState({
     totalUsers: 0,
     activeResumes: 0,
@@ -44,6 +108,45 @@ export default function HomePage() {
     hiddenFees: 100,
     minutes: 5
   })
+  const [topUsers, setTopUsers] = useState<Array<{ rank: number; userId: string; score: number; user?: { full_name: string | null; avatar_url: string | null } | null }>>([])
+  const [lbLoading, setLbLoading] = useState(false)
+  const [lbError, setLbError] = useState('')
+
+  // Testimonials data
+  const testimonialsData = [
+    {
+      name: 'Lainie',
+      avatar: '/images/testimonials/lainie.png',
+      text: 'A great place to work. Work-life balance, we only work 5 days a week, co-employees are friendly and have a healthy environment.'
+    },
+    {
+      name: 'Rikki',
+      avatar: '/images/testimonials/rikki.png',
+      text: 'ShoreAgents is an excellent company for those seeking a healthy work-life balance. There are numerous activities and treats that you will undoubtedly appreciate. ShoreAgents will assist you in growing and stepping beyond of your comfort zone. Strongly recommended! ❤️'
+    },
+    {
+      name: 'Dana',
+      avatar: '/images/testimonials/dana.png',
+      text: 'This is not only a company but it is a family, They are truly heart warming, happy environment plus lots of fun activities that they make sure that you have the work life balance! I really recommend everyone to apply in ShoreAgents and experience the happiness!'
+    },
+    {
+      name: 'Arra',
+      avatar: '/images/testimonials/arra.png',
+      text: 'I enjoy working in the company; people are good, there are lots of goodies, and they encourage you to do better and work outside your comfort zone. 🥰🥰🥰'
+    },
+    {
+      name: 'Kevin',
+      avatar: '/images/testimonials/kevin.png',
+      text: 'Highly recommended! Admins are very nice and approachable. They give out free pizza, burgers, cupcakes, and more every now and then to make sure staff’s are appreciated. Good working environment too.'
+    },
+    {
+      name: 'Crizza',
+      avatar: '/images/testimonials/crizza.png',
+      text: 'This is a less stress workplace, you only have 8-9 hours of stress, 5 days of the week—work life balance—a place where you can enhance your knowledge and grow your skills while also having fun ’cause there are goodies and games! So rare to find those nowadays.'
+    }
+  ]
+  const itemsPerView = 3
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   // Fetch platform statistics
   useEffect(() => {
@@ -52,7 +155,8 @@ export default function HomePage() {
         const response = await fetch('/api/stats/platform')
         if (response.ok) {
           const data = await response.json()
-          setPlatformStats(data)
+          // Merge so static fields (hiddenFees, minutes) are preserved
+          setPlatformStats((prev) => ({ ...prev, ...data }))
         }
       } catch (error) {
         console.error('Failed to fetch platform stats:', error)
@@ -62,14 +166,43 @@ export default function HomePage() {
     fetchStats()
   }, [])
 
+  // Load top users (leaderboards)
+  useEffect(() => {
+    const loadTop = async () => {
+      try {
+        setLbLoading(true)
+        setLbError('')
+        const res = await fetch('/api/leaderboards?category=overall&limit=5&offset=0', { cache: 'no-store' })
+        if (!res.ok) throw new Error(`Failed: ${res.status}`)
+        const data = await res.json()
+        setTopUsers(data?.results || [])
+      } catch (e: any) {
+        setLbError(e?.message || 'Failed to load top users')
+        setTopUsers([])
+      } finally {
+        setLbLoading(false)
+      }
+    }
+    loadTop()
+  }, [])
+
+  // Autoplay for testimonials carousel
+  useEffect(() => {
+    const maxIndex = Math.max(0, testimonialsData.length - itemsPerView)
+    const id = setInterval(() => {
+      setCurrentIndex((s) => (s + 1) % (maxIndex + 1))
+    }, 5000)
+    return () => clearInterval(id)
+  }, [testimonialsData.length])
+
   const handleBuildResume = () => {
     router.push('/resume-builder')
   }
 
   const handleCreateAccount = () => {
     if (!user) {
-      // Redirect to home page with signup parameter to trigger dialog
-      router.push('/?signup=true')
+      // Trigger signup dialog via query param on the current home route
+      router.push('/home?signup=true')
     } else {
       router.push('/resume-builder')
     }
@@ -188,6 +321,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+
 
       {/* Why Choose BPOC.IO Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white/5">
@@ -543,6 +678,132 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Top Users */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8"
+          >
+            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 mb-4">
+              <Trophy className="w-4 h-4 mr-2" />
+              Our top users
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
+              🏆 Top 5 Overall
+            </h2>
+            <p className="text-gray-300 mt-2">Recognizing the most engaged candidates across games, applications, and engagement.</p>
+          </motion.div>
+
+          <div className="glass-card border-white/10 max-w-4xl mx-auto">
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[80px] text-gray-300 text-center">Rank</TableHead>
+                    <TableHead className="text-gray-300">User</TableHead>
+                    <TableHead className="text-right text-gray-300">Overall</TableHead>
+                    <TableHead className="text-right text-gray-300">Profile</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lbLoading && (
+                    <TableRow><TableCell colSpan={4} className="text-gray-400">Loading...</TableCell></TableRow>
+                  )}
+                  {!lbLoading && lbError && (
+                    <TableRow><TableCell colSpan={4} className="text-red-400">{lbError}</TableCell></TableRow>
+                  )}
+                  {!lbLoading && !lbError && topUsers.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-gray-400">No data</TableCell></TableRow>
+                  )}
+                  {!lbLoading && !lbError && topUsers.map((row: any) => {
+                    const getRowStyling = (rank: number) => {
+                      if (rank === 1) return "hover:bg-yellow-500/10 cursor-pointer border-b border-yellow-400/20 bg-gradient-to-r from-yellow-500/5 to-transparent"
+                      if (rank === 2) return "hover:bg-gray-300/10 cursor-pointer border-b border-gray-300/20 bg-gradient-to-r from-gray-400/5 to-transparent"
+                      if (rank === 3) return "hover:bg-orange-500/10 cursor-pointer border-b border-orange-400/20 bg-gradient-to-r from-orange-500/5 to-transparent"
+                      return "hover:bg-white/5 cursor-pointer border-b border-white/10"
+                    }
+
+                    const getSpecialBadge = (rank: number) => {
+                      if (rank === 1) return <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900 border-yellow-400/50 font-bold">🥇 Champion</Badge>
+                      if (rank === 2) return <Badge className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 border-gray-300/50 font-semibold">🥈 Runner-up</Badge>
+                      if (rank === 3) return <Badge className="bg-gradient-to-r from-orange-400 to-orange-500 text-orange-900 border-orange-400/50 font-semibold">🥉 3rd Place</Badge>
+                      return null
+                    }
+
+                    return (
+                      <motion.tr 
+                        key={`${row.userId}-${row.rank}`} 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * (row.rank - 1) }}
+                        className={getRowStyling(row.rank)}
+                        onClick={() => {}}
+                      >
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center w-full h-full min-h-[60px]">
+                            <RankBadge rank={row.rank} />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center ${
+                              row.rank === 1 ? 'ring-3 ring-yellow-400/50 bg-yellow-50/10' :
+                              row.rank === 2 ? 'ring-2 ring-gray-300/50 bg-gray-50/10' :
+                              row.rank === 3 ? 'ring-2 ring-orange-400/50 bg-orange-50/10' :
+                              'ring-2 ring-cyan-500/20 bg-white/10'
+                            }`}>
+                              {row.user?.avatar_url ? (
+                                <img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-gray-400 text-xs">N/A</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-semibold truncate ${
+                                row.rank === 1 ? 'text-yellow-300' :
+                                row.rank === 2 ? 'text-gray-200' :
+                                row.rank === 3 ? 'text-orange-300' :
+                                'text-cyan-300'
+                              }`}>
+                                {row.user?.full_name || row.userId}
+                              </div>
+                              {getSpecialBadge(row.rank)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{row.score}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" onClick={async () => {
+                            try {
+                              const r = await fetch(`/api/users/${row.userId}/resume`, { cache: 'no-store' })
+                              if (!r.ok) {
+                                setShowProfileModal(true)
+                                return
+                              }
+                              const data = await r.json()
+                              if (data?.slug) {
+                                router.push(`/${data.slug}`)
+                              } else {
+                                setShowProfileModal(true)
+                              }
+                            } catch {
+                              setShowProfileModal(true)
+                            }
+                          }}>View Profile</Button>
+                        </TableCell>
+                      </motion.tr>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </div>
+        </div>
+      </section>
+
       {/* Success Stories */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white/5">
         <div className="container mx-auto">
@@ -564,137 +825,68 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          {/* Testimonial Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
-            {/* Maria Santos */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
+          {/* Testimonials Carousel */}
+          <div className="relative">
+            <div className="overflow-hidden px-1 md:px-2">
+              <div className="flex gap-4 md:gap-6 transition-transform duration-500"
+                style={{ transform: `translateX(-${currentIndex * (100 / 3 + 2)}%)` }}
+              >
+                {testimonialsData.map((t) => (
+                  <Card key={t.name} className="glass-card border-white/10 p-5 md:p-6 min-h-[220px] w-full md:w-[32%] shrink-0">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-white/10 flex items-center justify-center ring-2 ring-white/10">
+                        <img src={t.avatar} alt={t.name} className="w-full h-full object-contain" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white text-base">{t.name}</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 mb-3">
+                      {[1,2,3,4,5].map((star) => (
+                        <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-gray-300 leading-relaxed text-base">“{t.text}”</blockquote>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Arrows */}
+            <button
+              aria-label="Previous"
+              onClick={() => setCurrentIndex((s) => Math.max(0, s - 1))}
+              className="absolute -left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full p-2 text-white shadow-lg"
             >
-              <Card className="glass-card border-white/10 h-full p-6 min-h-[200px]">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center">
-                    <span className="text-black font-bold text-base">MS</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white text-base">Maria Santos</h3>
-                    <p className="text-sm text-gray-400">Customer Service Representative at Accenture</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-1 mb-4">
-                  {[1,2,3,4,5].map((star) => (
-                    <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-
-                <blockquote className="text-gray-300 italic leading-relaxed text-base">
-                  "BPOC.IO helped me create a professional resume that highlighted my BPO experience. I got hired within 2 weeks!"
-                </blockquote>
-              </Card>
-            </motion.div>
-
-            {/* John Dela Cruz */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              aria-label="Next"
+              onClick={() => setCurrentIndex((s) => Math.min(s + 1, Math.max(0, testimonialsData.length - itemsPerView)))}
+              className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full p-2 text-white shadow-lg"
             >
-              <Card className="glass-card border-white/10 h-full p-6 min-h-[200px]">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-base">JDC</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white text-base">John Dela Cruz</h3>
-                    <p className="text-sm text-gray-400">Team Lead at Concentrix</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-1 mb-4">
-                  {[1,2,3,4,5].map((star) => (
-                    <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
+              <ChevronRight className="w-5 h-5" />
+            </button>
 
-                <blockquote className="text-gray-300 italic leading-relaxed text-base">
-                  "The AI analysis identified gaps in my resume that I never noticed. After addressing them, I got promoted to Team Lead."
-                </blockquote>
-              </Card>
-            </motion.div>
-
-            {/* Ana Rodriguez */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="glass-card border-white/10 h-full p-6 min-h-[200px]">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-black font-bold text-base">AR</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white text-base">Ana Rodriguez</h3>
-                    <p className="text-sm text-gray-400">Quality Analyst at TelePerformance</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-1 mb-4">
-                  {[1,2,3,4,5].map((star) => (
-                    <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-
-                <blockquote className="text-gray-300 italic leading-relaxed text-base">
-                  "The salary calculator helped me negotiate better pay. I'm now earning 30% more than my previous role."
-                </blockquote>
-              </Card>
-            </motion.div>
+            {/* Dots */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {Array.from({ length: Math.max(1, testimonialsData.length - itemsPerView + 1) }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentIndex(i)}
+                  className={`w-2.5 h-2.5 rounded-full border ${i === currentIndex ? 'bg-white border-white' : 'bg-white/20 border-white/30'}`}
+                  aria-label={`Go to position ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Statistics */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-6"
-          >
-            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
-              <CardContent className="p-0">
-                <div className="text-2xl md:text-3xl font-bold text-cyan-400 mb-2">10,000+</div>
-                <div className="text-sm text-gray-400">Happy Users</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
-              <CardContent className="p-0">
-                <div className="text-2xl md:text-3xl font-bold text-green-400 mb-2">95%</div>
-                <div className="text-sm text-gray-400">Success Rate</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
-              <CardContent className="p-0">
-                <div className="text-2xl md:text-3xl font-bold text-purple-400 mb-2">500+</div>
-                <div className="text-sm text-gray-400">Companies</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/50 border-gray-700 text-center p-6 hover:bg-gray-800/70 transition-colors">
-              <CardContent className="p-0">
-                <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-2">4.9/5</div>
-                <div className="text-sm text-gray-400">User Rating</div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          {/* Statistics removed by request */}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-red-900/20 to-purple-900/20">
+      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-red-900/20 to-purple-900/20">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -730,14 +922,16 @@ export default function HomePage() {
                 Build Your Resume Now 
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                onClick={handleCreateAccount}
-                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 bg-transparent text-lg px-8 py-4"
-              >
-                Create Free Account
-              </Button>
+              {!user && (
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={handleCreateAccount}
+                  className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 bg-transparent text-lg px-8 py-4"
+                >
+                  Create Free Account
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-w-4xl mx-auto">
@@ -758,68 +952,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-16 px-4 sm:px-6 lg:px-8 border-t border-white/10">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 glass-card flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-cyan-400" />
-                </div>
-                <div>
-                  <div className="text-xl font-bold gradient-text">BPOC.IO</div>
-                  <div className="text-xs text-gray-400">Where BPO Careers Begin</div>
-                </div>
-              </div>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Revolutionizing BPO recruitment with AI-powered tools for Filipino professionals.
-              </p>
-              <div className="flex items-center space-x-4">
-                <Globe className="w-5 h-5 text-cyan-400" />
-                <Shield className="w-5 h-5 text-green-400" />
-                <Zap className="w-5 h-5 text-purple-400" />
-              </div>
-            </div>
+      {/* Footer included globally via RootLayout */}
 
-            <div>
-              <h3 className="font-semibold text-white mb-4">Platform</h3>
-              <div className="space-y-2 text-sm">
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Resume Builder</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Assessments</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Career Games</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Job Matching</a>
+      {/* Profile Not Available Modal */}
+      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <X className="w-5 h-5 text-yellow-400" />
               </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-white mb-4">Resources</h3>
-              <div className="space-y-2 text-sm">
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Career Guide</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Interview Tips</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Salary Guide</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Success Stories</a>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-white mb-4">Company</h3>
-              <div className="space-y-2 text-sm">
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">About Us</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Contact</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Privacy Policy</a>
-                <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors block">Terms of Service</a>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-white/10 mt-12 pt-8 text-center">
-            <p className="text-gray-400 text-sm">
-              © 2024 BPOC.IO. All rights reserved. Built with ❤️ for Filipino BPO professionals.
+              Profile Not Available
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-300 mb-4">
+              This user's profile is not currently available. They may not have created a resume yet or their profile is still being set up.
             </p>
+            <div className="flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowProfileModal(false)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Close
+              </Button>
+            </div>
           </div>
-        </div>
-      </footer>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 } 
