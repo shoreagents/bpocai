@@ -122,8 +122,12 @@ export default function LeaderboardsPage() {
 				if (category === 'game') {
 					params.set('period', period)
 					params.set('gameId', gameId)
+					// Use live computations for game leaderboards
+					params.set('source', 'live')
+				} else {
+					// Use precomputed tables for applicants/engagement/overall to avoid heavy/unsupported live queries
+					params.set('source', 'tables')
 				}
-				params.set('source', 'live')
 				const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
 				if (!res.ok) throw new Error(`Failed: ${res.status}`)
 				const data = await res.json()

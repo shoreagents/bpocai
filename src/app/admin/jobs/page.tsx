@@ -134,7 +134,12 @@ function JobsPage() {
   }, [])
 
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
-    console.log('Drag started for job:', jobId)
+    const job = jobs.find(j => j.id === jobId)
+    // Prevent dragging closed jobs
+    if (job?.status === 'closed') {
+      e.preventDefault()
+      return
+    }
     setDraggedJob(jobId)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', jobId)
@@ -154,6 +159,9 @@ function JobsPage() {
 
     const job = jobs.find(j => j.id === jobId)
     if (!job) return
+
+    // Once in Closed, do not allow moving anywhere
+    if (job.status === 'closed') return
 
     // Treat processed and active/hiring cards as processed-source
     // so they can never move back to New or Processed
@@ -215,6 +223,29 @@ function JobsPage() {
     if (isProcessed) {
       if (status === 'job-request') return // never allow back to New Job Request
 
+      // Allow closing only from Active/Hiring → Closed
+      if (status === 'closed') {
+        // Only allow if currently active/hiring
+        if (!(job.status === 'hiring' || job.status === 'active')) return
+        const prev = jobs
+        // Optimistic UI update
+        setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, status: 'closed', source: 'processed' as any } : j))
+        try {
+          const token = await getSessionToken()
+          if (!token) throw new Error('Not authenticated')
+          const res = await fetch('/api/admin/processed-jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'update', data: { id: jobId, status: 'closed' } })
+          })
+          if (!res.ok) throw new Error('Failed to close processed job')
+        } catch (err) {
+          console.error(err)
+          setJobs(prev)
+        }
+        return
+      }
+
       if (status === 'approved' || status === 'hiring') {
         const prev = jobs
         const newProcessedStatus = status === 'approved' ? 'processed' : 'active'
@@ -251,7 +282,7 @@ function JobsPage() {
         return
       }
 
-      // Other destinations ignored
+      // Other destinations (including Closed from non-active) ignored
       return
     }
 
@@ -306,6 +337,8 @@ function JobsPage() {
     }
 
     // Default: status-only move within original job_requests
+    // Do not allow moving original jobs directly to Closed
+    if (status === 'closed') return
     const prev = jobs
     setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, status } : j))
     try {

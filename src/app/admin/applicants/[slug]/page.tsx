@@ -58,7 +58,7 @@ export default function ApplicantsJobDetailPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 	const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired' | 'closed'>('all')
 	const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'status_asc' | 'status_desc'>('newest')
   const [viewSlug, setViewSlug] = useState<string | null>(null)
   
@@ -135,7 +135,8 @@ export default function ApplicantsJobDetailPage() {
       passed: 0,
       rejected: 0,
       withdrawn: 0,
-      hired: 0
+      hired: 0,
+      closed: 0
     }
     
     apps.forEach(app => {
@@ -149,7 +150,7 @@ export default function ApplicantsJobDetailPage() {
 
   const statusStats = getStatusStats()
   const totalApplicants = apps.length
-  const activeApplicants = apps.filter(app => !['rejected', 'withdrawn', 'hired', 'not qualified'].includes(app.status)).length
+  const activeApplicants = apps.filter(app => !['rejected', 'withdrawn', 'hired', 'not qualified', 'closed'].includes(app.status)).length
 
   // Admin functions
   const handleStatusEdit = (applicationId: string, currentStatus: string) => {
@@ -433,6 +434,7 @@ export default function ApplicantsJobDetailPage() {
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="withdrawn">Withdrawn</SelectItem>
                   <SelectItem value="hired">Hired</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -536,6 +538,7 @@ export default function ApplicantsJobDetailPage() {
                                   <SelectItem value="rejected">Rejected</SelectItem>
                                   <SelectItem value="withdrawn">Withdrawn</SelectItem>
                                   <SelectItem value="hired">Hired</SelectItem>
+                                  <SelectItem value="closed">Closed</SelectItem>
                                 </SelectContent>
                               </Select>
                               <Button
@@ -688,6 +691,7 @@ export default function ApplicantsJobDetailPage() {
 function statusClass(status: string): string {
   const s = String(status || '').toLowerCase()
   if (s === 'hired') return 'bg-green-500/20 text-green-300 border-green-500/30'
+  if (s === 'closed') return 'bg-slate-600/20 text-slate-300 border-slate-600/30'
   if (s === 'rejected' || s === 'not qualified') return 'bg-red-500/20 text-red-300 border-red-500/30'
   if (s === 'passed') return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
   if (s === 'initial interview' || s === 'final interview') return 'bg-purple-500/20 text-purple-300 border-purple-500/30'
@@ -702,6 +706,7 @@ function getStatusIcon(status: string): React.ReactNode {
   const s = String(status || '').toLowerCase()
   switch (s) {
     case 'hired': return <CheckCircle className="w-3 h-3" />
+    case 'closed': return <Pause className="w-3 h-3" />
     case 'rejected': case 'not qualified': return <XCircle className="w-3 h-3" />
     case 'passed': return <CheckCircle className="w-3 h-3" />
     case 'initial interview': case 'final interview': return <Play className="w-3 h-3" />

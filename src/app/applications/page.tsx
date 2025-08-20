@@ -46,7 +46,7 @@ interface JobApplication {
   companyLogo?: string;
   location: string;
   salary?: string;
-  status: 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired';
+  status: 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired' | 'closed';
   appliedDate: string;
   lastUpdated: string;
   jobDescription?: string;
@@ -120,6 +120,12 @@ const statusConfig = {
     description: 'You have withdrawn your application for this position',
     color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', 
     icon: XCircle 
+  },
+  closed: {
+    label: 'Closed',
+    description: 'This application is closed because the job has been closed.',
+    color: 'bg-gray-600/20 text-gray-300 border-gray-600/30',
+    icon: XCircle
   },
   hired: { 
     label: 'Hired', 

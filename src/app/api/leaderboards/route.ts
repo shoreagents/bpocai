@@ -509,9 +509,8 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (category === 'engagement') {
-			const data = source === 'tables'
-				? await getEngagementLeaderboardFromTables(limit, offset, me)
-				: await getEngagementLeaderboard(limit, offset, me)
+			// Always use precomputed tables to avoid hitting non-existent live tables like game_sessions
+			const data = await getEngagementLeaderboardFromTables(limit, offset, me)
 			return NextResponse.json({ category, ...data })
 		}
 

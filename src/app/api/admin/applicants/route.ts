@@ -88,7 +88,7 @@ export async function PATCH(request: NextRequest) {
       const validStatuses = [
         'submitted', 'qualified', 'for verification', 'verified', 
         'initial interview', 'final interview', 'not qualified', 'passed', 
-        'rejected', 'withdrawn', 'hired'
+        'rejected', 'withdrawn', 'hired', 'closed'
       ]
       
       if (!validStatuses.includes(status)) {
@@ -106,6 +106,20 @@ export async function PATCH(request: NextRequest) {
       }
 
       console.log(`Admin updated application ${applicationId} status to ${status}`)
+
+      // If an application is marked as hired, close the job and close all other applications for that job
+      try {
+        if (status === 'hired') {
+          const jobIdRes = await pool.query('SELECT job_id FROM applications WHERE id = $1', [applicationId])
+          const jobId = jobIdRes.rows[0]?.job_id
+          if (jobId != null) {
+            await pool.query(`UPDATE processed_job_requests SET status = 'closed', updated_at = NOW() WHERE id = $1`, [jobId])
+            await pool.query(`UPDATE applications SET status = 'closed', updated_at = NOW() WHERE job_id = $1 AND id <> $2 AND status <> 'hired'`, [jobId, applicationId])
+          }
+        }
+      } catch (err) {
+        console.error('Failed cascading close on hire (dev mode):', err)
+      }
 
       return NextResponse.json({ 
         message: 'Application status updated successfully',
@@ -131,7 +145,7 @@ export async function PATCH(request: NextRequest) {
     const validStatuses = [
       'submitted', 'qualified', 'for verification', 'verified', 
       'initial interview', 'final interview', 'not qualified', 'passed', 
-      'rejected', 'withdrawn', 'hired'
+      'rejected', 'withdrawn', 'hired', 'closed'
     ]
     
     if (!validStatuses.includes(status)) {
@@ -149,6 +163,20 @@ export async function PATCH(request: NextRequest) {
     }
 
     console.log(`Admin ${userId} updated application ${applicationId} status to ${status}`)
+
+    // If an application is marked as hired, close the job and close all other applications for that job
+    try {
+      if (status === 'hired') {
+        const jobIdRes = await pool.query('SELECT job_id FROM applications WHERE id = $1', [applicationId])
+        const jobId = jobIdRes.rows[0]?.job_id
+        if (jobId != null) {
+          await pool.query(`UPDATE processed_job_requests SET status = 'closed', updated_at = NOW() WHERE id = $1`, [jobId])
+          await pool.query(`UPDATE applications SET status = 'closed', updated_at = NOW() WHERE job_id = $1 AND id <> $2 AND status <> 'hired'`, [jobId, applicationId])
+        }
+      }
+    } catch (err) {
+      console.error('Failed cascading close on hire:', err)
+    }
 
     return NextResponse.json({ 
       message: 'Application status updated successfully',

@@ -139,8 +139,8 @@ export default function AboutPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
-                  <div className="space-y-4">
+                <div className="grid md:grid-cols-1 gap-8 items-center">
+                  <div className="space-y-4 max-w-3xl mx-auto">
                     <p className="text-gray-300 leading-relaxed">
                       BPOC.IO was founded by industry veterans who witnessed firsthand the challenges 
                       faced by talented Filipinos in the BPO sector. Despite having incredible potential, 
@@ -153,26 +153,7 @@ export default function AboutPage() {
                       comprehensive career development tools.
                     </p>
                   </div>
-                  <div className="bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-lg p-6 border border-white/10">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <div className="text-3xl font-bold text-cyan-400">25+</div>
-                        <div className="text-sm text-gray-400">Years Combined Experience</div>
-                      </div>
-                      <div>
-                        <div className="text-3xl font-bold text-purple-400">500+</div>
-                        <div className="text-sm text-gray-400">Companies Served</div>
-                      </div>
-                      <div>
-                        <div className="text-3xl font-bold text-green-400">10K+</div>
-                        <div className="text-sm text-gray-400">Careers Launched</div>
-                      </div>
-                      <div>
-                        <div className="text-3xl font-bold text-yellow-400">95%</div>
-                        <div className="text-sm text-gray-400">Satisfaction Rate</div>
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
               </CardContent>
             </Card>
