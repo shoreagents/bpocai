@@ -31,7 +31,7 @@ interface JobCard {
   postedDays: number
   applicants: number
   status: string
-  priority: 'low' | 'medium' | 'high'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
   source?: 'processed' | 'original'
 }
 
@@ -79,7 +79,7 @@ function JobsPage() {
     skills: '' as string,
     jobDescription: '' as string,
     status: 'job-request',
-    priority: 'medium' as 'low' | 'medium' | 'high'
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
   })
   const [newStatusData, setNewStatusData] = useState({
     title: '',
@@ -350,7 +350,8 @@ function JobsPage() {
             responsibilities: newJobData.responsibilities ? newJobData.responsibilities.split('\n') : [],
             benefits: newJobData.benefits ? newJobData.benefits.split('\n') : [],
             skills: newJobData.skills ? newJobData.skills.split('\n') : [],
-        priority: newJobData.priority
+        priority: newJobData.priority,
+        shift: newJobData.shift
       }
         })
       })
@@ -874,6 +875,7 @@ function JobsPage() {
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
                   </select>
                 </div>
                 <div className="space-y-2">
