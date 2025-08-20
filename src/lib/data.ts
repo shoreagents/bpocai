@@ -18,7 +18,7 @@ export const successStories = [
     newRole: 'Senior Team Lead',
     salaryIncrease: '+45%',
     location: 'Clark, Pampanga',
-    story: 'Through BPOC.AI assessments, I identified my leadership potential and got promoted within 6 months!',
+    story: 'Through BPOC.IO assessments, I identified my leadership potential and got promoted within 6 months!',
     avatar: '/avatars/juan.jpg',
     company: 'TelePerformance'
   },
@@ -29,7 +29,7 @@ export const successStories = [
     newRole: 'Customer Success Manager',
     salaryIncrease: 'New Career',
     location: 'Angeles City',
-    story: 'BPOC.AI helped me transition from unemployment to a dream job in just 3 weeks!',
+    story: 'BPOC.IO helped me transition from unemployment to a dream job in just 3 weeks!',
     avatar: '/avatars/anna.jpg',
     company: 'Concentrix'
   },

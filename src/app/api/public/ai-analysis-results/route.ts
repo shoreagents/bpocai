@@ -16,7 +16,7 @@ function withCors(response: NextResponse) {
 export async function OPTIONS() { return withCors(new NextResponse(null, { status: 204 })) }
 
 const SAFE_FIELDS = new Set([
-	'id','user_id','session_id','overall_score','ats_compatibility_score','content_quality_score','professional_presentation_score','skills_alignment_score','created_at','updated_at'
+	'id','user_id','session_id','original_resume_id','overall_score','ats_compatibility_score','content_quality_score','professional_presentation_score','skills_alignment_score','key_strengths','strengths_analysis','improvements','recommendations','improved_summary','salary_analysis','career_path','section_analysis','analysis_metadata','portfolio_links','files_analyzed','candidate_profile','skills_snapshot','experience_snapshot','education_snapshot','created_at','updated_at'
 ])
 
 export async function GET(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 	const fieldsParam = (url.searchParams.get('fields') || '').trim()
 
 	const fields = fieldsParam ? fieldsParam.split(',').map(s => s.trim()).filter(s => SAFE_FIELDS.has(s))
-		: ['id','user_id','overall_score','ats_compatibility_score','content_quality_score','professional_presentation_score','skills_alignment_score','created_at']
+		: ['id','user_id','session_id','original_resume_id','overall_score','ats_compatibility_score','content_quality_score','professional_presentation_score','skills_alignment_score','key_strengths','strengths_analysis','improvements','recommendations','improved_summary','salary_analysis','career_path','section_analysis','candidate_profile','skills_snapshot','experience_snapshot','education_snapshot','created_at']
 	const selectList = fields.map(f => `"${f}"`).join(', ')
 
 	const client = await pool.connect()

@@ -1,4 +1,4 @@
-// Core data types for the BPOC.AI platform
+// Core data types for the BPOC.IO platform
 
 // User and Authentication
 export interface Candidate {

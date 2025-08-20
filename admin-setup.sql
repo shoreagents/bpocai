@@ -1,4 +1,4 @@
--- Simple Admin Role Setup SQL for BPOC.AI
+-- Simple Admin Role Setup SQL for BPOC.IO
 -- Add admin role to existing users table
 
 -- 1. Add admin role column to existing users table

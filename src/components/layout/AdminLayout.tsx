@@ -94,7 +94,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ 
   children, 
   title = "Admin Panel", 
-  description = "Manage BPOC.AI platform",
+  description = "Manage BPOC.IO platform",
   titleContent,
   adminUser 
 }: AdminLayoutProps) {
@@ -231,7 +231,7 @@ export default function AdminLayout({
                 <div className="flex items-center space-x-2">
                   <div>
                     <h2 className="text-lg font-bold gradient-text">Admin Panel</h2>
-                    <p className="text-xs text-gray-400">BPOC.AI Management</p>
+                    <p className="text-xs text-gray-400">BPOC.IO Management</p>
                   </div>
                   <button
                     onClick={() => setSidebarMinimized(!sidebarMinimized)}
@@ -329,7 +329,7 @@ export default function AdminLayout({
                           {adminUser?.full_name || user?.user_metadata?.full_name || 'Admin'}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {adminUser?.email || user?.email || 'admin@bpoc.ai'}
+                          {adminUser?.email || user?.email || 'admin@BPOC.IO'}
                         </p>
                         <p className="text-xs text-cyan-400">
                           Admin

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useState, useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import Hero from '@/components/sections/Hero'
 import { Button } from '@/components/ui/button'
@@ -30,14 +31,36 @@ import {
   BarChart,
   X
 } from 'lucide-react'
-import { 
-  platformStats 
-} from '@/lib/data'
 import { formatNumber } from '@/lib/utils'
 
 export default function HomePage() {
   const router = useRouter()
   const { user } = useAuth()
+  const [platformStats, setPlatformStats] = useState({
+    totalUsers: 0,
+    activeResumes: 0,
+    activeJobs: 0,
+    // Static marketing stats
+    hiddenFees: 100,
+    minutes: 5
+  })
+
+  // Fetch platform statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats/platform')
+        if (response.ok) {
+          const data = await response.json()
+          setPlatformStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch platform stats:', error)
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   const handleBuildResume = () => {
     router.push('/resume-builder')
@@ -166,7 +189,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Why Choose BPOC.AI Section */}
+      {/* Why Choose BPOC.IO Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white/5">
         <div className="container mx-auto">
           <motion.div
@@ -180,7 +203,7 @@ export default function HomePage() {
               Competitive Analysis
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Why Choose <span className="gradient-text">BPOC.AI</span>
+              Why Choose <span className="gradient-text">BPOC.IO</span>
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               See how we compare to traditional job platforms and other career tools.
@@ -241,7 +264,7 @@ export default function HomePage() {
               </Card>
             </motion.div>
 
-            {/* BPOC.AI - Center Column with Recommendation Badge */}
+            {/* BPOC.IO - Center Column with Recommendation Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -266,7 +289,7 @@ export default function HomePage() {
                     <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/25">
                       <Sparkles className="w-5 h-5 text-white" />
                     </div>
-                    BPOC.AI
+                    BPOC.IO
                   </CardTitle>
                   <div className="w-16 h-px bg-gradient-to-r from-transparent via-green-400 to-transparent mx-auto"></div>
                 </CardHeader>
@@ -537,7 +560,7 @@ export default function HomePage() {
               <span className="gradient-text">Success</span> Stories 
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              See how BPOC.AI has helped thousands of Filipino BPO professionals advance their careers.
+              See how BPOC.IO has helped thousands of Filipino BPO professionals advance their careers.
             </p>
           </motion.div>
 
@@ -568,7 +591,7 @@ export default function HomePage() {
                 </div>
 
                 <blockquote className="text-gray-300 italic leading-relaxed text-base">
-                  "BPOC.AI helped me create a professional resume that highlighted my BPO experience. I got hired within 2 weeks!"
+                  "BPOC.IO helped me create a professional resume that highlighted my BPO experience. I got hired within 2 weeks!"
                 </blockquote>
               </Card>
             </motion.div>
@@ -695,7 +718,7 @@ export default function HomePage() {
               <span className="gradient-text"> Today </span>
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              Join thousands of Filipino BPO professionals who have already transformed their careers with BPOC.AI. It's completely free to get started.
+              Join thousands of Filipino BPO professionals who have already transformed their careers with BPOC.IO. It's completely free to get started.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -745,7 +768,7 @@ export default function HomePage() {
                   <Sparkles className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
-                  <div className="text-xl font-bold gradient-text">BPOC.AI</div>
+                  <div className="text-xl font-bold gradient-text">BPOC.IO</div>
                   <div className="text-xs text-gray-400">Where BPO Careers Begin</div>
                 </div>
               </div>
@@ -792,7 +815,7 @@ export default function HomePage() {
 
           <div className="border-t border-white/10 mt-12 pt-8 text-center">
             <p className="text-gray-400 text-sm">
-              © 2024 BPOC.AI. All rights reserved. Built with ❤️ for Filipino BPO professionals.
+              © 2024 BPOC.IO. All rights reserved. Built with ❤️ for Filipino BPO professionals.
             </p>
           </div>
         </div>

@@ -269,7 +269,7 @@ export default function DashboardPage() {
     <AdminRouteGuard>
       <AdminLayout 
         title="Admin Dashboard" 
-        description="Manage BPOC.AI platform and user data"
+        description="Manage BPOC.IO platform and user data"
         adminUser={adminUser}
       >
         <div className="space-y-6">
