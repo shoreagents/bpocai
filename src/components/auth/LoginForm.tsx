@@ -162,7 +162,7 @@ export default function LoginForm({ open, onOpenChange, onSwitchToSignUp }: Logi
               {mode === 'login' ? 'Welcome Back' : 'Reset Password'}
             </DialogTitle>
             <DialogDescription className="text-gray-300 text-sm sm:text-base">
-              {mode === 'login' ? 'Sign in to your BPOC.AI account to continue your BPO career journey' : 'Enter your account email and we will send you a password reset link.'}
+              {mode === 'login' ? 'Sign in to your BPOC.IO account to continue your BPO career journey' : 'Enter your account email and we will send you a password reset link.'}
             </DialogDescription>
           </DialogHeader>
 

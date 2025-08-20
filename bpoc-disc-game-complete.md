@@ -1,4 +1,4 @@
-# 🎮 BPOC.AI DISC Game - Complete Implementation Guide
+# 🎮 BPOC.IO DISC Game - Complete Implementation Guide
 
 ## 🎯 PROJECT OVERVIEW
 

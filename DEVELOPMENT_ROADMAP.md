@@ -1,4 +1,4 @@
-# BPOC.AI Development Roadmap
+# BPOC.IO Development Roadmap
 
 > **Strategic Approach**: User-First Development with Smart Role Foundation
 
