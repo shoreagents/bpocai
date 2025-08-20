@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import DatabaseStatus from "@/components/debug/DatabaseStatus";
 import Footer from "@/components/layout/Footer";
+import ClientConditionalFooter from "@/components/layout/ClientConditionalFooter";
 import { ToastProvider } from "@/components/ui/toast";
 
 const geistSans = Geist({
@@ -81,7 +82,7 @@ export default function RootLayout({
           <AdminProvider>
             <ToastProvider>
               {children}
-              <Footer />
+              <ClientConditionalFooter />
               <DatabaseStatus />
             </ToastProvider>
           </AdminProvider>
