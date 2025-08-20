@@ -46,6 +46,27 @@ export async function POST(request: NextRequest) {
     const setSql = fields.map((f, i) => `${f} = $${i + 1}`).join(', ')
     const update = await pool.query(`UPDATE processed_job_requests SET ${setSql}, updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`, [...values, id])
     if (update.rows.length === 0) return NextResponse.json({ error: 'not found' }, { status: 404 })
+
+    // Business rule: when a job is closed, if any application for that job is 'hired',
+    // set all other applications for that job to 'closed'
+    try {
+      if (data.status === 'closed') {
+        const hasHired = await pool.query(
+          `SELECT 1 FROM applications WHERE job_id = $1 AND status = 'hired' LIMIT 1`,
+          [id]
+        )
+        if (hasHired.rowCount > 0) {
+          await pool.query(
+            `UPDATE applications SET status = 'closed' WHERE job_id = $1 AND status <> 'hired'`,
+            [id]
+          )
+        }
+      }
+    } catch (e) {
+      console.error('Failed to cascade close other applications on job close:', e)
+      // Do not fail the main request if cascade fails
+    }
+
     return NextResponse.json({ job: update.rows[0] })
   } catch (e) {
     return NextResponse.json({ error: 'Failed to update processed job' }, { status: 500 })

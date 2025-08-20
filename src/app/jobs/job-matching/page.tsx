@@ -56,6 +56,37 @@ import { getSessionToken } from '@/lib/auth-helpers';
 export default function JobMatchingPage() {
   const router = useRouter();
   const { user } = useAuth();
+
+  // Add CSS styles for tooltip positioning and scrolling
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .match-tooltip {
+        position: fixed !important;
+        z-index: 999999 !important;
+        max-height: 24rem !important;
+        overflow-y: auto !important;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        pointer-events: auto !important;
+      }
+      .match-tooltip::-webkit-scrollbar {
+        width: 6px;
+      }
+      .match-tooltip::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .match-tooltip::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+      }
+      .match-tooltip::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [selectedJobDetails, setSelectedJobDetails] = useState<any | null>(null);
   const [shareJobId, setShareJobId] = useState<string | null>(null);
@@ -665,10 +696,19 @@ export default function JobMatchingPage() {
                             </Button>
                           </div>
                           
-                          {/* Match Tooltip */}
-                          {showMatchTooltip === job.id && (
-                            <div className="match-tooltip absolute top-full left-0 mt-2 w-80 bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50 p-4">
-                              <h4 className="text-sm font-medium text-white mb-2">AI Match Analysis</h4>
+                                                     {/* Match Tooltip */}
+                           {showMatchTooltip === job.id && (
+                             <div 
+                               className="match-tooltip fixed w-80 bg-gray-800 border border-white/20 rounded-lg shadow-2xl z-[999999] p-4 max-h-96 overflow-y-auto"
+                               style={{
+                                 left: '50%',
+                                 top: '50%',
+                                 transform: 'translate(-50%, -50%)',
+                                 maxWidth: 'calc(100vw - 2rem)',
+                                 width: '20rem'
+                               }}
+                             >
+                              <h4 className="text-sm font-medium text-white mb-2 sticky top-0 bg-gray-800 py-1">AI Match Analysis</h4>
                               
                               {/* Match Breakdown */}
                               {matchScores[job.id].breakdown && Object.keys(matchScores[job.id].breakdown).length > 0 && (
