@@ -115,7 +115,7 @@ export default function SettingsPage() {
       icon: Bell,
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-500/10',
-      description: 'Configure your notification preferences'
+      description: 'Coming soon'
     },
     {
       id: 'privacy',
@@ -123,7 +123,7 @@ export default function SettingsPage() {
       icon: Shield,
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',
-      description: 'Control your privacy and security settings'
+      description: 'Coming soon'
     },
     {
       id: 'appearance',
@@ -131,7 +131,7 @@ export default function SettingsPage() {
       icon: Palette,
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10',
-      description: 'Customize your interface preferences'
+      description: 'Coming soon'
     },
     {
       id: 'data',
@@ -139,9 +139,11 @@ export default function SettingsPage() {
       icon: Database,
       color: 'text-red-400',
       bgColor: 'bg-red-500/10',
-      description: 'Manage your data and storage settings'
+      description: 'Coming soon'
     }
   ]
+
+  const COMING_SOON_SECTIONS = new Set(['notifications', 'privacy', 'appearance', 'data'])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -774,303 +776,39 @@ export default function SettingsPage() {
     </motion.div>
   )
 
-  const renderNotificationSettings = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+  const ComingSoon = ({ title, icon: Icon, bg }: any) => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <Card className="glass-card border-white/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
-              <Bell className="w-5 h-5 text-white" />
+            <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center`}>
+              <Icon className="w-5 h-5 text-white" />
             </div>
-            Notification Preferences
+            {title}
           </CardTitle>
-          <CardDescription>
-            Choose how you want to be notified about updates and opportunities
-          </CardDescription>
+          <CardDescription>Coming soon</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {[
-            { key: 'emailUpdates', label: 'Email Updates', description: 'Receive platform updates via email', icon: Mail },
-            { key: 'jobAlerts', label: 'Job Alerts', description: 'Get notified about new job matches', icon: Zap },
-            { key: 'marketingEmails', label: 'Marketing Emails', description: 'Promotional content and tips', icon: Sparkles },
-            { key: 'smsNotifications', label: 'SMS Notifications', description: 'Important alerts via text message', icon: Smartphone },
-            { key: 'pushNotifications', label: 'Push Notifications', description: 'Browser notifications', icon: Monitor }
-          ].map((item) => (
-            <div key={item.key} className="flex items-center justify-between p-4 rounded-lg hover:bg-white/5 transition-colors">
-              <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5 text-gray-400" />
-                <div>
-                  <div className="text-white font-medium">{item.label}</div>
-                  <div className="text-sm text-gray-400">{item.description}</div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleToggleNotification(item.key)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notifications[item.key as keyof typeof notifications] ? 'bg-cyan-500' : 'bg-gray-600'
-                }`}
-              >
-                <div
-                  className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                    notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
-            </div>
-          ))}
+        <CardContent>
+          <div className="text-gray-400 text-sm">This section is under development.</div>
         </CardContent>
       </Card>
     </motion.div>
+  )
+
+  const renderNotificationSettings = () => (
+    <ComingSoon title="Notification Preferences" icon={Bell} bg="bg-gradient-to-br from-yellow-500 to-orange-600" />
   )
 
   const renderPrivacySettings = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <Card className="glass-card border-white/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-white">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            Privacy & Security
-          </CardTitle>
-          <CardDescription>
-            Manage your privacy settings and account security
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Account Security</h3>
-            <div className="grid gap-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <Lock className="w-5 h-5 text-green-400" />
-                  <div>
-                    <div className="text-white font-medium">Change Password</div>
-                    <div className="text-sm text-gray-400">Update your account password</div>
-                  </div>
-                </div>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  Change
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <Key className="w-5 h-5 text-yellow-400" />
-                  <div>
-                    <div className="text-white font-medium">Two-Factor Authentication</div>
-                    <div className="text-sm text-gray-400">Add an extra layer of security</div>
-                  </div>
-                </div>
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                  Enabled
-                </Badge>
-              </div>
-            </div>
-          </div>
-          
-          <Separator className="bg-white/10" />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Privacy Controls</h3>
-            <div className="grid gap-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <Eye className="w-5 h-5 text-purple-400" />
-                  <div>
-                    <div className="text-white font-medium">Profile Visibility</div>
-                    <div className="text-sm text-gray-400">Control who can see your profile</div>
-                  </div>
-                </div>
-                <select className="bg-white/5 border border-white/10 rounded px-3 py-1 text-white text-sm">
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                  <option value="contacts">Contacts Only</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <ComingSoon title="Privacy & Security" icon={Shield} bg="bg-gradient-to-br from-green-500 to-emerald-600" />
   )
 
   const renderAppearanceSettings = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <Card className="glass-card border-white/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-white">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
-              <Palette className="w-5 h-5 text-white" />
-            </div>
-            Appearance Settings
-          </CardTitle>
-          <CardDescription>
-            Customize how the interface looks and feels
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Theme</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { id: 'dark', label: 'Dark', icon: Moon, description: 'Dark theme (Current)', active: true },
-                { id: 'light', label: 'Light', icon: Sun, description: 'Light theme (Coming Soon)', active: false },
-                { id: 'auto', label: 'Auto', icon: Monitor, description: 'System preference (Coming Soon)', active: false }
-              ].map((theme) => (
-                <div
-                  key={theme.id}
-                  className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                    theme.active 
-                      ? 'border-purple-500/50 bg-purple-500/10' 
-                      : 'border-white/10 hover:border-white/20'
-                  } ${!theme.active ? 'opacity-50' : ''}`}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <theme.icon className="w-5 h-5 text-purple-400" />
-                    <span className="text-white font-medium">{theme.label}</span>
-                  </div>
-                  <p className="text-sm text-gray-400">{theme.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <Separator className="bg-white/10" />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Display Preferences</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-white font-medium">Animations</div>
-                  <div className="text-sm text-gray-400">Enable smooth animations and transitions</div>
-                </div>
-                <button className="relative w-12 h-6 rounded-full bg-cyan-500">
-                  <div className="absolute w-5 h-5 bg-white rounded-full top-0.5 translate-x-6 transition-transform" />
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-white font-medium">Reduced Motion</div>
-                  <div className="text-sm text-gray-400">Minimize animations for accessibility</div>
-                </div>
-                <button className="relative w-12 h-6 rounded-full bg-gray-600">
-                  <div className="absolute w-5 h-5 bg-white rounded-full top-0.5 translate-x-0.5 transition-transform" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <ComingSoon title="Appearance Settings" icon={Palette} bg="bg-gradient-to-br from-purple-500 to-violet-600" />
   )
 
   const renderDataSettings = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      <Card className="glass-card border-white/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-white">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg flex items-center justify-center">
-              <Database className="w-5 h-5 text-white" />
-            </div>
-            Data & Storage
-          </CardTitle>
-          <CardDescription>
-            Manage your data, downloads, and account deletion options
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Data Export</h3>
-            <div className="grid gap-4">
-              <div className="flex items-center justify-between p-4 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <Download className="w-5 h-5 text-blue-400" />
-                  <div>
-                    <div className="text-white font-medium">Download Profile Data</div>
-                    <div className="text-sm text-gray-400">Export all your profile information</div>
-                  </div>
-                </div>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  Download
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-4 rounded-lg border border-white/10">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-green-400" />
-                  <div>
-                    <div className="text-white font-medium">Download Resume Data</div>
-                    <div className="text-sm text-gray-400">Export all your resume analyses and versions</div>
-                  </div>
-                </div>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  Download
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <Separator className="bg-white/10" />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Storage Usage</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Resume Files</span>
-                <span className="text-white">2.4 MB</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div className="bg-cyan-500 h-2 rounded-full" style={{ width: '15%' }}></div>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Profile Data</span>
-                <span className="text-white">0.8 MB</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '5%' }}></div>
-              </div>
-            </div>
-          </div>
-          
-          <Separator className="bg-white/10" />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Danger Zone</h3>
-            <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-white font-medium mb-2">Delete Account</div>
-                  <div className="text-sm text-gray-400 mb-4">
-                    Permanently delete your account and all associated data. This action cannot be undone.
-                  </div>
-                  <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Account
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <ComingSoon title="Data & Storage" icon={Database} bg="bg-gradient-to-br from-red-500 to-pink-600" />
   )
 
   const renderContent = () => {
