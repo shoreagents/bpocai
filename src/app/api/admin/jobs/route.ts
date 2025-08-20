@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: String(row.id),
-        company: 'ShoreAgents',
+        company: row.company_name || 'Unknown Company',
         companyLogo: row.company_logo || '🏢',
         title: row.title || row.position || row.job_title || '',
         location: row.location || row.city || row["location"] || '',
@@ -365,7 +365,7 @@ function rowToJobCard(row: any) {
       : derivedPriority
   return {
     id: String(row.id),
-    company: 'ShoreAgents',
+    company: row.company_name || 'Unknown Company',
     companyLogo: row.company_logo || '🏢',
     title: row.job_title || 'Untitled Role',
     location: row.location || row["location"] || '',
