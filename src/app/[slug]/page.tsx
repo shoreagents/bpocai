@@ -23,7 +23,19 @@ import {
   Guitar,
   Brain,
   Scale,
-  Crown
+  Crown,
+  Check,
+  DollarSign,
+  Heart,
+  Briefcase,
+  Clock,
+  Target,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Copy,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,6 +99,19 @@ export default function SavedResumePage() {
   const [bpocCulturalAll, setBpocCulturalAll] = useState<any[] | null>(null);
   const [bpocCulturalSessions, setBpocCulturalSessions] = useState<Record<string, any>>({});
 
+  // Work Status state variables
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [currentEmployer, setCurrentEmployer] = useState<string>('');
+  const [currentPosition, setCurrentPosition] = useState<string>('');
+  const [currentSalary, setCurrentSalary] = useState<string>('');
+  const [noticePeriod, setNoticePeriod] = useState<number | null>(null);
+  const [salaryGoal, setSalaryGoal] = useState<string>('');
+  const [currentMood, setCurrentMood] = useState<string>('');
+  const [workStatus, setWorkStatus] = useState<string>('');
+  const [employmentType, setEmploymentType] = useState<string>('');
+
+  // Share dropdown state
+  const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
   // Starfield state
   const [stars, setStars] = useState<Array<{
@@ -108,6 +133,19 @@ export default function SavedResumePage() {
       }
     }
   }, [])
+
+  // Handle clicking outside share dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (isShareOpen && !target.closest('.share-dropdown')) {
+        setIsShareOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isShareOpen]);
 
   // Generate stars only on client side
   useEffect(() => {
@@ -304,29 +342,58 @@ export default function SavedResumePage() {
     }
   };
 
-  const shareResume = async () => {
+  const shareResume = async (platform?: string) => {
     const url = `${window.location.origin}/${slug}`;
+    const title = resume?.title || 'Resume';
+    const text = `Check out ${resume?.user.fullName}'s resume`;
     
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: resume?.title || 'Resume',
-          text: `Check out ${resume?.user.fullName}'s resume`,
-          url: url
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      // Fallback to copying to clipboard
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('Resume URL copied to clipboard!');
-      } catch (error) {
-        console.error('Error copying to clipboard:', error);
-        // Fallback to showing the URL
-        alert(`Resume URL: ${url}`);
-      }
+    switch (platform) {
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
+        break;
+      case 'linkedin':
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct URL sharing, so we'll copy the URL
+        await copyUrl(url);
+        break;
+      case 'copy':
+        await copyUrl(url);
+        break;
+      default:
+        // Default native sharing
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: title,
+              text: text,
+              url: url
+            });
+          } catch (error) {
+            console.error('Error sharing:', error);
+          }
+        } else {
+          // Fallback to copying to clipboard
+          await copyUrl(url);
+        }
+    }
+    
+    // Close dropdown after sharing
+    setIsShareOpen(false);
+  };
+
+  const copyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Resume URL copied to clipboard!');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      // Fallback to showing the URL
+      alert(`Resume URL: ${url}`);
     }
   };
 
@@ -571,11 +638,75 @@ export default function SavedResumePage() {
                 ) : null}
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 transition-all duration-200"
-                  onClick={shareResume}
+                  className="border-white/20 text-white hover:bg-white/10 transition-all duration-200 relative share-dropdown"
+                  onClick={() => setIsShareOpen(!isShareOpen)}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                  
+                  {/* Share Dropdown Menu */}
+                  {isShareOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-64 bg-black/90 border border-white/20 rounded-lg shadow-xl backdrop-blur-sm z-50 share-dropdown">
+                      <div className="p-2 space-y-1">
+                        {/* Native Share (if available) */}
+                        {typeof navigator !== 'undefined' && 'share' in navigator && (
+                          <div
+                            onClick={() => shareResume()}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-white/10 rounded-md transition-colors text-left cursor-pointer"
+                          >
+                            <Share2 className="h-4 w-4 text-blue-400" />
+                            <span>Share via...</span>
+                          </div>
+                        )}
+                        
+                        {/* Facebook */}
+                        <div
+                          onClick={() => shareResume('facebook')}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-white/10 rounded-md transition-colors text-left cursor-pointer"
+                        >
+                          <Facebook className="h-4 w-4 text-blue-600" />
+                          <span>Share on Facebook</span>
+                        </div>
+                        
+                        {/* X (Twitter) */}
+                        <div
+                          onClick={() => shareResume('twitter')}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-white/10 rounded-md transition-colors text-left cursor-pointer"
+                        >
+                          <Twitter className="h-4 w-4 text-blue-400" />
+                          <span>Share on X (Twitter)</span>
+                        </div>
+                        
+                        {/* LinkedIn */}
+                        <div
+                          onClick={() => shareResume('linkedin')}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-white/10 rounded-md transition-colors text-left cursor-pointer"
+                        >
+                          <Linkedin className="h-4 w-4 text-blue-700" />
+                          <span>Share on LinkedIn</span>
+                        </div>
+                        
+                        {/* Instagram */}
+                        <div
+                          onClick={() => shareResume('instagram')}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-white/10 rounded-md transition-colors text-left cursor-pointer"
+                        >
+                          <Instagram className="h-4 w-4 text-pink-500" />
+                          <span>Copy URL for Instagram</span>
+                        </div>
+                        
+                        {/* Copy URL */}
+                        <div
+                          onClick={() => shareResume('copy')}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-white/10 rounded-md transition-colors text-left cursor-pointer"
+                        >
+                          <Copy className="h-4 w-4 text-green-400" />
+                          <span>Copy URL</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </Button>
                 <Button
                   onClick={exportToPDF}
@@ -611,7 +742,7 @@ export default function SavedResumePage() {
         >
           <ProfileCard 
             userId={resume.userId} 
-            showEditButton={isOwner}
+            showEditButton={false}
             className="max-w-6xl mx-auto"
           />
         </motion.div>
@@ -630,11 +761,338 @@ export default function SavedResumePage() {
             <Tabs defaultValue="resume" className="space-y-6">
               <div className="flex justify-center">
                 <TabsList className="glass-card border-white/20 p-1 bg-black/20">
+                  <TabsTrigger value="work-status">Work Status</TabsTrigger>
                   <TabsTrigger value="resume">Resume</TabsTrigger>
                   <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
                   <TabsTrigger value="career-games">Career Games</TabsTrigger>
                 </TabsList>
               </div>
+
+                             <TabsContent value="work-status">
+                 <div className="max-w-6xl w-full mx-auto">
+                   <Card className="glass-card border-white/10">
+                     <CardHeader>
+                       <div className="flex items-center justify-between">
+                         <CardTitle className="text-white text-xl flex items-center">
+                           <Building className="h-6 w-6 mr-3 text-cyan-400 animate-pulse" />
+                           Work Status Dashboard
+                         </CardTitle>
+                         {isOwner && (
+                           <Button 
+                             onClick={() => setIsEditMode(!isEditMode)}
+                             className={`transition-all duration-300 ${
+                               isEditMode 
+                                 ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
+                                 : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
+                             } text-white shadow-lg hover:shadow-xl transform hover:scale-105`}
+                           >
+                             {isEditMode ? (
+                               <>
+                                 <Check className="h-4 w-4 mr-2" />
+                                 Save Mode
+                               </>
+                             ) : (
+                               <>
+                                 <Pencil className="h-4 w-4 mr-2" />
+                                 Edit Mode
+                               </>
+                             )}
+                           </Button>
+                         )}
+                       </div>
+                     </CardHeader>
+                     <CardContent className="p-6">
+                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                         
+                         {/* Current Employment Section */}
+                         <div className="space-y-6">
+                           <div className="relative">
+                             <div className="absolute -top-3 left-4 bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-1 rounded-full text-white text-sm font-semibold shadow-lg z-20">
+                               Current Employment
+                             </div>
+                             <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl p-6 backdrop-blur-sm">
+                               <div className="space-y-4">
+                                 
+                                 {/* Current Employer */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-cyan-300 mb-2 flex items-center">
+                                     <Building className="h-4 w-4 mr-2" />
+                                     Current Employer
+                                   </label>
+                                   {isEditMode ? (
+                                     <input 
+                                       type="text" 
+                                       placeholder="Enter company name" 
+                                       className="w-full bg-black/30 border border-cyan-400/50 rounded-lg px-4 py-3 text-white placeholder-cyan-300/50 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
+                                       value={currentEmployer}
+                                       onChange={(e) => setCurrentEmployer(e.target.value)}
+                                     />
+                                   ) : (
+                                     <div className="bg-black/20 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium">
+                                       {currentEmployer || 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Current Position */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-cyan-300 mb-2 flex items-center">
+                                     <User className="h-4 w-4 mr-2" />
+                                     Current Position
+                                   </label>
+                                   {isEditMode ? (
+                                     <input 
+                                       type="text" 
+                                       placeholder="Enter job title" 
+                                       className="w-full bg-black/30 border border-cyan-400/50 rounded-lg px-4 py-3 text-white placeholder-cyan-300/50 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
+                                       value={currentPosition}
+                                       onChange={(e) => setCurrentPosition(e.target.value)}
+                                     />
+                                   ) : (
+                                     <div className="bg-black/20 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium">
+                                       {currentPosition || 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Current Salary */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-cyan-300 mb-2 flex items-center">
+                                     <DollarSign className="h-4 w-4 mr-2" />
+                                     Current Salary
+                                   </label>
+                                   {isEditMode ? (
+                                     <input 
+                                       type="text" 
+                                       placeholder="Enter salary amount" 
+                                       className="w-full bg-black/30 border border-cyan-400/50 rounded-lg px-4 py-3 text-white placeholder-cyan-300/50 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
+                                       value={currentSalary}
+                                       onChange={(e) => setCurrentSalary(e.target.value)}
+                                     />
+                                   ) : (
+                                     <div className="bg-black/20 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium">
+                                       {currentSalary || 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Notice Period */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-cyan-300 mb-2 flex items-center">
+                                     <Calendar className="h-4 w-4 mr-2" />
+                                     Notice Period
+                                   </label>
+                                   {isEditMode ? (
+                                     <input 
+                                       type="number" 
+                                       placeholder="30" 
+                                       className="w-full bg-black/30 border border-cyan-400/50 rounded-lg px-4 py-3 text-white placeholder-cyan-300/50 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
+                                       value={noticePeriod || ''}
+                                       onChange={(e) => setNoticePeriod(e.target.value ? parseInt(e.target.value) : null)}
+                                     />
+                                   ) : (
+                                     <div className="bg-black/20 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium">
+                                       {noticePeriod ? `${noticePeriod} days` : 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Career Goals & Satisfaction Section */}
+                         <div className="space-y-6">
+                           <div className="relative">
+                             <div className="absolute -top-3 left-4 bg-gradient-to-r from-purple-500 to-pink-600 px-4 py-1 rounded-full text-white text-sm font-semibold shadow-lg z-20">
+                               Career Goals & Satisfaction
+                             </div>
+                             <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-6 backdrop-blur-sm">
+                               <div className="space-y-4">
+                                 
+                                 {/* Salary Goal */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                     <Target className="h-4 w-4 mr-2" />
+                                     Salary Goal
+                                   </label>
+                                   {isEditMode ? (
+                                     <input 
+                                       type="text" 
+                                       placeholder="Enter target salary" 
+                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white placeholder-purple-300/50 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       value={salaryGoal}
+                                       onChange={(e) => setSalaryGoal(e.target.value)}
+                                     />
+                                   ) : (
+                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium">
+                                       {salaryGoal || 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Mood at Current Employer */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                     <Heart className="h-4 w-4 mr-2" />
+                                     Mood at Current Employer
+                                   </label>
+                                   {isEditMode ? (
+                                     <select 
+                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       value={currentMood}
+                                       onChange={(e) => setCurrentMood(e.target.value)}
+                                     >
+                                       <option value="">Select your mood</option>
+                                       <option value="happy">😊 Happy</option>
+                                       <option value="satisfied">😌 Satisfied</option>
+                                       <option value="neutral">😐 Neutral</option>
+                                       <option value="frustrated">😤 Frustrated</option>
+                                       <option value="stressed">😰 Stressed</option>
+                                       <option value="excited">🤩 Excited</option>
+                                       <option value="bored">😴 Bored</option>
+                                     </select>
+                                   ) : (
+                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
+                                       {currentMood ? (
+                                         <>
+                                           <span className="mr-2">
+                                             {currentMood === 'happy' && '😊'}
+                                             {currentMood === 'satisfied' && '😌'}
+                                             {currentMood === 'neutral' && '😐'}
+                                             {currentMood === 'frustrated' && '😤'}
+                                             {currentMood === 'stressed' && '😰'}
+                                             {currentMood === 'excited' && '🤩'}
+                                             {currentMood === 'bored' && '😴'}
+                                           </span>
+                                           {currentMood.charAt(0).toUpperCase() + currentMood.slice(1)}
+                                         </>
+                                       ) : 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Work Status */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                     <Briefcase className="h-4 w-4 mr-2" />
+                                     Work Status
+                                   </label>
+                                   {isEditMode ? (
+                                     <select 
+                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       value={workStatus}
+                                       onChange={(e) => setWorkStatus(e.target.value)}
+                                     >
+                                       <option value="">Select work status</option>
+                                       <option value="employed">💼 Employed</option>
+                                       <option value="unemployed">🔍 Unemployed</option>
+                                       <option value="freelancer">🆓 Freelancer/Contractor</option>
+                                       <option value="part-time">⏰ Part-time</option>
+                                       <option value="on-leave">🏖️ On Leave</option>
+                                       <option value="retired">🎯 Retired</option>
+                                       <option value="student">🎓 Student</option>
+                                       <option value="career-break">⏸️ Career Break</option>
+                                       <option value="transitioning">🔄 Transitioning</option>
+                                       <option value="remote-worker">🏠 Remote Worker</option>
+                                     </select>
+                                   ) : (
+                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
+                                       {workStatus ? (
+                                         <>
+                                           <span className="mr-2">
+                                             {workStatus === 'employed' && '💼'}
+                                             {workStatus === 'unemployed' && '🔍'}
+                                             {workStatus === 'freelancer' && '🆓'}
+                                             {workStatus === 'part-time' && '⏰'}
+                                             {workStatus === 'on-leave' && '🏖️'}
+                                             {workStatus === 'retired' && '🎯'}
+                                             {workStatus === 'student' && '🎓'}
+                                             {workStatus === 'career-break' && '⏸️'}
+                                             {workStatus === 'transitioning' && '🔄'}
+                                             {workStatus === 'remote-worker' && '🏠'}
+                                           </span>
+                                           {workStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                         </>
+                                       ) : 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Employment Type */}
+                                 <div className="group">
+                                   <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                     <Clock className="h-4 w-4 mr-2" />
+                                     Employment Type
+                                   </label>
+                                   {isEditMode ? (
+                                     <select 
+                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       value={employmentType}
+                                       onChange={(e) => setEmploymentType(e.target.value)}
+                                     >
+                                       <option value="">Select employment type</option>
+                                       <option value="full-time">🌞 Full-time</option>
+                                       <option value="part-time">🌙 Part-time</option>
+                                       <option value="contract">📋 Contract</option>
+                                       <option value="freelance">🦅 Freelance</option>
+                                       <option value="internship">🎯 Internship</option>
+                                       <option value="temporary">⏱️ Temporary</option>
+                                     </select>
+                                   ) : (
+                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
+                                       {employmentType ? (
+                                         <>
+                                           <span className="mr-2">
+                                             {employmentType === 'full-time' && '🌞'}
+                                             {employmentType === 'part-time' && '🌙'}
+                                             {employmentType === 'contract' && '📋'}
+                                             {employmentType === 'freelance' && '🦅'}
+                                             {employmentType === 'internship' && '🎯'}
+                                             {employmentType === 'temporary' && '⏱️'}
+                                           </span>
+                                           {employmentType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                         </>
+                                       ) : 'Not specified'}
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                       
+                       {/* Fun Status Summary */}
+                       {!isEditMode && (
+                         <div className="mt-8 p-6 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 border border-white/20 rounded-xl backdrop-blur-sm">
+                           <div className="text-center">
+                             <h3 className="text-lg font-semibold text-white mb-4 flex items-center justify-center">
+                               <Star className="h-5 w-5 mr-2 text-yellow-400 animate-pulse" />
+                               Your Work Status Summary
+                               <Star className="h-5 w-5 ml-2 text-yellow-400 animate-pulse" />
+                             </h3>
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                               <div className="bg-black/20 rounded-lg p-3 border border-cyan-400/30">
+                                 <div className="text-cyan-300 font-medium">Current Role</div>
+                                 <div className="text-white">{currentPosition || 'Not specified'}</div>
+                               </div>
+                               <div className="bg-black/20 rounded-lg p-3 border border-purple-400/30">
+                                 <div className="text-purple-300 font-medium">Company</div>
+                                 <div className="text-white">{currentEmployer || 'Not specified'}</div>
+                               </div>
+                               <div className="bg-black/20 rounded-lg p-3 border border-pink-400/30">
+                                 <div className="text-pink-300 font-medium">Mood</div>
+                                 <div className="text-white">{currentMood ? currentMood.charAt(0).toUpperCase() + currentMood.slice(1) : 'Not specified'}</div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                     </CardContent>
+                   </Card>
+                 </div>
+               </TabsContent>
 
               <TabsContent value="resume">
                 <div 

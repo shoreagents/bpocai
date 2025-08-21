@@ -1554,13 +1554,6 @@ export default function ResumeBuilderPage() {
           
             <div className="flex gap-3">
               <Button
-                variant="outline"
-                className="border-white/20 text-gray-300 hover:bg-white/10"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button
                 onClick={exportToPDF}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25"
               >
@@ -1572,7 +1565,7 @@ export default function ResumeBuilderPage() {
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save to Profile
+                Save to Profile to Share Link
               </Button>
             </div>
           </motion.div>
