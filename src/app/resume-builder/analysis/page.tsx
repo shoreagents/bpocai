@@ -2262,26 +2262,11 @@ export default function AnalysisPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.7 }}
-                      >
-                        <Button 
-                          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
-                          onClick={() => router.push('/resume-builder/upload')}
-                        >
-                          <Upload className="h-8 w-8 mb-3" />
-                          <span className="font-semibold text-base">Upload More Files</span>
-                          <span className="text-xs opacity-80 mt-1">Add more documents for better analysis</span>
-                        </Button>
-                      </motion.div>
-                      
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8 }}
                       >
                         <Button 
                           variant="outline" 
@@ -2298,22 +2283,6 @@ export default function AnalysisPage() {
                           <FileText className="h-8 w-8 mb-3" />
                           <span className="font-semibold text-base">Generate New Resume</span>
                           <span className="text-xs opacity-80 mt-1">AI-powered resume builder</span>
-                        </Button>
-                      </motion.div>
-                      
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.9 }}
-                      >
-                        <Button 
-                          variant="outline" 
-                          className="w-full border-green-400/30 text-green-400 hover:bg-green-400/10 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
-                          onClick={() => router.push('/jobs/job-matching')}
-                        >
-                          <Target className="h-8 w-8 mb-3" />
-                          <span className="font-semibold text-base">Find Jobs</span>
-                          <span className="text-xs opacity-80 mt-1">Match with BPO roles</span>
                         </Button>
                       </motion.div>
                     </div>
