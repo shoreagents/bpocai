@@ -708,7 +708,20 @@ export default function JobMatchingPage() {
                                  width: '20rem'
                                }}
                              >
-                              <h4 className="text-sm font-medium text-white mb-2 sticky top-0 bg-gray-800 py-1">AI Match Analysis</h4>
+                              <div className="flex items-center justify-between mb-2 sticky top-0 bg-gray-800 py-1">
+                                <h4 className="text-sm font-medium text-white">AI Match Analysis</h4>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowMatchTooltip(null);
+                                  }}
+                                  className="text-gray-400 hover:text-white w-6 h-6 p-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
                               
                               {/* Match Breakdown */}
                               {matchScores[job.id].breakdown && Object.keys(matchScores[job.id].breakdown).length > 0 && (
