@@ -119,7 +119,7 @@ export default function TypingHeroPage() {
   });
   
   // Game state
-  const [gameState, setGameState] = useState<'menu' | 'playing' | 'paused' | 'failed'>('menu');
+  const [gameState, setGameState] = useState<'menu' | 'ready' | 'playing' | 'paused' | 'failed'>('menu');
   const [currentDifficulty, setCurrentDifficulty] = useState<DifficultyLevel>('medium');
   const [difficultyProgress, setDifficultyProgress] = useState<DifficultyProgress>({
     easy: false,
@@ -127,6 +127,8 @@ export default function TypingHeroPage() {
     hard: false,
     expert: false
   });
+  const [showInputGuide, setShowInputGuide] = useState(false);
+  const [isInitialStart, setIsInitialStart] = useState(true);
   
   const [gameStats, setGameStats] = useState<GameStats>({
     score: 0,
@@ -435,8 +437,8 @@ export default function TypingHeroPage() {
     if (!isDifficultyUnlocked(difficulty)) return;
     
     setCurrentDifficulty(difficulty);
-    setGameState('playing');
-    setGameStartTime(Date.now());
+    setGameState('ready'); // Go to ready state first
+    setIsInitialStart(true); // Reset for new game
     endCalledRef.current = false;
     sessionSavedRef.current = false;
     
@@ -460,14 +462,51 @@ export default function TypingHeroPage() {
     setBonusEffects([]);
     setCountdown(null);
     
-    // Start background music based on difficulty
-    const musicTrack = difficulty as 'easy' | 'medium' | 'hard' | 'expert';
-    playMusic(musicTrack);
-    
-    // Focus input
+    // Focus input and show ready guide
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    
+    // Show input guide with ready button
+    setShowInputGuide(true);
+  };
+
+  // Actually start the game after ready button is clicked
+  const handleReadyClick = () => {
+    setShowInputGuide(false);
+    setGameStartTime(Date.now());
+    
+    // Start countdown before beginning game
+    setCountdown(3);
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null) return null;
+        
+        // Play countdown tick sound
+        if (!isMuted && audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(console.log);
+        }
+        
+        if (prev <= 1) {
+          // Show "GO!" for a brief moment, then start game
+          setTimeout(() => {
+            clearInterval(countdownInterval);
+            setCountdown(null);
+            setGameState('playing');
+            setIsInitialStart(false); // Mark that we've started the game (after countdown)
+            const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
+            playMusic(musicTrack);
+            if (inputRef.current) {
+              inputRef.current.focus();
+            }
+          }, 800); // Brief delay to show "GO!"
+          return 0; // Show "GO!" instead of 0
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   // Pause/Resume game
@@ -500,6 +539,11 @@ export default function TypingHeroPage() {
               if (inputRef.current) {
                 inputRef.current.focus();
               }
+              // Show input guide briefly when resuming
+              setShowInputGuide(true);
+              setTimeout(() => {
+                setShowInputGuide(false);
+              }, 2000); // Show for 2 seconds when resuming
             }, 800); // Brief delay to show "GO!"
             return 0; // Show "GO!" instead of 0
           }
@@ -936,6 +980,19 @@ export default function TypingHeroPage() {
 
 
 
+  // Keep input focused during gameplay
+  useEffect(() => {
+    if (gameState === 'playing' && inputRef.current) {
+      const focusInterval = setInterval(() => {
+        if (inputRef.current && document.activeElement !== inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 1000); // Check every second
+
+      return () => clearInterval(focusInterval);
+    }
+  }, [gameState]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -974,7 +1031,7 @@ export default function TypingHeroPage() {
                                 <Button
                     variant="ghost"
                     onClick={() => {
-                      if (gameState === 'playing' || gameState === 'paused') {
+                      if (gameState === 'playing' || gameState === 'paused' || gameState === 'ready') {
                         setShowExitDialog(true);
                       } else {
                         router.back();
@@ -995,7 +1052,7 @@ export default function TypingHeroPage() {
             </div>
             
             {/* Game Controls */}
-            {(gameState === 'playing' || gameState === 'paused') && (
+            {(gameState === 'ready' || gameState === 'playing' || gameState === 'paused') && (
               <div className="flex items-center gap-4">
                 {gameState === 'playing' && (
                   <Button
@@ -1124,7 +1181,7 @@ export default function TypingHeroPage() {
           )}
 
           {/* Game Arena */}
-          {(gameState === 'playing' || gameState === 'paused') && (
+          {(gameState === 'ready' || gameState === 'playing' || gameState === 'paused') && (
             <div className="space-y-6">
               {/* Stats Bar */}
               <motion.div
@@ -1171,9 +1228,6 @@ export default function TypingHeroPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <Badge className={getDifficultyColor(currentDifficulty)}>
-                      {currentDifficulty.toUpperCase()}
-                    </Badge>
                     <span className="text-white">
                       Accuracy: <span className="font-bold">{Math.round(gameStats.accuracy)}%</span>
                     </span>
@@ -1188,6 +1242,25 @@ export default function TypingHeroPage() {
                   className="relative h-96 bg-gradient-to-b from-gray-900/50 to-gray-800/50"
                   style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(30,30,30,0.9) 100%)' }}
                 >
+                  {/* Ready State Overlay */}
+                  {gameState === 'ready' && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-black/80 flex items-center justify-center z-40"
+                    >
+                      <div className="text-center">
+                        <h2 className="text-4xl font-bold text-white mb-4">Get Ready!</h2>
+                        <p className="text-gray-300 mb-6">
+                          Words will start falling when you click Ready below.
+                        </p>
+                        <div className="text-cyan-400 text-lg">
+                          ⬇️ Click Ready in the input area below ⬇️
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Pause Overlay */}
                   {gameState === 'paused' && !countdown && (
                     <motion.div
@@ -1227,7 +1300,7 @@ export default function TypingHeroPage() {
                           {countdown === 0 ? 'GO!' : countdown}
                         </motion.div>
                         <div className="text-lg text-gray-300">
-                          {countdown === 0 ? 'Start typing!' : 'Game resuming...'}
+                          {countdown === 0 ? 'Start typing!' : (isInitialStart ? 'Game starting...' : 'Game resuming...')}
                         </div>
                       </div>
                     </motion.div>
@@ -1342,10 +1415,42 @@ export default function TypingHeroPage() {
               </Card>
 
               {/* Input Area */}
-              <Card className="glass-card border-white/10">
+              <Card className="glass-card border-white/10 relative">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
+                      {/* Floating Input Guide - Positioned directly over input */}
+                      <AnimatePresence>
+                        {showInputGuide && gameState === 'ready' && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute inset-0 z-50 flex items-center justify-center"
+                          >
+                            <div className="bg-gradient-to-r from-cyan-500/95 to-blue-500/95 text-white px-6 py-4 rounded-lg shadow-2xl border border-cyan-400/50 backdrop-blur-sm">
+                              <div className="text-center space-y-3">
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="text-2xl">⌨️</span>
+                                  <span className="font-bold text-lg">Ready to Type?</span>
+                                </div>
+                                <p className="text-sm text-cyan-100">
+                                  Focus is set! Click Ready when you're prepared to start.
+                                </p>
+                                <Button
+                                  onClick={handleReadyClick}
+                                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-6 py-2 shadow-lg"
+                                >
+                                  <span className="text-lg mr-2">🚀</span>
+                                  Ready!
+                                </Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      
                       <Input
                         ref={inputRef}
                         value={currentInput}
@@ -1355,7 +1460,7 @@ export default function TypingHeroPage() {
                           `Type any visible: ${fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).slice(0, 2).map(w => w.word).join(', ')}${fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).length > 2 ? '...' : ''}` : 
                           "Type any word or phrase (spaces optional)..."
                         }
-                        className="bg-gray-800/50 border-white/20 text-white text-lg font-mono"
+                        className="bg-gray-800/50 border-white/20 text-white text-lg font-mono focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20"
                         disabled={gameState !== 'playing'}
                         autoComplete="off"
                         autoCorrect="off"

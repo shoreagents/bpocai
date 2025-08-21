@@ -208,6 +208,15 @@ export default function HomePage() {
     }
   }
 
+  // Navigation handlers for feature cards
+  const handleNavigateToCareerGames = () => {
+    router.push('/career-tools/games')
+  }
+
+  const handleNavigateToJobMatching = () => {
+    router.push('/jobs/job-matching')
+  }
+
   return (
     <main className="bg-black text-white">
       <Header />
@@ -245,15 +254,23 @@ export default function HomePage() {
                 description: 'Create professional resumes with real-time AI analysis and industry-specific templates.',
                 color: 'text-red-400',
                 bgColor: 'bg-red-500/10',
-                features: ['AI Analysis', 'BPO Templates', 'Real-time Scoring']
+                features: ['AI Analysis', 'BPO Templates', 'Real-time Scoring'],
+                hasButton: true,
+                buttonText: 'Build Resume',
+                buttonAction: handleBuildResume,
+                buttonColor: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
               },
               {
-                icon: BrainIcon,
-                title: 'Career Assessments',
-                description: 'Comprehensive tests covering typing, personality, logic, and industry-specific skills.',
-                color: 'text-cyan-400',
-                bgColor: 'bg-cyan-500/10',
-                features: ['DISC Personality', 'Typing Test', 'Logic Assessment']
+                icon: GamepadIcon,
+                title: 'Career Games',
+                description: 'Interactive games and assessments to test your typing speed, personality, and BPO skills.',
+                color: 'text-green-400',
+                bgColor: 'bg-green-500/10',
+                features: ['Typing Hero', 'DISC Personality', 'BPOC Ultimate'],
+                hasButton: true,
+                buttonText: 'Play Games',
+                buttonAction: handleNavigateToCareerGames,
+                buttonColor: 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
               },
               {
                 icon: Target,
@@ -261,15 +278,24 @@ export default function HomePage() {
                 description: 'Smart AI-powered job matching that connects you with the perfect BPO opportunities.',
                 color: 'text-purple-400',
                 bgColor: 'bg-purple-500/10',
-                features: ['Smart Matching', 'Skill Analysis', 'Company Fit']
+                features: ['Smart Matching', 'Skill Analysis', 'Company Fit'],
+                hasButton: true,
+                buttonText: 'Find Jobs',
+                buttonAction: handleNavigateToJobMatching,
+                buttonColor: 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
               },
               {
-                icon: MessageSquare,
-                title: 'Interview Prep',
-                description: 'Practice with AI-powered mock interviews and get personalized feedback.',
-                color: 'text-green-400',
-                bgColor: 'bg-green-500/10',
-                features: ['Mock Interviews', 'AI Feedback', 'BPO Scenarios']
+                icon: BrainIcon,
+                title: 'Career Assessments',
+                description: 'Comprehensive tests covering typing, personality, logic, and industry-specific skills.',
+                color: 'text-cyan-400',
+                bgColor: 'bg-cyan-500/10',
+                features: ['DISC Personality', 'Typing Test', 'Logic Assessment'],
+                hasButton: true,
+                buttonText: 'Coming Soon',
+                buttonAction: () => {},
+                buttonColor: 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-75',
+                isComingSoon: true
               },
               {
                 icon: Calculator,
@@ -277,7 +303,12 @@ export default function HomePage() {
                 description: 'Get accurate salary estimates based on your skills, experience, and location.',
                 color: 'text-yellow-400',
                 bgColor: 'bg-yellow-500/10',
-                features: ['Market Data', 'Skill Premium', 'Location Analysis']
+                features: ['Market Data', 'Skill Premium', 'Location Analysis'],
+                hasButton: true,
+                buttonText: 'Coming Soon',
+                buttonAction: () => {},
+                buttonColor: 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-75',
+                isComingSoon: true
               },
               {
                 icon: BarChart,
@@ -285,7 +316,12 @@ export default function HomePage() {
                 description: 'Track your progress and discover personalized career advancement paths.',
                 color: 'text-indigo-400',
                 bgColor: 'bg-indigo-500/10',
-                features: ['Progress Tracking', 'Skill Roadmap', 'Career Paths']
+                features: ['Progress Tracking', 'Skill Roadmap', 'Career Paths'],
+                hasButton: true,
+                buttonText: 'Coming Soon',
+                buttonAction: () => {},
+                buttonColor: 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed opacity-75',
+                isComingSoon: true
               }
             ].map((feature, index) => (
               <motion.div
@@ -306,7 +342,7 @@ export default function HomePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-2 mb-4">
                       {feature.features.map((item) => (
                         <div key={item} className="flex items-center space-x-2">
                           <CheckCircle className="w-4 h-4 text-green-400" />
@@ -314,6 +350,16 @@ export default function HomePage() {
                         </div>
                       ))}
                     </div>
+                    {feature.hasButton && (
+                      <Button
+                        onClick={feature.buttonAction}
+                        disabled={feature.isComingSoon}
+                        className={`w-full text-white border-0 shadow-lg transition-all duration-300 ${!feature.isComingSoon ? 'group-hover:scale-105' : ''} ${feature.buttonColor}`}
+                      >
+                        {feature.buttonText}
+                        {!feature.isComingSoon && <ArrowRight className="w-4 h-4 ml-2" />}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -536,12 +582,12 @@ export default function HomePage() {
               How It<span className="gradient-text"> Works</span> 
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Get your dream BPO job in just 4 simple steps with our AI-powered platform.
+              Get your dream BPO job in just 5 simple steps with our AI-powered platform.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto relative">
-            {/* Step 1 */}
+          <div className="grid md:grid-cols-5 gap-4 max-w-7xl mx-auto relative">
+            {/* Step 1 - Sign Up */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -549,9 +595,43 @@ export default function HomePage() {
               transition={{ delay: 0.1 }}
               className="relative group"
             >
+              <Card className="glass-card border-white/10 hover:border-blue-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
+                <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+                  1
+                </div>
+                
+                <CardContent className="p-0 text-center">
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-all duration-300">
+                      <Users className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-3">Sign Up</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Create your BPOC.IO account to access all platform features and tools.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Arrow 1 */}
+              <div className="hidden md:flex absolute -right-2 top-1/2 transform -translate-y-1/2 z-20">
+                <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Step 2 - Upload Resume */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="relative group"
+            >
               <Card className="glass-card border-white/10 hover:border-cyan-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
                 <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
-                  1
+                  2
                 </div>
                 
                 <CardContent className="p-0 text-center">
@@ -567,25 +647,25 @@ export default function HomePage() {
                 </CardContent>
               </Card>
               
-              {/* Arrow 1 */}
-              <div className="hidden md:flex absolute -right-3 top-1/2 transform -translate-y-1/2 z-20">
+              {/* Arrow 2 */}
+              <div className="hidden md:flex absolute -right-2 top-1/2 transform -translate-y-1/2 z-20">
                 <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                   <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </div>
             </motion.div>
 
-            {/* Step 2 */}
+            {/* Step 3 - AI Analysis */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.3 }}
               className="relative group"
             >
               <Card className="glass-card border-white/10 hover:border-purple-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
                 <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
-                  2
+                  3
                 </div>
                 
                 <CardContent className="p-0 text-center">
@@ -601,25 +681,25 @@ export default function HomePage() {
                 </CardContent>
               </Card>
               
-              {/* Arrow 2 */}
-              <div className="hidden md:flex absolute -right-3 top-1/2 transform -translate-y-1/2 z-20">
+              {/* Arrow 3 */}
+              <div className="hidden md:flex absolute -right-2 top-1/2 transform -translate-y-1/2 z-20">
                 <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                   <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </div>
             </motion.div>
 
-            {/* Step 3 */}
+            {/* Step 4 - Optimize & Improve */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.4 }}
               className="relative group"
             >
               <Card className="glass-card border-white/10 hover:border-green-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
                 <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
-                  3
+                  4
                 </div>
                 
                 <CardContent className="p-0 text-center">
@@ -635,25 +715,25 @@ export default function HomePage() {
                 </CardContent>
               </Card>
               
-              {/* Arrow 3 */}
-              <div className="hidden md:flex absolute -right-3 top-1/2 transform -translate-y-1/2 z-20">
+              {/* Arrow 4 */}
+              <div className="hidden md:flex absolute -right-2 top-1/2 transform -translate-y-1/2 z-20">
                 <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
                   <ArrowRight className="w-4 h-4 text-white" />
                 </div>
               </div>
             </motion.div>
 
-            {/* Step 4 */}
+            {/* Step 5 - Land Your Dream Job */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.5 }}
               className="relative group"
             >
               <Card className="glass-card border-white/10 hover:border-yellow-400/30 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden p-6">
                 <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
-                  4
+                  5
                 </div>
                 
                 <CardContent className="p-0 text-center">
