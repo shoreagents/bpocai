@@ -40,7 +40,7 @@ export default function JobsCards() {
         { icon: BookOpen, text: 'Question Bank' },
         { icon: Trophy, text: 'Performance Tracking' }
       ],
-      comingSoon: false,
+      comingSoon: true,
       href: '/jobs/interview-prep'
     },
     {

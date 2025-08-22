@@ -14,6 +14,7 @@ import { isValidFileType, categorizeFile, isValidUrl, categorizePortfolioLink, s
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
+import { toast } from '@/components/ui/toast';
 
 export default function ResumeBuilderPage() {
   const router = useRouter();
@@ -53,6 +54,14 @@ export default function ResumeBuilderPage() {
 
   // Redirect users who already have a saved resume
   useEffect(() => {
+    // Show deletion notice if coming from a delete action
+    try {
+      if (sessionStorage.getItem('resumeDeleted') === '1') {
+        toast.info('Your resume was deleted. Create a new resume to view your profile again.');
+        sessionStorage.removeItem('resumeDeleted');
+      }
+    } catch {}
+
     const checkSavedResume = async () => {
       try {
         const token = await getSessionToken();

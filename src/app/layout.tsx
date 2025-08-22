@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
-import DatabaseStatus from "@/components/debug/DatabaseStatus";
+import BackToTopButton from "@/components/ui/back-to-top";
 import Footer from "@/components/layout/Footer";
 import ClientConditionalFooter from "@/components/layout/ClientConditionalFooter";
 import { ToastProvider } from "@/components/ui/toast";
@@ -83,7 +83,7 @@ export default function RootLayout({
             <ToastProvider>
               {children}
               <ClientConditionalFooter />
-              <DatabaseStatus />
+              <BackToTopButton />
             </ToastProvider>
           </AdminProvider>
         </AuthProvider>
