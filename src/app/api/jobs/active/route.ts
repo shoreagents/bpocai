@@ -34,8 +34,8 @@ export async function GET(_request: NextRequest) {
       const postedDays = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)))
       const locationType = String(row.work_arrangement || 'onsite')
       const priorityFromDb = String(row.priority ?? '').toLowerCase()
-      const priority: 'low' | 'medium' | 'high' =
-        priorityFromDb === 'low' || priorityFromDb === 'medium' || priorityFromDb === 'high'
+      const priority: 'low' | 'medium' | 'high' | 'urgent' =
+        ['low', 'medium', 'high', 'urgent'].includes(priorityFromDb)
           ? (priorityFromDb as any)
           : ((): 'low' | 'medium' | 'high' => {
               if (realApplicants >= 50) return 'high'
@@ -59,6 +59,7 @@ export async function GET(_request: NextRequest) {
         application_deadline: row.application_deadline,
         experience_level: row.experience_level,
         work_arrangement: row.work_arrangement,
+        shift: row.shift,
         industry: row.industry,
         department: row.department,
       }

@@ -153,7 +153,8 @@ export async function POST(request: NextRequest) {
           benefits,
           skills,
           jobDescription,
-          priority
+          priority,
+          shift
         } = body?.data || {}
 
         // Find or create member
@@ -179,12 +180,12 @@ export async function POST(request: NextRequest) {
             company_id, job_title, work_arrangement, salary_min, salary_max, job_description,
             requirements, responsibilities, benefits, skills,
             experience_level, application_deadline, industry, department,
-            work_type, currency, salary_type, status, priority
+            work_type, currency, salary_type, status, priority, shift
           ) VALUES (
             $1, $2, $3::work_arrangement_enum, $4, $5, $6,
             $7::text[], $8::text[], $9::text[], $10::text[],
             $11::experience_level_enum, $12::date, $13, $14,
-            $15, $16, $17, $18::job_status_enum, $19::priority_enum
+            $15, $16, $17, $18::job_status_enum, $19::priority_enum, $20::shift_enum
           )
           RETURNING *`,
           [
@@ -206,7 +207,8 @@ export async function POST(request: NextRequest) {
             parsedSalary.currency,
             parsedSalary.type,
             dbStatus,
-            (priority as any) || 'medium'
+            (priority as any) || 'medium',
+            (shift as any) || 'day'
           ]
         )
 
@@ -217,7 +219,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'update': {
-        const { id, title, location, salary, status: uiStatus, workArrangement, workType, experienceLevel, companyId, salaryType, currency, applicants, jobDescription, industry, department, application_deadline, requirements, responsibilities, benefits, skills, priority } = body?.data || {}
+        const { id, title, location, salary, status: uiStatus, workArrangement, workType, experienceLevel, companyId, salaryType, currency, applicants, jobDescription, industry, department, application_deadline, requirements, responsibilities, benefits, skills, priority, shift } = body?.data || {}
         if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
         const parsedSalary = parseSalary(String(salary || ''))
         const dbStatus = uiStatus ? uiStatusToDbStatus(uiStatus) : undefined
@@ -248,6 +250,7 @@ export async function POST(request: NextRequest) {
         if (salaryType != null && salary == null) push('salary_type', salaryType)
         if (applicants != null) push('applicants', applicants)
         if (priority != null) push('priority', priority)
+        if (shift != null) push('shift', shift)
         if (dbStatus != null) push('status', dbStatus)
         if (fields.length === 0) return NextResponse.json({ error: 'no fields' }, { status: 400 })
         const setSql = fields.map((f, i) => `${f} = $${i + 1}`).join(', ')
@@ -359,8 +362,8 @@ function rowToJobCard(row: any) {
     return 'low'
   })()
   const priorityFromDb = String(row.priority ?? '').toLowerCase()
-  const priority: 'low' | 'medium' | 'high' =
-    priorityFromDb === 'low' || priorityFromDb === 'medium' || priorityFromDb === 'high'
+  const priority: 'low' | 'medium' | 'high' | 'urgent' =
+    ['low', 'medium', 'high', 'urgent'].includes(priorityFromDb)
       ? (priorityFromDb as any)
       : derivedPriority
   return {
@@ -376,6 +379,7 @@ function rowToJobCard(row: any) {
     applicants: row.applicants ?? 0,
     status: mapStatusFromEnum(row.status),
     priority,
+    shift: row.shift || 'day',
   }
 }
 
