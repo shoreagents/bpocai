@@ -1953,18 +1953,6 @@ export default function ResumeBuilderPage() {
                   </div>
                 </CardContent>
               </Card>
-              {hasSavedResume && (
-                <div className="mt-4">
-                  <Button
-                    variant="destructive"
-                    onClick={() => setIsDeletingSaved(true)}
-                    className="w-full"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Saved Resume
-                  </Button>
-                </div>
-              )}
             </div>
           </motion.div>
 
