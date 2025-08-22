@@ -25,7 +25,7 @@ export async function GET(
     )
     if (res.rows.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     
-    const job = { ...res.rows[0], company_name: 'ShoreAgents', company: 'ShoreAgents' }
+    const job = { ...res.rows[0], company: res.rows[0].company_name || 'ShoreAgents' }
     return NextResponse.json({ job })
   } catch (e) {
     return NextResponse.json({ error: 'Failed to fetch job' }, { status: 500 })

@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     if (data.currency != null) push('currency', data.currency)
     if (data.salaryType != null) push('salary_type', data.salaryType)
     if (data.priority != null) push('priority', data.priority)
+    if (data.shift != null) push('shift', data.shift)
     if (data.status != null) push('status', data.status)
     if (fields.length === 0) return NextResponse.json({ error: 'no fields' }, { status: 400 })
 

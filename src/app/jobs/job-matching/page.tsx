@@ -92,7 +92,9 @@ export default function JobMatchingPage() {
   const [shareJobId, setShareJobId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterWorkType, setFilterWorkType] = useState('all');
+  const [filterShift, setFilterShift] = useState('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isShiftFilterOpen, setIsShiftFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isPageSelectorOpen, setIsPageSelectorOpen] = useState(false);
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
@@ -104,6 +106,7 @@ export default function JobMatchingPage() {
   // Use Header's auth modals by toggling URL search params
   const shareRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
+  const shiftFilterRef = useRef<HTMLDivElement>(null);
   const pageSelectorRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 6;
 
@@ -126,6 +129,9 @@ export default function JobMatchingPage() {
       }
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
         setIsFilterOpen(false);
+      }
+      if (shiftFilterRef.current && !shiftFilterRef.current.contains(event.target as Node)) {
+        setIsShiftFilterOpen(false);
       }
       if (pageSelectorRef.current && !pageSelectorRef.current.contains(event.target as Node)) {
         setIsPageSelectorOpen(false);
@@ -176,6 +182,15 @@ export default function JobMatchingPage() {
           salary: row.salary || '',
           location: '',
           matchPercentage: 0, // Will be updated with real scores
+          // NEW FIELDS - All requested database fields
+          priority: row.priority,
+          work_arrangement: row.work_arrangement,
+          shift: row.shift,
+          industry: row.industry,
+          department: row.department,
+          application_deadline: row.application_deadline,
+          experience_level: row.experience_level,
+          work_type: row.work_type,
           // details will be loaded on demand
           description: '',
           responsibilities: [],
@@ -332,6 +347,15 @@ export default function JobMatchingPage() {
     return labels[workType] || workType;
   };
 
+  const getShiftLabel = (shift: string) => {
+    const labels: { [key: string]: string } = {
+      'all': 'All Shifts',
+      'day': 'Day Shift',
+      'night': 'Night Shift'
+    };
+    return labels[shift] || shift;
+  };
+
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1); // Reset to page 1 when search changes
@@ -340,6 +364,12 @@ export default function JobMatchingPage() {
   const handleFilterChange = (workType: string) => {
     setFilterWorkType(workType);
     setIsFilterOpen(false);
+    setCurrentPage(1); // Reset to page 1 when filter changes
+  };
+
+  const handleShiftFilterChange = (shift: string) => {
+    setFilterShift(shift);
+    setIsShiftFilterOpen(false);
     setCurrentPage(1); // Reset to page 1 when filter changes
   };
 
@@ -368,12 +398,13 @@ export default function JobMatchingPage() {
                            job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            job.location.toLowerCase().includes(searchTerm.toLowerCase());
       
-      if (filterWorkType === 'all') return matchesSearch;
+      // Work type filter
+      const matchesWorkType = filterWorkType === 'all' || getWorkType(job) === filterWorkType;
       
-      const jobWorkType = getWorkType(job);
-      const matchesWorkType = jobWorkType === filterWorkType;
+      // Shift filter
+      const matchesShift = filterShift === 'all' || job.shift === filterShift;
       
-      return matchesSearch && matchesWorkType;
+      return matchesSearch && matchesWorkType && matchesShift;
     });
 
     // Sort by match percentage if user is logged in and match scores are available
@@ -386,7 +417,7 @@ export default function JobMatchingPage() {
     }
 
     return filtered;
-  }, [searchTerm, filterWorkType, list, user?.id, matchScores]);
+  }, [searchTerm, filterWorkType, filterShift, list, user?.id, matchScores]);
 
   const totalPages = useMemo(() => {
     return Math.ceil(filteredJobs.length / itemsPerPage);
@@ -489,8 +520,10 @@ export default function JobMatchingPage() {
                   className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-400" />
+                
+                {/* Work Type Filter */}
                 <div className="relative" ref={filterRef}>
                   <button
                     onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -511,6 +544,33 @@ export default function JobMatchingPage() {
                           }`}
                         >
                           {getWorkTypeLabel(workType)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Shift Filter */}
+                <div className="relative" ref={shiftFilterRef}>
+                  <button
+                    onClick={() => setIsShiftFilterOpen(!isShiftFilterOpen)}
+                    className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm flex items-center gap-2 min-w-[120px] justify-between hover:bg-white/20 transition-colors"
+                  >
+                    <span>{getShiftLabel(filterShift)}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  
+                  {isShiftFilterOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-full bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50">
+                      {['all', 'day', 'night'].map((shift) => (
+                        <button
+                          key={shift}
+                          onClick={() => handleShiftFilterChange(shift)}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                            filterShift === shift ? 'bg-purple-500/20 text-purple-400' : 'text-white'
+                          }`}
+                        >
+                          {getShiftLabel(shift)}
                         </button>
                       ))}
                     </div>
@@ -572,9 +632,24 @@ export default function JobMatchingPage() {
                         <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
                           <span className="text-lg">{job.companyLogo}</span>
                         </div>
-                        <div>
-                          <p className="font-medium text-white">{job.company}</p>
-                          <p className="text-xs text-gray-400">{job.postedDays} days ago</p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium text-white">{job.company}</p>
+                            <p className="text-xs text-gray-400">{job.postedDays} days ago</p>
+                          </div>
+                          {/* Priority Badge next to company name */}
+                          {job.priority && (
+                            <Badge 
+                              className={`px-2 py-0.5 text-xs font-semibold ml-2 ${
+                                job.priority === 'urgent' ? 'bg-red-600/20 text-red-400 border-red-600/30' :
+                                job.priority === 'high' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
+                                job.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
+                                'bg-green-500/20 text-green-300 border-green-500/30'
+                              }`}
+                            >
+                              {job.priority === 'urgent' ? '🚨' : job.priority === 'high' ? '⚡' : job.priority === 'medium' ? '⚠️' : '✅'} {job.priority?.toUpperCase()}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       
@@ -649,9 +724,11 @@ export default function JobMatchingPage() {
                       {job.title}
                     </h2>
 
-                    {/* Employment Type Badges */}
+                    {/* Employment Type + Work Info Badges */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {job.employmentType.map((type: string, idx: number) => (
+                      {job.employmentType
+                        .filter((type: string) => type.toLowerCase() !== 'full-time')
+                        .map((type: string, idx: number) => (
                         <Badge 
                           key={idx}
                           className="bg-white/10 text-gray-300 border-white/20 px-2 py-1 text-xs"
@@ -659,6 +736,25 @@ export default function JobMatchingPage() {
                           {type}
                         </Badge>
                       ))}
+                      
+                      {/* Work Arrangement Badge */}
+                      {job.work_arrangement && (
+                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 px-2 py-1 text-xs">
+                          <Building2 className="w-3 h-3 mr-1" />
+                          {job.work_arrangement === 'onsite' ? 'Onsite' : 
+                           job.work_arrangement === 'remote' ? 'Remote' : 
+                           job.work_arrangement === 'hybrid' ? 'Hybrid' : 
+                           job.work_arrangement}
+                        </Badge>
+                      )}
+
+                      {/* Shift Badge */}
+                      {job.shift && (
+                        <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 px-2 py-1 text-xs">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {job.shift === 'day' ? 'Day' : 'Night'}
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Match Percentage */}
@@ -760,12 +856,24 @@ export default function JobMatchingPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3">
                     {/* Salary */}
-                    <div className="flex items-center text-gray-300">
-                      <DollarSign className="w-4 h-4 mr-2 text-green-400" />
-                      <span className="text-sm">{job.salary}</span>
+                    <div className="flex items-center text-green-400 font-semibold">
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      <span className="text-white text-sm">{job.salary}</span>
                     </div>
+
+                    {/* Application Deadline - Bottom */}
+                    {job.application_deadline && (
+                      <div className="flex items-center text-xs text-gray-400 pt-1">
+                        <Clock className="w-3 h-3 mr-1.5 text-red-400 flex-shrink-0" />
+                        <span>Apply by {new Date(job.application_deadline).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}</span>
+                      </div>
+                    )}
 
                     {/* Quick Apply Button */}
                     <Button 
@@ -964,16 +1072,35 @@ export default function JobMatchingPage() {
                         {selectedJobData.title}
                       </h2>
 
-                      {/* Employment Type Badges */}
-                      <div className="flex flex-wrap gap-3 mb-6">
-                        {selectedJobData.employmentType.map((type: string, idx: number) => (
-                          <Badge 
-                            key={idx}
-                            className="bg-white/10 text-gray-300 border-white/20 px-3 py-1"
-                          >
-                            {type}
-                          </Badge>
-                        ))}
+                      {/* Job Details */}
+                      <div className="space-y-4 mb-8">
+                        {/* Industry */}
+                        {selectedJobData.industry && (
+                          <div className="flex items-center text-gray-300">
+                            <Target className="w-6 h-6 mr-4 text-orange-400" />
+                            <div>
+                              <span className="text-sm text-gray-400">Industry:</span>
+                              <span className="ml-2 font-medium text-lg">{selectedJobData.industry}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Department */}
+                        {selectedJobData.department && (
+                          <div className="flex items-center text-gray-300">
+                            <FileText className="w-6 h-6 mr-4 text-cyan-400" />
+                            <div>
+                              <span className="text-sm text-gray-400">Department:</span>
+                              <span className="ml-2 font-medium text-lg">{selectedJobData.department}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Applicants */}
+                        <div className="flex items-center text-gray-300">
+                          <span className="text-sm">Applicants:</span>
+                          <span className="ml-2 font-medium">{(selectedJobDetails?.applicants ?? 0).toLocaleString()}</span>
+                        </div>
                       </div>
 
                       {/* Match Percentage */}
@@ -1055,18 +1182,6 @@ export default function JobMatchingPage() {
                           )}
                         </div>
                       )}
-
-                      {/* Salary and Applicants */}
-                      <div className="space-y-4 mb-8">
-                        <div className="flex items-center text-gray-300">
-                          <DollarSign className="w-6 h-6 mr-4 text-green-400" />
-                          <span className="font-medium text-xl">{selectedJobData.salary}</span>
-                        </div>
-                        <div className="flex items-center text-gray-300">
-                          <span className="text-sm">Applicants:</span>
-                          <span className="ml-2 font-medium">{(selectedJobDetails?.applicants ?? 0).toLocaleString()}</span>
-                        </div>
-                      </div>
 
                                               {/* Apply Button */}
                         <Button 

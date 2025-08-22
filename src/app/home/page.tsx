@@ -759,7 +759,7 @@ export default function HomePage() {
       </section>
 
       {/* Top Users */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white/5">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -777,7 +777,13 @@ export default function HomePage() {
             <p className="text-gray-300 mt-2">Recognizing the most engaged candidates across games, applications, and engagement.</p>
           </motion.div>
 
-          <div className="glass-card border-white/10 max-w-4xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="glass-card border-white/10 max-w-4xl mx-auto"
+          >
             <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -880,12 +886,29 @@ export default function HomePage() {
                 </TableBody>
               </Table>
             </CardContent>
-          </div>
+          </motion.div>
+          
+          {/* View Full Leaderboards Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
+            className="text-center mt-8"
+          >
+            <Button
+              onClick={() => router.push('/leaderboards')}
+              className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white border-0 shadow-lg shadow-yellow-500/25 transition-all duration-300 hover:scale-105 px-8 py-3 text-lg font-semibold"
+            >
+              View Full Leaderboards
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </motion.div>
         </div>
       </section>
 
       {/* Success Stories */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white/5">
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -906,13 +929,27 @@ export default function HomePage() {
           </motion.div>
 
           {/* Testimonials Carousel */}
-          <div className="relative">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="relative"
+          >
             <div className="overflow-hidden px-1 md:px-2">
               <div className="flex gap-4 md:gap-6 transition-transform duration-500"
                 style={{ transform: `translateX(-${currentIndex * (100 / 3 + 2)}%)` }}
               >
-                {testimonialsData.map((t) => (
-                  <Card key={t.name} className="glass-card border-white/10 p-5 md:p-6 min-h-[220px] w-full md:w-[32%] shrink-0">
+                {testimonialsData.map((t, index) => (
+                  <motion.div
+                    key={t.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.3 + (index * 0.1) }}
+                    className="w-full md:w-[32%] shrink-0 flex"
+                  >
+                    <Card className="glass-card border-white/10 p-5 md:p-6 min-h-[220px] w-full">
                     <div className="flex items-center space-x-4 mb-4">
                       <div className="w-20 h-20 rounded-full overflow-hidden bg-white/10 flex items-center justify-center ring-2 ring-white/10">
                         <img src={t.avatar} alt={t.name} className="w-full h-full object-contain" />
@@ -926,40 +963,59 @@ export default function HomePage() {
                         <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       ))}
                     </div>
-                    <blockquote className="text-gray-300 leading-relaxed text-base">“{t.text}”</blockquote>
-                  </Card>
+                    <blockquote className="text-gray-300 leading-relaxed text-base italic">"{t.text}"</blockquote>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
             </div>
 
             {/* Arrows */}
-            <button
+            <motion.button
+              initial={{ opacity: 0, x: -10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
               aria-label="Previous"
               onClick={() => setCurrentIndex((s) => Math.max(0, s - 1))}
               className="absolute -left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full p-2 text-white shadow-lg"
             >
               <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              initial={{ opacity: 0, x: 10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
               aria-label="Next"
               onClick={() => setCurrentIndex((s) => Math.min(s + 1, Math.max(0, testimonialsData.length - itemsPerView)))}
               className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full p-2 text-white shadow-lg"
             >
               <ChevronRight className="w-5 h-5" />
-            </button>
+            </motion.button>
 
             {/* Dots */}
-            <div className="flex items-center justify-center gap-2 mt-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+              className="flex items-center justify-center gap-2 mt-6"
+            >
               {Array.from({ length: Math.max(1, testimonialsData.length - itemsPerView + 1) }).map((_, i) => (
-                <button
+                <motion.button
                   key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.6 + (i * 0.05) }}
                   onClick={() => setCurrentIndex(i)}
                   className={`w-2.5 h-2.5 rounded-full border ${i === currentIndex ? 'bg-white border-white' : 'bg-white/20 border-white/30'}`}
                   aria-label={`Go to position ${i + 1}`}
                 />
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Statistics removed by request */}
         </div>
