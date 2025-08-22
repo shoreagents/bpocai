@@ -1958,7 +1958,7 @@ export default function ResumeBuilderPage() {
 
           {/* Save Success Modal */}
         <Dialog open={showSaveSuccessModal} onOpenChange={setShowSaveSuccessModal}>
-          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+          <DialogContent className="bg-[#0b0b0d] border border-white/10 text-white max-w-md">
             <DialogHeader>
               <div className="flex items-center justify-center mb-4">
                 <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -2003,7 +2003,7 @@ export default function ResumeBuilderPage() {
               <Button
                 variant="outline"
                 onClick={() => setShowSaveSuccessModal(false)}
-                className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+                className="w-full border-white/10 text-gray-300 hover:bg-white/5"
               >
                 Continue Editing
               </Button>
