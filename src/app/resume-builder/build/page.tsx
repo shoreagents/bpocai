@@ -14,12 +14,17 @@ import {
   Save,
   ArrowLeft,
   AlertTriangle,
-  Share2
+  Share2,
+  CheckCircle,
+  Briefcase,
+  Wrench,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -169,6 +174,10 @@ export default function ResumeBuilderPage() {
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progressValue, setProgressValue] = useState(0);
+  const [showSaveSuccessModal, setShowSaveSuccessModal] = useState(false);
+  const [savedResumeUrl, setSavedResumeUrl] = useState<string>('');
+  const [hasSavedResume, setHasSavedResume] = useState(false);
+  const [isDeletingSaved, setIsDeletingSaved] = useState(false);
 
   useEffect(() => {
     // Get resume data from localStorage
@@ -191,13 +200,61 @@ export default function ResumeBuilderPage() {
           headers: { Authorization: `Bearer ${sessionToken}` },
           cache: 'no-store'
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.hasData) setExtractedFallback(data.resumeData);
+        const resText = await res.text();
+        try {
+          const json = JSON.parse(resText);
+          if (res.ok && json?.hasData) setExtractedFallback(json.resumeData);
+        } catch {
+          // Non-JSON response (e.g., 500 HTML); ignore
+        }
+      } catch {}
+    })();
+
+    // Check if user has a saved resume to conditionally show Delete button
+    (async () => {
+      try {
+        const sessionToken = await getSessionToken();
+        if (!sessionToken || !user?.id) return;
+        const res = await fetch('/api/user/saved-resumes', {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+            'x-user-id': String(user.id)
+          },
+          cache: 'no-store'
+        });
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch {}
+        if (res.ok && data?.success) {
+          setHasSavedResume(Boolean(data.hasSavedResume));
         }
       } catch {}
     })();
   }, []);
+
+  // Re-check when user becomes available (fixes initial mount with undefined user.id)
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const sessionToken = await getSessionToken();
+        if (!sessionToken) return;
+        const res = await fetch('/api/user/saved-resumes', {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+            'x-user-id': String(user.id)
+          },
+          cache: 'no-store'
+        });
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch {}
+        if (res.ok && data?.success) {
+          setHasSavedResume(Boolean(data.hasSavedResume));
+        }
+      } catch {}
+    })();
+  }, [user?.id]);
 
   useEffect(() => {
     if (improvedResume) {
@@ -233,8 +290,10 @@ export default function ResumeBuilderPage() {
         }),
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const text = await response.text();
+      let data: any = null;
+      try { data = JSON.parse(text); } catch {}
+      if (response.ok && data?.success) {
         setProgressValue(100);
         setTimeout(() => {
           setImprovedResume(data.improvedResume);
@@ -243,7 +302,7 @@ export default function ResumeBuilderPage() {
           saveGeneratedResumeToDatabase(data.improvedResume, resumeData);
         }, 500);
       } else {
-        setError(data.error || 'Failed to improve resume');
+        setError((data && data.error) || text || 'Failed to improve resume');
       }
     } catch (error) {
       console.error('Error generating improved resume:', error);
@@ -477,15 +536,16 @@ export default function ResumeBuilderPage() {
         }),
       });
 
+      const saveText = await saveResponse.text();
+      let saveJson: any = null;
+      try { saveJson = JSON.parse(saveText); } catch {}
+
       if (saveResponse.ok) {
-        const saveResult = await saveResponse.json();
-        console.log('✅ Generated resume saved to database:', saveResult.generatedResumeId);
-        
+        console.log('✅ Generated resume saved to database:', saveJson?.generatedResumeId ?? '(no id)');
         // Clean up localStorage after successful database save
         cleanupLocalStorageAfterSave();
       } else {
-        const errorData = await saveResponse.json();
-        console.warn('⚠️ Failed to save generated resume to database:', errorData.error);
+        console.warn('⚠️ Failed to save generated resume to database:', (saveJson && saveJson.error) || saveText || saveResponse.statusText);
       }
     } catch (error) {
       console.error('❌ Error saving generated resume to database:', error);
@@ -954,23 +1014,42 @@ export default function ResumeBuilderPage() {
         }),
       });
 
+      const saveText = await saveResponse.text();
+      let saveJson: any = null;
+      try { saveJson = JSON.parse(saveText); } catch {}
+
       if (saveResponse.ok) {
-        const saveResult = await saveResponse.json();
-        console.log('✅ Resume saved to profile:', saveResult.resumeUrl);
-        
-        // Show success message and provide the URL
-        alert(`Resume saved successfully! Your resume is now available at: ${saveResult.resumeUrl}`);
-        
-        // Optionally redirect to the saved resume page
-        // router.push(saveResult.resumeUrl);
+        console.log('✅ Resume saved to profile:', saveJson?.resumeUrl ?? '(no url)');
+        // Set the saved resume URL and show success modal
+        setSavedResumeUrl(saveJson?.resumeUrl ?? '');
+        setShowSaveSuccessModal(true);
       } else {
-        const errorData = await saveResponse.json();
-        console.error('❌ Failed to save resume to profile:', errorData.error);
-        alert(`Failed to save resume to profile: ${errorData.error}`);
+        const message = (saveJson && saveJson.error) || saveText || saveResponse.statusText;
+        console.error('❌ Failed to save resume to profile:', message);
+        alert(`Failed to save resume to profile: ${message}`);
       }
     } catch (error) {
       console.error('❌ Error saving resume to profile:', error);
       alert('Error saving resume to profile. Please try again.');
+    }
+  };
+
+  // Function to handle navigation from success modal
+  const handleSuccessModalAction = (action: 'career-tools' | 'jobs' | 'view-resume') => {
+    setShowSaveSuccessModal(false);
+    
+    switch (action) {
+      case 'career-tools':
+        router.push('/career-tools');
+        break;
+      case 'jobs':
+        router.push('/jobs');
+        break;
+      case 'view-resume':
+        if (savedResumeUrl) {
+          window.open(savedResumeUrl, '_blank');
+        }
+        break;
     }
   };
 
@@ -1554,13 +1633,6 @@ export default function ResumeBuilderPage() {
           
             <div className="flex gap-3">
               <Button
-                onClick={exportToPDF}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-              <Button
                 onClick={saveResumeToProfile}
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
               >
@@ -1720,6 +1792,18 @@ export default function ResumeBuilderPage() {
                     </div>
                   </CardContent>
                 </Card>
+                {hasSavedResume && (
+                  <div className="mt-4">
+                    <Button
+                      variant="destructive"
+                      onClick={() => setIsDeletingSaved(true)}
+                      className="w-full"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Saved Resume
+                    </Button>
+                  </div>
+                )}
             </div>
 
               {/* Enhanced Main Content - Resume Preview */}
@@ -1867,12 +1951,133 @@ export default function ResumeBuilderPage() {
                   </div>
                 </CardContent>
               </Card>
+              {hasSavedResume && (
+                <div className="mt-4">
+                  <Button
+                    variant="destructive"
+                    onClick={() => setIsDeletingSaved(true)}
+                    className="w-full"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Saved Resume
+                  </Button>
+                </div>
+              )}
             </div>
           </motion.div>
-        </div>
 
-
+          {/* Save Success Modal */}
+        <Dialog open={showSaveSuccessModal} onOpenChange={setShowSaveSuccessModal}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+            <DialogHeader>
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-green-400" />
                 </div>
+              </div>
+              <DialogTitle className="text-xl font-bold text-center text-white">
+                Resume Saved Successfully!
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-300">
+                Your resume has been saved to your profile and is now available for sharing.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-3 mt-6">
+              <Button
+                onClick={() => handleSuccessModalAction('career-tools')}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+              >
+                <Wrench className="h-4 w-4 mr-2" />
+                Go to Career Tools
+              </Button>
+              
+              <Button
+                onClick={() => handleSuccessModalAction('jobs')}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+              >
+                <Briefcase className="h-4 w-4 mr-2" />
+                Go to Jobs
+              </Button>
+              
+              <Button
+                onClick={() => handleSuccessModalAction('view-resume')}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                View Saved Resume
+              </Button>
+            </div>
+            
+            <DialogFooter className="mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowSaveSuccessModal(false)}
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Continue Editing
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Delete Saved Resume Modal */}
+        <Dialog open={isDeletingSaved} onOpenChange={setIsDeletingSaved}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete saved resume?</DialogTitle>
+              <DialogDescription className="text-gray-300">
+                This action cannot be undone. Deleting your saved resume <span className="font-semibold text-red-400">will also remove all of your existing job applications linked to this resume</span>. You will need to restart any applications afterwards.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeletingSaved(false)} className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  try {
+                    const token = await getSessionToken();
+                    if (!token || !user?.id) {
+                      alert('Please log in.');
+                      return;
+                    }
+                    const res = await fetch('/api/user/saved-resumes', {
+                      headers: { Authorization: `Bearer ${token}`, 'x-user-id': String(user.id) },
+                    });
+                    const text = await res.text();
+                    let data: any = null; try { data = JSON.parse(text); } catch {}
+                    const slug = data?.resumeSlug;
+                    if (!slug) {
+                      alert('No saved resume found.');
+                      setIsDeletingSaved(false);
+                      return;
+                    }
+                    const del = await fetch(`/api/user/saved-resume/${slug}`, {
+                      method: 'DELETE',
+                      headers: { Authorization: `Bearer ${token}`, 'x-user-id': String(user.id) },
+                    });
+                    if (!del.ok) {
+                      const dtext = await del.text();
+                      let djson: any = null; try { djson = JSON.parse(dtext); } catch {}
+                      throw new Error((djson && (djson.details || djson.error)) || dtext || 'Delete failed');
+                    }
+                    setIsDeletingSaved(false);
+                    try { sessionStorage.setItem('resumeDeleted', '1'); } catch {}
+                    router.push('/resume-builder');
+                  } catch (e: any) {
+                    alert(e?.message || 'Failed to delete saved resume');
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        </div>
+        </div>
       </div>
     </div>
   );

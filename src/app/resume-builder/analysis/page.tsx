@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/components/ui/toast';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -48,6 +49,29 @@ interface AnalysisData {
 
 export default function AnalysisPage() {
   const router = useRouter();
+  const handleViewProfile = async () => {
+    try {
+      const token = await getSessionToken();
+      if (!token) {
+        router.push('/resume-builder/build');
+        return;
+      }
+      const res = await fetch('/api/user/saved-resumes', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const text = await res.text();
+      let data: any = null; try { data = JSON.parse(text); } catch {}
+      if (res.ok && data?.success && data?.hasSavedResume && data?.resumeSlug) {
+        router.push(`/${data.resumeSlug}`);
+      } else {
+        toast.info('No saved resume found. Save your resume to profile first.');
+        router.push('/resume-builder/build');
+      }
+    } catch {
+      router.push('/resume-builder/build');
+    }
+  };
   const { user } = useAuth();
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
@@ -237,11 +261,13 @@ export default function AnalysisPage() {
           const url = `/api/user/analysis-results${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`;
           const res = await fetch(url, {
             method: 'GET',
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store'
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.found && data.analysis) {
+            const hasNewUpload = (uploadedFiles && uploadedFiles.length > 0) || (processedFiles && processedFiles.length > 0);
+            if (data.found && data.analysis && !hasNewUpload) {
               console.log('✅ Loaded existing analysis from DB');
               setAnalysisResults(data.analysis);
               setIsAnalyzing(false);
@@ -288,7 +314,7 @@ export default function AnalysisPage() {
         console.warn('⚠️ Failed to preload analysis from DB:', e);
       }
 
-      // Start real AI analysis process
+      // Start real AI analysis process (force fresh run after reupload)
       performAIAnalysis(sessionId, uploadedFiles, portfolioLinks, processedFiles);
     };
 
@@ -690,16 +716,7 @@ export default function AnalysisPage() {
             </div>
             
             {analysisComplete && (
-              <div className="flex gap-3">
-                <Button variant="outline" className="border-white/20 text-gray-300 hover:bg-white/10">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-                <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Report
-                </Button>
-              </div>
+              <div className="flex gap-3" />
             )}
           </motion.div>
 
@@ -2274,14 +2291,13 @@ export default function AnalysisPage() {
                           onClick={() => {
                             if (resumeData) {
                               localStorage.setItem('resumeData', JSON.stringify(resumeData));
-                              // Clean up workflow data before moving to build page
                               cleanupWorkflowData();
                               router.push('/resume-builder/build');
                             }
                           }}
                         >
                           <FileText className="h-8 w-8 mb-3" />
-                          <span className="font-semibold text-base">Generate New Resume</span>
+                          <span className="font-semibold text-base">Generate New Improved Resume</span>
                           <span className="text-xs opacity-80 mt-1">AI-powered resume builder</span>
                         </Button>
                       </motion.div>

@@ -407,31 +407,9 @@ export default function SavedResumePage() {
     } catch (e) {}
   };
 
+  // Delete action moved to builder page; disabled on public/resume profile
   const deleteResume = async () => {
-    if (!confirm('Delete this resume? This action cannot be undone.')) return;
-    try {
-      setDeleting(true);
-      const token = await getSessionToken();
-      if (!token) {
-        alert('Please log in to delete your resume.');
-        setDeleting(false);
-        return;
-      }
-      const res = await fetch(`/api/user/saved-resume/${slug}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to delete resume');
-      }
-      alert('Resume deleted');
-      window.location.href = '/resume-builder';
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete resume');
-    } finally {
-      setDeleting(false);
-    }
+    alert('Delete is available in the builder page.');
   };
 
   if (loading) {
@@ -716,17 +694,7 @@ export default function SavedResumePage() {
                   <Download className="h-4 w-4 mr-2" />
                   {exporting ? 'Exporting...' : 'Export PDF'}
                 </Button>
-                {isOwner ? (
-                <Button
-                  variant="destructive"
-                  onClick={deleteResume}
-                  disabled={deleting}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 transition-all duration-200"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {deleting ? 'Deleting...' : 'Delete'}
-                </Button>
-                ) : null}
+                {/* Delete button removed on profile page */}
               </div>
             </div>
             
