@@ -35,11 +35,18 @@ import {
   Instagram,
   Linkedin,
   Copy,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X,
+  Settings,
+  UserCheck,
+  BarChart3,
+  Gamepad2,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// Tabs removed - using sidebar navigation instead
 import { getSessionToken } from '@/lib/auth-helpers';
 import { supabase } from '@/lib/supabase'
 import { Badge } from '@/components/ui/badge';
@@ -112,6 +119,10 @@ export default function SavedResumePage() {
 
   // Share dropdown state
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
+  
+  // Navigation state
+  const [activeSection, setActiveSection] = useState<string>('work-status');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Starfield state
   const [stars, setStars] = useState<Array<{
@@ -716,27 +727,185 @@ export default function SavedResumePage() {
         </motion.div>
 
 
-        {/* Tabs: Resume and AI Analysis */}
-
+        {/* Portfolio Layout with Sidebar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="flex justify-center"
         >
-
           <div className="max-w-7xl w-full mx-auto">
-            <Tabs defaultValue="resume" className="space-y-6">
-              <div className="flex justify-center">
-                <TabsList className="glass-card border-white/20 p-1 bg-black/20">
-                  <TabsTrigger value="work-status">Work Status</TabsTrigger>
-                  <TabsTrigger value="resume">Resume</TabsTrigger>
-                  <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
-                  <TabsTrigger value="career-games">Career Games</TabsTrigger>
-                </TabsList>
+            
+            {/* Mobile Menu Button */}
+            <div className="lg:hidden mb-6 flex justify-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="border-white/10 text-white hover:bg-white/5 glass-card"
+              >
+                <Menu className="w-4 h-4 mr-2" />
+                Profile Menu
+              </Button>
+            </div>
+
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden">
+                <motion.div
+                  initial={{ x: -300 }}
+                  animate={{ x: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-80 h-full bg-black border-r border-white/10 p-6"
+                >
+                  {/* Mobile Header */}
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-white font-semibold">Portfolio Menu</h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Mobile Profile Section */}
+                  <div className="flex flex-col items-center mb-8">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 p-0.5">
+                        <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                          {resume?.user?.avatarUrl ? (
+                            <img 
+                              src={resume.user.avatarUrl} 
+                              alt="Profile" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-8 h-8 text-white" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-bold text-white mt-3 text-center">
+                      {resume?.user?.fullName || 'User Name'}
+                    </h3>
+                  </div>
+
+                  {/* Mobile Navigation */}
+                  <nav className="space-y-2">
+                    {[
+                      { id: 'work-status', label: 'Work Status', icon: UserCheck },
+                      { id: 'resume', label: 'Resume', icon: FileText },
+                      { id: 'analysis', label: 'AI Analysis', icon: BarChart3 },
+                      { id: 'career-games', label: 'Career Games', icon: Gamepad2 },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveSection(item.id);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                          activeSection === item.id
+                            ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-cyan-500/30'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <item.icon className={`w-5 h-5 mr-3 ${activeSection === item.id ? 'text-cyan-400' : ''}`} />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                  </nav>
+                </motion.div>
+              </div>
+            )}
+
+            {/* Main Layout */}
+            <div className="grid lg:grid-cols-4 gap-8">
+              
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:block lg:col-span-1">
+                <div className="sticky top-24">
+                  <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+                    <CardContent className="p-6">
+                      {/* Profile Section */}
+                      <div className="flex flex-col items-center mb-8">
+                        <div className="relative">
+                          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 p-0.5">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                              {resume?.user?.avatarUrl ? (
+                                <img 
+                                  src={resume.user.avatarUrl} 
+                                  alt="Profile" 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <User className="w-10 h-10 text-white" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        </div>
+                        
+                        <h2 className="text-xl font-bold text-white mt-6 text-center">
+                          {resume?.user?.fullName || 'User Name'}
+                        </h2>
+                      </div>
+
+                      {/* Navigation */}
+                      <nav className="space-y-1 mt-6">
+                        {[
+                          { id: 'work-status', label: 'Work Status', icon: UserCheck },
+                          { id: 'resume', label: 'Resume', icon: FileText },
+                          { id: 'analysis', label: 'AI Analysis', icon: BarChart3 },
+                          { id: 'career-games', label: 'Career Games', icon: Gamepad2 },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          const isActive = activeSection === item.id;
+                          
+                          return (
+                            <motion.button
+                              key={item.id}
+                              onClick={() => setActiveSection(item.id)}
+                              className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                                isActive 
+                                  ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-cyan-500/30' 
+                                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                              }`}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-cyan-400' : ''}`} />
+                              <span className="font-medium">{item.label}</span>
+                              {isActive && (
+                                <ChevronRight className="w-4 h-4 ml-auto text-cyan-400" />
+                              )}
+                            </motion.button>
+                          );
+                        })}
+                      </nav>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
 
-                             <TabsContent value="work-status">
+              {/* Main Content */}
+              <div className="lg:col-span-3">
+                <motion.div
+                  key={activeSection}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+
+                  {/* Work Status Section */}
+                  {activeSection === 'work-status' && (
                  <div className="max-w-6xl w-full mx-auto">
                    <Card className="glass-card border-white/10">
                      <CardHeader>
@@ -1060,9 +1229,10 @@ export default function SavedResumePage() {
                      </CardContent>
                    </Card>
                  </div>
-               </TabsContent>
+                  )}
 
-              <TabsContent value="resume">
+                  {/* Resume Section */}
+                  {activeSection === 'resume' && (
                 <div 
                   id="resume-content"
                   className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto text-gray-900 [&_*]:text-gray-900 [&_h1]:text-gray-900 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-700 [&_li]:text-gray-700 [&_span]:text-gray-700 [&_.text-gray-700]:text-gray-700 [&_.text-gray-600]:text-gray-600 [&_.text-gray-500]:text-gray-500 [&_.text-gray-900]:text-gray-900"
@@ -1344,9 +1514,10 @@ export default function SavedResumePage() {
               </div>
             )}
                 </div>
-              </TabsContent>
+                  )}
 
-              <TabsContent value="analysis">
+                  {/* AI Analysis Section */}
+                  {activeSection === 'analysis' && (
                 <div className="max-w-6xl w-full mx-auto">
                   {analysisLoading && (
                     <div className="text-center text-gray-300 py-12">Loading analysis...</div>
@@ -1753,9 +1924,10 @@ export default function SavedResumePage() {
                     </div>
                   )}
                 </div>
-              </TabsContent>
+                  )}
 
-              <TabsContent value="career-games">
+                  {/* Career Games Section */}
+                  {activeSection === 'career-games' && (
                 <div className="max-w-6xl w-full mx-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Typing Hero */}
@@ -1996,10 +2168,11 @@ export default function SavedResumePage() {
                     </Card>
                   </div>
                 </div>
-              </TabsContent>
+                  )}
 
-              
-            </Tabs>
+                </motion.div>
+              </div>
+            </div>
           </div>
         </motion.div>
 
