@@ -33,6 +33,7 @@ interface JobCard {
   status: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
   source?: 'processed' | 'original'
+  applicationDeadline?: string
 }
 
 interface StatusColumn {
@@ -61,6 +62,9 @@ function JobsPage() {
   const [editingJob, setEditingJob] = useState<any | null>(null)
   const [isImproving, setIsImproving] = useState<boolean>(false)
   const [isImprovingNew, setIsImprovingNew] = useState<boolean>(false)
+  const [pendingChanges, setPendingChanges] = useState<any>({})
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
   const [newJobData, setNewJobData] = useState({
     company: '',
     title: '',
@@ -453,7 +457,9 @@ function JobsPage() {
         if (cres.ok) { const cdata = await cres.json(); comments = cdata.comments || [] }
       } catch {}
       setEditingJob({ ...(jobData||{}), __comments: comments, __source: isProcessedSource ? 'processed' : 'original' })
-    setIsEditJobDialogOpen(true)
+      setPendingChanges({}) // Clear any pending changes
+      setHasUnsavedChanges(false) // Reset unsaved changes flag
+      setIsEditJobDialogOpen(true)
     } catch (e) {
       console.error(e)
       alert('Failed to open job for editing')
@@ -540,35 +546,68 @@ function JobsPage() {
     return ''
   }
 
-  // Autosave helper for inline edits
-  const savePartialUpdate = async (partial: any, localMutate?: (draft: any) => any) => {
+  // Track changes without immediate save
+  const trackChange = (changes: any, localMutate?: (draft: any) => any) => {
     if (!editingJob) return
+    
+    // Update pending changes
+    setPendingChanges(prev => ({ ...prev, ...changes }))
+    setHasUnsavedChanges(true)
+    
+    // Apply local mutation immediately for UI feedback
+    if (localMutate) {
+      setEditingJob((prev: any) => ({ ...(prev || {}), ...localMutate(prev) }))
+    }
+  }
+
+  // Save all pending changes at once
+  const saveAllChanges = async () => {
+    if (!editingJob || Object.keys(pendingChanges).length === 0) return
+    
     try {
+      setIsSaving(true)
       const token = await getSessionToken()
       if (!token) throw new Error('Not authenticated')
-      const payload = { id: editingJob.id, ...partial }
+      
+      const payload = { id: editingJob.id, ...pendingChanges }
       const endpoint = editingJob.__source === 'processed' ? '/api/admin/processed-jobs' : '/api/admin/jobs'
+      
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'update', data: payload })
       })
+      
       if (!res.ok) throw new Error('Update failed')
-      // Local mutate
-      if (localMutate) setEditingJob((prev: any) => ({ ...(prev || {}), ...localMutate(prev) }))
-      // reflect list minimally (title/location/priority)
+      
+      // Update jobs list with saved changes
       setJobs(prev => prev.map(j => j.id === String(editingJob.id)
         ? {
             ...j,
-            title: (partial.title ?? j.title),
-            location: (partial.location ?? j.location),
-            priority: (partial.priority ?? j.priority)
+            title: (pendingChanges.title ?? j.title),
+            location: (pendingChanges.location ?? j.location),
+            priority: (pendingChanges.priority ?? j.priority)
           }
         : j
       ))
-    } catch (e) {
+      
+      // Clear pending changes
+      setPendingChanges({})
+      setHasUnsavedChanges(false)
+      
+      alert('Changes saved successfully!')
+      
+    } catch (e: any) {
       console.error(e)
+      alert('Error saving changes: ' + e.message)
+    } finally {
+      setIsSaving(false)
     }
+  }
+
+  // Legacy function for backward compatibility (now just tracks changes)
+  const savePartialUpdate = async (partial: any, localMutate?: (draft: any) => any) => {
+    trackChange(partial, localMutate)
   }
 
   const handleDeleteJob = async (jobId: string) => {
@@ -749,6 +788,11 @@ function JobsPage() {
                               <span>{job.postedDays}d ago</span>
                               <span>{job.applicants} applicants</span>
                             </div>
+                            {job.applicationDeadline && (
+                              <div className="flex items-center text-xs text-gray-400">
+                                <span className="text-orange-400">Deadline: {new Date(job.applicationDeadline).toLocaleDateString()}</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Priority badge */}
@@ -1038,31 +1082,43 @@ function JobsPage() {
           </DialogContent>
                  </Dialog>
 
-        {/* Edit Job Dialog (temporary static UI matching uploaded design) */}
-         <Dialog open={isEditJobDialogOpen} onOpenChange={setIsEditJobDialogOpen}>
-          <DialogContent className="bg-[#0b0b0d] text-white border border-white/10 w-[96vw] sm:max-w-6xl xl:max-w-7xl max-w-[1400px] p-0 overflow-hidden">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Job Request Details</DialogTitle>
-              <DialogDescription>View and edit job request fields</DialogDescription>
-             </DialogHeader>
-             {editingJob && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[70vh] relative">
-                {isImproving && (
-                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50">
-                    <div className="flex items-center gap-3 bg-black/80 border border-white/10 rounded-md px-4 py-3 shadow-2xl">
-                      <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
-                      <span className="text-sm text-gray-100">Improving with AI...</span>
-                   </div>
-                   </div>
-                )}
-                {/* Left: main area */}
-                <div className="lg:col-span-2 p-6 overflow-y-auto max-h-[80vh] pr-2 job-modal-scroll">
+        {/* Edit Job Dialog */}
+        <Dialog open={isEditJobDialogOpen} onOpenChange={setIsEditJobDialogOpen}>
+          <DialogContent className="bg-[#0b0b0d] text-white border border-white/10 max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Edit Job</DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              {editingJob ? (
+                <>
                   <div className="flex items-start gap-3 mb-3">
                     <h2 className="text-2xl font-semibold flex-1">{editingJob.company_name || 'Member'} | {editingJob.job_title || 'Role Title'}</h2>
                     <div className="flex gap-2 flex-col items-end">
-                      <Button
-                        className="bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white"
-                        onClick={async ()=> {
+                      {hasUnsavedChanges && (
+                        <div className="text-orange-400 text-sm mb-2">
+                          ⚠️ You have unsaved changes
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={saveAllChanges}
+                          disabled={!hasUnsavedChanges || isSaving}
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white disabled:opacity-50"
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
+                        </Button>
+                        
+                        <Button
+                          className="bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white"
+                          onClick={async ()=> {
                           if (!editingJob) return
                           try {
                             setIsImproving(true)
@@ -1318,12 +1374,20 @@ function JobsPage() {
                         }
                       } catch {}
                     }}>Send</Button>
-                 </div>
-                 </div>
-               </div>
-             )}
-           </DialogContent>
-         </Dialog>
+                  </div>
+                </div>
+                  <div className="text-center text-gray-400 py-8">
+                    Job editing content will go here...
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  No job selected
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
        </div>
      </AdminLayout>
    )

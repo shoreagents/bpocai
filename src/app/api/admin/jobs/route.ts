@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         status: mapStatusFromEnum(row.status),
         priority: (row.priority as any) || derivedPriority,
         source: 'original',
+        applicationDeadline: row.application_deadline || null,
       }
     })
 
@@ -380,6 +381,7 @@ function rowToJobCard(row: any) {
     status: mapStatusFromEnum(row.status),
     priority,
     shift: row.shift || 'day',
+    applicationDeadline: row.application_deadline || null,
   }
 }
 
