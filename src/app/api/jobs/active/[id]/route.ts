@@ -58,6 +58,12 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         if (a >= 10) return 'medium'
         return 'low'
       })(),
+      application_deadline: row.application_deadline,
+      experience_level: row.experience_level,
+      work_arrangement: row.work_arrangement,
+      shift: row.shift,
+      industry: row.industry,
+      department: row.department,
       job_description: row.job_description,
       requirements: Array.isArray(row.requirements) ? row.requirements : [],
       responsibilities: Array.isArray(row.responsibilities) ? row.responsibilities : [],

@@ -79,7 +79,8 @@ function JobsPage() {
     skills: '' as string,
     jobDescription: '' as string,
     status: 'job-request',
-    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
+    shift: 'day' as 'day' | 'night'
   })
   const [newStatusData, setNewStatusData] = useState({
     title: '',
@@ -397,7 +398,7 @@ function JobsPage() {
       setNewJobData({
         company: '', title: '', salary: '', salaryMin: '', salaryMax: '', salaryType: 'monthly',
         workArrangement: 'onsite', experienceLevel: '', applicationDeadline: '', industry: '', department: '',
-        requirements: '', responsibilities: '', benefits: '', skills: '', jobDescription: '', status: 'job-request', priority: 'medium'
+        requirements: '', responsibilities: '', benefits: '', skills: '', jobDescription: '', status: 'job-request', priority: 'medium', shift: 'day'
       })
       setIsAddJobDialogOpen(false)
     } catch (err) {
@@ -591,6 +592,7 @@ function JobsPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
+      case 'urgent': return 'bg-red-600/20 text-red-500 border-red-600/30'
       case 'high': return 'bg-red-500/20 text-red-400 border-red-500/30'
       case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
       case 'low': return 'bg-green-500/20 text-green-400 border-green-500/30'
@@ -600,6 +602,7 @@ function JobsPage() {
 
   const getPriorityLabel = (priority: string) => {
     switch (priority) {
+      case 'urgent': return 'Urgent'
       case 'high': return 'High'
       case 'medium': return 'Medium'
       case 'low': return 'Low'
@@ -823,8 +826,8 @@ function JobsPage() {
               </div>
               </div>
 
-              {/* Work Arrangement & Experience */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Work Arrangement, Experience & Shift */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Work Arrangement</label>
                   <select className="w-full job-select border border-white/20 rounded-lg px-3 py-2" value={newJobData.workArrangement} onChange={(e)=> setNewJobData(p=> ({...p, workArrangement: e.target.value}))}>
@@ -840,6 +843,13 @@ function JobsPage() {
                     <option value="entry-level">Entry-level</option>
                     <option value="mid-level">Mid-level</option>
                     <option value="senior-level">Senior-level</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Shift</label>
+                  <select value={newJobData.shift} onChange={(e)=> setNewJobData(p=> ({...p, shift: e.target.value as 'day' | 'night'}))} className="w-full job-select border border-white/20 rounded-lg px-3 py-2">
+                    <option value="day">Day</option>
+                    <option value="night">Night</option>
                   </select>
                 </div>
               </div>
@@ -902,7 +912,7 @@ function JobsPage() {
 
               {/* Priority + AI improve (status is implicitly New Job Request/inactive) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2 md:col-span-1">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Priority</label>
                   <select value={newJobData.priority} onChange={(e)=> setNewJobData(p=> ({...p, priority: e.target.value as any}))} className="w-full job-select border border-white/20 rounded-lg px-3 py-2">
                     <option value="low">Low</option>
@@ -1199,6 +1209,14 @@ function JobsPage() {
                         <option value="senior-level">Senior-level</option>
                       </select>
                     </div>
+                    {/* Shift */}
+                    <div className="flex items-center justify-between p-3 gap-3">
+                      <div className="text-sm text-gray-300">Shift</div>
+                      <select className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2" value={editingJob.shift || 'day'} onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), shift: e.target.value })); savePartialUpdate({ shift: e.target.value }) }}>
+                       <option value="day">Day</option>
+                       <option value="night">Night</option>
+                     </select>
+                   </div>
                     {/* Salary Range */}
                     <div className="flex items-center justify-between p-3 gap-3">
                       <div className="text-sm text-gray-300">Salary Range</div>
@@ -1222,6 +1240,7 @@ function JobsPage() {
                        <option value="low">Low</option>
                        <option value="medium">Medium</option>
                        <option value="high">High</option>
+                       <option value="urgent">Urgent</option>
                      </select>
                    </div>
                     
