@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
 
-// GET /api/public/user-work-status?userId=<uuid> OR ?slug=<resume_slug>
-// Returns public-friendly work status for a user
+// GET /api/public/user-work-status
+// Optional: ?userId=<uuid> OR ?slug=<resume_slug>
+// If neither provided, returns a paginated list: ?limit=100&offset=0
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const userIdParam = searchParams.get('userId')
     const resumeSlug = searchParams.get('slug')
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
 
     let userId = userIdParam
 
@@ -23,7 +26,34 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId or slug is required' }, { status: 400 })
+      // No specific user requested: return paginated list
+      const limit = Math.min(Math.max(parseInt(limitParam || '100', 10) || 100, 1), 200)
+      const offset = Math.max(parseInt(offsetParam || '0', 10) || 0, 0)
+
+      const listRes = await pool.query(
+        `SELECT user_id, current_employer, current_position, current_salary, notice_period_days,
+                salary_goal, current_mood, work_status, employment_type, created_at, updated_at
+           FROM user_work_status
+          ORDER BY updated_at DESC
+          LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      )
+
+      const rows = listRes.rows.map((row: any) => ({
+        userId: row.user_id,
+        currentEmployer: row.current_employer,
+        currentPosition: row.current_position,
+        currentSalary: row.current_salary,
+        noticePeriod: row.notice_period_days,
+        salaryGoal: row.salary_goal,
+        currentMood: row.current_mood,
+        workStatus: row.work_status,
+        employmentType: row.employment_type,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+
+      return NextResponse.json({ results: rows, limit, offset })
     }
 
     const result = await pool.query(
