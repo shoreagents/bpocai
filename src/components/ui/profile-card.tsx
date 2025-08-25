@@ -418,7 +418,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                 <button 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={photoUploading}
-                  className="absolute -bottom-2 -right-2 w-10 h-10 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-500 rounded-full flex items-center justify-center transition-colors"
+                  className="absolute -bottom-2 -right-2 w-10 h-10 bg-cyan-500 disabled:bg-gray-500 rounded-full flex items-center justify-center transition-colors"
                 >
                   {photoUploading ? (
                     <Loader2 className="w-5 h-5 text-white animate-spin" />
@@ -445,7 +445,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                 {showEditButton && user?.id === targetUserId && (
                   <Button
                     onClick={() => router.push('/settings')}
-                    className="bg-cyan-500 hover:bg-cyan-600"
+                    className="bg-cyan-500"
                   >
                     <Edit3 className="w-4 h-4 mr-2" />
                     Edit Profile
