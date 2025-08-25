@@ -138,6 +138,7 @@ import { Button } from '@/components/ui/button';
 
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 // Tabs removed - using sidebar navigation instead
@@ -1721,10 +1722,6 @@ export default function SavedResumePage() {
 
                         </div>
                         
-                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                        </div>
-                        
                         </div>
                         
 
@@ -1924,15 +1921,6 @@ export default function SavedResumePage() {
 
 
                         </div>
-
-
-                      </div>
-
-
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
-
-
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
 
 
                       </div>
@@ -2577,46 +2565,46 @@ export default function SavedResumePage() {
                                    {isEditMode ? (
 
 
-                                     <select 
+                                     <Select value={currentMood} onValueChange={(value) => setCurrentMood(value)}>
 
 
-                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
 
 
-                                       value={currentMood}
+                                         <SelectValue placeholder="Select your mood" />
 
 
-                                       onChange={(e) => setCurrentMood(e.target.value)}
+                                       </SelectTrigger>
 
 
-                                     >
+                                       <SelectContent className="bg-gray-900 border-gray-700">
 
 
-                                       <option value="">Select your mood</option>
+                                         <SelectItem value="happy">😊 Happy</SelectItem>
 
 
-                                       <option value="happy">😊 Happy</option>
+                                         <SelectItem value="satisfied">😌 Satisfied</SelectItem>
 
 
-                                       <option value="satisfied">😌 Satisfied</option>
+                                         <SelectItem value="neutral">😐 Neutral</SelectItem>
 
 
-                                       <option value="neutral">😐 Neutral</option>
+                                         <SelectItem value="frustrated">😤 Frustrated</SelectItem>
 
 
-                                       <option value="frustrated">😤 Frustrated</option>
+                                         <SelectItem value="stressed">😰 Stressed</SelectItem>
 
 
-                                       <option value="stressed">😰 Stressed</option>
+                                         <SelectItem value="excited">🤩 Excited</SelectItem>
 
 
-                                       <option value="excited">🤩 Excited</option>
+                                         <SelectItem value="bored">😴 Bored</SelectItem>
 
 
-                                       <option value="bored">😴 Bored</option>
+                                       </SelectContent>
 
 
-                                     </select>
+                                     </Select>
 
 
                                    ) : (
@@ -2697,55 +2685,55 @@ export default function SavedResumePage() {
                                    {isEditMode ? (
 
 
-                                     <select 
+                                     <Select value={workStatus} onValueChange={(value) => setWorkStatus(value)}>
 
 
-                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
 
 
-                                       value={workStatus}
+                                         <SelectValue placeholder="Select work status" />
 
 
-                                       onChange={(e) => setWorkStatus(e.target.value)}
+                                       </SelectTrigger>
 
 
-                                     >
+                                       <SelectContent className="bg-gray-900 border-gray-700">
 
 
-                                       <option value="">Select work status</option>
+                                         <SelectItem value="employed">💼 Employed</SelectItem>
 
 
-                                       <option value="employed">💼 Employed</option>
+                                         <SelectItem value="unemployed">🔍 Unemployed</SelectItem>
 
 
-                                       <option value="unemployed">🔍 Unemployed</option>
+                                         <SelectItem value="freelancer">🆓 Freelancer/Contractor</SelectItem>
 
 
-                                       <option value="freelancer">🆓 Freelancer/Contractor</option>
+                                         <SelectItem value="part-time">⏰ Part-time</SelectItem>
 
 
-                                       <option value="part-time">⏰ Part-time</option>
+                                         <SelectItem value="on-leave">🏖️ On Leave</SelectItem>
 
 
-                                       <option value="on-leave">🏖️ On Leave</option>
+                                         <SelectItem value="retired">🎯 Retired</SelectItem>
 
 
-                                       <option value="retired">🎯 Retired</option>
+                                         <SelectItem value="student">🎓 Student</SelectItem>
 
 
-                                       <option value="student">🎓 Student</option>
+                                         <SelectItem value="career-break">⏸️ Career Break</SelectItem>
 
 
-                                       <option value="career-break">⏸️ Career Break</option>
+                                         <SelectItem value="transitioning">🔄 Transitioning</SelectItem>
 
 
-                                       <option value="transitioning">🔄 Transitioning</option>
+                                         <SelectItem value="remote-worker">🏠 Remote Worker</SelectItem>
 
 
-                                       <option value="remote-worker">🏠 Remote Worker</option>
+                                       </SelectContent>
 
 
-                                     </select>
+                                     </Select>
 
 
                                    ) : (
@@ -2835,43 +2823,43 @@ export default function SavedResumePage() {
                                    {isEditMode ? (
 
 
-                                     <select 
+                                     <Select value={employmentType} onValueChange={(value) => setEmploymentType(value)}>
 
 
-                                       className="w-full bg-black/30 border border-purple-400/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                       <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
 
 
-                                       value={employmentType}
+                                         <SelectValue placeholder="Select employment type" />
 
 
-                                       onChange={(e) => setEmploymentType(e.target.value)}
+                                       </SelectTrigger>
 
 
-                                     >
+                                       <SelectContent className="bg-gray-900 border-gray-700">
 
 
-                                       <option value="">Select employment type</option>
+                                         <SelectItem value="full-time">🌞 Full-time</SelectItem>
 
 
-                                       <option value="full-time">🌞 Full-time</option>
+                                         <SelectItem value="part-time">🌙 Part-time</SelectItem>
 
 
-                                       <option value="part-time">🌙 Part-time</option>
+                                         <SelectItem value="contract">📋 Contract</SelectItem>
 
 
-                                       <option value="contract">📋 Contract</option>
+                                         <SelectItem value="freelance">🦅 Freelance</SelectItem>
 
 
-                                       <option value="freelance">🦅 Freelance</option>
+                                         <SelectItem value="internship">🎯 Internship</SelectItem>
 
 
-                                       <option value="internship">🎯 Internship</option>
+                                         <SelectItem value="temporary">⏱️ Temporary</SelectItem>
 
 
-                                       <option value="temporary">⏱️ Temporary</option>
+                                       </SelectContent>
 
 
-                                     </select>
+                                     </Select>
 
 
                                    ) : (
@@ -3052,9 +3040,7 @@ export default function SavedResumePage() {
                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                              <div className="flex-1">
                                <div className="flex items-center gap-3 mb-3">
-                                 <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30">
-                                   <FileText className="h-6 w-6 text-purple-400" />
-                                 </div>
+                                 <FileText className="w-8 h-8 text-cyan-400" />
                                  <div>
                                    <h1 className="text-3xl lg:text-4xl font-bold text-white mb-1">{headerInfo.name}'s Resume</h1>
                                    <div className="text-gray-300 text-sm">
