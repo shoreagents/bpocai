@@ -116,6 +116,7 @@ export default function SavedResumePage() {
   const [currentMood, setCurrentMood] = useState<string>('');
   const [workStatus, setWorkStatus] = useState<string>('');
   const [employmentType, setEmploymentType] = useState<string>('');
+  const [savingWorkStatus, setSavingWorkStatus] = useState<boolean>(false);
 
   // Share dropdown state
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
@@ -256,6 +257,30 @@ export default function SavedResumePage() {
 
         }
       } catch {}
+    })()
+  }, [resume?.userId])
+
+  // Load existing work status from Railway
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!resume?.userId) return
+        const res = await fetch(`/api/user/work-status?userId=${resume.userId}`, { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (data?.found && data.workStatus) {
+          setCurrentEmployer(data.workStatus.currentEmployer || '')
+          setCurrentPosition(data.workStatus.currentPosition || '')
+          setCurrentSalary(data.workStatus.currentSalary || '')
+          setNoticePeriod(typeof data.workStatus.noticePeriod === 'number' ? data.workStatus.noticePeriod : (data.workStatus.noticePeriod ? parseInt(String(data.workStatus.noticePeriod)) : null))
+          setSalaryGoal(data.workStatus.salaryGoal || '')
+          setCurrentMood(data.workStatus.currentMood || '')
+          setWorkStatus(data.workStatus.workStatus || '')
+          setEmploymentType(data.workStatus.employmentType || '')
+        }
+      } catch (e) {
+        console.error('Failed to load work status', e)
+      }
     })()
   }, [resume?.userId])
 
@@ -422,6 +447,38 @@ export default function SavedResumePage() {
   const deleteResume = async () => {
     alert('Delete is available in the builder page.');
   };
+
+  // Save work status to Railway
+  const saveWorkStatus = async () => {
+    if (!resume?.userId) return
+    try {
+      setSavingWorkStatus(true)
+      const parsedNotice = typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null)
+      const parsedCurrentSalary = currentSalary ? parseFloat(currentSalary as unknown as string) : null
+      const parsedSalaryGoal = salaryGoal ? parseFloat(salaryGoal as unknown as string) : null
+      const res = await fetch('/api/user/work-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: resume.userId,
+          currentEmployer,
+          currentPosition,
+          currentSalary: parsedCurrentSalary,
+          noticePeriod: parsedNotice,
+          salaryGoal: parsedSalaryGoal,
+          currentMood,
+          workStatus,
+          employmentType,
+        })
+      })
+      if (!res.ok) throw new Error(`Failed: ${res.status}`)
+    } catch (e) {
+      console.error('Failed to save work status', e)
+      alert('Failed to save work status. Please try again.')
+    } finally {
+      setSavingWorkStatus(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -916,7 +973,14 @@ export default function SavedResumePage() {
                          </CardTitle>
                          {isOwner && (
                            <Button 
-                             onClick={() => setIsEditMode(!isEditMode)}
+                             onClick={async () => {
+                               if (isEditMode) {
+                                 await saveWorkStatus()
+                                 setIsEditMode(false)
+                               } else {
+                                 setIsEditMode(true)
+                               }
+                             }}
                              className={`transition-all duration-300 ${
                                isEditMode 
                                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
@@ -926,7 +990,7 @@ export default function SavedResumePage() {
                              {isEditMode ? (
                                <>
                                  <Check className="h-4 w-4 mr-2" />
-                                 Save Mode
+                                 Save Changes
                                </>
                              ) : (
                                <>
