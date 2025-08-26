@@ -2272,7 +2272,7 @@ export default function AnalysisPage() {
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gradient-text text-lg">
                       <Sparkles className="h-5 w-5 mr-2" />
-                      Next Steps
+                      Next Steps (Step 3)
                     </CardTitle>
                     <CardDescription className="text-gray-300">
                       Ready to take your career to the next level?
