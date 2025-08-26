@@ -32,7 +32,6 @@ import {
 import AdminLayout from '@/components/layout/AdminLayout'
 
 export default function DashboardPage() {
-  const { adminUser } = useAdmin()
   const { user } = useAuth()
   const [totalUsers, setTotalUsers] = useState<number>(0)
   const [totalResumes, setTotalResumes] = useState<number>(0)
@@ -270,7 +269,6 @@ export default function DashboardPage() {
       <AdminLayout 
         title="Admin Dashboard" 
         description="Manage BPOC.IO platform and user data"
-        adminUser={adminUser}
       >
         <div className="space-y-6">
           {/* Header Stats */}
