@@ -446,11 +446,11 @@ export default function ResumeBuilderPage() {
             <div className="flex items-center justify-center mb-6">
               <Sparkles className="h-12 w-12 text-cyan-400 mr-4" />
               <h1 className="text-4xl md:text-5xl font-bold gradient-text">
-                Resume Analyzer
+                AI Powered Resume Builder
               </h1>
             </div>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-           Upload your files and add portfolio links - we'll create your complete candidate intelligence profile
+              Upload your current resume and we’ll use AI to analyze it, extract your data, and generate a new, improved version.
             </p>
           </motion.div>
 
@@ -723,11 +723,10 @@ export default function ResumeBuilderPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-white">
                       <Sparkles className="h-5 w-5 text-yellow-400" />
-                      🤖 AI-Powered Resume Analysis
+                      Step 1: Resume Data Extraction
                     </CardTitle>
                     <CardDescription className="text-gray-300">
-                      Extract content exactly as written, create literal DOCX, then convert to faithful JSON
-
+                      We will extract your data to analyze your current resume.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -741,7 +740,7 @@ export default function ResumeBuilderPage() {
                           className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg shadow-cyan-500/25"
                         >
                           <Sparkles className="mr-2 h-5 w-5" />
-                          Analyze with AI
+                          Begin Resume Extraction
                         </Button>
                       )}
                       
@@ -757,8 +756,8 @@ export default function ResumeBuilderPage() {
                             />
                           </div>
                           <div className="text-center">
-                            <h3 className="text-white font-medium mb-2">AI-Powered Resume Analysis</h3>
-                            <p className="text-gray-400 text-sm">Extract content exactly as written, create literal DOCX, then convert to faithful JSON</p>
+                            <h3 className="text-white font-medium mb-2">Extracting Resume Data…</h3>
+                            <p className="text-gray-400 text-sm">Hang tight while we capture your details for analysis.</p>
                           </div>
                           {/* Progress Bar */}
                           <div className="max-w-md mx-auto space-y-2">
@@ -829,8 +828,8 @@ export default function ResumeBuilderPage() {
                                   <Check className="h-3 w-3 text-green-400" />
                                 </div>
                                 <div>
-                                  <h3 className="text-green-400 font-medium text-sm">Analysis Complete</h3>
-                                  <p className="text-gray-300 text-xs">Ready for next step</p>
+                                  <h3 className="text-green-400 font-medium text-sm">Extraction Complete</h3>
+                                  <p className="text-gray-300 text-xs">Your resume data has been extracted.</p>
                                 </div>
                               </div>
                             </CardContent>
@@ -845,6 +844,7 @@ export default function ResumeBuilderPage() {
                           animate={{ opacity: 1, y: 0 }}
                           className="text-center mt-6"
                         >
+                          <div className="text-gray-300 text-sm mb-3">Ready for Step 2: Analyze resume data</div>
                           <Button
                             onClick={handleContinue}
                             disabled={!canContinue}
@@ -852,7 +852,7 @@ export default function ResumeBuilderPage() {
                             className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Sparkles className="mr-2 h-5 w-5" />
-                            View Analyzed Results
+                            Analyze Extracted Data
                           </Button>
                         </motion.div>
                       )}

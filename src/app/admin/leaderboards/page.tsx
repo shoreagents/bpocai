@@ -9,7 +9,6 @@ import {
   Users,
   Target,
 	BarChart3,
-	MoreHorizontal,
 	Crown,
 	Medal,
   ChevronLeft,
@@ -35,13 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import AdminLayout from '@/components/layout/AdminLayout'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+// Removed actions dropdown since delete is not supported
 import {
 	Dialog,
 	DialogContent,
@@ -123,21 +116,7 @@ export default function LeaderboardsPage() {
 	useEffect(() => { fetchRows() }, [category, period, gameId, refreshNonce])
 
 
-	const handleDelete = async (row: any) => {
-		try {
-			const body: any = { category, userId: row.userId }
-			if (category === 'game') { body.period = period; body.gameId = gameId }
-			const res = await fetch('/api/admin/leaderboards', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			})
-			if (!res.ok) throw new Error('Delete failed')
-			await fetchRows()
-		} catch {
-			// no-op
-		}
-	}
+  // Delete action removed
 
 	const formatNumber = (n: any) => {
 		const v = Number(n)
@@ -283,7 +262,6 @@ export default function LeaderboardsPage() {
                                 {category === 'overall' && <TableHead className="text-right">Games</TableHead>}
                                 {category === 'overall' && <TableHead className="text-right">Applications</TableHead>}
                                 {category === 'overall' && <TableHead className="text-right">Engagement</TableHead>}
-                                <TableHead className="w-[60px] text-right">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -311,22 +289,6 @@ export default function LeaderboardsPage() {
                                   {category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.game_norm)}</TableCell>}
                                   {category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.applicant_norm)}</TableCell>}
                                   {category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.engagement_norm)}</TableCell>}
-                                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-white">
-                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                        <DropdownMenuItem onClick={() => handleDelete(r)} className="text-red-400 focus:text-red-400">
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-
-                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
