@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import AdminLayout from '@/components/layout/AdminLayout'
 import React from 'react'
@@ -65,6 +66,8 @@ function JobsPage() {
   const [pendingChanges, setPendingChanges] = useState<any>({})
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
   const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [showSuccessAlert, setShowSuccessAlert] = useState<boolean>(false)
+  const [successMessage, setSuccessMessage] = useState<string>('')
   const [newJobData, setNewJobData] = useState({
     company: '',
     title: '',
@@ -86,6 +89,8 @@ function JobsPage() {
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
     shift: 'day' as 'day' | 'night'
   })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [newStatusData, setNewStatusData] = useState({
     title: '',
     color: 'bg-blue-500'
@@ -361,8 +366,94 @@ function JobsPage() {
     }
   }
 
+  const validateJobForm = () => {
+    const errors: Record<string, string> = {}
+    
+    // Required fields
+    if (!newJobData.company?.trim()) {
+      errors.company = 'Company is required'
+    }
+    
+    if (!newJobData.title?.trim()) {
+      errors.title = 'Job title is required'
+    }
+    
+    if (newJobData.jobDescription?.trim() && newJobData.jobDescription.length < 50) {
+      errors.jobDescription = 'Job description must be at least 50 characters if provided'
+    }
+    
+    if (!newJobData.experienceLevel) {
+      errors.experienceLevel = 'Experience level is required'
+    }
+    
+    if (!newJobData.workArrangement) {
+      errors.workArrangement = 'Work arrangement is required'
+    }
+    
+    if (!newJobData.shift) {
+      errors.shift = 'Shift is required'
+    }
+    
+    if (!newJobData.applicationDeadline) {
+      errors.applicationDeadline = 'Application deadline is required'
+    }
+    
+    // Salary validation
+    if (newJobData.salaryMin && newJobData.salaryMax) {
+      const min = parseFloat(String(newJobData.salaryMin))
+      const max = parseFloat(String(newJobData.salaryMax))
+      if (isNaN(min) || isNaN(max)) {
+        errors.salary = 'Salary must be valid numbers'
+      } else if (max <= min) {
+        errors.salary = 'Maximum salary must be greater than minimum'
+      } else if (min < 0 || max < 0) {
+        errors.salary = 'Salary values must be positive'
+      }
+    } else if (newJobData.salaryMin || newJobData.salaryMax) {
+      errors.salary = 'Please provide both minimum and maximum salary'
+    }
+    
+    // Deadline validation
+    if (newJobData.applicationDeadline) {
+      const deadline = new Date(newJobData.applicationDeadline)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Reset time to start of day
+      
+      if (deadline <= today) {
+        errors.applicationDeadline = 'Deadline must be a future date'
+      }
+      
+      const oneYearFromNow = new Date()
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1)
+      if (deadline > oneYearFromNow) {
+        errors.applicationDeadline = 'Deadline cannot be more than 1 year in the future'
+      }
+    }
+    
+    // Text area validations
+    const textAreas = ['requirements', 'responsibilities', 'benefits', 'skills']
+    textAreas.forEach(field => {
+      const value = newJobData[field as keyof typeof newJobData] as string
+      if (value && value.length > 2000) {
+        errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} must be less than 2000 characters`
+      }
+    })
+    
+    return errors
+  }
+
   const handleAddJob = async () => {
-    if (!newJobData.company || !newJobData.title) return
+    // Clear previous errors
+    setFormErrors({})
+    
+    // Validate form
+    const errors = validateJobForm()
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+    
+    setIsSubmitting(true)
     try {
       const token = await getSessionToken()
       if (!token) throw new Error('Not authenticated')
@@ -398,17 +489,20 @@ function JobsPage() {
         throw new Error(err.error || 'Failed to create job')
       }
       const data = await res.json()
-      if (data?.job) setJobs(prev => [data.job, ...prev])
+      if (data?.job) setJobs((prev: any) => [data.job, ...prev])
       setNewJobData({
         company: '', title: '', salary: '', salaryMin: '', salaryMax: '', salaryType: 'monthly',
         workArrangement: 'onsite', experienceLevel: '', applicationDeadline: '', industry: '', department: '',
         requirements: '', responsibilities: '', benefits: '', skills: '', jobDescription: '', status: 'job-request', priority: 'medium', shift: 'day'
       })
+      setFormErrors({})
       setIsAddJobDialogOpen(false)
     } catch (err) {
       console.error(err)
       const msg = err instanceof Error ? err.message : 'Failed to add job'
       alert(msg)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -591,18 +685,20 @@ function JobsPage() {
         : j
       ))
       
-      // Clear pending changes
-      setPendingChanges({})
-      setHasUnsavedChanges(false)
-      
-      alert('Changes saved successfully!')
-      
-    } catch (e: any) {
-      console.error(e)
-      alert('Error saving changes: ' + e.message)
-    } finally {
-      setIsSaving(false)
-    }
+             // Clear pending changes
+       setPendingChanges({})
+       setHasUnsavedChanges(false)
+       
+       setSuccessMessage('Changes saved successfully!')
+       setShowSuccessAlert(true)
+       
+     } catch (e: any) {
+       console.error(e)
+       setSuccessMessage('Error saving changes: ' + e.message)
+       setShowSuccessAlert(true)
+     } finally {
+       setIsSaving(false)
+     }
   }
 
   // Legacy function for backward compatibility (now just tracks changes)
@@ -823,7 +919,17 @@ function JobsPage() {
         </div>
 
         {/* Add Job Dialog (full form) */}
-        <Dialog open={isAddJobDialogOpen} onOpenChange={setIsAddJobDialogOpen}>
+                    <Dialog open={isAddJobDialogOpen} onOpenChange={(open) => {
+              setIsAddJobDialogOpen(open)
+              if (open) {
+                // Clear all errors when modal opens
+                setFormErrors({})
+                setIsSubmitting(false)
+              } else {
+                setFormErrors({})
+                setIsSubmitting(false)
+              }
+            }}>
           <DialogContent className="bg-[#0b0b0d] text-white border border-white/10 w-[96vw] sm:max-w-6xl xl:max-w-7xl max-w-[1400px]">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold text-white">Create Job Request</DialogTitle>
@@ -833,76 +939,224 @@ function JobsPage() {
               {/* Member & Title */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Member</label>
+                  <label className="text-sm font-medium text-gray-300">
+                    Member <span className="text-red-400">*</span>
+                  </label>
                   <select
-                    className="w-full job-select border border-white/20 rounded-lg px-3 py-2"
+                    className={`w-full job-select border rounded-lg px-3 py-2 ${
+                      formErrors.company ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                    }`}
                     value={newJobData.company}
-                    onChange={(e)=> setNewJobData(p=> ({...p, company: e.target.value}))}
+                    onChange={(e)=> {
+                      setNewJobData(p=> ({...p, company: e.target.value}))
+                      if (formErrors.company) {
+                        setFormErrors(prev => {
+                          const newErrors = { ...prev }
+                          delete newErrors.company
+                          return newErrors
+                        })
+                      }
+                    }}
                   >
                     <option value="">Select company</option>
                     {members.map(m => (
                       <option key={m.company_id} value={m.company}>{m.company}</option>
                     ))}
                   </select>
+                  {formErrors.company && (
+                    <p className="text-red-400 text-xs mt-1">{formErrors.company}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Job Title</label>
-                  <Input value={newJobData.title} onChange={(e)=> setNewJobData(p=> ({...p, title: e.target.value}))} placeholder="Enter job title" className="bg-white/10 border-white/20 text-white placeholder:text-gray-400" />
+                  <label className="text-sm font-medium text-gray-300">
+                    Job Title <span className="text-red-400">*</span>
+                  </label>
+                  <Input 
+                    value={newJobData.title} 
+                    onChange={(e)=> {
+                      setNewJobData(p=> ({...p, title: e.target.value}))
+                      if (formErrors.title) {
+                        setFormErrors(prev => ({ ...prev, title: '' }))
+                      }
+                    }} 
+                    placeholder="Enter job title" 
+                    className={`bg-white/10 border text-white placeholder:text-gray-400 ${
+                      formErrors.title ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                    }`} 
+                  />
+                  {formErrors.title && (
+                    <p className="text-red-400 text-xs mt-1">{formErrors.title}</p>
+                  )}
                 </div>
               </div>
 
               {/* Salary Min/Max & Type */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Salary Min</label>
-                  <Input value={newJobData.salaryMin} onChange={(e)=> setNewJobData(p=> ({...p, salaryMin: e.target.value}))} placeholder="e.g., 20000" className="bg-white/10 border-white/20 text-white" />
+                  <label className="text-sm font-medium text-gray-300">Salary Min (in pesos)</label>
+                  <div className="relative">
+                    {newJobData.salaryMin && (
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">₱</span>
+                    )}
+                    <Input 
+                      value={newJobData.salaryMin} 
+                      onChange={(e)=> {
+                        setNewJobData(p=> ({...p, salaryMin: e.target.value}))
+                        if (formErrors.salary) {
+                          setFormErrors(prev => {
+                            const newErrors = { ...prev }
+                            delete newErrors.salary
+                            return newErrors
+                          })
+                        }
+                      }} 
+                      placeholder="e.g., 20000" 
+                      className={`bg-white/10 border text-white ${newJobData.salaryMin ? 'pl-8' : ''} ${
+                        formErrors.salary ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                      }`} 
+                    />
+                  </div>
                 </div>
-                                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Salary Max</label>
-                  <Input value={newJobData.salaryMax} onChange={(e)=> setNewJobData(p=> ({...p, salaryMax: e.target.value}))} placeholder="e.g., 25000" className="bg-white/10 border-white/20 text-white" />
-                 </div>
-                                 <div className="space-y-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Salary Max (in pesos)</label>
+                  <div className="relative">
+                    {newJobData.salaryMax && (
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">₱</span>
+                    )}
+                    <Input 
+                      value={newJobData.salaryMax} 
+                      onChange={(e)=> {
+                        setNewJobData(p=> ({...p, salaryMax: e.target.value}))
+                        if (formErrors.salary) {
+                          setFormErrors(prev => {
+                            const newErrors = { ...prev }
+                            delete newErrors.salary
+                            return newErrors
+                          })
+                        }
+                      }} 
+                      placeholder="e.g., 25000" 
+                      className={`bg-white/10 border text-white ${newJobData.salaryMax ? 'pl-8' : ''} ${
+                        formErrors.salary ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                      }`} 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Salary Type</label>
                   <select className="w-full job-select border border-white/20 rounded-lg px-3 py-2" value={newJobData.salaryType} onChange={(e)=> setNewJobData(p=> ({...p, salaryType: e.target.value}))}>
                     <option value="monthly">Monthly</option>
                     <option value="annual">Annual</option>
                   </select>
+                </div>
               </div>
-              </div>
+              {formErrors.salary && (
+                <p className="text-red-400 text-xs mt-1">{formErrors.salary}</p>
+              )}
 
               {/* Work Arrangement, Experience & Shift */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Work Arrangement</label>
-                  <select className="w-full job-select border border-white/20 rounded-lg px-3 py-2" value={newJobData.workArrangement} onChange={(e)=> setNewJobData(p=> ({...p, workArrangement: e.target.value}))}>
+                  <label className="text-sm font-medium text-gray-300">
+                    Work Arrangement <span className="text-red-400">*</span>
+                  </label>
+                  <select 
+                    className={`w-full job-select border rounded-lg px-3 py-2 ${
+                      formErrors.workArrangement ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                    }`} 
+                    value={newJobData.workArrangement} 
+                    onChange={(e)=> {
+                      setNewJobData(p=> ({...p, workArrangement: e.target.value}))
+                      if (formErrors.workArrangement) {
+                        setFormErrors(prev => ({ ...prev, workArrangement: '' }))
+                      }
+                    }}
+                  >
                     <option value="onsite">Onsite</option>
                     <option value="remote">Remote</option>
                     <option value="hybrid">Hybrid</option>
                   </select>
+                  {formErrors.workArrangement && (
+                    <p className="text-red-400 text-xs mt-1">{formErrors.workArrangement}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Experience Level</label>
-                  <select className="w-full job-select border border-white/20 rounded-lg px-3 py-2" value={newJobData.experienceLevel} onChange={(e)=> setNewJobData(p=> ({...p, experienceLevel: e.target.value as any}))}>
+                  <label className="text-sm font-medium text-gray-300">
+                    Experience Level <span className="text-red-400">*</span>
+                  </label>
+                  <select 
+                    className={`w-full job-select border rounded-lg px-3 py-2 ${
+                      formErrors.experienceLevel ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                    }`} 
+                    value={newJobData.experienceLevel} 
+                    onChange={(e)=> {
+                      setNewJobData(p=> ({...p, experienceLevel: e.target.value as any}))
+                      if (formErrors.experienceLevel) {
+                        setFormErrors(prev => ({ ...prev, experienceLevel: '' }))
+                      }
+                    }}
+                  >
                     <option value="">Select level</option>
                     <option value="entry-level">Entry-level</option>
                     <option value="mid-level">Mid-level</option>
                     <option value="senior-level">Senior-level</option>
                   </select>
+                  {formErrors.experienceLevel && (
+                    <p className="text-red-400 text-xs mt-1">{formErrors.experienceLevel}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Shift</label>
-                  <select value={newJobData.shift} onChange={(e)=> setNewJobData(p=> ({...p, shift: e.target.value as 'day' | 'night'}))} className="w-full job-select border border-white/20 rounded-lg px-3 py-2">
+                  <label className="text-sm font-medium text-gray-300">
+                    Shift <span className="text-red-400">*</span>
+                  </label>
+                  <select 
+                    value={newJobData.shift} 
+                    onChange={(e)=> {
+                      setNewJobData(p=> ({...p, shift: e.target.value as 'day' | 'night'}))
+                      if (formErrors.shift) {
+                        setFormErrors(prev => ({ ...prev, shift: '' }))
+                      }
+                    }} 
+                    className={`w-full job-select border rounded-lg px-3 py-2 ${
+                      formErrors.shift ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                    }`}
+                  >
                     <option value="day">Day</option>
                     <option value="night">Night</option>
                   </select>
+                  {formErrors.shift && (
+                    <p className="text-red-400 text-xs mt-1">{formErrors.shift}</p>
+                  )}
                 </div>
               </div>
 
               {/* Deadline, Industry, Department */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Application Deadline</label>
-                  <Input type="date" value={newJobData.applicationDeadline} onChange={(e)=> setNewJobData(p=> ({...p, applicationDeadline: e.target.value}))} className="bg-white/10 border-white/20 text-white" />
+                  <label className="text-sm font-medium text-gray-300">
+                    Application Deadline <span className="text-red-400">*</span>
+                  </label>
+                  <Input 
+                    type="date" 
+                    value={newJobData.applicationDeadline} 
+                    onChange={(e)=> {
+                      setNewJobData(p=> ({...p, applicationDeadline: e.target.value}))
+                      // Clear error when user starts typing
+                      if (formErrors.applicationDeadline) {
+                        setFormErrors(prev => {
+                          const newErrors = { ...prev }
+                          delete newErrors.applicationDeadline
+                          return newErrors
+                        })
+                      }
+                    }} 
+                    className={`bg-white/10 border text-white ${
+                      formErrors.applicationDeadline ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                    }`} 
+                  />
+                  {formErrors.applicationDeadline && (
+                    <p className="text-red-400 text-xs mt-1">{formErrors.applicationDeadline}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300">Industry</label>
@@ -934,24 +1188,108 @@ function JobsPage() {
 
               {/* Description & Lists */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Job Description</label>
-                <textarea value={newJobData.jobDescription} onChange={(e)=> setNewJobData(p=> ({...p, jobDescription: e.target.value}))} className="w-full min-h-[100px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" />
+                <label className="text-sm font-medium text-gray-300">
+                  Job Description
+                </label>
+                <textarea 
+                  value={newJobData.jobDescription} 
+                                      onChange={(e)=> {
+                      setNewJobData(p=> ({...p, jobDescription: e.target.value}))
+                      if (formErrors.jobDescription) {
+                        setFormErrors(prev => ({ ...prev, jobDescription: '' }))
+                      }
+                    }} 
+                  className={`w-full min-h-[100px] bg-white/10 border rounded-lg px-3 py-2 text-white ${
+                    formErrors.jobDescription ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                  }`} 
+                  placeholder="Describe the role, responsibilities, and what makes this position unique..."
+                />
+                {formErrors.jobDescription && (
+                  <p className="text-red-400 text-xs mt-1">{formErrors.jobDescription}</p>
+                )}
+                <p className="text-gray-400 text-xs">
+                  {newJobData.jobDescription.length}/2000 characters (minimum 50 if provided)
+                </p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Requirements (one per line)</label>
-                <textarea value={newJobData.requirements} onChange={(e)=> setNewJobData(p=> ({...p, requirements: e.target.value}))} className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" />
+                <textarea 
+                  value={newJobData.requirements} 
+                                      onChange={(e)=> {
+                      setNewJobData(p=> ({...p, requirements: e.target.value}))
+                      if (formErrors.requirements) {
+                        setFormErrors(prev => ({ ...prev, requirements: '' }))
+                      }
+                    }} 
+                  className={`w-full min-h-[80px] bg-white/10 border rounded-lg px-3 py-2 text-white ${
+                    formErrors.requirements ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                  }`} 
+                  placeholder="• Bachelor's degree in Computer Science&#10;• 3+ years of experience&#10;• Strong communication skills"
+                />
+                {formErrors.requirements && (
+                  <p className="text-red-400 text-xs mt-1">{formErrors.requirements}</p>
+                )}
+                <p className="text-gray-400 text-xs">{newJobData.requirements.length}/2000 characters</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Responsibilities (one per line)</label>
-                <textarea value={newJobData.responsibilities} onChange={(e)=> setNewJobData(p=> ({...p, responsibilities: e.target.value}))} className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" />
+                <textarea 
+                  value={newJobData.responsibilities} 
+                                      onChange={(e)=> {
+                      setNewJobData(p=> ({...p, responsibilities: e.target.value}))
+                      if (formErrors.responsibilities) {
+                        setFormErrors(prev => ({ ...prev, responsibilities: '' }))
+                      }
+                    }} 
+                  className={`w-full min-h-[80px] bg-white/10 border rounded-lg px-3 py-2 text-white ${
+                    formErrors.responsibilities ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                  }`} 
+                  placeholder="• Develop and maintain web applications&#10;• Collaborate with cross-functional teams&#10;• Write clean, maintainable code"
+                />
+                {formErrors.responsibilities && (
+                  <p className="text-red-400 text-xs mt-1">{formErrors.responsibilities}</p>
+                )}
+                <p className="text-gray-400 text-xs">{newJobData.responsibilities.length}/2000 characters</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Benefits (one per line)</label>
-                <textarea value={newJobData.benefits} onChange={(e)=> setNewJobData(p=> ({...p, benefits: e.target.value}))} className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" />
+                <textarea 
+                  value={newJobData.benefits} 
+                                      onChange={(e)=> {
+                      setNewJobData(p=> ({...p, benefits: e.target.value}))
+                      if (formErrors.benefits) {
+                        setFormErrors(prev => ({ ...prev, benefits: '' }))
+                      }
+                    }} 
+                  className={`w-full min-h-[80px] bg-white/10 border rounded-lg px-3 py-2 text-white ${
+                    formErrors.benefits ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                  }`} 
+                  placeholder="• Health insurance&#10;• 401(k) matching&#10;• Flexible work hours"
+                />
+                {formErrors.benefits && (
+                  <p className="text-red-400 text-xs mt-1">{formErrors.benefits}</p>
+                )}
+                <p className="text-gray-400 text-xs">{newJobData.benefits.length}/2000 characters</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-300">Skills (one per line)</label>
-                <textarea value={newJobData.skills} onChange={(e)=> setNewJobData(p=> ({...p, skills: e.target.value}))} className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" />
+                <textarea 
+                  value={newJobData.skills} 
+                                      onChange={(e)=> {
+                      setNewJobData(p=> ({...p, skills: e.target.value}))
+                      if (formErrors.skills) {
+                        setFormErrors(prev => ({ ...prev, skills: '' }))
+                      }
+                    }} 
+                  className={`w-full min-h-[80px] bg-white/10 border rounded-lg px-3 py-2 text-white ${
+                    formErrors.skills ? 'border-red-400 bg-red-500/10' : 'border-white/20'
+                  }`} 
+                  placeholder="• JavaScript/TypeScript&#10;• React.js&#10;• Node.js&#10;• PostgreSQL"
+                />
+                {formErrors.skills && (
+                  <p className="text-red-400 text-xs mt-1">{formErrors.skills}</p>
+                )}
+                <p className="text-gray-400 text-xs">{newJobData.skills.length}/2000 characters</p>
               </div>
 
               {/* Priority + AI improve (status is implicitly New Job Request/inactive) */}
@@ -1019,9 +1357,32 @@ function JobsPage() {
                 </div>
               </div>
 
+
+              
               <div className="flex gap-3 pt-2">
-                <Button onClick={handleAddJob} className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">Create Job Request</Button>
-                <Button variant="outline" onClick={()=> setIsAddJobDialogOpen(false)} className="border-white/10 text-white hover:bg-white/10">Cancel</Button>
+                <Button 
+                  onClick={handleAddJob} 
+                  disabled={isSubmitting || Object.keys(formErrors).length > 0}
+
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Job Request'
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={()=> setIsAddJobDialogOpen(false)} 
+                  disabled={isSubmitting}
+                  className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -1084,41 +1445,70 @@ function JobsPage() {
 
         {/* Edit Job Dialog */}
         <Dialog open={isEditJobDialogOpen} onOpenChange={setIsEditJobDialogOpen}>
-          <DialogContent className="bg-[#0b0b0d] text-white border border-white/10 max-w-4xl">
+          <DialogContent className="bg-[#0b0b0d] text-white border border-white/10 job-edit-modal-v2">
             <DialogHeader>
               <DialogTitle>Edit Job</DialogTitle>
             </DialogHeader>
-            <div className="p-4">
-              {editingJob ? (
-                <>
-                  <div className="flex items-start gap-3 mb-3">
-                    <h2 className="text-2xl font-semibold flex-1">{editingJob.company_name || 'Member'} | {editingJob.job_title || 'Role Title'}</h2>
-                    <div className="flex gap-2 flex-col items-end">
-                      {hasUnsavedChanges && (
-                        <div className="text-orange-400 text-sm mb-2">
-                          ⚠️ You have unsaved changes
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={saveAllChanges}
-                          disabled={!hasUnsavedChanges || isSaving}
-                          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white disabled:opacity-50"
-                        >
-                          {isSaving ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            'Save Changes'
-                          )}
-                        </Button>
-                        
-                        <Button
-                          className="bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white"
-                          onClick={async ()=> {
+                         {/* Enhanced Header with buttons - always visible */}
+             <div className="flex items-center justify-between mb-6 pb-6 border-b border-white/10">
+               <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-3">
+                   <div>
+                     <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                       {editingJob?.company_name || 'Member'} | {editingJob?.job_title || 'Role Title'}
+                     </h2>
+                   </div>
+                 </div>
+                 
+                 {/* Enhanced Status Badge */}
+                 <div className="flex items-center gap-3">
+                   <div className="flex items-center gap-2">
+                     <span className="text-sm font-medium text-gray-300">Status</span>
+                     <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                       mapEnumToUi(editingJob?.status) === 'hiring' 
+                         ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                         : mapEnumToUi(editingJob?.status) === 'job-request' 
+                           ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                           : mapEnumToUi(editingJob?.status) === 'approved' 
+                             ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                             : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                     }`}>
+                       {mapEnumToUi(editingJob?.status) === 'hiring' ? 'Active' : mapEnumToUi(editingJob?.status) === 'job-request' ? 'Job Request' : mapEnumToUi(editingJob?.status) === 'approved' ? 'Processed' : 'Closed'}
+                     </span>
+                   </div>
+                 </div>
+               </div>
+               
+               <div className="flex items-center gap-4">
+                 {hasUnsavedChanges && (
+                   <div className="flex items-center gap-2 text-orange-400 text-sm bg-orange-500/10 px-3 py-2 rounded-lg border border-orange-500/20">
+                     <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                     Unsaved changes
+                   </div>
+                 )}
+                 
+                 <div className="flex gap-3">
+                   <Button
+                     onClick={saveAllChanges}
+                     disabled={!hasUnsavedChanges || isSaving}
+                     className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white disabled:opacity-50 px-6"
+                   >
+                     {isSaving ? (
+                       <>
+                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                         Saving...
+                       </>
+                     ) : (
+                       <>
+                         <CheckCircle className="h-4 w-4 mr-2" />
+                         Save Changes
+                       </>
+                     )}
+                   </Button>
+                           
+                           <Button
+                             className="bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white px-6"
+                             onClick={async ()=> {
                           if (!editingJob) return
                           try {
                             setIsImproving(true)
@@ -1193,191 +1583,344 @@ function JobsPage() {
                           }
                         }}
                       >
-                        Improve with AI
+                        {isImproving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Improving...
+                          </>
+                        ) : (
+                          'Improve with AI'
+                        )}
                       </Button>
-                      {mapEnumToUi(editingJob.status) === 'job-request' && (
-                        <div className="text-[11px] text-gray-400 text-right">
-                          Once this job request is improved with AI, it will be moved to processed request
-                        </div>
-                      )}
-                   </div>
-                   </div>
-                  <div className="flex flex-wrap items-center gap-3 mb-6">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">Status</span>
-                      <span className="text-xs px-2 py-1 rounded-md bg-white/10 border border-white/15">
-                        {mapEnumToUi(editingJob.status) === 'hiring' ? 'Active' : mapEnumToUi(editingJob.status) === 'job-request' ? 'Job Request' : mapEnumToUi(editingJob.status) === 'approved' ? 'Processed' : 'Closed'}
-                      </span>
-                 </div>
-                    
-                    
-                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* AI improvement note - below header */}
+            {mapEnumToUi(editingJob?.status) === 'job-request' && (
+              <div className="text-[11px] text-gray-400 mb-4 text-center">
+                Once this job request is improved with AI, it will be moved to processed request
+              </div>
+            )}
 
-                  <div className="text-sm text-gray-300 font-semibold mb-2">Custom Fields</div>
-                  <div className="rounded-lg border border-white/10 divide-y divide-white/10">
-                    {/* Member */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Member</div>
-                     <select
-                        value={editingJob.company_id || ''}
-                        onChange={(e) => savePartialUpdate({ companyId: e.target.value }, () => ({ company_id: e.target.value, company_name: (members.find(m => m.company_id === e.target.value)?.company || editingJob.company_name) }))}
-                        className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2"
-                      >
-                        <option value="">Select company</option>
-                        {members.map(m => (<option key={m.company_id} value={m.company_id}>{m.company}</option>))}
-                     </select>
-                   </div>
-                    {/* Role Title */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Role Title</div>
-                      <input
-                        className="w-full max-w-[60%] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
-                        value={editingJob.job_title || ''}
-                        onChange={(e) => setEditingJob((p:any) => ({ ...(p||{}), job_title: e.target.value }))}
-                        onBlur={(e) => savePartialUpdate({ title: e.currentTarget.value })}
-                     />
-                   </div>
-                    
-                    {/* Work Arrangement */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Work Arrangement</div>
-                     <select
-                        className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2"
-                        value={editingJob.work_arrangement || 'onsite'}
-                        onChange={(e) => { setEditingJob((p:any) => ({ ...(p||{}), work_arrangement: e.target.value })); savePartialUpdate({ workArrangement: e.target.value }) }}
-                      >
-                        <option value="onsite">Onsite</option>
-                        <option value="remote">Remote</option>
-                        <option value="hybrid">Hybrid</option>
-                     </select>
-                   </div>
-                    {/* Experience Level */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Experience Level</div>
-                     <select
-                        className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2"
-                        value={editingJob.experience_level || ''}
-                        onChange={(e) => { setEditingJob((p:any) => ({ ...(p||{}), experience_level: e.target.value })); savePartialUpdate({ experienceLevel: e.target.value }) }}
-                      >
-                        <option value="">Select level</option>
-                        <option value="entry-level">Entry-level</option>
-                        <option value="mid-level">Mid-level</option>
-                        <option value="senior-level">Senior-level</option>
-                      </select>
-                    </div>
-                    {/* Shift */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Shift</div>
-                      <select className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2" value={editingJob.shift || 'day'} onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), shift: e.target.value })); savePartialUpdate({ shift: e.target.value }) }}>
-                       <option value="day">Day</option>
-                       <option value="night">Night</option>
-                     </select>
-                   </div>
-                    {/* Salary Range */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Salary Range</div>
-                      <div className="w-full max-w-[60%] grid grid-cols-2 gap-2">
-                        <input type="number" className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={editingJob.salary_min ?? ''} onChange={(e)=> setEditingJob((p:any)=>({...(p||{}), salary_min: e.target.value===''? null: Number(e.target.value)}))} onBlur={()=> savePartialUpdate({ salary: buildSalaryString(editingJob.currency || 'PHP', editingJob.salary_min ?? null, editingJob.salary_max ?? null, editingJob.salary_type || 'monthly'), salaryType: editingJob.salary_type || 'monthly', currency: editingJob.currency || 'PHP' })} />
-                        <input type="number" className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={editingJob.salary_max ?? ''} onChange={(e)=> setEditingJob((p:any)=>({...(p||{}), salary_max: e.target.value===''? null: Number(e.target.value)}))} onBlur={()=> savePartialUpdate({ salary: buildSalaryString(editingJob.currency || 'PHP', editingJob.salary_min ?? null, editingJob.salary_max ?? null, editingJob.salary_type || 'monthly'), salaryType: editingJob.salary_type || 'monthly', currency: editingJob.currency || 'PHP' })} />
+                          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+              {editingJob ? (
+                <>
+                                     {/* Left: Job Form (40% width) */}
+                   <div className="flex-1 lg:flex-[2] space-y-6 overflow-y-auto job-modal-scroll pr-4">
+
+                                         {/* Basic Information Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                           <User className="w-4 h-4 text-white" />
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Basic Information</h3>
+                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Member */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Member</label>
+                          <select
+                            value={editingJob.company_id || ''}
+                                                         onChange={(e) => savePartialUpdate({ companyId: e.target.value }, (prev: any) => ({ company_id: e.target.value, company_name: (members.find(m => m.company_id === e.target.value)?.company || editingJob.company_name) }))}
+                            className="w-full job-select border border-white/20 rounded-lg px-3 py-2"
+                          >
+                            <option value="">Select company</option>
+                            {members.map(m => (<option key={m.company_id} value={m.company_id}>{m.company}</option>))}
+                          </select>
+                        </div>
+                        {/* Role Title */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Role Title</label>
+                          <input
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                            value={editingJob.job_title || ''}
+                            onChange={(e) => setEditingJob((p:any) => ({ ...(p||{}), job_title: e.target.value }))}
+                            onBlur={(e) => savePartialUpdate({ title: e.currentTarget.value })}
+                          />
+                        </div>
                       </div>
                     </div>
-                    {/* Salary Type */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Salary Type</div>
-                      <select className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2" value={editingJob.salary_type || 'monthly'} onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), salary_type: e.target.value })); savePartialUpdate({ salaryType: e.target.value }) }}>
-                        <option value="monthly">Monthly</option>
-                        <option value="annual">Annual</option>
-                      </select>
-                    </div>
-                    {/* Priority */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Priority</div>
-                      <select className="w-full max-w-[60%] job-select border border-white/20 rounded-lg px-3 py-2" value={editingJob.priority || 'medium'} onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), priority: e.target.value })); savePartialUpdate({ priority: e.target.value }) }}>
-                       <option value="low">Low</option>
-                       <option value="medium">Medium</option>
-                       <option value="high">High</option>
-                       <option value="urgent">Urgent</option>
-                     </select>
-                   </div>
                     
-                    {/* Industry */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Industry</div>
-                      <input className="w-full max-w-[60%] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={editingJob.industry || ''} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), industry: e.target.value}))} onBlur={(e)=> savePartialUpdate({ industry: e.currentTarget.value })} />
-                 </div>
-                    {/* Department */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Department</div>
-                      <input className="w-full max-w-[60%] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={editingJob.department || ''} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), department: e.target.value}))} onBlur={(e)=> savePartialUpdate({ department: e.currentTarget.value })} />
-                    </div>
-                    {/* Application Deadline */}
-                    <div className="flex items-center justify-between p-3 gap-3">
-                      <div className="text-sm text-gray-300">Application Deadline</div>
-                      <input type="date" className="w-full max-w-[60%] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={editingJob.application_deadline ? String(editingJob.application_deadline).slice(0,10) : ''} onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), application_deadline: e.target.value })); savePartialUpdate({ application_deadline: e.target.value }) }} />
-                    </div>
-                    {/* Job Description first */}
-                    <div className="p-3">
-                      <div className="text-sm text-gray-300 mb-1">Job Description</div>
-                      <textarea className="w-full min-h-[120px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={editingJob.job_description || ''} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), job_description: e.target.value }))} onBlur={(e)=> savePartialUpdate({ jobDescription: e.currentTarget.value })} />
-                    </div>
-                    {/* Requirements */}
-                    <div className="p-3">
-                      <div className="text-sm text-gray-300 mb-1">Requirements</div>
-                      <textarea className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={(editingJob.requirements || []).join('\n')} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), requirements: e.target.value.split('\n')}))} onBlur={(e)=> savePartialUpdate({ requirements: e.currentTarget.value.split('\n') })} />
-                    </div>
-                    {/* Responsibilities */}
-                    <div className="p-3">
-                      <div className="text-sm text-gray-300 mb-1">Responsibilities</div>
-                      <textarea className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={(editingJob.responsibilities || []).join('\n')} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), responsibilities: e.target.value.split('\n')}))} onBlur={(e)=> savePartialUpdate({ responsibilities: e.currentTarget.value.split('\n') })} />
-                    </div>
-                    {/* Benefits */}
-                    <div className="p-3">
-                      <div className="text-sm text-gray-300 mb-1">Benefits</div>
-                      <textarea className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={(editingJob.benefits || []).join('\n')} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), benefits: e.target.value.split('\n')}))} onBlur={(e)=> savePartialUpdate({ benefits: e.currentTarget.value.split('\n') })} />
-                    </div>
-                    {/* Skills */}
-                    <div className="p-3">
-                      <div className="text-sm text-gray-300 mb-1">Skills</div>
-                      <textarea className="w-full min-h-[80px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" value={(editingJob.skills || []).join('\n')} onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), skills: e.target.value.split('\n')}))} onBlur={(e)=> savePartialUpdate({ skills: e.currentTarget.value.split('\n') })} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: activity */}
-                <div className="border-l border-white/10 bg-black/30 p-6 hidden lg:flex lg:flex-col lg:max-h-[80vh]">
-                  <div className="text-sm text-gray-300 font-semibold mb-3">Activity</div>
-                  <div id="comments" className="flex-1 overflow-y-auto space-y-3 pr-1 job-modal-scroll">
-                    {/* Comments will be loaded below */}
-                    {(editingJob.__comments || []).map((c:any)=> (
-                      <div key={c.id} className="text-sm text-white/80 bg-white/5 border border-white/10 rounded-md p-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <img src={c.user_avatar || '/vercel.svg'} alt="avatar" className="h-6 w-6 rounded-full object-cover" />
-                          <div className="text-xs text-gray-300 font-medium">{c.user_name || 'User'}</div>
-                          <div className="text-xs text-gray-500 ml-auto">{new Date(c.created_at).toLocaleString()}</div>
+                                         {/* Work Details Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                           <Briefcase className="w-4 h-4 text-white" />
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Work Details</h3>
+                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Work Arrangement */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Work Arrangement</label>
+                          <select
+                            className="w-full job-select border border-white/20 rounded-lg px-3 py-2"
+                            value={editingJob.work_arrangement || 'onsite'}
+                            onChange={(e) => { setEditingJob((p:any) => ({ ...(p||{}), work_arrangement: e.target.value })); savePartialUpdate({ workArrangement: e.target.value }) }}
+                          >
+                            <option value="onsite">Onsite</option>
+                            <option value="remote">Remote</option>
+                            <option value="hybrid">Hybrid</option>
+                          </select>
                         </div>
-                        <div className="leading-relaxed">{c.comment}</div>
+                        {/* Experience Level */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Experience Level</label>
+                          <select
+                            className="w-full job-select border border-white/20 rounded-lg px-3 py-2"
+                            value={editingJob.experience_level || ''}
+                            onChange={(e) => { setEditingJob((p:any) => ({ ...(p||{}), experience_level: e.target.value })); savePartialUpdate({ experienceLevel: e.target.value }) }}
+                          >
+                            <option value="">Select level</option>
+                            <option value="entry-level">Entry-level</option>
+                            <option value="mid-level">Mid-level</option>
+                            <option value="senior-level">Senior-level</option>
+                          </select>
+                        </div>
+                        {/* Shift */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Shift</label>
+                          <select 
+                            className="w-full job-select border border-white/20 rounded-lg px-3 py-2" 
+                            value={editingJob.shift || 'day'} 
+                            onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), shift: e.target.value })); savePartialUpdate({ shift: e.target.value }) }}
+                          >
+                            <option value="day">Day</option>
+                            <option value="night">Night</option>
+                          </select>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                                         {/* Compensation & Priority Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
+                           <span className="text-white font-bold text-sm">₱</span>
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Compensation & Priority</h3>
+                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Salary Range */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Salary Range</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input 
+                              type="number" 
+                              placeholder="Min"
+                              className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" 
+                              value={editingJob.salary_min ?? ''} 
+                              onChange={(e)=> setEditingJob((p:any)=>({...(p||{}), salary_min: e.target.value===''? null: Number(e.target.value)}))} 
+                              onBlur={()=> savePartialUpdate({ salary: buildSalaryString(editingJob.currency || 'PHP', editingJob.salary_min ?? null, editingJob.salary_max ?? null, editingJob.salary_type || 'monthly'), salaryType: editingJob.salary_type || 'monthly', currency: editingJob.currency || 'PHP' })} 
+                            />
+                            <input 
+                              type="number" 
+                              placeholder="Max"
+                              className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" 
+                              value={editingJob.salary_max ?? ''} 
+                              onChange={(e)=> setEditingJob((p:any)=>({...(p||{}), salary_max: e.target.value===''? null: Number(e.target.value)}))} 
+                              onBlur={()=> savePartialUpdate({ salary: buildSalaryString(editingJob.currency || 'PHP', editingJob.salary_min ?? null, editingJob.salary_max ?? null, editingJob.salary_type || 'monthly'), salaryType: editingJob.salary_type || 'monthly', currency: editingJob.currency || 'PHP' })} 
+                            />
+                          </div>
+                        </div>
+                        {/* Salary Type */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Salary Type</label>
+                          <select 
+                            className="w-full job-select border border-white/20 rounded-lg px-3 py-2" 
+                            value={editingJob.salary_type || 'monthly'} 
+                            onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), salary_type: e.target.value })); savePartialUpdate({ salaryType: e.target.value }) }}
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="annual">Annual</option>
+                          </select>
+                        </div>
+                        {/* Priority */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Priority</label>
+                          <select 
+                            className="w-full job-select border border-white/20 rounded-lg px-3 py-2" 
+                            value={editingJob.priority || 'medium'} 
+                            onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), priority: e.target.value })); savePartialUpdate({ priority: e.target.value }) }}
+                          >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    
+                                         {/* Additional Details Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                           <MapPin className="w-4 h-4 text-white" />
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Additional Details</h3>
+                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Industry */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Industry</label>
+                          <input 
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" 
+                            value={editingJob.industry || ''} 
+                            onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), industry: e.target.value}))} 
+                            onBlur={(e)=> savePartialUpdate({ industry: e.currentTarget.value })} 
+                            placeholder="e.g. Technology, Finance"
+                          />
+                        </div>
+                        {/* Department */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Department</label>
+                          <input 
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" 
+                            value={editingJob.department || ''} 
+                            onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), department: e.target.value}))} 
+                            onBlur={(e)=> savePartialUpdate({ department: e.currentTarget.value })} 
+                            placeholder="e.g. Engineering, Marketing"
+                          />
+                        </div>
+                        {/* Application Deadline */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Application Deadline</label>
+                          <input 
+                            type="date" 
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white" 
+                            value={editingJob.application_deadline ? String(editingJob.application_deadline).slice(0,10) : ''} 
+                            onChange={(e)=> { setEditingJob((p:any)=> ({...(p||{}), application_deadline: e.target.value })); savePartialUpdate({ application_deadline: e.target.value }) }} 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                                         {/* Job Description Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center">
+                           <Edit className="w-4 h-4 text-white" />
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Job Description</h3>
+                       </div>
+                      <div className="space-y-2">
+                        <textarea 
+                          className="w-full min-h-[120px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white resize-y" 
+                          value={editingJob.job_description || ''} 
+                          onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), job_description: e.target.value }))} 
+                          onBlur={(e)=> savePartialUpdate({ jobDescription: e.currentTarget.value })} 
+                          placeholder="Enter detailed job description..."
+                        />
+                      </div>
+                    </div>
+                    
+                                         {/* Requirements & Responsibilities Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                           <CheckCircle className="w-4 h-4 text-white" />
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Requirements & Responsibilities</h3>
+                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Requirements */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Requirements</label>
+                          <textarea 
+                            className="w-full min-h-[100px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white resize-y" 
+                            value={(editingJob.requirements || []).join('\n')} 
+                            onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), requirements: e.target.value.split('\n')}))} 
+                            onBlur={(e)=> savePartialUpdate({ requirements: e.currentTarget.value.split('\n') })} 
+                            placeholder="Enter requirements (one per line)..."
+                          />
+                        </div>
+                        {/* Responsibilities */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Responsibilities</label>
+                          <textarea 
+                            className="w-full min-h-[100px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white resize-y" 
+                            value={(editingJob.responsibilities || []).join('\n')} 
+                            onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), responsibilities: e.target.value.split('\n')}))} 
+                            onBlur={(e)=> savePartialUpdate({ responsibilities: e.currentTarget.value.split('\n') })} 
+                            placeholder="Enter responsibilities (one per line)..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                                         {/* Benefits & Skills Section */}
+                     <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                       <div className="flex items-center gap-3 mb-6">
+                         <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
+                           <span className="text-white font-bold text-sm">★</span>
+                         </div>
+                         <h3 className="text-xl font-bold text-white">Benefits & Skills</h3>
+                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Benefits */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Benefits</label>
+                          <textarea 
+                            className="w-full min-h-[100px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white resize-y" 
+                            value={(editingJob.benefits || []).join('\n')} 
+                            onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), benefits: e.target.value.split('\n')}))} 
+                            onBlur={(e)=> savePartialUpdate({ benefits: e.currentTarget.value.split('\n') })} 
+                            placeholder="Enter benefits (one per line)..."
+                          />
+                        </div>
+                        {/* Skills */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Skills</label>
+                          <textarea 
+                            className="w-full min-h-[100px] bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white resize-y" 
+                            value={(editingJob.skills || []).join('\n')} 
+                            onChange={(e)=> setEditingJob((p:any)=> ({...(p||{}), skills: e.target.value.split('\n')}))} 
+                            onBlur={(e)=> savePartialUpdate({ skills: e.currentTarget.value.split('\n') })} 
+                            placeholder="Enter skills (one per line)..."
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <textarea id="new-comment" className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white min-h-[60px]" placeholder="Write a comment..." />
-                    <Button className="mt-2 w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700" onClick={async ()=>{
-                      const el = document.getElementById('new-comment') as HTMLTextAreaElement | null
-                      if (!el || !el.value.trim()) return
-                      try {
-                        const token = await getSessionToken()
-                        const res = await fetch(`/api/admin/jobs/${editingJob.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ comment: el.value }) })
-                        if (res.ok) {
-                          const data = await res.json()
-                          setEditingJob((p:any)=> ({...(p||{}), __comments: [data.comment, ...((p&&p.__comments)||[])]}))
-                          el.value=''
-                        }
-                      } catch {}
-                    }}>Send</Button>
-                  </div>
-                </div>
-                  <div className="text-center text-gray-400 py-8">
-                    Job editing content will go here...
+
+                                                        {/* Right: Activity (full space) */}
+                    <div className="w-full lg:flex-1 p-6 flex flex-col h-full">
+                     <div className="flex items-center gap-3 mb-6">
+                       <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-pink-500 rounded-lg flex items-center justify-center">
+                         <span className="text-white font-bold text-sm">💬</span>
+                       </div>
+                       <div className="text-sm text-gray-300 font-semibold">Activity Feed</div>
+                     </div>
+                    <div id="comments" className="flex-1 overflow-y-auto space-y-3 pr-1 job-modal-scroll min-h-0">
+                      {/* Comments will be loaded below */}
+                      {(editingJob.__comments || []).map((c:any)=> (
+                        <div key={c.id} className="text-sm text-white/80 bg-white/5 border border-white/10 rounded-md p-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <img src={c.user_avatar || '/vercel.svg'} alt="avatar" className="h-6 w-6 rounded-full object-cover" />
+                            <div className="text-xs text-gray-300 font-medium">{c.user_name || 'User'}</div>
+                            <div className="text-xs text-gray-500 ml-auto">{new Date(c.created_at).toLocaleString()}</div>
+                          </div>
+                          <div className="leading-relaxed">{c.comment}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <textarea id="new-comment" className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white min-h-[60px]" placeholder="Write a comment..." />
+                      <Button className="mt-2 w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700" onClick={async ()=>{
+                        const el = document.getElementById('new-comment') as HTMLTextAreaElement | null
+                        if (!el || !el.value.trim()) return
+                        try {
+                          const token = await getSessionToken()
+                          const res = await fetch(`/api/admin/jobs/${editingJob.id}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ comment: el.value }) })
+                          if (res.ok) {
+                            const data = await res.json()
+                            setEditingJob((p:any)=> ({...(p||{}), __comments: [data.comment, ...((p&&p.__comments)||[])]}))
+                            el.value=''
+                          }
+                        } catch {}
+                      }}>Send</Button>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -1386,11 +1929,31 @@ function JobsPage() {
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
-       </div>
-     </AdminLayout>
-   )
+                     </DialogContent>
+         </Dialog>
+
+         {/* Success Alert Dialog */}
+         <AlertDialog open={showSuccessAlert} onOpenChange={setShowSuccessAlert}>
+           <AlertDialogContent className="bg-[#0b0b0d] text-white border border-white/10">
+             <AlertDialogHeader>
+               <AlertDialogTitle className="text-white">
+                 {successMessage.includes('Error') ? 'Error' : 'Success'}
+               </AlertDialogTitle>
+               <AlertDialogDescription className="text-gray-300">
+                 {successMessage}
+               </AlertDialogDescription>
+             </AlertDialogHeader>
+             <AlertDialogAction 
+               className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
+               onClick={() => setShowSuccessAlert(false)}
+             >
+               OK
+             </AlertDialogAction>
+           </AlertDialogContent>
+         </AlertDialog>
+        </div>
+      </AdminLayout>
+    )
 } 
 
 export default function Page() {
