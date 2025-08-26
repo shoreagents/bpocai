@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useAdmin } from '@/contexts/AdminContext'
 import { 
   LayoutDashboard,
   Users,
@@ -43,6 +44,7 @@ const platformItems: SidebarItem[] = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
   { title: 'Users', icon: Users, href: '/admin/users' },
   { title: 'Resumes', icon: FileText, href: '/admin/resumes' },
+  { title: 'Work Statuses', icon: ClipboardList, href: '/admin/work-statuses' },
   { title: 'Analysis', icon: BarChart3, href: '/admin/analysis' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
   { title: 'Applicants', icon: Users, href: '/admin/applicants' },
@@ -99,6 +101,8 @@ export default function AdminLayout({
   adminUser 
 }: AdminLayoutProps) {
   const { user } = useAuth()
+  const { adminUser: adminCtxUser } = useAdmin()
+  const router = useRouter()
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management']))
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
@@ -224,23 +228,34 @@ export default function AdminLayout({
               "flex items-center mb-6",
               sidebarMinimized ? "justify-center" : "space-x-2"
             )}>
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              {!sidebarMinimized && (
-                <div className="flex items-center space-x-2">
-                  <div>
-                    <h2 className="text-lg font-bold gradient-text">Admin Panel</h2>
-                    <p className="text-xs text-gray-400">BPOC.IO Management</p>
-                  </div>
-                  <button
-                    onClick={() => setSidebarMinimized(!sidebarMinimized)}
-                    className="p-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/10"
-                    title="Minimize sidebar"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-gray-300 hover:text-white" />
-                  </button>
+              <button
+                type="button"
+                onClick={() => router.push('/home')}
+                className={cn(
+                  "flex items-center",
+                  sidebarMinimized ? "justify-center" : "space-x-2",
+                  "group cursor-pointer select-none"
+                )}
+                title="Go to Home"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
+                {!sidebarMinimized && (
+                  <div>
+                    <h2 className="text-lg font-bold gradient-text">BPOC.IO</h2>
+                    <p className="text-xs text-gray-400">Admin Panel</p>
+                  </div>
+                )}
+              </button>
+              {!sidebarMinimized && (
+                <button
+                  onClick={() => setSidebarMinimized(!sidebarMinimized)}
+                  className="p-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/10 ml-auto"
+                  title="Minimize sidebar"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-300 hover:text-white" />
+                </button>
               )}
             </div>
 
@@ -316,8 +331,8 @@ export default function AdminLayout({
                       sidebarMinimized ? "w-8 h-8" : "w-10 h-10"
                     )}>
                       <AvatarImage 
-                        src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} 
-                        alt={adminUser?.full_name || 'Admin'}
+                        src={(adminUser?.avatar_url || adminCtxUser?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture) || undefined} 
+                        alt={(adminUser?.full_name || adminCtxUser?.full_name || 'Admin')}
                       />
                       <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white">
                         <UserCircle className="w-4 h-4" />
@@ -326,10 +341,10 @@ export default function AdminLayout({
                     {!sidebarMinimized && (
                       <div className="text-left">
                         <p className="text-sm font-medium text-white">
-                          {adminUser?.full_name || user?.user_metadata?.full_name || 'Admin'}
+                          {adminUser?.full_name || adminCtxUser?.full_name || user?.user_metadata?.full_name || 'Admin'}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {adminUser?.email || user?.email || 'admin@BPOC.IO'}
+                          {adminUser?.email || adminCtxUser?.email || user?.email || 'admin@BPOC.IO'}
                         </p>
                         <p className="text-xs text-cyan-400">
                           Admin
