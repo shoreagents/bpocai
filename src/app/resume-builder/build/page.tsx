@@ -296,7 +296,24 @@ export default function ResumeBuilderPage() {
       if (response.ok && data?.success) {
         setProgressValue(100);
         setTimeout(() => {
-          setImprovedResume(data.improvedResume);
+          // Normalize fields to avoid rendering non-string objects
+          const normalizeImprovedResume = (input: any): ImprovedResumeContent => {
+            const cloned = JSON.parse(JSON.stringify(input || {}));
+            // Certifications can sometimes arrive as objects { name, issuer, date }
+            if (Array.isArray(cloned.certifications)) {
+              cloned.certifications = cloned.certifications.map((c: any) => {
+                if (typeof c === 'string') return c;
+                if (c && typeof c === 'object') {
+                  const parts = [c.name, c.issuer, c.date].filter(Boolean);
+                  return parts.length ? parts.join(' • ') : JSON.stringify(c);
+                }
+                return '';
+              });
+            }
+            return cloned as ImprovedResumeContent;
+          };
+
+          setImprovedResume(normalizeImprovedResume(data.improvedResume));
           
           // Save the generated resume data to database
           saveGeneratedResumeToDatabase(data.improvedResume, resumeData);
