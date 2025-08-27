@@ -13,11 +13,13 @@ import {
 	Medal,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -182,58 +184,63 @@ export default function LeaderboardsPage() {
   return (
 		<AdminLayout title="Leaderboards" description="Moderate leaderboard data">
       <div className="space-y-6">
-				<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
 					<Card className="glass-card border-white/10">
-						<CardHeader><CardTitle className="text-white">Category</CardTitle></CardHeader>
+						<CardHeader><CardTitle className="text-white">Search & Filters</CardTitle></CardHeader>
             <CardContent>
-							<div className="flex items-center gap-2">
-								<Select value={category} onValueChange={(v: any) => setCategory(v)}>
-									<SelectTrigger className="w-full"><SelectValue placeholder="Category" /></SelectTrigger>
-									<SelectContent>
-										<SelectItem value="overall">Overall</SelectItem>
-										<SelectItem value="game">Games</SelectItem>
-										<SelectItem value="applicants">Applications</SelectItem>
-										<SelectItem value="engagement">Engagement</SelectItem>
-									</SelectContent>
-								</Select>
-								<Button onClick={refreshLeaderboards} disabled={refreshing} className="ml-auto bg-white/10 border border-white/20 hover:bg-white/20 text-white">
-									<RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-									{refreshing ? 'Refreshing…' : 'Refresh'}
-								</Button>
+							<div className="flex flex-col md:flex-row gap-4">
+								<div className="flex-1 relative">
+									<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+									<Input
+										placeholder="Search by user name..."
+										className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-400"
+									/>
+								</div>
+								<div className="flex items-center gap-2">
+									<Select value={category} onValueChange={(v: any) => setCategory(v)}>
+										<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white">
+											<SelectValue placeholder="Category" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="overall">Overall</SelectItem>
+											<SelectItem value="game">Games</SelectItem>
+											<SelectItem value="applicants">Applications</SelectItem>
+											<SelectItem value="engagement">Engagement</SelectItem>
+										</SelectContent>
+									</Select>
+									{category === 'game' && (
+										<Select value={period} onValueChange={(v: any) => setPeriod(v)}>
+											<SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
+												<SelectValue placeholder="Period" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="weekly">Weekly</SelectItem>
+												<SelectItem value="monthly">Monthly</SelectItem>
+												<SelectItem value="all">All-time</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+									{category === 'game' && (
+										<Select value={gameId} onValueChange={(v: any) => setGameId(v)}>
+											<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white">
+												<SelectValue placeholder="Game" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="bpoc-cultural">BPOC Cultural</SelectItem>
+												<SelectItem value="typing-hero">Typing Hero</SelectItem>
+												<SelectItem value="ultimate">Ultimate</SelectItem>
+												<SelectItem value="disc-personality">DISC Personality</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+									<Button onClick={refreshLeaderboards} disabled={refreshing} className="bg-white/10 border border-white/20 hover:bg-white/20 text-white">
+										<RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+										{refreshing ? 'Refreshing…' : 'Refresh'}
+									</Button>
+								</div>
 							</div>
             </CardContent>
           </Card>
-					{category === 'game' && (
-						<Card className="glass-card border-white/10">
-							<CardHeader><CardTitle className="text-white">Period</CardTitle></CardHeader>
-            <CardContent>
-								<Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-									<SelectTrigger className="w-full"><SelectValue placeholder="Period" /></SelectTrigger>
-                <SelectContent>
-										<SelectItem value="weekly">Weekly</SelectItem>
-										<SelectItem value="monthly">Monthly</SelectItem>
-										<SelectItem value="all">All-time</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-					)}
-					{category === 'game' && (
-              <Card className="glass-card border-white/10">
-							<CardHeader><CardTitle className="text-white">Game</CardTitle></CardHeader>
-							<CardContent>
-								<Select value={gameId} onValueChange={(v: any) => setGameId(v)}>
-									<SelectTrigger className="w-full"><SelectValue placeholder="Game" /></SelectTrigger>
-									<SelectContent>
-										<SelectItem value="bpoc-cultural">BPOC Cultural</SelectItem>
-										<SelectItem value="typing-hero">Typing Hero</SelectItem>
-										<SelectItem value="ultimate">Ultimate</SelectItem>
-										<SelectItem value="disc-personality">DISC Personality</SelectItem>
-									</SelectContent>
-								</Select>
-                </CardContent>
-              </Card>
-					)}
             </motion.div>
 
               <Card className="glass-card border-white/10">
