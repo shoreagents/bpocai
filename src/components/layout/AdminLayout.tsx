@@ -23,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Wrench,
-  TestTube,
   Puzzle,
   BarChart3
 } from 'lucide-react'
@@ -48,23 +47,11 @@ const platformItems: SidebarItem[] = [
   { title: 'Analysis', icon: BarChart3, href: '/admin/analysis' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
   { title: 'Applicants', icon: Users, href: '/admin/applicants' },
-  { title: 'Assessments', icon: ClipboardList, href: '/admin/assessments' },
   { title: 'Games', icon: Gamepad2, href: '/admin/games' },
   { title: 'Leaderboards', icon: Trophy, href: '/admin/leaderboards' }
 ]
 
 const managementItems: SidebarItem[] = [
-  { 
-    title: 'Assessments', 
-    icon: TestTube, 
-    children: [
-      { title: 'DISC Personality', href: '/admin/career-tools-management/assessments/disc-personality/manage' },
-      { title: 'Typing Speed Test', href: '/admin/career-tools-management/assessments/typing-speed-test/manage' },
-      { title: 'Logical Reasoning', href: '/admin/career-tools-management/assessments/logical-reasoning/manage' },
-      { title: 'Communication Skills', href: '/admin/career-tools-management/assessments/communication-skills/manage' },
-      { title: 'Workplace Judgment', href: '/admin/career-tools-management/assessments/workplace-judgment/manage' }
-    ]
-  },
   { 
     title: 'Games', 
     icon: Puzzle, 

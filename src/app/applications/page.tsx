@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { PacmanLoader } from 'react-spinners';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -372,7 +373,14 @@ export default function ApplicationsPage() {
             >
               {loading ? (
                 <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+                  <div className="flex justify-center mb-4">
+                    <PacmanLoader 
+                      color="#fbbf24" 
+                      size={40}
+                      margin={4}
+                      speedMultiplier={1.2}
+                    />
+                  </div>
                   <p className="text-gray-400">Loading your applications...</p>
                 </div>
               ) : filteredApplications.length === 0 ? (

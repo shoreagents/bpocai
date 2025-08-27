@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import AdminLayout from '@/components/layout/AdminLayout'
+import { generateInitials } from '@/lib/utils'
 // Removed actions dropdown since delete is not supported
 import {
 	Dialog,
@@ -270,10 +271,14 @@ export default function LeaderboardsPage() {
                                   <TableCell className="font-medium">#{r.rank || '-'}</TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10">
+                                      <div className="w-8 h-8 rounded-full overflow-hidden">
                                         {r.user?.avatar_url ? (
                                           <img src={r.user.avatar_url} alt={r.user?.full_name || r.userId} className="w-full h-full object-cover" />
-                                        ) : null}
+                                        ) : (
+                                          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                                            <span className="text-white text-xs font-bold">{generateInitials(r.user?.full_name || null)}</span>
+                                          </div>
+                                        )}
                                       </div>
 
                                       <div className="min-w-0">
@@ -350,7 +355,11 @@ export default function LeaderboardsPage() {
 							<div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
 								{selectedRow.user?.avatar_url ? (
 									<img src={selectedRow.user.avatar_url} alt={selectedRow.user?.full_name || selectedRow.userId} className="w-full h-full object-cover" />
-								) : null}
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+										{generateInitials(selectedRow.user?.full_name || null)}
+									</div>
+								)}
 							</div>
 							<button
 								onClick={(e) => goToResume(e as any, selectedRow.userId)}

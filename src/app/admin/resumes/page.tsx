@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { 
   FileText, 
   Search, 
-  Filter, 
   MoreHorizontal, 
   Download, 
   Eye, 
@@ -18,7 +17,8 @@ import {
   Clock,
   AlertCircle,
   X,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -80,6 +80,7 @@ export default function ResumesPage() {
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [sortOrder, setSortOrder] = useState<string>('latest')
 
   // Fetch resumes from database
   const fetchResumes = async () => {
@@ -106,7 +107,7 @@ export default function ResumesPage() {
 
 
 
-  // Filter resumes based on search term
+  // Filter resumes based on search term and sort by date
   const filteredResumes = resumes.filter((resume) => {
     const matchesSearch = 
       resume.resume_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,6 +116,10 @@ export default function ResumesPage() {
       resume.user_email.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesSearch
+  }).sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime()
+    const dateB = new Date(b.created_at).getTime()
+    return sortOrder === 'latest' ? dateB - dateA : dateA - dateB
   })
 
 
@@ -128,7 +133,7 @@ export default function ResumesPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm])
+  }, [searchTerm, sortOrder])
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -319,6 +324,29 @@ export default function ResumesPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="border-transparent text-white hover:bg-white/10">
+                      {sortOrder === 'latest' ? 'Latest Resumes' : 'Oldest Resumes'}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-gray-800 border-white/10">
+                    <DropdownMenuItem 
+                      onClick={() => setSortOrder('latest')}
+                      className="text-white hover:bg-white/10"
+                    >
+                      Latest Resumes
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem 
+                      onClick={() => setSortOrder('oldest')}
+                      className="text-white hover:bg-white/10"
+                    >
+                      Oldest Resumes
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 <Button
                   size="sm"
@@ -328,14 +356,7 @@ export default function ResumesPage() {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-white/10 text-white hover:bg-white/10"
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  More Filters
-                </Button>
+
               </div>
             </div>
           </CardContent>

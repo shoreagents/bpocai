@@ -816,7 +816,6 @@ function JobsPage() {
                   <IconComponent className="w-5 h-5 text-gray-400" />
                   )}
                 </div>
-
                 {column.id === 'job-request' || column.id === 'approved' || column.id === 'hiring' || column.id === 'closed' ? (
                 <div className="space-y-3">
                   {columnJobs.map((job) => (

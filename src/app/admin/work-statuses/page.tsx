@@ -93,7 +93,7 @@ export default function AdminWorkStatusesPage() {
     const map: Record<string, string> = {
       employed: 'bg-green-500/20 text-green-400 border-green-500/30',
       unemployed: 'bg-red-500/20 text-red-400 border-red-500/30',
-      freelancer: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      freelancer: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       'part-time': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       'on-leave': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       retired: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
@@ -180,7 +180,7 @@ export default function AdminWorkStatusesPage() {
               </Select>
               <Button
                 onClick={() => { setOffset(0); fetchData() }}
-                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
               >
                 <RefreshCw className="w-4 h-4 mr-2" /> Apply
               </Button>
@@ -220,7 +220,7 @@ export default function AdminWorkStatusesPage() {
                           <div className="flex items-center gap-3 min-w-[220px]">
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={r.avatarUrl || undefined} alt={r.fullName || r.userId} />
-                              <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                              <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-xs">
                                 {(r.fullName || '?').charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -294,7 +294,7 @@ export default function AdminWorkStatusesPage() {
               <DialogTitle className="flex items-center gap-3">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={selected?.avatarUrl || undefined} alt={selected?.fullName || selected?.userId || ''} />
-                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-xs">
                     {(selected?.fullName || '?').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>

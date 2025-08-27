@@ -373,7 +373,7 @@ export default function Header({}: HeaderProps) {
                   </button>
                   
                   {/* Dropdown Menu */}
-                  <div className="absolute right-0 top-full mt-2 w-48 glass-card rounded-lg py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-black border border-white/10 rounded-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-xl shadow-black/50">
                     {allMenuItems.map((item) => (
                       item.href ? (
                         <Link
@@ -425,11 +425,11 @@ export default function Header({}: HeaderProps) {
                     <Menu className="w-6 h-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="w-[300px] glass-card border-white/10">
+                <SheetContent className="w-[300px] bg-black border border-white/10">
                   <div className="flex flex-col space-y-6 mt-6">
                     {/* Mobile User Info */}
                     {isAuthenticated && user && (
-                      <div className="glass-card p-4 rounded-lg">
+                      <div className="bg-black border border-white/10 rounded-xl p-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center overflow-hidden">
                             {userProfile?.avatar_url ? (
@@ -552,7 +552,7 @@ export default function Header({}: HeaderProps) {
       
       {/* Sign Out Alert Dialog */}
       <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
-        <AlertDialogContent className="glass-card border-white/10">
+        <AlertDialogContent className="bg-black border border-white/10 shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Sign Out</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">

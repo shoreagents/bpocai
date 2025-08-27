@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { generateInitials } from '@/lib/utils';
 import { 
   ArrowLeft,
   Trophy,
@@ -296,16 +297,18 @@ export default function LeaderboardsPage() {
 		return (
 			<div className="flex items-center gap-3 min-w-0">
 				<div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center ${
-					row.rank === 1 ? 'ring-3 ring-yellow-400/50 bg-yellow-50/10' :
-					row.rank === 2 ? 'ring-2 ring-gray-300/50 bg-gray-50/10' :
-					row.rank === 3 ? 'ring-2 ring-orange-400/50 bg-orange-50/10' :
-					'ring-2 ring-cyan-500/20 bg-white/10'
+					row.rank === 1 ? 'ring-3 ring-yellow-400/50' :
+					row.rank === 2 ? 'ring-2 ring-gray-300/50' :
+					row.rank === 3 ? 'ring-2 ring-orange-400/50' :
+					'ring-2 ring-cyan-500/20'
 				}`}>
-					{row.user?.avatar_url ? (
-						<img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
-					) : (
-						<span className="text-gray-400 text-xs">N/A</span>
-					)}
+					                {row.user?.avatar_url ? (
+                  <img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">{generateInitials(row.user?.full_name)}</span>
+                  </div>
+                )}
 				</div>
 				<div className="flex-1 min-w-0">
 					<button onClick={(e) => goToResume(e, row.userId)} className={`text-left truncate hover:underline font-semibold ${
@@ -332,8 +335,12 @@ export default function LeaderboardsPage() {
 					<CardContent className="p-5">
 						<div className="flex items-center gap-5">
 							<RankBadge rank={rank} />
-							<div className="w-12 h-12 rounded-full bg-white/10 overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
-								{avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : <span className="text-gray-400 text-sm">N/A</span>}
+							<div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
+								                {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : (
+                  <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">{generateInitials(name)}</span>
+                  </div>
+                )}
       </div>
 							<div className="flex-1 min-w-0">
 								<div className="text-white font-semibold truncate flex items-center gap-2">
@@ -437,7 +444,7 @@ export default function LeaderboardsPage() {
                     transition={{ delay: 0.4 }}
                     className="text-lg text-gray-300"
                   >
-                    Compete, improve, and rise to the top of our rankings 🚀
+                    Compete, improve, and rise to the top of our rankings
                   </motion.p>
                 </div>
 
@@ -470,7 +477,9 @@ export default function LeaderboardsPage() {
                       {filteredResults[1]?.user?.avatar_url ? (
                         <img src={filteredResults[1].user.avatar_url} alt={filteredResults[1].user?.full_name || filteredResults[1].userId} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-gray-400 flex items-center justify-center text-gray-700 font-bold">2</div>
+                        <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">{generateInitials(filteredResults[1]?.user?.full_name || null)}</span>
+                        </div>
                       )}
                     </div>
                     <div className="text-gray-800 font-bold text-sm text-center truncate w-full">{filteredResults[1]?.user?.full_name || filteredResults[1]?.userId}</div>
@@ -506,7 +515,9 @@ export default function LeaderboardsPage() {
                       {filteredResults[0]?.user?.avatar_url ? (
                         <img src={filteredResults[0].user.avatar_url} alt={filteredResults[0].user?.full_name || filteredResults[0].userId} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-yellow-300 flex items-center justify-center text-yellow-900 font-bold text-xl">👑</div>
+                        <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">{generateInitials(filteredResults[0]?.user?.full_name || null)}</span>
+                        </div>
                       )}
                     </div>
                     <div className="text-yellow-900 font-bold text-sm text-center truncate w-full">{filteredResults[0]?.user?.full_name || filteredResults[0]?.userId}</div>
@@ -528,7 +539,9 @@ export default function LeaderboardsPage() {
                       {filteredResults[2]?.user?.avatar_url ? (
                         <img src={filteredResults[2].user.avatar_url} alt={filteredResults[2].user?.full_name || filteredResults[2].userId} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-orange-400 flex items-center justify-center text-orange-900 font-bold">3</div>
+                        <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">{generateInitials(filteredResults[2]?.user?.full_name || null)}</span>
+                        </div>
                       )}
                     </div>
                     <div className="text-orange-900 font-bold text-sm text-center truncate w-full">{filteredResults[2]?.user?.full_name || filteredResults[2]?.userId}</div>
@@ -857,10 +870,14 @@ export default function LeaderboardsPage() {
               {/* User quick info */}
               {selectedUser && (
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
+                  <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-cyan-500/20">
                     {selectedUser.user?.avatar_url ? (
                       <img src={selectedUser.user.avatar_url} alt={selectedUser.user?.full_name || selectedUser.userId} className="w-full h-full object-cover" />
-                    ) : null}
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">{generateInitials(selectedUser.user?.full_name || null)}</span>
+                      </div>
+                    )}
                 </div>
                     <button
                     onClick={(e) => goToResume(e as any, selectedUser.userId)}
