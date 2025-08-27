@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { 
   Users, 
   Search, 
-  Filter, 
   MoreHorizontal,
   Mail,
   Calendar,
@@ -68,8 +67,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [positionFilter, setPositionFilter] = useState<string>('all')
   const [adminLevelFilter, setAdminLevelFilter] = useState<string>('all')
+  const [sortOrder, setSortOrder] = useState<string>('latest')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [togglingUsers, setTogglingUsers] = useState<Set<string>>(new Set())
@@ -126,17 +125,21 @@ export default function UsersPage() {
 
 
           const filteredUsers = users.filter(user => {
-     const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     const matchesSearch = searchTerm === '' || 
+                          user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.position?.toLowerCase().includes(searchTerm.toLowerCase())
-      
-     const matchesPosition = positionFilter === 'all' || user.position === positionFilter
+     
      const matchesAdminLevel = adminLevelFilter === 'all' || user.admin_level === adminLevelFilter
      
-     return matchesSearch && matchesPosition && matchesAdminLevel
+     return matchesSearch && matchesAdminLevel
+   }).sort((a, b) => {
+     const dateA = new Date(a.created_at).getTime()
+     const dateB = new Date(b.created_at).getTime()
+     return sortOrder === 'latest' ? dateB - dateA : dateA - dateB
    })
 
    // Pagination logic
@@ -148,7 +151,7 @@ export default function UsersPage() {
        // Reset to first page when filters change
     useEffect(() => {
       setCurrentPage(1)
-    }, [searchTerm, positionFilter, adminLevelFilter])
+    }, [searchTerm, adminLevelFilter, sortOrder])
 
 
 
@@ -361,27 +364,23 @@ export default function UsersPage() {
                  <DropdownMenu>
                    <DropdownMenuTrigger asChild>
                      <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                       {positionFilter === 'all' ? 'All Positions' : positionFilter}
+                       {sortOrder === 'latest' ? 'Latest Users' : 'Oldest Users'}
                        <ChevronDown className="ml-2 h-4 w-4" />
                      </Button>
                    </DropdownMenuTrigger>
                    <DropdownMenuContent className="bg-gray-800 border-white/10">
                      <DropdownMenuItem 
-                       onClick={() => setPositionFilter('all')}
+                       onClick={() => setSortOrder('latest')}
                        className="text-white hover:bg-white/10"
                      >
-                       All Positions
+                       Latest Users
                      </DropdownMenuItem>
-                     <DropdownMenuSeparator className="bg-white/10" />
-                     {Array.from(new Set(users.map(u => u.position).filter(Boolean))).map(position => (
-                       <DropdownMenuItem 
-                         key={position} 
-                         onClick={() => setPositionFilter(position || 'all')}
-                         className="text-white hover:bg-white/10"
-                       >
-                         {position}
-                       </DropdownMenuItem>
-                     ))}
+                     <DropdownMenuItem 
+                       onClick={() => setSortOrder('oldest')}
+                       className="text-white hover:bg-white/10"
+                     >
+                       Oldest Users
+                     </DropdownMenuItem>
                    </DropdownMenuContent>
                  </DropdownMenu>
 
@@ -415,10 +414,7 @@ export default function UsersPage() {
                    </DropdownMenuContent>
                  </DropdownMenu>
 
-                 <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                   <Filter className="w-4 h-4 mr-2" />
-                   More Filters
-                 </Button>
+                 
                </div>
             </div>
           </CardContent>

@@ -509,7 +509,7 @@ export default function SavedResumePage() {
   
 
   
-
+  
   const [resume, setResume] = useState<SavedResume | null>(null);
 
 
@@ -692,10 +692,10 @@ export default function SavedResumePage() {
 
 
 
-  
+
 
   
-
+  
   // Navigation state
 
 
@@ -1012,7 +1012,7 @@ export default function SavedResumePage() {
         
 
         
-
+        
         if (!response.ok) {
 
 
@@ -1563,10 +1563,10 @@ export default function SavedResumePage() {
 
 
 
-      
+
 
       
-
+      
       // Wait for any animations to complete
 
 
@@ -1579,10 +1579,10 @@ export default function SavedResumePage() {
 
 
 
-      
+
 
       
-
+      
       // Wait for fonts to load
 
 
@@ -1595,20 +1595,20 @@ export default function SavedResumePage() {
 
 
 
-      
+
 
       
-
+      
       console.log('Capturing resume content...');
 
 
 
 
 
-      
+
 
       
-
+      
       const canvas = await html2canvas(element, {
 
 
@@ -1760,7 +1760,7 @@ export default function SavedResumePage() {
             
 
             
-
+            
             // Remove any animations or transforms from all child elements
 
 
@@ -1838,7 +1838,7 @@ export default function SavedResumePage() {
       
 
       
-
+      
       // Calculate dimensions
 
 
@@ -1859,20 +1859,20 @@ export default function SavedResumePage() {
 
 
 
-      
+
 
       
-
+      
       console.log('PDF dimensions:', imgWidth, 'x', imgHeight, 'mm');
 
 
 
 
 
-      
+
 
       
-
+      
       // Add first page
 
 
@@ -1883,10 +1883,10 @@ export default function SavedResumePage() {
 
 
 
-      
+
 
       
-
+      
       // Add additional pages if content is longer than one page
 
 
@@ -1905,10 +1905,10 @@ export default function SavedResumePage() {
 
 
 
-      
+
 
       
-
+      
       while (heightLeft >= pageHeight) {
 
 
@@ -2027,10 +2027,10 @@ export default function SavedResumePage() {
 
 
 
-    
+
 
     
-
+    
     switch (platform) {
 
 
@@ -2231,10 +2231,10 @@ export default function SavedResumePage() {
 
 
 
-    
+
 
     
-
+    
     // Close dropdown after sharing
 
 
@@ -2527,10 +2527,10 @@ export default function SavedResumePage() {
 
 
 
-          
+
 
           
-
+          
           {/* Starfield */}
 
 
@@ -2619,10 +2619,10 @@ export default function SavedResumePage() {
 
 
 
-          
+
 
           
-
+          
           {/* Floating Space Debris */}
 
 
@@ -2662,7 +2662,7 @@ export default function SavedResumePage() {
           
 
           
-
+          
           {/* Energy Orbs */}
 
 
@@ -2693,10 +2693,10 @@ export default function SavedResumePage() {
 
 
 
-          
+
 
           
-
+          
           {/* Cosmic Grid */}
 
 
@@ -2717,10 +2717,10 @@ export default function SavedResumePage() {
 
 
 
-          
+
 
           
-
+          
           {/* Wormhole Effect */}
 
 
@@ -2759,10 +2759,10 @@ export default function SavedResumePage() {
 
 
 
-          
+
 
           
-
+          
           {/* Energy Waves */}
 
 
@@ -2787,10 +2787,10 @@ export default function SavedResumePage() {
 
 
 
-        
+
 
         
-
+        
         <Header />
 
 
@@ -2878,7 +2878,7 @@ export default function SavedResumePage() {
                   
 
                   
-
+                  
                   {/* Floating energy particles */}
 
 
@@ -2915,10 +2915,10 @@ export default function SavedResumePage() {
 
 
 
-                
+
 
                 
-
+                
                 {/* Enhanced Text with Glow Effect */}
 
 
@@ -3041,10 +3041,10 @@ export default function SavedResumePage() {
 
 
 
-        
+
 
         
-
+        
         <Header />
 
 
@@ -3203,10 +3203,10 @@ export default function SavedResumePage() {
 
 
 
-        
+
 
         
-
+        
         <Header />
 
 
@@ -3382,31 +3382,22 @@ export default function SavedResumePage() {
       
 
       
-
+      
       <Header />
+      
+
+      
+
 
       
 
 
 
-      
-
-
-
-      <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-4 gap-8">
-            {/* Navigation Sidebar */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-1"
-            >
-              <Card className="glass-card border-white/10 sticky top-24">
-                <CardContent className="p-0">
+        {/* Fixed Sidebar */}
+      <div className="h-[calc(100vh-16rem)] fixed left-0 top-32 w-64 glass-card border-r border-white/10 overflow-y-auto z-40 rounded-r-lg">
+            <div className="p-6">
                   {/* Profile Section */}
-
-                  <div className="flex flex-col items-center mb-6 p-6">
+          <div className="flex flex-col items-center mb-6">
                     <div className="relative">
 
                       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 p-0.5">
@@ -3432,26 +3423,28 @@ export default function SavedResumePage() {
                   </div>
 
                         </div>
-
+                        
                         </div>
-
+                        
                     <h3 className="text-lg font-bold text-white mt-4 text-center">
                       {resume?.user?.fullName || 'User Name'}
 
                     </h3>
+            {/* Divider line */}
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mt-4"></div>
                         </div>
-
+                        
 
 
                   {/* Navigation */}
 
                   <nav className="space-y-2">
                     {[
-                      { id: 'profile', label: 'Profile', icon: User, description: 'Personal information' },
-                      { id: 'resume', label: 'Resume', icon: FileText, description: 'View resume content' },
-                      { id: 'work-status', label: 'Work Status', icon: Briefcase, description: 'Employment status' },
-                      { id: 'analysis', label: 'AI Analysis', icon: BarChart3, description: 'Resume insights' },
-                      { id: 'career-games', label: 'Career Games', icon: Gamepad2, description: 'Game results' },
+                      { id: 'profile', label: 'Profile', icon: User, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', description: 'Personal information' },
+                      { id: 'resume', label: 'Resume', icon: FileText, color: 'text-blue-400', bgColor: 'bg-blue-500/10', description: 'View resume content' },
+                      { id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', description: 'Employment status' },
+                      { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', description: 'Resume insights' },
+                      { id: 'career-games', label: 'Career Games', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', description: 'Game results' },
                     ].map((item) => {
 
                       const Icon = item.icon;
@@ -3459,7 +3452,7 @@ export default function SavedResumePage() {
                       const isActive = activeSection === item.id;
 
                       
-
+                      
                       return (
 
                         <button
@@ -3474,8 +3467,8 @@ export default function SavedResumePage() {
                               : 'hover:bg-white/5'
                           }`}
                         >
-                          <div className={`w-8 h-8 ${isActive ? 'bg-cyan-500/20' : 'bg-white/10'} rounded-lg flex items-center justify-center`}>
-                            <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-white'}`} />
+                          <div className={`w-8 h-8 ${item.bgColor} rounded-lg flex items-center justify-center`}>
+                            <Icon className={`w-4 h-4 ${item.color}`} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className={`font-medium ${isActive ? 'text-white' : 'text-gray-300'}`}>{item.label}</div>
@@ -3492,17 +3485,12 @@ export default function SavedResumePage() {
                     })}
 
                   </nav>
-
-                </CardContent>
-
-              </Card>
-
-            </motion.div>
-
-
-
-            {/* Main Content */}
-            <div className="lg:col-span-3">
+              </div>
+            </div>
+            
+      {/* Main Content */}
+      <div className="ml-64 pt-16 relative z-10">
+        <div className="container mx-auto px-6 py-8">
             {/* Mobile Menu Button */}
 
 
@@ -3994,7 +3982,6 @@ export default function SavedResumePage() {
 
 
             {/* Content Sections */}
-
                 <motion.div
 
 
@@ -4045,7 +4032,7 @@ export default function SavedResumePage() {
 
 
 
-                 <div className="max-w-6xl w-full mx-auto">
+                 <div className="max-w-6xl w-full">
 
 
 
@@ -4069,7 +4056,7 @@ export default function SavedResumePage() {
 
                           <div className="flex items-center justify-center w-16 h-16">
 
-                            <Briefcase className="w-8 h-8 text-cyan-400" />
+                            <Briefcase className="w-8 h-8 text-green-400" />
 
                           </div>
 
@@ -4273,10 +4260,10 @@ export default function SavedResumePage() {
 
 
 
-                         
+
 
                          
-
+                         
                          {/* Current Employment Section */}
 
 
@@ -4321,10 +4308,10 @@ export default function SavedResumePage() {
 
 
 
-                                 
+
 
                                  
-
+                                 
                                  {/* Current Employer */}
 
 
@@ -4444,7 +4431,7 @@ export default function SavedResumePage() {
                                  
 
                                  
-
+                                 
                                  {/* Current Position */}
 
 
@@ -4566,7 +4553,7 @@ export default function SavedResumePage() {
                                  
 
                                  
-
+                                 
                                  {/* Current Salary */}
 
 
@@ -4699,10 +4686,10 @@ export default function SavedResumePage() {
 
 
 
-                                 
+
 
                                  
-
+                                 
                                  {/* Notice Period */}
 
 
@@ -4842,7 +4829,7 @@ export default function SavedResumePage() {
                          
 
                          
-
+                         
                          {/* Career Goals & Satisfaction Section */}
 
 
@@ -4892,7 +4879,7 @@ export default function SavedResumePage() {
                                  
 
                                  
-
+                                 
                                  {/* Salary Goal */}
 
 
@@ -5025,10 +5012,10 @@ export default function SavedResumePage() {
 
 
 
-                                 
+
 
                                  
-
+                                 
                                  {/* Mood at Current Employer */}
 
 
@@ -5265,10 +5252,10 @@ export default function SavedResumePage() {
 
 
 
-                                 
+
 
                                  
-
+                                 
                                  {/* Work Status */}
 
 
@@ -5541,10 +5528,10 @@ export default function SavedResumePage() {
 
 
 
-                                 
+
 
                                  
-
+                                 
                                  {/* Employment Type */}
 
 
@@ -5802,7 +5789,7 @@ export default function SavedResumePage() {
                        
 
                        
-
+                       
                        {/* Fun Status Summary */}
 
 
@@ -5997,7 +5984,7 @@ export default function SavedResumePage() {
 
 
 
-                     <div className="max-w-6xl w-full mx-auto">
+                     <div className="max-w-6xl w-full">
 
                        {/* Resume Header with User Info and Actions */}
 
@@ -6021,7 +6008,7 @@ export default function SavedResumePage() {
 
                                <div className="flex items-center gap-3 mb-3">
 
-                                 <FileText className="w-8 h-8 text-cyan-400" />
+                                 <FileText className="w-8 h-8 text-blue-400" />
 
                                  <div>
 
@@ -6040,7 +6027,7 @@ export default function SavedResumePage() {
                              </div>
 
                              
-
+                             
                              <div className="flex flex-col sm:flex-row gap-3 relative z-10">
 
                                {isOwner ? (
@@ -6104,7 +6091,7 @@ export default function SavedResumePage() {
                                  <ChevronDown className="h-4 w-4 ml-2" />
 
                                  
-
+                                 
                                  {/* Share Dropdown Menu */}
 
                                  {isShareOpen && (
@@ -6134,7 +6121,7 @@ export default function SavedResumePage() {
                                        )}
 
                                        
-
+                                       
                                        {/* Facebook */}
 
                                        <div
@@ -6152,7 +6139,7 @@ export default function SavedResumePage() {
                                        </div>
 
                                        
-
+                                       
                                        {/* X (Twitter) */}
 
                                        <div
@@ -6170,7 +6157,7 @@ export default function SavedResumePage() {
                                        </div>
 
                                        
-
+                                       
                                        {/* LinkedIn */}
 
                                        <div
@@ -6188,7 +6175,7 @@ export default function SavedResumePage() {
                                        </div>
 
                                        
-
+                                       
                                        {/* Instagram */}
 
                                        <div
@@ -6206,7 +6193,7 @@ export default function SavedResumePage() {
                                        </div>
 
                                        
-
+                                       
                                        {/* Copy URL */}
 
                                        <div
@@ -7927,7 +7914,7 @@ export default function SavedResumePage() {
 
 
 
-                <div className="max-w-6xl w-full mx-auto">
+                                     <div className="max-w-6xl w-full">
 
 
 
@@ -7951,7 +7938,7 @@ export default function SavedResumePage() {
 
                           <div className="flex items-center justify-center w-16 h-16">
 
-                            <BarChart3 className="w-8 h-8 text-cyan-400" />
+                            <BarChart3 className="w-8 h-8 text-purple-400" />
 
                           </div>
 
@@ -8571,10 +8558,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {Array.isArray(analysis.careerPath?.nextCareerSteps) && analysis.careerPath.nextCareerSteps.length > 0 && (
 
 
@@ -8667,10 +8654,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {Array.isArray(analysis.careerPath?.skillGaps) && analysis.careerPath.skillGaps.length > 0 && (
 
 
@@ -8745,10 +8732,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {analysis.careerPath?.timeline && (
 
 
@@ -8784,7 +8771,7 @@ export default function SavedResumePage() {
                             
 
                             
-
+                            
                             {analysis.careerPath?.timelineDetails && (
 
 
@@ -8822,7 +8809,7 @@ export default function SavedResumePage() {
                             
 
                             
-
+                            
                             {analysis.careerPath?.marketPosition && (
 
 
@@ -8859,10 +8846,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {analysis.careerPath?.growthPotential && (
 
 
@@ -9015,10 +9002,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {Array.isArray(analysis.strengthsAnalysis?.technicalStrengths) && analysis.strengthsAnalysis.technicalStrengths.length > 0 && (
 
 
@@ -9093,10 +9080,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {Array.isArray(analysis.strengthsAnalysis?.softSkills) && analysis.strengthsAnalysis.softSkills.length > 0 && (
 
 
@@ -9174,7 +9161,7 @@ export default function SavedResumePage() {
                             
 
                             
-
+                            
                             {Array.isArray(analysis.strengthsAnalysis?.achievements) && analysis.strengthsAnalysis.achievements.length > 0 && (
 
 
@@ -9254,7 +9241,7 @@ export default function SavedResumePage() {
                             
 
                             
-
+                            
                             {Array.isArray(analysis.strengthsAnalysis?.marketAdvantage) && analysis.strengthsAnalysis.marketAdvantage.length > 0 && (
 
 
@@ -9329,10 +9316,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {analysis.strengthsAnalysis?.uniqueValue && (
 
 
@@ -9365,10 +9352,10 @@ export default function SavedResumePage() {
 
 
 
-                            
+
 
                             
-
+                            
                             {analysis.strengthsAnalysis?.competitiveEdge && (
 
 
@@ -9485,10 +9472,10 @@ export default function SavedResumePage() {
 
 
 
-                               
+
 
                                
-
+                               
                                {analysis.salaryAnalysis?.recommendedSalaryRange && (
 
 
@@ -9551,10 +9538,10 @@ export default function SavedResumePage() {
 
 
 
-                               
+
 
                                
-
+                               
                                {Array.isArray(analysis.salaryAnalysis?.factorsAffectingSalary) && analysis.salaryAnalysis.factorsAffectingSalary.length > 0 && (
 
 
@@ -9629,10 +9616,10 @@ export default function SavedResumePage() {
 
 
 
-                               
+
 
                                
-
+                               
                                {Array.isArray(analysis.salaryAnalysis?.negotiationTips) && analysis.salaryAnalysis.negotiationTips.length > 0 && (
 
 
@@ -9708,7 +9695,7 @@ export default function SavedResumePage() {
                                
 
                                
-
+                               
                                {analysis.salaryAnalysis?.marketComparison && (
 
 
@@ -9745,10 +9732,10 @@ export default function SavedResumePage() {
 
 
 
-                               
+
 
                                
-
+                               
                                {analysis.salaryAnalysis?.growthProjection && (
 
 
@@ -9783,10 +9770,10 @@ export default function SavedResumePage() {
 
 
 
-                               
+
 
                                
-
+                               
                                {analysis.salaryAnalysis?.industryBenchmark && (
 
 
@@ -9831,10 +9818,10 @@ export default function SavedResumePage() {
 
 
 
-                       
+
 
                        
-
+                       
                                                <div className="lg:col-span-3">
 
 
@@ -9933,10 +9920,10 @@ export default function SavedResumePage() {
 
 
 
-                                  
+
 
                                   
-
+                                  
                                   {sectionData?.issues && Array.isArray(sectionData.issues) && sectionData.issues.length > 0 && (
 
 
@@ -10011,10 +9998,10 @@ export default function SavedResumePage() {
 
 
 
-                                  
+
 
                                   
-
+                                  
                                   {sectionData?.reasons && Array.isArray(sectionData.reasons) && sectionData.reasons.length > 0 && (
 
 
@@ -10089,10 +10076,10 @@ export default function SavedResumePage() {
 
 
 
-                                  
+
 
                                   
-
+                                  
                                   {sectionData?.improvements && Array.isArray(sectionData.improvements) && sectionData.improvements.length > 0 && (
 
 
@@ -10170,7 +10157,7 @@ export default function SavedResumePage() {
                                   
 
                                   
-
+                                  
                                   {(!sectionData?.issues && !sectionData?.reasons && !sectionData?.improvements) && (
 
 
@@ -10281,7 +10268,7 @@ export default function SavedResumePage() {
 
 
 
-                <div className="max-w-6xl w-full mx-auto">
+                                     <div className="max-w-6xl w-full">
 
 
 
@@ -10305,7 +10292,7 @@ export default function SavedResumePage() {
 
                           <div className="flex items-center justify-center w-16 h-16">
 
-                            <Gamepad2 className="w-8 h-8 text-cyan-400" />
+                            <Gamepad2 className="w-8 h-8 text-yellow-400" />
 
                           </div>
 
@@ -10489,7 +10476,7 @@ export default function SavedResumePage() {
                             <div className="text-center py-4 text-gray-400 text-sm">
                               <div className="text-2xl mb-1">🎯</div>
                               No recent session found
-                            </div>
+                          </div>
 
 
 
@@ -10816,9 +10803,9 @@ export default function SavedResumePage() {
                                     ))}
                                   </div>
 
-                                </div>
+                                  </div>
 
-                              </div>
+                                </div>
 
 
 
@@ -11074,7 +11061,7 @@ export default function SavedResumePage() {
 
 
 
-                                </div>
+                              </div>
 
 
 
@@ -11265,7 +11252,7 @@ export default function SavedResumePage() {
                                     <div className="flex justify-between">
                                       <span className="text-gray-400">🎯 Recommendation:</span>
                                       <span className="text-green-300 font-semibold">{ultimateStats.last_recommendation}</span>
-                                    </div>
+                              </div>
                                   )}
                               {ultimateStats.last_client_value && (
 
@@ -11330,7 +11317,7 @@ export default function SavedResumePage() {
                                   <div className="flex justify-between">
                                     <span className="text-gray-400">👥 Team Morale:</span>
                                     <span className="text-blue-300 font-semibold">{ultimateStats.latest_competencies.teamMorale ?? ultimateStats.latest_competencies.team_morale ?? '—'}</span>
-                                  </div>
+                              </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-400">🤝 Client Trust:</span>
                                     <span className="text-green-300 font-semibold">{ultimateStats.latest_competencies.clientTrust ?? ultimateStats.latest_competencies.client_trust ?? '—'}</span>
@@ -11422,7 +11409,7 @@ export default function SavedResumePage() {
                             <div className="text-6xl mb-2">👑</div>
                             <div className="text-gray-400">No Ultimate data yet</div>
                             <div className="text-red-400/60 text-sm mt-1">Take on the ultimate business challenge!</div>
-                          </div>
+                                </div>
 
 
 
@@ -11510,7 +11497,7 @@ export default function SavedResumePage() {
 
                   {activeSection === 'profile' && (
 
-                    <div className="max-w-6xl w-full mx-auto">
+                    <div className="max-w-6xl w-full">
 
                                      {/* Profile Header */}
 
@@ -11665,14 +11652,7 @@ export default function SavedResumePage() {
 
 
 
-        </motion.div>
-
-            </div>
-          </div>
-
-        </div>
-
-
+          </motion.div>
 
         {/* Export Progress Overlay */}
 
@@ -11761,14 +11741,9 @@ export default function SavedResumePage() {
 
 
         )}
-
+        </div>
       </div>
-
-    </div>
-
-
-
-
+      </div>
 
   );
 

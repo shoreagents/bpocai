@@ -274,6 +274,29 @@
       translate: none !important;
       animation: none !important;
     }
+
+    /* Disable hover effects for profile card */
+    .profile-card-no-hover,
+    .profile-card-no-hover:hover {
+      transform: none !important;
+      transition: border-color 0.2s ease !important;
+      scale: 1 !important;
+      translate: none !important;
+      animation: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+      backdrop-filter: blur(16px) !important;
+    }
+    
+    .profile-card-no-hover *,
+    .profile-card-no-hover:hover * {
+      transform: none !important;
+      scale: 1 !important;
+      translate: none !important;
+      animation: none !important;
+      filter: none !important;
+      backdrop-filter: none !important;
+    }
   
   .glass-button {
     background: rgba(255, 255, 255, 0.1);

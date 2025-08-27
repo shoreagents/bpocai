@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 import { 
-  Camera,
   Edit3,
   Loader2
 } from 'lucide-react';
@@ -384,7 +383,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
       transition={{ delay: 0.1 }}
       className={className}
     >
-      <Card className="glass-card border-white/10">
+      <Card className="glass-card border-white/10 profile-card-no-hover">
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Profile Picture */}
@@ -414,19 +413,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                   </div>
                 )}
               </div>
-              {showEditButton && user?.id === targetUserId && (
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={photoUploading}
-                  className="absolute -bottom-2 -right-2 w-10 h-10 bg-cyan-500 disabled:bg-gray-500 rounded-full flex items-center justify-center transition-colors"
-                >
-                  {photoUploading ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
-                  ) : (
-                    <Camera className="w-5 h-5 text-white" />
-                  )}
-                </button>
-              )}
+
               <input
                 ref={fileInputRef}
                 type="file"

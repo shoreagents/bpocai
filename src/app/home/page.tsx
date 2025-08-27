@@ -38,7 +38,7 @@ import {
   Medal,
   Award
 } from 'lucide-react'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber, generateInitials } from '@/lib/utils'
 
 export default function HomePage() {
   const router = useRouter()
@@ -836,15 +836,17 @@ export default function HomePage() {
                         <TableCell>
                           <div className="flex items-center gap-3 min-w-0">
                             <div className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center ${
-                              row.rank === 1 ? 'ring-3 ring-yellow-400/50 bg-yellow-50/10' :
-                              row.rank === 2 ? 'ring-2 ring-gray-300/50 bg-gray-50/10' :
-                              row.rank === 3 ? 'ring-2 ring-orange-400/50 bg-orange-50/10' :
-                              'ring-2 ring-cyan-500/20 bg-white/10'
+                              row.rank === 1 ? 'ring-3 ring-yellow-400/50' :
+                              row.rank === 2 ? 'ring-2 ring-gray-300/50' :
+                              row.rank === 3 ? 'ring-2 ring-orange-400/50' :
+                              'ring-2 ring-cyan-500/20'
                             }`}>
                               {row.user?.avatar_url ? (
                                 <img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
                               ) : (
-                                <span className="text-gray-400 text-xs">N/A</span>
+                                <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">{generateInitials(row.user?.full_name || null)}</span>
+                                </div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">

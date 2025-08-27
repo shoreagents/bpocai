@@ -23,6 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { 
   BarChart3, 
   TrendingUp, 
@@ -37,13 +44,12 @@ import {
   Trophy,
   RefreshCw,
   Eye,
-  Download,
-  Filter,
   Search,
   X,
   Star,
   TrendingDown,
-  Award
+  Award,
+  ChevronDown
 } from 'lucide-react'
 
 interface Analysis {
@@ -71,6 +77,7 @@ export default function AnalysisPage() {
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [scoreFilter, setScoreFilter] = useState<string>('all')
   const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null)
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -117,12 +124,18 @@ export default function AnalysisPage() {
     fetchAnalyses()
   }, [])
 
-  // Filter analyses based on search term
+  // Filter analyses based on search term and score filter
   const filteredAnalyses = analyses.filter((analysis) => {
     const matchesSearch = 
       analysis.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       analysis.user_email.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
+    
+    const matchesScore = scoreFilter === 'all' || 
+      (scoreFilter === 'excellent' && analysis.overall_score >= 80) ||
+      (scoreFilter === 'good' && analysis.overall_score >= 60 && analysis.overall_score < 80) ||
+      (scoreFilter === 'needs-improvement' && analysis.overall_score < 60)
+    
+    return matchesSearch && matchesScore
   })
 
   // Pagination logic
@@ -134,7 +147,7 @@ export default function AnalysisPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm])
+  }, [searchTerm, scoreFilter])
 
   const refreshAnalyses = async () => {
     try {
@@ -319,14 +332,44 @@ export default function AnalysisPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
-                <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="border-transparent text-white hover:bg-white/10">
+                      {scoreFilter === 'all' ? 'All Scores' : 
+                       scoreFilter === 'excellent' ? 'Excellent (80+)' :
+                       scoreFilter === 'good' ? 'Good (60-79)' :
+                       'Needs Improvement (&lt;60)'}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-gray-800 border-white/10">
+                    <DropdownMenuItem 
+                      onClick={() => setScoreFilter('all')}
+                      className="text-white hover:bg-white/10"
+                    >
+                      All Scores
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem 
+                      onClick={() => setScoreFilter('excellent')}
+                      className="text-white hover:bg-white/10"
+                    >
+                      Excellent (80+)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setScoreFilter('good')}
+                      className="text-white hover:bg-white/10"
+                    >
+                      Good (60-79)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setScoreFilter('needs-improvement')}
+                      className="text-white hover:bg-white/10"
+                    >
+                      Needs Improvement (&lt;60)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700" onClick={refreshAnalyses}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh

@@ -300,7 +300,7 @@ export default function Page() {
               </div>
               
               <Select value={priorityFilter} onValueChange={(value: any) => setPriorityFilter(value)}>
-                <SelectTrigger className="w-40 bg-white/5 border-white/20 text-white">
+                <SelectTrigger className="w-40 bg-white/5 border-transparent text-white focus:border-transparent focus:ring-0">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">
@@ -312,7 +312,7 @@ export default function Page() {
               </Select>
 
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-48 bg-white/5 border-white/20 text-white">
+                <SelectTrigger className="w-48 bg-white/5 border-transparent text-white focus:border-transparent focus:ring-0">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700">

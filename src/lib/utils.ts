@@ -4048,3 +4048,29 @@ export function cleanupLocalStorageOnSignOut() {
     console.error('❌ Error during sign out cleanup:', error);
   }
 }
+
+/**
+ * Generate initials from a full name
+ * @param fullName - The full name to generate initials from
+ * @returns Initials (e.g., "Juan Dela Cruz" -> "JDC")
+ */
+export function generateInitials(fullName: string | null): string {
+  if (!fullName || typeof fullName !== 'string') {
+    return 'U'; // Default for unknown users
+  }
+  
+  // Split by spaces and filter out empty strings
+  const nameParts = fullName.trim().split(/\s+/).filter(part => part.length > 0);
+  
+  if (nameParts.length === 0) {
+    return 'U';
+  }
+  
+  if (nameParts.length === 1) {
+    // Single name - return first two letters if available
+    return nameParts[0].substring(0, 2).toUpperCase();
+  }
+  
+  // Multiple names - take first letter of each part
+  return nameParts.map(part => part.charAt(0).toUpperCase()).join('');
+}
