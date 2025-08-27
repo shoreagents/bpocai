@@ -44,6 +44,7 @@ const platformItems: SidebarItem[] = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
   { title: 'Users', icon: Users, href: '/admin/users' },
   { title: 'Resumes', icon: FileText, href: '/admin/resumes' },
+  { title: 'Work Status', icon: ClipboardList, href: '/admin/work-statuses' },
   { title: 'Analysis', icon: BarChart3, href: '/admin/analysis' },
   { title: 'Jobs', icon: Briefcase, href: '/admin/jobs' },
   { title: 'Applicants', icon: Users, href: '/admin/applicants' },
@@ -101,6 +102,7 @@ export default function AdminLayout({
 }: AdminLayoutProps) {
   const { user } = useAuth()
   const { adminUser: contextAdminUser } = useAdmin()
+  const router = useRouter()
   
   // Use adminUser from props if provided, otherwise use from context
   const currentAdminUser = adminUser || contextAdminUser
@@ -229,23 +231,34 @@ export default function AdminLayout({
               "flex items-center mb-6",
               sidebarMinimized ? "justify-center" : "space-x-2"
             )}>
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              {!sidebarMinimized && (
-                <div className="flex items-center space-x-2">
-                  <div>
-                    <h2 className="text-lg font-bold gradient-text">Admin Panel</h2>
-                    <p className="text-xs text-gray-400">BPOC.IO Management</p>
-                  </div>
-                  <button
-                    onClick={() => setSidebarMinimized(!sidebarMinimized)}
-                    className="p-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/10"
-                    title="Minimize sidebar"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-gray-300 hover:text-white" />
-                  </button>
+              <button
+                type="button"
+                onClick={() => router.push('/home')}
+                className={cn(
+                  "flex items-center",
+                  sidebarMinimized ? "justify-center" : "space-x-2",
+                  "group cursor-pointer select-none"
+                )}
+                title="Go to Home"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
+                {!sidebarMinimized && (
+                  <div>
+                    <h2 className="text-lg font-bold gradient-text">BPOC.IO</h2>
+                    <p className="text-xs text-gray-400">Admin Panel</p>
+                  </div>
+                )}
+              </button>
+              {!sidebarMinimized && (
+                <button
+                  onClick={() => setSidebarMinimized(!sidebarMinimized)}
+                  className="p-1.5 rounded-md hover:bg-white/10 transition-colors border border-white/10 ml-auto"
+                  title="Minimize sidebar"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-300 hover:text-white" />
+                </button>
               )}
             </div>
 
