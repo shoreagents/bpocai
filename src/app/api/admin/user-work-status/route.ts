@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
         uws.current_position,
         uws.current_salary,
         uws.notice_period_days,
-        uws.salary_goal,
+        uws.expected_salary,
         uws.current_mood,
         uws.work_status,
-        uws.employment_type,
+        uws.preferred_shift,
         uws.created_at,
         uws.updated_at
       FROM user_work_status uws
@@ -72,10 +72,10 @@ export async function GET(request: NextRequest) {
       currentPosition: r.current_position,
       currentSalary: r.current_salary,
       noticePeriodDays: r.notice_period_days,
-      salaryGoal: r.salary_goal,
+      expectedSalary: r.expected_salary,
       currentMood: r.current_mood,
       workStatus: r.work_status,
-      employmentType: r.employment_type,
+      preferredShift: r.preferred_shift,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     }))

@@ -652,7 +652,25 @@ export default function SavedResumePage() {
 
 
 
-  const [salaryGoal, setSalaryGoal] = useState<string>('');
+  const [expectedSalary, setExpectedSalary] = useState<string>('');
+  const [minSalary, setMinSalary] = useState<string>('');
+  const [maxSalary, setMaxSalary] = useState<string>('');
+  const [salaryValidationError, setSalaryValidationError] = useState<string>('');
+
+  // Real-time salary validation function
+  const validateSalaryRange = (min: string, max: string) => {
+    if (min && max) {
+      const minVal = parseFloat(min.replace(/,/g, ''))
+      const maxVal = parseFloat(max.replace(/,/g, ''))
+      if (minVal > maxVal) {
+        setSalaryValidationError('Minimum salary cannot be larger than maximum salary.')
+      } else {
+        setSalaryValidationError('')
+      }
+    } else {
+      setSalaryValidationError('')
+    }
+  }
 
 
 
@@ -670,7 +688,21 @@ export default function SavedResumePage() {
 
 
 
-  const [employmentType, setEmploymentType] = useState<string>('');
+  const [preferredShift, setPreferredShift] = useState<string>('');
+
+  // Centralized Work Status options (update here to reflect DB enum values)
+  const WORK_STATUS_OPTIONS: Array<{ value: string; label: string; icon: string }> = [
+    { value: 'employed', label: 'Employed', icon: '💼' },
+    { value: 'unemployed-looking-for-work', label: 'Unemployed (Looking for Work)', icon: '🔍' },
+    { value: 'freelancer', label: 'Freelancer/Contractor', icon: '🆓' },
+    { value: 'part-time', label: 'Part-time', icon: '⏰' },
+    { value: 'on-leave', label: 'On Leave', icon: '🏖️' },
+    { value: 'retired', label: 'Retired', icon: '🎯' },
+    { value: 'student', label: 'Student', icon: '🎓' },
+    { value: 'career-break', label: 'Career Break', icon: '⏸️' },
+    { value: 'transitioning', label: 'Transitioning', icon: '🔄' },
+    { value: 'remote-worker', label: 'Remote Worker', icon: '🏠' },
+  ];
 
 
 
@@ -1477,13 +1509,35 @@ export default function SavedResumePage() {
 
           setNoticePeriod(typeof data.workStatus.noticePeriod === 'number' ? data.workStatus.noticePeriod : (data.workStatus.noticePeriod ? parseInt(String(data.workStatus.noticePeriod)) : null))
 
-          setSalaryGoal(data.workStatus.salaryGoal || '')
+          // Parse expected salary string like "P1000-5000" into min and max
+          const expectedSal = data.workStatus.expectedSalary || ''
+          setExpectedSalary(expectedSal)
+          
+          // Clear previous values first
+          setMinSalary('')
+          setMaxSalary('')
+          
+          if (expectedSal && expectedSal.includes('-')) {
+            // Handle both formats: "P1000-P5000" and "P1000-5000"
+            const parts = expectedSal.split('-')
+            const min = parts[0]?.replace('P', '').trim() || ''
+            const max = parts[1]?.replace('P', '').trim() || ''
+            setMinSalary(min)
+            setMaxSalary(max)
+            console.log('Parsed salary range:', { expectedSal, min, max })
+          } else if (expectedSal) {
+            // Single value case
+            const cleanSal = expectedSal.replace('P', '')
+            setMinSalary(cleanSal.trim())
+            setMaxSalary('')
+            console.log('Parsed single salary:', { expectedSal, min: cleanSal.trim() })
+          }
 
           setCurrentMood(data.workStatus.currentMood || '')
 
           setWorkStatus(data.workStatus.workStatus || '')
 
-          setEmploymentType(data.workStatus.employmentType || '')
+          setPreferredShift(data.workStatus.preferredShift || '')
 
         }
 
@@ -2423,11 +2477,32 @@ export default function SavedResumePage() {
 
       setSavingWorkStatus(true)
 
+      // Prevent saving if there's a validation error
+      if (salaryValidationError) {
+        return
+      }
+      
+      // Final validation check before saving
+      if (minSalary && maxSalary) {
+        const minVal = parseFloat(minSalary.replace(/,/g, ''))
+        const maxVal = parseFloat(maxSalary.replace(/,/g, ''))
+        if (minVal > maxVal) {
+          setSalaryValidationError('Minimum salary cannot be larger than maximum salary.')
+          return
+        }
+      }
+
       const parsedNotice = typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null)
 
       const parsedCurrentSalary = currentSalary ? parseFloat(currentSalary as unknown as string) : null
 
-      const parsedSalaryGoal = salaryGoal ? parseFloat(salaryGoal as unknown as string) : null
+      // Format expected salary as string range
+      let formattedExpectedSalary = null
+      if (minSalary && maxSalary) {
+        formattedExpectedSalary = `P${minSalary}-P${maxSalary}`
+      } else if (minSalary) {
+        formattedExpectedSalary = `P${minSalary}`
+      }
 
       const res = await fetch('/api/user/work-status', {
 
@@ -2447,19 +2522,25 @@ export default function SavedResumePage() {
 
           noticePeriod: parsedNotice,
 
-          salaryGoal: parsedSalaryGoal,
+          expectedSalary: formattedExpectedSalary,
 
           currentMood,
 
           workStatus,
 
-          employmentType,
+          preferredShift,
 
         })
 
       })
 
       if (!res.ok) throw new Error(`Failed: ${res.status}`)
+
+      // Update local state immediately after successful save
+      setExpectedSalary(formattedExpectedSalary || '')
+      
+      // Optional: Show success message briefly
+      // alert('Work status saved successfully!')
 
     } catch (e) {
 
@@ -4105,11 +4186,7 @@ export default function SavedResumePage() {
 
 
                            <Button 
-
-
-
-
-
+                             disabled={isEditMode && salaryValidationError !== ''}
                              onClick={async () => {
 
                                if (isEditMode) {
@@ -4129,24 +4206,11 @@ export default function SavedResumePage() {
 
 
                              className={`transition-all duration-300 ${
-
-
-
-
-
-                               isEditMode 
-
-
-
-
-
-                                 ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
-
-
-
-
-
-                                 : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
+                               (isEditMode && salaryValidationError) 
+                                 ? 'bg-gray-500 hover:bg-gray-500 cursor-not-allowed opacity-50'
+                                 : isEditMode 
+                                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
+                                   : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700'
 
 
 
@@ -4182,7 +4246,7 @@ export default function SavedResumePage() {
 
 
 
-                                 Save Changes
+                                 {salaryValidationError ? 'Fix Errors to Save' : 'Save Changes'}
 
 
 
@@ -4880,7 +4944,7 @@ export default function SavedResumePage() {
 
                                  
                                  
-                                 {/* Salary Goal */}
+                                 {/* Expected Salary Range */}
 
 
 
@@ -4904,7 +4968,7 @@ export default function SavedResumePage() {
 
 
 
-                                      Salary Goal (in pesos)
+                                      Expected Salary Range (in pesos)
 
 
 
@@ -4920,62 +4984,47 @@ export default function SavedResumePage() {
 
 
 
-                                      <div className="relative">
-
-
-
-                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300">₱</span>
-
-
-
-                                     <input 
-
-
-
-
-
-                                       type="text" 
-
-
-
-
-
-                                       placeholder="Enter target salary" 
-
-
-
-
-
-                                          className="w-full bg-black/30 border border-purple-400/50 rounded-lg pl-8 pr-4 py-3 text-white placeholder-purple-300/50 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
-
-
-
-                                       value={salaryGoal}
-
-
-
-
-
-                                          onChange={(e) => {
-
-
-
-                                            const value = e.target.value.replace(/[^\d,]/g, '');
-
-
-
-                                            setSalaryGoal(value);
-
-
-
-                                          }}
-
-
-
-                                        />
-
-
-
+                                      <div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300">₱</span>
+                                            <input 
+                                              type="text" 
+                                              placeholder="Min salary" 
+                                              className="w-full bg-black/30 border border-purple-400/50 rounded-lg pl-8 pr-4 py-3 text-white placeholder-purple-300/50 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                              value={minSalary}
+                                              onChange={(e) => {
+                                                const value = e.target.value.replace(/[^\d,]/g, '');
+                                                setMinSalary(value);
+                                                // Real-time validation
+                                                validateSalaryRange(value, maxSalary);
+                                              }}
+                                            />
+                                          </div>
+                                          <div className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300">₱</span>
+                                            <input 
+                                              type="text" 
+                                              placeholder="Max salary" 
+                                              className="w-full bg-black/30 border border-purple-400/50 rounded-lg pl-8 pr-4 py-3 text-white placeholder-purple-300/50 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                                              value={maxSalary}
+                                              onChange={(e) => {
+                                                const value = e.target.value.replace(/[^\d,]/g, '');
+                                                setMaxSalary(value);
+                                                // Real-time validation
+                                                validateSalaryRange(minSalary, value);
+                                              }}
+                                            />
+                                          </div>
+                                        </div>
+                                        {salaryValidationError && (
+                                          <div className="mt-2 text-red-400 text-sm flex items-center">
+                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                            {salaryValidationError}
+                                          </div>
+                                        )}
                                       </div>
 
 
@@ -4990,7 +5039,7 @@ export default function SavedResumePage() {
 
 
 
-                                        {salaryGoal ? `₱${salaryGoal}` : 'Not specified'}
+                                        {expectedSalary || 'Not specified'}
 
 
 
@@ -5088,12 +5137,6 @@ export default function SavedResumePage() {
 
 
 
-                                         <SelectItem value="happy">😊 Happy</SelectItem>
-
-
-
-
-
                                          <SelectItem value="satisfied">😌 Satisfied</SelectItem>
 
 
@@ -5106,12 +5149,6 @@ export default function SavedResumePage() {
 
 
 
-                                         <SelectItem value="frustrated">😤 Frustrated</SelectItem>
-
-
-
-
-
                                          <SelectItem value="stressed">😰 Stressed</SelectItem>
 
 
@@ -5119,12 +5156,6 @@ export default function SavedResumePage() {
 
 
                                          <SelectItem value="excited">🤩 Excited</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="bored">😴 Bored</SelectItem>
 
 
 
@@ -5172,12 +5203,6 @@ export default function SavedResumePage() {
 
 
 
-                                             {currentMood === 'happy' && '😊'}
-
-
-
-
-
                                              {currentMood === 'satisfied' && '😌'}
 
 
@@ -5190,12 +5215,6 @@ export default function SavedResumePage() {
 
 
 
-                                             {currentMood === 'frustrated' && '😤'}
-
-
-
-
-
                                              {currentMood === 'stressed' && '😰'}
 
 
@@ -5203,12 +5222,6 @@ export default function SavedResumePage() {
 
 
                                              {currentMood === 'excited' && '🤩'}
-
-
-
-
-
-                                             {currentMood === 'bored' && '😴'}
 
 
 
@@ -5328,61 +5341,9 @@ export default function SavedResumePage() {
 
 
 
-                                         <SelectItem value="employed">💼 Employed</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="unemployed">🔍 Unemployed</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="freelancer">🆓 Freelancer/Contractor</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="part-time">⏰ Part-time</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="on-leave">🏖️ On Leave</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="retired">🎯 Retired</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="student">🎓 Student</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="career-break">⏸️ Career Break</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="transitioning">🔄 Transitioning</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="remote-worker">🏠 Remote Worker</SelectItem>
+                                         {WORK_STATUS_OPTIONS.map(opt => (
+                                           <SelectItem key={opt.value} value={opt.value}>{opt.icon} {opt.label}</SelectItem>
+                                         ))}
 
 
 
@@ -5424,79 +5385,13 @@ export default function SavedResumePage() {
 
 
 
-                                           <span className="mr-2">
+                                           <span className="mr-2">{(WORK_STATUS_OPTIONS.find(o => o.value === workStatus)?.icon) || ''}</span>
 
 
 
 
 
-                                             {workStatus === 'employed' && '💼'}
-
-
-
-
-
-                                             {workStatus === 'unemployed' && '🔍'}
-
-
-
-
-
-                                             {workStatus === 'freelancer' && '🆓'}
-
-
-
-
-
-                                             {workStatus === 'part-time' && '⏰'}
-
-
-
-
-
-                                             {workStatus === 'on-leave' && '🏖️'}
-
-
-
-
-
-                                             {workStatus === 'retired' && '🎯'}
-
-
-
-
-
-                                             {workStatus === 'student' && '🎓'}
-
-
-
-
-
-                                             {workStatus === 'career-break' && '⏸️'}
-
-
-
-
-
-                                             {workStatus === 'transitioning' && '🔄'}
-
-
-
-
-
-                                             {workStatus === 'remote-worker' && '🏠'}
-
-
-
-
-
-                                           </span>
-
-
-
-
-
-                                           {workStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                           {(WORK_STATUS_OPTIONS.find(o => o.value === workStatus)?.label) || workStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
 
 
 
@@ -5532,229 +5427,41 @@ export default function SavedResumePage() {
 
                                  
                                  
-                                 {/* Employment Type */}
 
 
 
 
 
-                                 <div className="group">
 
 
 
-
-
-                                   <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
-
-
-
-
-
-                                     <Clock className="h-4 w-4 mr-2" />
-
-
-
-
-
-                                     Employment Type
-
-
-
-
-
-                                   </label>
-
-
-
-
-
-                                   {isEditMode ? (
-
-
-
-
-
-                                     <Select value={employmentType} onValueChange={(value) => setEmploymentType(value)}>
-
-
-
-
-
-                                       <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
-
-
-
-
-
-                                         <SelectValue placeholder="Select employment type" />
-
-
-
-
-
-                                       </SelectTrigger>
-
-
-
-
-
-                                       <SelectContent className="bg-gray-900 border-gray-700">
-
-
-
-
-
-                                         <SelectItem value="full-time">🌞 Full-time</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="part-time">🌙 Part-time</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="contract">📋 Contract</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="freelance">🦅 Freelance</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="internship">🎯 Internship</SelectItem>
-
-
-
-
-
-                                         <SelectItem value="temporary">⏱️ Temporary</SelectItem>
-
-
-
-
-
-                                       </SelectContent>
-
-
-
-
-
-                                     </Select>
-
-
-
-
-
-                                   ) : (
-
-
-
-
-
-                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
-
-
-
-
-
-                                       {employmentType ? (
-
-
-
-
-
-                                         <>
-
-
-
-
-
-                                           <span className="mr-2">
-
-
-
-
-
-                                             {employmentType === 'full-time' && '🌞'}
-
-
-
-
-
-                                             {employmentType === 'part-time' && '🌙'}
-
-
-
-
-
-                                             {employmentType === 'contract' && '📋'}
-
-
-
-
-
-                                             {employmentType === 'freelance' && '🦅'}
-
-
-
-
-
-                                             {employmentType === 'internship' && '🎯'}
-
-
-
-
-
-                                             {employmentType === 'temporary' && '⏱️'}
-
-
-
-
-
-                                           </span>
-
-
-
-
-
-                                           {employmentType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-
-
-
-
-
-                                         </>
-
-
-
-
-
-                                       ) : 'Not specified'}
-
-
-
-
-
-                                     </div>
-
-
-
-
-
-                                   )}
-
-
-
-
-
-                                 </div>
+                                {/* Preferred Shift */}
+                                <div className="group">
+                                  <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                    <Clock className="h-4 w-4 mr-2" />
+                                    Preferred Shift
+                                  </label>
+                                  {isEditMode ? (
+                                    <Select value={preferredShift} onValueChange={(value) => setPreferredShift(value)}>
+                                      <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
+                                        <SelectValue placeholder="Select preferred shift" />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-gray-900 border-gray-700">
+                                        <SelectItem value="day">🌞 Day Shift</SelectItem>
+                                        <SelectItem value="night">🌙 Night Shift</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
+                                      {preferredShift ? (
+                                        <>
+                                          <span className="mr-2">{preferredShift === 'day' ? '🌞' : (preferredShift === 'night' ? '🌙' : '')}</span>
+                                          {preferredShift.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </>
+                                      ) : 'Not specified'}
+                                    </div>
+                                  )}
+                                </div>
 
 
 
@@ -5773,8 +5480,6 @@ export default function SavedResumePage() {
 
 
                            </div>
-
-
 
 
 
@@ -8380,6 +8085,34 @@ export default function SavedResumePage() {
 
                                 </div>
 
+                                {/* Preferred Shift */}
+                                <div className="group mt-6">
+                                  <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                    <Clock className="h-4 w-4 mr-2" />
+                                    Preferred Shift
+                                  </label>
+                                  {isEditMode ? (
+                                    <Select value={preferredShift} onValueChange={(value) => setPreferredShift(value)}>
+                                      <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
+                                        <SelectValue placeholder="Select preferred shift" />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-gray-900 border-gray-700">
+                                        <SelectItem value="day">🌞 Day Shift</SelectItem>
+                                        <SelectItem value="night">🌙 Night Shift</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
+                                      {preferredShift ? (
+                                        <>
+                                          <span className="mr-2">{preferredShift === 'day' ? '🌞' : (preferredShift === 'night' ? '🌙' : '')}</span>
+                                          {preferredShift.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </>
+                                      ) : 'Not specified'}
+                                    </div>
+                                  )}
+                                </div>
+
 
 
 
@@ -10789,6 +10522,8 @@ export default function SavedResumePage() {
                                     </div>
                                   )}
                                 </div>
+
+                                
 
                                 {/* Regional Recommendations */}
                                 <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg p-3 border border-blue-400/20">
