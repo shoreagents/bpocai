@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT user_id, current_employer, current_position, current_salary, notice_period_days, salary_goal, current_mood, work_status, employment_type, created_at, updated_at
+      `SELECT user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
        FROM user_work_status WHERE user_id = $1`,
       [userId]
     )
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
       currentPosition: row.current_position,
       currentSalary: row.current_salary,
       noticePeriod: row.notice_period_days,
-      salaryGoal: row.salary_goal,
+      expectedSalary: row.expected_salary,
       currentMood: row.current_mood,
       workStatus: row.work_status,
-      employmentType: row.employment_type,
+      preferredShift: row.preferred_shift,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }
@@ -53,10 +53,10 @@ export async function PUT(request: NextRequest) {
       currentPosition,
       currentSalary,
       noticePeriod,
-      salaryGoal,
+      expectedSalary,
       currentMood,
       workStatus,
-      employmentType,
+      preferredShift,
     } = body || {}
 
     if (!userId) {
@@ -69,6 +69,32 @@ export async function PUT(request: NextRequest) {
       [userId]
     )
 
+    // Sanitize inputs to avoid enum mismatches
+    const moodMap: Record<string, string> = {
+      happy: 'satisfied',
+      satisfied: 'satisfied',
+      neutral: 'neutral',
+      bored: 'neutral',
+      frustrated: 'stressed',
+      stressed: 'stressed',
+      excited: 'excited',
+    }
+    const statusMap: Record<string, string> = {
+      unemployed: 'unemployed-looking-for-work',
+      'unemployed-looking-for-work': 'unemployed-looking-for-work',
+      employed: 'employed',
+      freelancer: 'freelancer',
+      'part-time': 'part-time',
+      'on-leave': 'on-leave',
+      retired: 'retired',
+      student: 'student',
+      'career-break': 'career-break',
+      transitioning: 'transitioning',
+      'remote-worker': 'remote-worker',
+    }
+    const sanitizedMood = currentMood ? (moodMap[String(currentMood)] || null) : null
+    const sanitizedStatus = workStatus ? (statusMap[String(workStatus)] || workStatus) : null
+
     if (existing.rows.length > 0) {
       const updateRes = await pool.query(
         `UPDATE user_work_status
@@ -76,10 +102,10 @@ export async function PUT(request: NextRequest) {
              current_position = $3,
              current_salary = $4,
              notice_period_days = $5,
-             salary_goal = $6,
+             expected_salary = $6,
              current_mood = $7,
              work_status = $8,
-             employment_type = $9,
+             preferred_shift = $9,
              updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
@@ -89,10 +115,10 @@ export async function PUT(request: NextRequest) {
           currentPosition ?? null,
           currentSalary ?? null,
           typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null),
-          salaryGoal ?? null,
-          currentMood ?? null,
-          workStatus ?? null,
-          employmentType ?? null,
+          expectedSalary ?? null,
+          sanitizedMood,
+          sanitizedStatus,
+          preferredShift ?? null,
         ]
       )
       return NextResponse.json({ saved: true, workStatus: updateRes.rows[0] })
@@ -100,7 +126,7 @@ export async function PUT(request: NextRequest) {
 
     const insertRes = await pool.query(
       `INSERT INTO user_work_status (
-         user_id, current_employer, current_position, current_salary, notice_period_days, salary_goal, current_mood, work_status, employment_type, created_at, updated_at
+         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
        ) VALUES (
          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
        ) RETURNING *`,
@@ -110,16 +136,17 @@ export async function PUT(request: NextRequest) {
         currentPosition ?? null,
         currentSalary ?? null,
         typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null),
-        salaryGoal ?? null,
-        currentMood ?? null,
-        workStatus ?? null,
-        employmentType ?? null,
+        expectedSalary ?? null,
+        sanitizedMood,
+        sanitizedStatus,
+        preferredShift ?? null,
       ]
     )
     return NextResponse.json({ saved: true, workStatus: insertRes.rows[0] })
   } catch (error) {
     console.error('Error saving work status:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const details = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Internal server error', details }, { status: 500 })
   }
 }
 

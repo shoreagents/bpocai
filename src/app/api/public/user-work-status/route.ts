@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
       const listRes = await pool.query(
         `SELECT user_id, current_employer, current_position, current_salary, notice_period_days,
-                salary_goal, current_mood, work_status, employment_type, created_at, updated_at
+                expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
            FROM user_work_status
           ORDER BY updated_at DESC
           LIMIT $1 OFFSET $2`,
@@ -45,10 +45,10 @@ export async function GET(request: NextRequest) {
         currentPosition: row.current_position,
         currentSalary: row.current_salary,
         noticePeriod: row.notice_period_days,
-        salaryGoal: row.salary_goal,
+        expectedSalary: row.expected_salary,
         currentMood: row.current_mood,
         workStatus: row.work_status,
-        employmentType: row.employment_type,
+        preferredShift: row.preferred_shift,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }))
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(
       `SELECT user_id, current_employer, current_position, current_salary, notice_period_days,
-              salary_goal, current_mood, work_status, employment_type, created_at, updated_at
+              expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
          FROM user_work_status
         WHERE user_id = $1`,
       [userId]
@@ -75,10 +75,10 @@ export async function GET(request: NextRequest) {
       currentPosition: row.current_position,
       currentSalary: row.current_salary,
       noticePeriod: row.notice_period_days,
-      salaryGoal: row.salary_goal,
+      expectedSalary: row.expected_salary,
       currentMood: row.current_mood,
       workStatus: row.work_status,
-      employmentType: row.employment_type,
+      preferredShift: row.preferred_shift,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }

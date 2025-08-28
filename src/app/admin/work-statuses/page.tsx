@@ -22,10 +22,10 @@ interface WorkStatusRow {
   currentPosition: string | null
   currentSalary: number | null
   noticePeriodDays: number | null
-  salaryGoal: number | null
+  expectedSalary: string | null
   currentMood: string | null
   workStatus: string | null
-  employmentType: string | null
+  preferredShift: string | null
   createdAt: string
   updatedAt: string
 }
@@ -92,7 +92,7 @@ export default function AdminWorkStatusesPage() {
     if (!s) return <Badge className="bg-white/10 text-white border-white/20">—</Badge>
     const map: Record<string, string> = {
       employed: 'bg-green-500/20 text-green-400 border-green-500/30',
-      unemployed: 'bg-red-500/20 text-red-400 border-red-500/30',
+      'unemployed-looking-for-work': 'bg-red-500/20 text-red-400 border-red-500/30',
       freelancer: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       'part-time': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       'on-leave': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -172,7 +172,7 @@ export default function AdminWorkStatusesPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-white/10 text-white">
                   {[
-                    'employed','unemployed','freelancer','part-time','on-leave','retired','student','career-break','transitioning','remote-worker'
+                    'employed','unemployed-looking-for-work','freelancer','part-time','on-leave','retired','student','career-break','transitioning','remote-worker'
                   ].map((s) => (
                     <SelectItem key={s} value={s}>{formatOptionLabel(s)}</SelectItem>
                   ))}
@@ -209,7 +209,8 @@ export default function AdminWorkStatusesPage() {
                       <TableHead className="text-white">Goal</TableHead>
                       <TableHead className="text-white">Mood</TableHead>
                       <TableHead className="text-white">Status</TableHead>
-                      <TableHead className="text-white">Type</TableHead>
+
+                      <TableHead className="text-white">Shift</TableHead>
                       <TableHead className="text-white">Updated</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -243,12 +244,13 @@ export default function AdminWorkStatusesPage() {
                           <div className="text-white text-sm">{r.noticePeriodDays != null ? `${r.noticePeriodDays} days` : '—'}</div>
                         </TableCell>
                         <TableCell onClick={() => { setSelected(r); fetchProfile(r.userId) }} className="cursor-pointer">
-                          <div className="text-white text-sm">{r.salaryGoal != null ? `₱${Number(r.salaryGoal).toLocaleString()}` : '—'}</div>
+                          <div className="text-white text-sm">{r.expectedSalary || '—'}</div>
                         </TableCell>
                         <TableCell onClick={() => { setSelected(r); fetchProfile(r.userId) }} className="cursor-pointer">{moodBadge(r.currentMood)}</TableCell>
                         <TableCell onClick={() => { setSelected(r); fetchProfile(r.userId) }} className="cursor-pointer">{statusBadge(r.workStatus)}</TableCell>
+
                         <TableCell onClick={() => { setSelected(r); fetchProfile(r.userId) }} className="cursor-pointer">
-                          <Badge className="bg-white/10 text-white border-white/20">{r.employmentType || '—'}</Badge>
+                          <Badge className="bg-white/10 text-white border-white/20">{r.preferredShift ? (r.preferredShift === 'day' ? '🌞 Day' : (r.preferredShift === 'night' ? '🌙 Night' : r.preferredShift)) : '—'}</Badge>
                         </TableCell>
                         <TableCell onClick={() => { setSelected(r); fetchProfile(r.userId) }} className="cursor-pointer">
                           <div className="text-gray-400 text-xs">{r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '—'}</div>
@@ -340,8 +342,8 @@ export default function AdminWorkStatusesPage() {
                   <div className="text-white text-sm">{selected?.currentSalary != null ? `₱${Number(selected.currentSalary).toLocaleString()}` : '—'}</div>
                 </div>
                 <div>
-                  <div className="text-gray-400 text-xs">Salary Goal</div>
-                  <div className="text-white text-sm">{selected?.salaryGoal != null ? `₱${Number(selected.salaryGoal).toLocaleString()}` : '—'}</div>
+                  <div className="text-gray-400 text-xs">Expected Salary</div>
+                  <div className="text-white text-sm">{selected?.expectedSalary || '—'}</div>
                 </div>
                 <div>
                   <div className="text-gray-400 text-xs">Notice Period</div>
@@ -355,9 +357,10 @@ export default function AdminWorkStatusesPage() {
                   <div className="text-gray-400 text-xs">Work Status</div>
                   <div className="mt-1">{statusBadge(selected?.workStatus || null)}</div>
                 </div>
+
                 <div>
-                  <div className="text-gray-400 text-xs">Employment Type</div>
-                  <div className="mt-1"><Badge className="bg-white/10 text-white border-white/20">{selected?.employmentType || '—'}</Badge></div>
+                  <div className="text-gray-400 text-xs">Preferred Shift</div>
+                  <div className="mt-1"><Badge className="bg-white/10 text-white border-white/20">{selected?.preferredShift ? (selected.preferredShift === 'day' ? '🌞 Day' : (selected.preferredShift === 'night' ? '🌙 Night' : selected.preferredShift)) : '—'}</Badge></div>
                 </div>
               </div>
               {/* Timestamps */}
