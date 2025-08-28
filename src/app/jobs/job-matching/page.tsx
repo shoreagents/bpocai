@@ -83,6 +83,15 @@ export default function JobMatchingPage() {
       .match-tooltip::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.5);
       }
+      
+      /* Remove red outline from search input */
+      .search-input-no-red:focus,
+      .search-input-no-red:focus-visible,
+      .search-input-no-red:invalid {
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        box-shadow: none !important;
+        outline: none !important;
+      }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
@@ -517,7 +526,7 @@ export default function JobMatchingPage() {
                   placeholder="Search jobs..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  className="pl-10 w-64 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20 search-input-no-red"
                 />
               </div>
               <div className="flex items-center gap-2">

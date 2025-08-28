@@ -154,6 +154,10 @@ export default function GamesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [error, setError] = useState<string | null>(null)
+  
+  // Pagination state for Ultimate and DISC tables
+  const [ultimateCurrentPage, setUltimateCurrentPage] = useState(1)
+  const [discCurrentPage, setDiscCurrentPage] = useState(1)
   const [deletingStats, setDeletingStats] = useState<string[]>([])
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteStatId, setDeleteStatId] = useState<string>('')
@@ -481,20 +485,40 @@ export default function GamesPage() {
     currentPage * itemsPerPage
   )
 
+  // Pagination logic for Ultimate stats
+  const ultimateTotalPages = Math.ceil(filteredUltimateStats.length / itemsPerPage)
+  const paginatedUltimateStats = filteredUltimateStats.slice(
+    (ultimateCurrentPage - 1) * itemsPerPage,
+    ultimateCurrentPage * itemsPerPage
+  )
+
+  // Pagination logic for DISC stats
+  const discTotalPages = Math.ceil(filteredDiscPersonalityStats.length / itemsPerPage)
+  const paginatedDiscStats = filteredDiscPersonalityStats.slice(
+    (discCurrentPage - 1) * itemsPerPage,
+    discCurrentPage * itemsPerPage
+  )
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
     setCurrentPage(1)
+    setUltimateCurrentPage(1)
+    setDiscCurrentPage(1)
   }
 
   const handleFilterChange = (filter: string) => {
     setFilterType(filter)
     setCurrentPage(1)
+    setUltimateCurrentPage(1)
+    setDiscCurrentPage(1)
   }
 
   const clearAllFilters = () => {
     setSearchTerm('')
     setFilterType('all')
     setCurrentPage(1)
+    setUltimateCurrentPage(1)
+    setDiscCurrentPage(1)
   }
 
   const handlePageChange = (page: number) => {
@@ -565,6 +589,14 @@ export default function GamesPage() {
     }
   }
 
+  // Helper function to generate initials from full name
+  const getInitials = (name: string) => {
+    if (!name) return '?'
+    const parts = name.trim().split(' ')
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+  }
+
   const currentTab = tabs.find(tab => tab.id === selectedTab)
 
   return (
@@ -628,7 +660,7 @@ export default function GamesPage() {
                     placeholder="Search players..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                   />
                 </div>
                 {(searchTerm || filterType !== 'all') && (
@@ -664,7 +696,7 @@ export default function GamesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredTypingHeroStats.map((stat) => (
+                      {paginatedTypingHeroStats.map((stat) => (
                         <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -673,8 +705,8 @@ export default function GamesPage() {
                                   src={stat.user_avatar} 
                                   alt={stat.user_name}
                                 />
-                                <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">
-                                  {stat.user_name.charAt(0).toUpperCase()}
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                                  {getInitials(stat.user_name)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -741,8 +773,70 @@ export default function GamesPage() {
                     </TableBody>
                   </Table>
                 </div>
+
               )}
             </CardContent>
+
+            {/* Pagination for Typing Hero */}
+            {!loading && !error && filteredTypingHeroStats.length > 0 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-gray-400">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTypingHeroStats.length)} of {filteredTypingHeroStats.length} players
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={
+                            currentPage === pageNum
+                              ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                              : "border-white/10 text-white hover:bg-white/10"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         )}
 
@@ -777,7 +871,7 @@ export default function GamesPage() {
                     placeholder="Search players..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                   />
                 </div>
                 {(searchTerm || filterType !== 'all') && (
@@ -817,7 +911,7 @@ export default function GamesPage() {
                        </TableRow>
                      </TableHeader>
                     <TableBody>
-                      {filteredUltimateStats.map((stat) => (
+                      {paginatedUltimateStats.map((stat) => (
                         <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -826,8 +920,8 @@ export default function GamesPage() {
                                   src={stat.user_avatar} 
                                   alt={stat.user_name}
                                 />
-                                <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">
-                                  {stat.user_name.charAt(0).toUpperCase()}
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                                  {getInitials(stat.user_name)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -919,8 +1013,70 @@ export default function GamesPage() {
                     </TableBody>
                   </Table>
                 </div>
+                
               )}
             </CardContent>
+            
+            {/* Pagination for Ultimate Stats */}
+            {filteredUltimateStats.length > 0 && (
+              <div className="flex items-center justify-between mt-6 px-6 pb-6">
+                <div className="text-sm text-gray-400">
+                  Showing {(ultimateCurrentPage - 1) * itemsPerPage + 1} to {Math.min(ultimateCurrentPage * itemsPerPage, filteredUltimateStats.length)} of {filteredUltimateStats.length} players
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUltimateCurrentPage(ultimateCurrentPage - 1)}
+                    disabled={ultimateCurrentPage === 1}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, ultimateTotalPages) }, (_, i) => {
+                      let pageNum
+                      if (ultimateTotalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (ultimateCurrentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (ultimateCurrentPage >= ultimateTotalPages - 2) {
+                        pageNum = ultimateTotalPages - 4 + i
+                      } else {
+                        pageNum = ultimateCurrentPage - 2 + i
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={ultimateCurrentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setUltimateCurrentPage(pageNum)}
+                          className={
+                            ultimateCurrentPage === pageNum
+                              ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                              : "border-white/10 text-white hover:bg-white/10"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUltimateCurrentPage(ultimateCurrentPage + 1)}
+                    disabled={ultimateCurrentPage === ultimateTotalPages}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         )}
 
@@ -953,7 +1109,7 @@ export default function GamesPage() {
                     placeholder="Search players..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                   />
                 </div>
                 {(searchTerm || filterType !== 'all') && (
@@ -991,7 +1147,7 @@ export default function GamesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredDiscPersonalityStats.map((stat) => (
+                      {paginatedDiscStats.map((stat) => (
                         <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -1000,8 +1156,8 @@ export default function GamesPage() {
                                   src={stat.user_avatar} 
                                   alt={stat.user_name}
                                 />
-                                <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">
-                                  {stat.user_name.charAt(0).toUpperCase()}
+                                <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                                  {getInitials(stat.user_name)}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -1084,6 +1240,67 @@ export default function GamesPage() {
                 </div>
               )}
             </CardContent>
+            
+            {/* Pagination for DISC Personality Stats */}
+            {filteredDiscPersonalityStats.length > 0 && (
+              <div className="flex items-center justify-between mt-6 px-6 pb-6">
+                <div className="text-sm text-gray-400">
+                  Showing {(discCurrentPage - 1) * itemsPerPage + 1} to {Math.min(discCurrentPage * itemsPerPage, filteredDiscPersonalityStats.length)} of {filteredDiscPersonalityStats.length} players
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDiscCurrentPage(discCurrentPage - 1)}
+                    disabled={discCurrentPage === 1}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, discTotalPages) }, (_, i) => {
+                      let pageNum
+                      if (discTotalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (discCurrentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (discCurrentPage >= discTotalPages - 2) {
+                        pageNum = discTotalPages - 4 + i
+                      } else {
+                        pageNum = discCurrentPage - 2 + i
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={discCurrentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setDiscCurrentPage(pageNum)}
+                          className={
+                            discCurrentPage === pageNum
+                              ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                              : "border-white/10 text-white hover:bg-white/10"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDiscCurrentPage(discCurrentPage + 1)}
+                    disabled={discCurrentPage === discTotalPages}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         )}
 
@@ -1102,7 +1319,7 @@ export default function GamesPage() {
                     placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                   />
                 </div>
                 {(searchTerm || filterType !== 'all') && (
@@ -1146,7 +1363,7 @@ export default function GamesPage() {
                                 <div className="flex items-center gap-3">
                                   <Avatar className="w-8 h-8">
                                     <AvatarImage src={r.avatar_url || ''} alt={r.full_name || r.user_id} />
-                                    <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-purple-600 text-white text-xs">{String(r.full_name || '?').charAt(0).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">{getInitials(r.full_name || '?')}</AvatarFallback>
                                   </Avatar>
                                   <div>
                                     <div className="font-medium text-white">{r.full_name || r.user_id}</div>

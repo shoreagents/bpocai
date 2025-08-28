@@ -434,9 +434,9 @@ export default function LeaderboardsPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent"
+                    className="text-4xl md:text-5xl font-bold text-white"
                   >
-                    🏆 Leaderboards
+                                         Leaderboards
                   </motion.h1>
                   <motion.p 
                     initial={{ opacity: 0, x: -20 }}

@@ -59,6 +59,8 @@ export default function Page() {
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
   const [sortBy, setSortBy] = useState<'applicants_desc' | 'deadline_asc' | 'deadline_desc' | 'priority_desc' | 'priority_asc'>('applicants_desc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
   useEffect(() => {
     (async () => {
@@ -128,6 +130,17 @@ export default function Page() {
     })
     return list
   }, [jobs, search, priorityFilter, sortBy])
+
+  // Pagination logic
+  const totalPages = Math.ceil(visibleJobs.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentJobs = visibleJobs.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, priorityFilter, sortBy])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -295,7 +308,7 @@ export default function Page() {
                   placeholder="Search by job title or company..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-white/40"
+                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                 />
               </div>
               
@@ -370,90 +383,153 @@ export default function Page() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleJobs.map(job => (
-              <Card 
-                key={job.id} 
-                className="glass-card hover:bg-white/5 transition-all duration-200 cursor-pointer group border-white/10 hover:border-white/20"
-                onClick={() => openJob(job)}
-              >
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg text-white group-hover:text-blue-300 transition-colors">
-                        {job.title}
-                      </CardTitle>
-                      <CardDescription className="text-gray-300 mt-1 flex items-center space-x-2">
-                        <Building2 className="w-4 h-4" />
-                        <span>{job.company}</span>
-                      </CardDescription>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentJobs.map(job => (
+                <Card 
+                  key={job.id} 
+                  className="glass-card hover:bg-white/5 transition-all duration-200 cursor-pointer group border-white/10 hover:border-white/20"
+                  onClick={() => openJob(job)}
+                >
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg text-white group-hover:text-blue-300 transition-colors">
+                          {job.title}
+                        </CardTitle>
+                        <CardDescription className="text-gray-300 mt-1 flex items-center space-x-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>{job.company}</span>
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge 
+                          className={`${getPriorityColor(job.priority)} border`}
+                        >
+                          <span className="mr-1">{getPriorityIcon(job.priority)}</span>
+                          {job.priority}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge 
-                        className={`${getPriorityColor(job.priority)} border`}
-                      >
-                        <span className="mr-1">{getPriorityIcon(job.priority)}</span>
-                        {job.priority}
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    {/* Applicants Count */}
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                        <Users className="w-3 h-3 mr-1" />
+                        {job.applicants} applicant{job.applicants !== 1 ? 's' : ''}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
+                      </Button>
                     </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  {/* Applicants Count */}
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                      <Users className="w-3 h-3 mr-1" />
-                      {job.applicants} applicant{job.applicants !== 1 ? 's' : ''}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
-                  </div>
 
-                  <Separator className="bg-white/10" />
+                    <Separator className="bg-white/10" />
 
-                  {/* Job Details Grid */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {job.application_deadline && (
-                      <div className="flex items-center space-x-2 text-gray-300">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-white">
-                          {new Date(job.application_deadline).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    {job.experience_level && (
-                      <div className="flex items-center space-x-2 text-gray-300">
-                        <Target className="w-4 h-4 text-gray-400" />
-                        <span className="text-white capitalize">{job.experience_level}</span>
-                      </div>
-                    )}
-                    {job.work_arrangement && (
-                      <div className="flex items-center space-x-2 text-gray-300">
-                        <Briefcase className="w-4 h-4 text-gray-400" />
-                        <span className="text-white capitalize">{job.work_arrangement}</span>
-                      </div>
-                    )}
-                    {job.industry && (
-                      <div className="flex items-center space-x-2 text-gray-300">
-                        <Building2 className="w-4 h-4 text-gray-400" />
-                        <span className="text-white">{job.industry}</span>
-                      </div>
-                    )}
+                    {/* Job Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {job.application_deadline && (
+                        <div className="flex items-center space-x-2 text-gray-300">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-white">
+                            {new Date(job.application_deadline).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      {job.experience_level && (
+                        <div className="flex items-center space-x-2 text-gray-300">
+                          <Target className="w-4 h-4 text-gray-400" />
+                          <span className="text-white capitalize">{job.experience_level}</span>
+                        </div>
+                      )}
+                      {job.work_arrangement && (
+                        <div className="flex items-center space-x-2 text-gray-300">
+                          <Briefcase className="w-4 h-4 text-gray-400" />
+                          <span className="text-white capitalize">{job.work_arrangement}</span>
+                        </div>
+                      )}
+                      {job.industry && (
+                        <div className="flex items-center space-x-2 text-gray-300">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          <span className="text-white">{job.industry}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Hover Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg pointer-events-none" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {visibleJobs.length > 0 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-gray-400">
+                  Showing {startIndex + 1} to {Math.min(endIndex, visibleJobs.length)} of {visibleJobs.length} jobs
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={
+                            currentPage === pageNum
+                              ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                              : "border-white/10 text-white hover:bg-white/10"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
                   </div>
-
-                  {/* Hover Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg pointer-events-none" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Clicking a job navigates to /admin/applicants/[id] for details */}

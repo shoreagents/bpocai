@@ -357,7 +357,7 @@ export default function UsersPage() {
                   placeholder="Search users by name, email, location, phone, bio, or position..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                  className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                 />
               </div>
                                                            <div className="flex gap-2">
@@ -533,10 +533,7 @@ export default function UsersPage() {
                                   </>
                                 )}
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-white hover:bg-white/10">
-                                <Mail className="mr-2 h-4 w-4" />
-                                Send Message
-                              </DropdownMenuItem>
+
                               <DropdownMenuSeparator className="bg-white/10" />
                               <DropdownMenuItem 
                                 className="text-red-400 hover:bg-red-500/10"

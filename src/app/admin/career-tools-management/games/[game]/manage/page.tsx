@@ -26,6 +26,10 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
   const [questions, setQuestions] = useState<GameQuestion[]>([])
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
   // Right Choice questions
   const rightChoiceQuestions: GameQuestion[] = [
@@ -565,6 +569,17 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
       .join(' ')
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(questions.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentQuestions = questions.slice(startIndex, endIndex)
+
+  // Reset to first page when questions change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [questions.length])
+
   return (
     <AdminLayout
       title={`Manage ${formatGameName(resolvedParams.game)} Questions`}
@@ -602,7 +617,7 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
                     </tr>
                   </thead>
                   <tbody style={{ borderBottom: 'none' }}>
-                    {questions.map((question) => (
+                    {currentQuestions.map((question) => (
                       <tr key={question.id} className="admin-table-row" style={{ 
                         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                         transform: 'none !important',
@@ -646,6 +661,67 @@ export default function GameManagePage({ params }: { params: Promise<{ game: str
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination */}
+              {questions.length > 0 && (
+                <div className="flex items-center justify-between mt-6">
+                  <div className="text-sm text-gray-400">
+                    Showing {startIndex + 1} to {Math.min(endIndex, questions.length)} of {questions.length} questions
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                    >
+                      Previous
+                    </Button>
+                    
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum
+                        if (totalPages <= 5) {
+                          pageNum = i + 1
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i
+                        } else {
+                          pageNum = currentPage - 2 + i
+                        }
+                        
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={
+                              currentPage === pageNum
+                                ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                                : "border-white/10 text-white hover:bg-white/10"
+                            }
+                          >
+                            {pageNum}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             )}
           </CardContent>
         </Card>
