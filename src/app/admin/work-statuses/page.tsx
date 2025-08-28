@@ -31,6 +31,14 @@ interface WorkStatusRow {
 }
 
 export default function AdminWorkStatusesPage() {
+  // Helper function to generate initials from full name
+  const getInitials = (name: string) => {
+    if (!name) return '?'
+    const parts = name.trim().split(' ')
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+  }
+
   const { session } = useAuth()
   const [rows, setRows] = useState<WorkStatusRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -153,7 +161,7 @@ export default function AdminWorkStatusesPage() {
                   placeholder="Search by name or email"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  className="pl-9 bg-white/5 border-white/10 text-white placeholder-gray-400"
+                  className="pl-9 bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                 />
               </div>
               <Select value={mood} onValueChange={(v) => setMood(v)}>
@@ -221,8 +229,8 @@ export default function AdminWorkStatusesPage() {
                           <div className="flex items-center gap-3 min-w-[220px]">
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={r.avatarUrl || undefined} alt={r.fullName || r.userId} />
-                              <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-xs">
-                                {(r.fullName || '?').charAt(0).toUpperCase()}
+                              <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                                {getInitials(r.fullName || '?')}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -296,8 +304,8 @@ export default function AdminWorkStatusesPage() {
               <DialogTitle className="flex items-center gap-3">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={selected?.avatarUrl || undefined} alt={selected?.fullName || selected?.userId || ''} />
-                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-xs">
-                    {(selected?.fullName || '?').charAt(0).toUpperCase()}
+                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                    {getInitials(selected?.fullName || '?')}
                   </AvatarFallback>
                 </Avatar>
                 {selected?.fullName || selected?.userId}

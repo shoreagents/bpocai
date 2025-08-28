@@ -16,6 +16,34 @@ import {
   RefreshCw,
   Search
 } from 'lucide-react'
+
+// Inject custom CSS to remove red outlines
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = `
+    .admin-search-no-red:focus,
+    .admin-search-no-red:focus-visible,
+    .admin-search-no-red:invalid {
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      box-shadow: none !important;
+      outline: none !important;
+      --tw-ring-color: transparent !important;
+      --tw-ring-offset-color: transparent !important;
+    }
+    .admin-search-no-red.invalid {
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .admin-search-no-red:-webkit-autofill,
+    .admin-search-no-red:-webkit-autofill:hover,
+    .admin-search-no-red:-webkit-autofill:focus,
+    .admin-search-no-red:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.05) inset !important;
+      -webkit-text-fill-color: #fff !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+  `
+  document.head.appendChild(style)
+}
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -98,7 +126,8 @@ export default function LeaderboardsPage() {
 			params.set('category', category)
 			if (category === 'game') { params.set('period', period); params.set('gameId', gameId) }
 
-			params.set('limit', '50')
+			params.set('limit', String(pageSize))
+			params.set('offset', String((page - 1) * pageSize))
 			params.set('source', 'live')
 			const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
 
@@ -116,7 +145,7 @@ export default function LeaderboardsPage() {
 	}
 
 
-	useEffect(() => { fetchRows() }, [category, period, gameId, refreshNonce])
+	useEffect(() => { fetchRows() }, [category, period, gameId, refreshNonce, page, pageSize])
 
 
   // Delete action removed
@@ -193,12 +222,12 @@ export default function LeaderboardsPage() {
 									<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
 									<Input
 										placeholder="Search by user name..."
-										className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-400"
+										className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20 admin-search-no-red"
 									/>
 								</div>
 								<div className="flex items-center gap-2">
 									<Select value={category} onValueChange={(v: any) => setCategory(v)}>
-										<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white">
+										<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
 											<SelectValue placeholder="Category" />
 										</SelectTrigger>
 										<SelectContent>
@@ -210,7 +239,7 @@ export default function LeaderboardsPage() {
 									</Select>
 									{category === 'game' && (
 										<Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-											<SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
+											<SelectTrigger className="w-32 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
 												<SelectValue placeholder="Period" />
 											</SelectTrigger>
 											<SelectContent>
@@ -222,7 +251,7 @@ export default function LeaderboardsPage() {
 									)}
 									{category === 'game' && (
 										<Select value={gameId} onValueChange={(v: any) => setGameId(v)}>
-											<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white">
+											<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
 												<SelectValue placeholder="Game" />
 											</SelectTrigger>
 											<SelectContent>
@@ -322,7 +351,7 @@ export default function LeaderboardsPage() {
                               </div>
                               <div className="text-gray-300 text-sm px-3 py-1 rounded bg-white/5 border border-white/10">Page {page} of {totalPages}</div>
                               <Select value={String(pageSize)} onValueChange={(v: string) => { setPageSize(Number(v)); setPage(1) }}>
-                                <SelectTrigger className="w-[120px] h-8">
+                                <SelectTrigger className="w-[120px] h-8 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
                                   <SelectValue placeholder="Page size" />
                                 </SelectTrigger>
                                 <SelectContent>

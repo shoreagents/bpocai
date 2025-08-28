@@ -59,8 +59,10 @@ export default function ApplicantsJobDetailPage() {
   const [error, setError] = useState<string | null>(null)
 	const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'qualified' | 'for verification' | 'verified' | 'initial interview' | 'final interview' | 'not qualified' | 'passed' | 'rejected' | 'withdrawn' | 'hired' | 'closed'>('all')
-	const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'status_asc' | 'status_desc'>('newest')
+	  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name_asc' | 'name_desc' | 'status_asc' | 'status_desc'>('newest')
   const [viewSlug, setViewSlug] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
   
   // Admin functionality states
   const [editingStatus, setEditingStatus] = useState<string | null>(null)
@@ -122,6 +124,17 @@ export default function ApplicantsJobDetailPage() {
 		})
 		return list
 	})()
+
+  // Pagination logic
+  const totalPages = Math.ceil(visibleApps.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentApps = visibleApps.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, statusFilter, sortBy])
 
   const getStatusStats = () => {
     const stats = {
@@ -413,7 +426,7 @@ export default function ApplicantsJobDetailPage() {
                   placeholder="Search applicant name or email..."
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-white/40"
+                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
                 />
               </div>
               
@@ -491,7 +504,7 @@ export default function ApplicantsJobDetailPage() {
 		</Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleApps.map((app: any) => (
+            {currentApps.map((app: any) => (
               <Card 
                 key={app.id} 
                 className="glass-card hover:bg-white/5 transition-all duration-200 border-white/10 hover:border-white/20 group"
@@ -639,6 +652,67 @@ export default function ApplicantsJobDetailPage() {
               </Card>
             ))}
           </div>
+
+          {/* Pagination */}
+          {visibleApps.length > 0 && (
+            <div className="flex items-center justify-between mt-6">
+              <div className="text-sm text-gray-400">
+                Showing {startIndex + 1} to {Math.min(endIndex, visibleApps.length)} of {visibleApps.length} applicants
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                >
+                  Previous
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={
+                          currentPage === pageNum
+                            ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                            : "border-white/10 text-white hover:bg-white/10"
+                        }
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         )}
 
         {/* Resume Preview Dialog */}
