@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
+      `SELECT user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
        FROM user_work_status WHERE user_id = $1`,
       [userId]
     )
@@ -32,6 +32,8 @@ export async function GET(request: NextRequest) {
       currentMood: row.current_mood,
       workStatus: row.work_status,
       preferredShift: row.preferred_shift,
+      workSetup: row.work_setup,
+      completedData: row.completed_data,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }
@@ -57,6 +59,8 @@ export async function PUT(request: NextRequest) {
       currentMood,
       workStatus,
       preferredShift,
+      workSetup,
+      completedData,
     } = body || {}
 
     if (!userId) {
@@ -69,15 +73,21 @@ export async function PUT(request: NextRequest) {
       [userId]
     )
 
-    // Sanitize inputs to avoid enum mismatches
+    // Normalize to allowed moods: Happy, Satisfied, Sad, Undecided
     const moodMap: Record<string, string> = {
-      happy: 'satisfied',
-      satisfied: 'satisfied',
-      neutral: 'neutral',
-      bored: 'neutral',
-      frustrated: 'stressed',
-      stressed: 'stressed',
-      excited: 'excited',
+      happy: 'Happy',
+      excited: 'Happy',
+      satisfied: 'Satisfied',
+      content: 'Satisfied',
+      okay: 'Satisfied',
+      sad: 'Sad',
+      frustrated: 'Sad',
+      stressed: 'Sad',
+      unhappy: 'Sad',
+      neutral: 'Undecided',
+      bored: 'Undecided',
+      undecided: 'Undecided',
+      unknown: 'Undecided',
     }
     const statusMap: Record<string, string> = {
       unemployed: 'unemployed-looking-for-work',
@@ -92,7 +102,7 @@ export async function PUT(request: NextRequest) {
       transitioning: 'transitioning',
       'remote-worker': 'remote-worker',
     }
-    const sanitizedMood = currentMood ? (moodMap[String(currentMood)] || null) : null
+    const sanitizedMood = currentMood ? (moodMap[String(currentMood).toLowerCase()] || null) : null
     const sanitizedStatus = workStatus ? (statusMap[String(workStatus)] || workStatus) : null
 
     if (existing.rows.length > 0) {
@@ -106,6 +116,8 @@ export async function PUT(request: NextRequest) {
              current_mood = $7,
              work_status = $8,
              preferred_shift = $9,
+             work_setup = $10,
+             completed_data = COALESCE($11, completed_data),
              updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
@@ -119,6 +131,8 @@ export async function PUT(request: NextRequest) {
           sanitizedMood,
           sanitizedStatus,
           preferredShift ?? null,
+          workSetup ?? null,
+          typeof completedData === 'boolean' ? completedData : null,
         ]
       )
       return NextResponse.json({ saved: true, workStatus: updateRes.rows[0] })
@@ -126,9 +140,9 @@ export async function PUT(request: NextRequest) {
 
     const insertRes = await pool.query(
       `INSERT INTO user_work_status (
-         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
+         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, work_setup, created_at, updated_at
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()
        ) RETURNING *`,
       [
         userId,
@@ -140,6 +154,7 @@ export async function PUT(request: NextRequest) {
         sanitizedMood,
         sanitizedStatus,
         preferredShift ?? null,
+        workSetup ?? null,
       ]
     )
     return NextResponse.json({ saved: true, workStatus: insertRes.rows[0] })
