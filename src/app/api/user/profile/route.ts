@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     console.log('🔍 API: Fetching profile for user:', userId)
 
     const query = `
-      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, created_at, updated_at
+      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, created_at, updated_at
       FROM users 
       WHERE id = $1
     `
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       position: user.position,
       completed_data: user.completed_data,
       birthday: user.birthday,
+      slug: user.slug,
       created_at: user.created_at,
       updated_at: user.updated_at
     })

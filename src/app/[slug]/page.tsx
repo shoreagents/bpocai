@@ -9,6 +9,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 
@@ -690,6 +691,8 @@ export default function SavedResumePage() {
 
   const [preferredShift, setPreferredShift] = useState<string>('');
 
+  const [workSetup, setWorkSetup] = useState<string>('');
+
   // Centralized Work Status options (update here to reflect DB enum values)
   const WORK_STATUS_OPTIONS: Array<{ value: string; label: string; icon: string }> = [
     { value: 'employed', label: 'Employed', icon: '💼' },
@@ -734,8 +737,12 @@ export default function SavedResumePage() {
 
 
 
-  const [activeSection, setActiveSection] = useState<string>('profile');
+  const searchParams = useSearchParams();
+  const initialMode = (searchParams?.get('mode') === 'profile') ? 'profile' : 'resume';
+  const isProfileMode = initialMode === 'profile';
+  const [activeSection, setActiveSection] = useState<string>(initialMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const router = useRouter();
 
 
 
@@ -806,6 +813,41 @@ export default function SavedResumePage() {
 
 
   useEffect(() => {
+    if (isProfileMode) {
+      const slugParam = params?.slug as string;
+      if (slugParam) {
+        // Load user by slug and synthesize minimal resume context for existing UI
+        (async () => {
+          try {
+            setLoading(true);
+            const res = await fetch(`/api/public/user-by-slug?slug=${encodeURIComponent(slugParam)}`, { cache: 'no-store' });
+            if (!res.ok) { setError('Profile not found'); setLoading(false); return; }
+            const data = await res.json();
+            const u = data.user || {};
+            setResume({
+              id: '',
+              slug: slugParam,
+              title: '',
+              data: { content: null, template: null, sections: [], headerInfo: null },
+              template: '',
+              originalResumeId: null,
+              isPublic: true,
+              viewCount: 0,
+              createdAt: '',
+              updatedAt: '',
+              userId: u.id,
+              user: { fullName: u.full_name, avatarUrl: u.avatar_url }
+            } as any);
+            setIsOwner(false);
+            setError(null);
+          } catch (e) {
+            setError('Failed to load profile');
+          } finally {
+            setLoading(false);
+          }
+        })();
+      }
+    }
 
 
 
@@ -1020,6 +1062,12 @@ export default function SavedResumePage() {
 
 
     const fetchResume = async () => {
+      if (isProfileMode) {
+        // In profile mode, do not fetch resume or error-out when missing
+        setResume(null);
+        setLoading(false);
+        return;
+      }
 
 
 
@@ -1046,23 +1094,9 @@ export default function SavedResumePage() {
         
         
         if (!response.ok) {
-
-
-
-
-
+          if (isProfileMode) { setLoading(false); return; }
           const errorData = await response.json();
-
-
-
-
-
           throw new Error(errorData.error || 'Failed to load resume');
-
-
-
-
-
         }
 
 
@@ -1538,6 +1572,8 @@ export default function SavedResumePage() {
           setWorkStatus(data.workStatus.workStatus || '')
 
           setPreferredShift(data.workStatus.preferredShift || '')
+
+          setWorkSetup(data.workStatus.workSetup || '')
 
         }
 
@@ -2530,6 +2566,8 @@ export default function SavedResumePage() {
 
           preferredShift,
 
+          workSetup,
+
         })
 
       })
@@ -3072,7 +3110,7 @@ export default function SavedResumePage() {
 
 
 
-  if (error) {
+  if (error && !isProfileMode) {
 
 
 
@@ -3235,6 +3273,18 @@ export default function SavedResumePage() {
 
 
   if (!resume) {
+    if (isProfileMode) {
+      // Render profile mode content without requiring a resume
+      return (
+        <div className="relative min-h-screen overflow-hidden cyber-grid">
+          <Header />
+          <div className="container mx-auto px-4 py-8 pt-24">
+            {/* Sidebar + Sections already exist below in the main render; for brevity show a simple gate here */}
+            <div className="text-gray-300">Loading profile...</div>
+          </div>
+        </div>
+      )
+    }
 
 
 
@@ -5137,25 +5187,25 @@ export default function SavedResumePage() {
 
 
 
-                                         <SelectItem value="satisfied">😌 Satisfied</SelectItem>
+                                         <SelectItem value="Happy">😀 Happy</SelectItem>
 
 
 
 
 
-                                         <SelectItem value="neutral">😐 Neutral</SelectItem>
+                                         <SelectItem value="Satisfied">😌 Satisfied</SelectItem>
 
 
 
 
 
-                                         <SelectItem value="stressed">😰 Stressed</SelectItem>
+                                         <SelectItem value="Sad">😢 Sad</SelectItem>
 
 
 
 
 
-                                         <SelectItem value="excited">🤩 Excited</SelectItem>
+                                         <SelectItem value="Undecided">🤔 Undecided</SelectItem>
 
 
 
@@ -5203,25 +5253,25 @@ export default function SavedResumePage() {
 
 
 
-                                             {currentMood === 'satisfied' && '😌'}
+                                             {currentMood === 'Happy' && '😀'}
 
 
 
 
 
-                                             {currentMood === 'neutral' && '😐'}
+                                             {currentMood === 'Satisfied' && '😌'}
 
 
 
 
 
-                                             {currentMood === 'stressed' && '😰'}
+                                             {currentMood === 'Sad' && '😢'}
 
 
 
 
 
-                                             {currentMood === 'excited' && '🤩'}
+                                             {currentMood === 'Undecided' && '🤔'}
 
 
 
@@ -5233,7 +5283,7 @@ export default function SavedResumePage() {
 
 
 
-                                           {currentMood.charAt(0).toUpperCase() + currentMood.slice(1)}
+                                           {currentMood}
 
 
 
@@ -5449,13 +5499,14 @@ export default function SavedResumePage() {
                                       <SelectContent className="bg-gray-900 border-gray-700">
                                         <SelectItem value="day">🌞 Day Shift</SelectItem>
                                         <SelectItem value="night">🌙 Night Shift</SelectItem>
+                                        <SelectItem value="both">🌗 Both Day & Night</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   ) : (
                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
                                       {preferredShift ? (
                                         <>
-                                          <span className="mr-2">{preferredShift === 'day' ? '🌞' : (preferredShift === 'night' ? '🌙' : '')}</span>
+                                          <span className="mr-2">{preferredShift === 'day' ? '🌞' : (preferredShift === 'night' ? '🌙' : (preferredShift === 'both' ? '🌗' : ''))}</span>
                                           {preferredShift.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                         </>
                                       ) : 'Not specified'}
@@ -5467,6 +5518,34 @@ export default function SavedResumePage() {
 
 
 
+                               {/* Work Setup */}
+                               <div className="group">
+                                 <label className="block text-sm font-medium text-purple-300 mb-2 flex items-center">
+                                   <span className="h-4 w-4 mr-2">🏠</span>
+                                   Work Setup
+                                 </label>
+                                 {isEditMode ? (
+                                   <Select value={workSetup} onValueChange={(value) => setWorkSetup(value)}>
+                                     <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
+                                       <SelectValue placeholder="Select work setup" />
+                                     </SelectTrigger>
+                                     <SelectContent className="bg-gray-900 border-gray-700">
+                                       <SelectItem value="Work From Office">🏢 Work From Office</SelectItem>
+                                       <SelectItem value="Work From Home">🏠 Work From Home</SelectItem>
+                                       <SelectItem value="Hybrid">🔁 Hybrid</SelectItem>
+                                       <SelectItem value="Any">✨ Any</SelectItem>
+                                     </SelectContent>
+                                   </Select>
+                                 ) : (
+                                   <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
+                                     {workSetup ? (
+                                       <>
+                                         <span className="mr-2">{workSetup === 'Work From Office' ? '🏢' : (workSetup === 'Work From Home' ? '🏠' : (workSetup === 'Hybrid' ? '🔁' : (workSetup === 'Any' ? '✨' : '')))}</span>
+                                         {workSetup}
+                                       </>
+                                     ) : 'Not specified'}
+                                   </div>
+                                 )}
                                </div>
 
 
@@ -5474,6 +5553,12 @@ export default function SavedResumePage() {
 
 
                              </div>
+
+
+
+
+
+                           </div>
 
 
 
@@ -5615,7 +5700,7 @@ export default function SavedResumePage() {
 
 
 
-                                 <div className="text-white">{currentMood ? currentMood.charAt(0).toUpperCase() + currentMood.slice(1) : 'Not specified'}</div>
+                                 <div className="text-white">{currentMood || 'Not specified'}</div>
 
 
 
@@ -5624,6 +5709,20 @@ export default function SavedResumePage() {
                                </div>
 
 
+
+                               <div className="bg-black/20 rounded-lg p-3 border border-pink-400/30">
+
+
+
+                                 <div className="text-pink-300 font-medium">Work Setup</div>
+
+
+
+                                 <div className="text-white">{workSetup || 'Not specified'}</div>
+
+
+
+                               </div>
 
 
 
@@ -8099,13 +8198,14 @@ export default function SavedResumePage() {
                                       <SelectContent className="bg-gray-900 border-gray-700">
                                         <SelectItem value="day">🌞 Day Shift</SelectItem>
                                         <SelectItem value="night">🌙 Night Shift</SelectItem>
+                                        <SelectItem value="both">🌗 Both Day & Night</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   ) : (
                                     <div className="bg-black/20 border border-purple-400/30 rounded-lg px-4 py-3 text-white font-medium flex items-center">
                                       {preferredShift ? (
                                         <>
-                                          <span className="mr-2">{preferredShift === 'day' ? '🌞' : (preferredShift === 'night' ? '🌙' : '')}</span>
+                                          <span className="mr-2">{preferredShift === 'day' ? '🌞' : (preferredShift === 'night' ? '🌙' : (preferredShift === 'both' ? '🌗' : ''))}</span>
                                           {preferredShift.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                         </>
                                       ) : 'Not specified'}

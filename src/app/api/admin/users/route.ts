@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
       completed_data: user.completed_data,
       birthday: user.birthday,
       admin_level: user.admin_level || 'user',
-      is_admin: user.is_admin || false
+      is_admin: user.is_admin || false,
+      slug: user.slug
     }))
 
     return NextResponse.json({ 

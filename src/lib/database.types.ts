@@ -27,6 +27,7 @@ export interface Database {
           updated_at: string
           completed_data: boolean
           birthday: string | null
+          slug: string | null
         }
         Insert: {
           id: string
@@ -45,6 +46,7 @@ export interface Database {
           updated_at?: string
           completed_data?: boolean
           birthday?: string | null
+          slug?: string | null
         }
         Update: {
           id?: string
@@ -63,6 +65,7 @@ export interface Database {
           updated_at?: string
           completed_data?: boolean
           birthday?: string | null
+          slug?: string | null
         }
       }
       resumes_extracted: {
