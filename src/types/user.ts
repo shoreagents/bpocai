@@ -6,6 +6,11 @@ export interface UserProfile {
   full_name: string
   location: string
   avatar_url?: string
+  phone?: string
+  bio?: string
+  position?: string
+  completed_data?: boolean
+  birthday?: string | null
   created_at: string
   updated_at: string
   is_admin?: boolean
