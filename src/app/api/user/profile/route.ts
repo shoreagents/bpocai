@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     console.log('🔍 API: Fetching profile for user:', userId)
 
     const query = `
-      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, created_at, updated_at
+      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, created_at, updated_at
       FROM users 
       WHERE id = $1
     `
@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
       phone: user.phone,
       bio: user.bio,
       position: user.position,
+      completed_data: user.completed_data,
+      birthday: user.birthday,
       created_at: user.created_at,
       updated_at: user.updated_at
     })
@@ -63,7 +65,7 @@ export async function PUT(request: NextRequest) {
 
     // Load existing values to avoid overwriting with nulls when not provided
     const existingRes = await pool.query(
-      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position FROM users WHERE id = $1`,
+      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday FROM users WHERE id = $1`,
       [userId]
     )
 
@@ -82,6 +84,14 @@ export async function PUT(request: NextRequest) {
     const bio = updateData.bio ?? existing.bio
     const position = updateData.position ?? existing.position
 
+    // Handle completed_data and birthday, preserving ability to clear birthday
+    const completedData = Object.prototype.hasOwnProperty.call(updateData, 'completed_data')
+      ? updateData.completed_data
+      : existing.completed_data
+    const birthday = Object.prototype.hasOwnProperty.call(updateData, 'birthday')
+      ? updateData.birthday
+      : existing.birthday
+
     // Recompute full_name from first/last when applicable, otherwise keep existing
     const recomputedFullName = `${firstName || ''} ${lastName || ''}`.trim()
     const fullName = recomputedFullName || existing.full_name
@@ -89,7 +99,7 @@ export async function PUT(request: NextRequest) {
     const query = `
       UPDATE users 
       SET first_name = $2, last_name = $3, full_name = $4, location = $5, 
-          avatar_url = $6, phone = $7, bio = $8, position = $9, updated_at = NOW()
+          avatar_url = $6, phone = $7, bio = $8, position = $9, completed_data = $10, birthday = $11, updated_at = NOW()
       WHERE id = $1
       RETURNING *
     `
@@ -102,7 +112,9 @@ export async function PUT(request: NextRequest) {
       avatarUrl,
       phone,
       bio,
-      position
+      position,
+      completedData,
+      birthday
     ])
 
     if (result.rows.length === 0) {

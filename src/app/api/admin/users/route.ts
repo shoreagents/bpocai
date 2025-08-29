@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
       location: user.location,
       bio: user.bio,
       position: user.position,
+      completed_data: user.completed_data,
+      birthday: user.birthday,
       admin_level: user.admin_level || 'user',
       is_admin: user.is_admin || false
     }))
