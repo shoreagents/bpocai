@@ -61,6 +61,7 @@ interface UserProfile {
   position?: string
   created_at: string
   updated_at: string
+  slug?: string
 }
 
 // Component to handle search params with Suspense
@@ -243,7 +244,8 @@ export default function Header({}: HeaderProps) {
   }
 
   const userMenuItems = [
-    { label: 'My Profile', href: savedResumeInfo?.resumeUrl || '/resume-builder', icon: FileTextIcon, action: null },
+    { label: 'My Profile', href: (userProfile?.slug ? `/profile/${userProfile.slug}` : '/settings'), icon: FileTextIcon, action: null },
+    { label: 'My Resume', href: (savedResumeInfo?.resumeUrl || '/resume-builder'), icon: FileTextIcon, action: null },
     { label: 'My Applications', href: '/applications', icon: Briefcase, action: null },
     { label: 'Settings', href: '/settings', icon: Settings, action: null },
     { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }

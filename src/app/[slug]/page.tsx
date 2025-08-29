@@ -9,6 +9,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 
@@ -736,8 +737,12 @@ export default function SavedResumePage() {
 
 
 
-  const [activeSection, setActiveSection] = useState<string>('profile');
+  const searchParams = useSearchParams();
+  const initialMode = (searchParams?.get('mode') === 'profile') ? 'profile' : 'resume';
+  const isProfileMode = initialMode === 'profile';
+  const [activeSection, setActiveSection] = useState<string>(initialMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const router = useRouter();
 
 
 
@@ -808,6 +813,41 @@ export default function SavedResumePage() {
 
 
   useEffect(() => {
+    if (isProfileMode) {
+      const slugParam = params?.slug as string;
+      if (slugParam) {
+        // Load user by slug and synthesize minimal resume context for existing UI
+        (async () => {
+          try {
+            setLoading(true);
+            const res = await fetch(`/api/public/user-by-slug?slug=${encodeURIComponent(slugParam)}`, { cache: 'no-store' });
+            if (!res.ok) { setError('Profile not found'); setLoading(false); return; }
+            const data = await res.json();
+            const u = data.user || {};
+            setResume({
+              id: '',
+              slug: slugParam,
+              title: '',
+              data: { content: null, template: null, sections: [], headerInfo: null },
+              template: '',
+              originalResumeId: null,
+              isPublic: true,
+              viewCount: 0,
+              createdAt: '',
+              updatedAt: '',
+              userId: u.id,
+              user: { fullName: u.full_name, avatarUrl: u.avatar_url }
+            } as any);
+            setIsOwner(false);
+            setError(null);
+          } catch (e) {
+            setError('Failed to load profile');
+          } finally {
+            setLoading(false);
+          }
+        })();
+      }
+    }
 
 
 
@@ -1022,6 +1062,12 @@ export default function SavedResumePage() {
 
 
     const fetchResume = async () => {
+      if (isProfileMode) {
+        // In profile mode, do not fetch resume or error-out when missing
+        setResume(null);
+        setLoading(false);
+        return;
+      }
 
 
 
@@ -1048,23 +1094,9 @@ export default function SavedResumePage() {
         
         
         if (!response.ok) {
-
-
-
-
-
+          if (isProfileMode) { setLoading(false); return; }
           const errorData = await response.json();
-
-
-
-
-
           throw new Error(errorData.error || 'Failed to load resume');
-
-
-
-
-
         }
 
 
@@ -3078,7 +3110,7 @@ export default function SavedResumePage() {
 
 
 
-  if (error) {
+  if (error && !isProfileMode) {
 
 
 
@@ -3241,6 +3273,18 @@ export default function SavedResumePage() {
 
 
   if (!resume) {
+    if (isProfileMode) {
+      // Render profile mode content without requiring a resume
+      return (
+        <div className="relative min-h-screen overflow-hidden cyber-grid">
+          <Header />
+          <div className="container mx-auto px-4 py-8 pt-24">
+            {/* Sidebar + Sections already exist below in the main render; for brevity show a simple gate here */}
+            <div className="text-gray-300">Loading profile...</div>
+          </div>
+        </div>
+      )
+    }
 
 
 
@@ -5508,13 +5552,13 @@ export default function SavedResumePage() {
 
 
 
-                               </div>
-
-
-
-
-
                              </div>
+
+
+
+
+
+                           </div>
 
 
 
