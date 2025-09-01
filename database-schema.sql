@@ -13,12 +13,17 @@ CREATE TABLE users (
   phone TEXT,
   bio TEXT,
   position TEXT,
+  gender TEXT,
   admin_level VARCHAR(10) DEFAULT 'user',
   is_admin BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   CONSTRAINT users_admin_level_check CHECK (admin_level IN ('user', 'admin'))
 );
+-- Validate gender field values (case-insensitive)
+ALTER TABLE users
+  ADD CONSTRAINT IF NOT EXISTS users_gender_check
+  CHECK (gender IS NULL OR lower(gender) IN ('male', 'female', 'others'));
 
 -- Create resumes table to store extracted JSON data
 CREATE TABLE resumes_extracted (

@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
       location: userData.location,
       phone: userData.phone,
       bio: userData.bio,
-      position: userData.position
+      position: userData.position,
+      gender: userData.gender ?? null
     })
 
     // Validate required fields
