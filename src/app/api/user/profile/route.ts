@@ -13,11 +13,13 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 API: Fetching profile for user:', userId)
 
+    // Start with basic query without gender
     const query = `
       SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, gender, created_at, updated_at
       FROM users 
       WHERE id = $1
     `
+    
     const result = await pool.query(query, [userId])
 
     if (result.rows.length === 0) {
@@ -26,29 +28,42 @@ export async function GET(request: NextRequest) {
     }
 
     const user = result.rows[0]
-    console.log('✅ API: User profile loaded:', {
+    
+    // Try to get gender separately if column exists
+    let gender = null
+    try {
+      const genderResult = await pool.query(`
+        SELECT gender FROM users WHERE id = $1
+      `, [userId])
+      gender = genderResult.rows[0]?.gender || null
+    } catch (error) {
+      console.log('⚠️ Gender column does not exist yet, defaulting to null')
+    }
+    
+    const userProfile = {
       id: user.id,
-      full_name: user.full_name,
-      avatar_url: user.avatar_url,
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
+      full_name: user.full_name,
       location: user.location,
+      avatar_url: user.avatar_url,
       phone: user.phone,
       bio: user.bio,
       position: user.position,
       completed_data: user.completed_data,
       birthday: user.birthday,
-      slug: user.slug,
+      gender: gender,
       created_at: user.created_at,
       updated_at: user.updated_at
-    })
-    console.log('🔍 API: Raw database result:', user)
+    }
+    
+    console.log('✅ API: User profile loaded:', userProfile)
 
-    return NextResponse.json({ user })
+    return NextResponse.json({ user: userProfile })
   } catch (error) {
     console.error('❌ API: Error fetching user profile:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
   }
 }
 
@@ -69,6 +84,15 @@ export async function PUT(request: NextRequest) {
       `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, gender FROM users WHERE id = $1`,
       [userId]
     )
+    
+    // Try to get existing gender separately
+    let existingGender = null
+    try {
+      const genderRes = await pool.query(`SELECT gender FROM users WHERE id = $1`, [userId])
+      existingGender = genderRes.rows[0]?.gender || null
+    } catch (error) {
+      console.log('⚠️ Gender column does not exist yet')
+    }
 
     if (existingRes.rows.length === 0) {
       console.log('❌ API: User not found for update:', userId)
@@ -84,7 +108,9 @@ export async function PUT(request: NextRequest) {
     const phone = updateData.phone ?? existing.phone
     const bio = updateData.bio ?? existing.bio
     const position = updateData.position ?? existing.position
+
     const gender = updateData.gender ?? existing.gender
+
 
     // Handle completed_data and birthday, preserving ability to clear birthday
     const completedData = Object.prototype.hasOwnProperty.call(updateData, 'completed_data')
@@ -98,6 +124,7 @@ export async function PUT(request: NextRequest) {
     const recomputedFullName = `${firstName || ''} ${lastName || ''}`.trim()
     const fullName = recomputedFullName || existing.full_name
 
+    // Update basic fields first
     const query = `
       UPDATE users 
       SET first_name = $2, last_name = $3, full_name = $4, location = $5, 
@@ -119,6 +146,16 @@ export async function PUT(request: NextRequest) {
       birthday,
       gender
     ])
+    
+    // Try to update gender separately if column exists and gender is provided
+    if (updateData.gender && gender) {
+      try {
+        await pool.query(`UPDATE users SET gender = $1 WHERE id = $2`, [gender, userId])
+        console.log('✅ Gender updated successfully')
+      } catch (error) {
+        console.log('⚠️ Gender column does not exist yet, skipping gender update')
+      }
+    }
 
     if (result.rows.length === 0) {
       console.log('❌ API: User not found for update:', userId)

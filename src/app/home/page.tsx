@@ -39,11 +39,14 @@ import {
   Award
 } from 'lucide-react'
 import { formatNumber, generateInitials } from '@/lib/utils'
+import ProfileCompletionModal from '@/components/auth/ProfileCompletionModal'
 
 export default function HomePage() {
   const router = useRouter()
   const { user } = useAuth()
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
 
   // RankBadge component for leaderboards
   const RankBadge = ({ rank }: { rank: number }) => {
@@ -194,6 +197,51 @@ export default function HomePage() {
     }, 5000)
     return () => clearInterval(id)
   }, [testimonialsData.length])
+
+  // Check if user needs to complete profile
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      if (!user) {
+        setProfileLoading(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/user/profile?userId=${user.id}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          const profile = data.user
+          setUserProfile(profile)
+          
+          // Show modal if completed_data is false
+          if (profile.completed_data === false) {
+            setShowProfileModal(true)
+          }
+        } else {
+          console.error('Failed to fetch user profile')
+        }
+      } catch (error) {
+        console.error('Error checking profile completion:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    checkProfileCompletion()
+  }, [user])
+
+  const handleProfileComplete = () => {
+    setShowProfileModal(false)
+    // Refresh the user profile data
+    if (userProfile) {
+      setUserProfile(prev => prev ? { ...prev, completed_data: true } : null)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setShowProfileModal(false)
+  }
 
   const handleBuildResume = () => {
     router.push('/resume-builder')
@@ -1092,33 +1140,12 @@ export default function HomePage() {
 
       {/* Footer included globally via RootLayout */}
 
-      {/* Profile Not Available Modal */}
-      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                <X className="w-5 h-5 text-yellow-400" />
-              </div>
-              Profile Not Available
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-300 mb-4">
-              This user's profile is not currently available. They may not have created a resume yet or their profile is still being set up.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowProfileModal(false)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-800"
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Profile Completion Modal */}
+      <ProfileCompletionModal
+        open={showProfileModal}
+        onOpenChange={handleCloseModal}
+        onComplete={handleProfileComplete}
+      />
     </main>
   )
 } 

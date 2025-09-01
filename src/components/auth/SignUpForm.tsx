@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -22,9 +22,7 @@ import {
   Loader2,
   Chrome,
   User,
-  CheckCircle,
-  MapPin,
-  Phone
+  CheckCircle
 } from 'lucide-react'
 
 interface SignUpFormProps {
@@ -39,9 +37,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
-    position: '',
-    location: '',
     password: '',
     confirmPassword: ''
   })
@@ -49,9 +44,35 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [termsLocked, setTermsLocked] = useState(false)
+  const [hasReadTerms, setHasReadTerms] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
   const [showVerifyDialog, setShowVerifyDialog] = useState(false)
+
+  // Check if terms were accepted from the terms page
+  useEffect(() => {
+    const termsAccepted = sessionStorage.getItem('termsAccepted')
+    const termsLocked = sessionStorage.getItem('termsLocked')
+    const hasReadTerms = sessionStorage.getItem('hasReadTerms')
+    
+    if (termsAccepted === 'true') {
+      setAgreedToTerms(true)
+      sessionStorage.removeItem('termsAccepted') // Clean up
+    }
+    
+    if (termsLocked === 'true') {
+      setAgreedToTerms(true)
+      setTermsLocked(true)
+      setHasReadTerms(true)
+      sessionStorage.removeItem('termsLocked') // Clean up
+    }
+
+    // Check if user has previously read terms
+    if (hasReadTerms === 'true') {
+      setHasReadTerms(true)
+    }
+  }, [])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -59,6 +80,51 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+  }
+
+  const handleTermsCheckboxClick = () => {
+    if (termsLocked) return // Don't allow changes if locked
+    
+    if (!hasReadTerms) {
+      setErrors(prev => ({ ...prev, terms: 'Please read the Terms and Conditions first before agreeing' }))
+      return
+    }
+    
+    setAgreedToTerms(!agreedToTerms)
+    // Clear any existing terms error
+    if (errors.terms) {
+      setErrors(prev => ({ ...prev, terms: '' }))
+    }
+  }
+
+  const handleTermsCheckboxChange = () => {
+    console.log('Checkbox clicked, hasReadTerms:', hasReadTerms) // Debug log
+    
+    // This prevents the checkbox from being checked if terms haven't been read
+    if (!hasReadTerms) {
+      console.log('Setting error message') // Debug log
+      setErrors(prev => ({ ...prev, terms: 'Please read the Terms and Conditions first before agreeing' }))
+      return
+    }
+    
+    // Only allow checkbox to be checked if terms have been read
+    if (termsLocked) return // Don't allow changes if locked
+    
+    setAgreedToTerms(!agreedToTerms)
+    // Clear any existing terms error
+    if (errors.terms) {
+      setErrors(prev => ({ ...prev, terms: '' }))
+    }
+  }
+
+  const handleTermsLinkClick = () => {
+    setHasReadTerms(true)
+    sessionStorage.setItem('hasReadTerms', 'true')
+    // Clear any existing terms error when they click to read terms
+    if (errors.terms) {
+      setErrors(prev => ({ ...prev, terms: '' }))
+    }
+    window.location.href = '/terms-and-conditions?from=signup'
   }
 
   const validateForm = () => {
@@ -78,19 +144,7 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
       newErrors.email = 'Please enter a valid email'
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required'
-    } else if (!/^[\+]?[^\D]?[\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number'
-    }
 
-    if (!formData.position.trim()) {
-      newErrors.position = 'Position is required'
-    }
-
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required'
-    }
 
     if (!formData.password) {
       newErrors.password = 'Password is required'
@@ -145,9 +199,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
         {
           first_name: formData.firstName,
           last_name: formData.lastName,
-          phone: formData.phone,
-          position: formData.position,
-          location: formData.location,
           full_name: `${formData.firstName} ${formData.lastName}`
         }
       )
@@ -204,18 +255,22 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
       firstName: '',
       lastName: '',
       email: '',
-      phone: '',
-      position: '',
-      location: '',
       password: '',
       confirmPassword: ''
     })
     setShowPassword(false)
     setShowConfirmPassword(false)
     setAgreedToTerms(false)
+    setHasReadTerms(false)
+    setTermsLocked(false)
     setErrors({})
     setSuccessMessage('')
     setIsLoading(false)
+    
+    // Clear session storage
+    sessionStorage.removeItem('hasReadTerms')
+    sessionStorage.removeItem('termsAccepted')
+    sessionStorage.removeItem('termsLocked')
     
     // Switch to login form
     if (onSwitchToLogin) {
@@ -373,98 +428,11 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
                 )}
               </div>
 
-              {/* Phone Field */}
-              <div className="space-y-2">
-                <label htmlFor="phone" className="text-sm font-medium text-white block">
-                  Phone Number
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="e.g., +63 912 345 6789"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                      errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                    }`}
-                    disabled={isLoading}
-                    autoComplete="tel"
-                  />
-                </div>
-                {errors.phone && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-red-400 text-xs"
-                  >
-                    {errors.phone}
-                  </motion.p>
-                )}
-              </div>
 
-              {/* Position Field */}
-              <div className="space-y-2">
-                <label htmlFor="position" className="text-sm font-medium text-white block">
-                  Position
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="position"
-                    type="text"
-                    placeholder="e.g., Customer Service, Sales"
-                    value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                    className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                      errors.position ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                    }`}
-                    disabled={isLoading}
-                    autoComplete="off"
-                  />
-                </div>
-                {errors.position && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-red-400 text-xs"
-                  >
-                    {errors.position}
-                  </motion.p>
-                )}
-              </div>
 
-              {/* Location Field */}
-              <div className="space-y-2">
-                <label htmlFor="location" className="text-sm font-medium text-white block">
-                  Location
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="e.g., Clark, Pampanga"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    className={`pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-200 ${
-                      errors.location ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
-                    }`}
-                    disabled={isLoading}
-                    autoComplete="address-level2"
-                  />
-                </div>
-                {errors.location && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-red-400 text-xs"
-                  >
-                    {errors.location}
-                  </motion.p>
-                )}
-              </div>
+
+
+
 
               {/* Password Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -557,45 +525,38 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
 
               {/* Terms and Conditions */}
               <div className="space-y-2">
-                <div className="flex items-start space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setAgreedToTerms(!agreedToTerms)}
-                    className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black ${
-                      agreedToTerms 
-                        ? 'bg-cyan-500 border-cyan-500' 
-                        : 'border-white/20 hover:border-cyan-500'
-                    } ${errors.terms ? 'border-red-500' : ''}`}
-                    disabled={isLoading}
-                    aria-label="Agree to terms and conditions"
-                  >
-                    {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
-                  </button>
-                  <label className="text-sm text-gray-300 leading-relaxed">
-                    I agree to the{' '}
-                    <button
-                      type="button"
-                      className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
-                      onClick={() => {
-                        // TODO: Open terms modal or navigate to terms page
-                        console.log('Terms clicked')
-                      }}
-                    >
-                      Terms and Conditions
-                    </button>
-                    {' '}and{' '}
-                    <button
-                      type="button"
-                      className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
-                      onClick={() => {
-                        // TODO: Open privacy modal or navigate to privacy page
-                        console.log('Privacy policy clicked')
-                      }}
-                    >
-                      Privacy Policy
-                    </button>
-                  </label>
-                </div>
+                                 <div className="flex items-start space-x-3">
+                   <button
+                     type="button"
+                     onClick={handleTermsCheckboxChange}
+                     className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black ${
+                       agreedToTerms 
+                         ? 'bg-cyan-500 border-cyan-500' 
+                         : 'border-white/20 hover:border-cyan-500'
+                     } ${errors.terms ? 'border-red-500' : ''} ${termsLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                     disabled={isLoading || termsLocked}
+                     aria-label="Agree to terms and conditions"
+                   >
+                     {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
+                   </button>
+                   <label className="text-sm text-gray-300 leading-relaxed">
+                     I agree to the{' '}
+                     <button
+                       type="button"
+                       className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                       onClick={handleTermsLinkClick}
+                     >
+                       Terms and Conditions
+                     </button>
+                     {termsLocked && (
+                       <span className="ml-2 text-xs text-green-400 font-medium">
+                         ✓ Terms reviewed and accepted
+                       </span>
+                     )}
+                   </label>
+                 </div>
+                
+                
                 {errors.terms && (
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
@@ -612,7 +573,7 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
                 type="submit"
                 className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 h-12 font-medium transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50"
                 disabled={isLoading || !agreedToTerms}
-                title={!agreedToTerms ? 'You must agree to the Terms and Conditions and Privacy Policy' : undefined}
+                                 title={!agreedToTerms ? 'You must agree to the Terms and Conditions' : undefined}
               >
                 {isLoading ? (
                   <>
@@ -636,17 +597,18 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
               </div>
             </div>
 
-            {/* Social Sign Up Button */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black"
-              onClick={handleSocialSignUp}
-              disabled={isLoading}
-            >
-              <Chrome className="w-4 h-4 mr-2" />
-              Sign up with Google
-            </Button>
+                         {/* Social Sign Up Button */}
+             <Button
+               type="button"
+               variant="outline"
+               className="w-full h-12 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
+               onClick={handleSocialSignUp}
+               disabled={isLoading || !agreedToTerms}
+               title={!agreedToTerms ? 'You must agree to the Terms and Conditions first' : undefined}
+             >
+               <Chrome className="w-4 h-4 mr-2" />
+               Sign up with Google
+             </Button>
 
             {/* Sign In Link */}
             <div className="text-center text-sm text-gray-300 pt-2">
