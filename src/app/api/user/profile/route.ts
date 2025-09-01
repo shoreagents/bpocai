@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
       position: user.position,
       completed_data: user.completed_data,
       birthday: user.birthday,
+      slug: user.slug,
       gender: gender,
       created_at: user.created_at,
       updated_at: user.updated_at
