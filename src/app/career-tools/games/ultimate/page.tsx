@@ -874,9 +874,6 @@ export default function BPOCUltimateGame() {
                 <Card className="glass-card border-white/10">
                   <CardHeader className="pb-6">
                     <div className="flex items-center justify-center mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mr-4">
-                        <Crown className="w-8 h-8 text-green-400" />
-                      </div>
                       <div>
                         <CardTitle className="text-3xl font-bold gradient-text mb-2">
                           Welcome to BPOC Ultimate!
@@ -1289,153 +1286,149 @@ export default function BPOCUltimateGame() {
       
       <Header />
       
-      <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
+      <div className="pt-16 relative z-10 h-screen">
+        <div className="container mx-auto px-4 md:px-6 py-4 h-full">
+          {/* Compact Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
+            className="flex items-center justify-between mb-4"
           >
             <div className="flex items-center">
               <Button
                 variant="ghost"
                 onClick={handleBackClick}
-                className="mr-4 text-gray-400 hover:text-white"
+                className="mr-4 text-gray-400 hover:text-white transition-all duration-300 hover:scale-105"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 Back
               </Button>
-              <div className="flex items-center">
-                <Crown className="h-12 w-12 text-green-400 mr-4" />
-              <div>
-                  <h1 className="text-4xl font-bold gradient-text">BPOC Ultimate</h1>
-                  <p className="text-gray-400">The Complete Candidate Revelation</p>
+                             <div className="flex items-center">
+                 <Crown className="h-8 w-8 text-green-400 mr-3" />
+                <div>
+                  <h1 className="text-2xl font-bold gradient-text">BPOC Ultimate</h1>
+                  <p className="text-gray-400 text-sm">The Complete Candidate Revelation</p>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Real-Time Feedback Metrics */}
-          <div className="max-w-4xl mx-auto mb-8">
-            <div className="flex gap-4">
-            <Card className="glass-card border-green-500/20 flex-1">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-400">{Math.round(teamMorale)}%</div>
-                <div className="text-sm text-green-300">Team Morale</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-blue-500/20 flex-1">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-400">{Math.round(clientTrust)}%</div>
-                <div className="text-sm text-blue-300">Client Trust</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-purple-500/20 flex-1">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-400">{Math.round(businessImpact)}%</div>
-                <div className="text-sm text-purple-300">Business Impact</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card border-orange-500/20 flex-1">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-400">{Math.round(crisisPressure)}%</div>
-                <div className="text-sm text-orange-300">Crisis Pressure</div>
-              </CardContent>
-            </Card>
+          {/* Main Game Layout - Side by Side */}
+          <div className="flex gap-4 h-[calc(100vh-140px)]">
+            {/* Left Side - Progress and Stats */}
+            <div className="w-1/3 space-y-4">
+              {/* Real-Time Feedback Metrics - Compact */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-2 gap-2"
+              >
+                <Card className="glass-card border-green-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-green-400">{Math.round(teamMorale)}%</div>
+                    <div className="text-xs text-green-300">Team Morale</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-blue-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-blue-400">{Math.round(clientTrust)}%</div>
+                    <div className="text-xs text-blue-300">Client Trust</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-purple-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-purple-400">{Math.round(businessImpact)}%</div>
+                    <div className="text-xs text-purple-300">Business Impact</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-orange-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-orange-400">{Math.round(crisisPressure)}%</div>
+                    <div className="text-xs text-orange-300">Crisis Pressure</div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Progress Bar - Compact */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="glass-card border-white/10">
+                  <CardContent className="p-3">
+                    {/* Progress Info - Top Right */}
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="text-gray-300 text-sm">Scenario {currentQuestion + 1} of {BPOC_SCENARIOS.length}</div>
+                      <div className="text-white font-bold text-lg">
+                        {Math.round((currentQuestion / BPOC_SCENARIOS.length) * 100)}%
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-3 border border-gray-700 overflow-hidden relative">
+                      <motion.div 
+                        className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-3 rounded-full shadow-lg"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(currentQuestion / BPOC_SCENARIOS.length) * 100}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              
+            </div>
+
+            {/* Right Side - Main Game Content */}
+            <div className="w-2/3">
+              <motion.div
+                key={currentQuestion}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="h-full"
+              >
+                <Card className="glass-card border-white/10 h-full">
+                  <CardContent className="p-6 h-full flex flex-col">
+                    {/* Scenario Header */}
+                    <div className="text-center mb-4">
+                      <h2 className="text-2xl font-bold gradient-text mb-2">{scenario.title}</h2>
+                      <p className="text-sm text-gray-300">{scenario.visual}</p>
+                    </div>
+
+                    {/* Scenario Description */}
+                    <div className="mb-2 flex-1">
+                      <p className="text-lg text-gray-200 mb-2">{scenario.scene}</p>
+                      <div className="bg-red-900/50 border border-red-700 rounded-lg p-3 mb-2">
+                        <p className="text-red-100 font-semibold text-sm">{scenario.problem}</p>
+                      </div>
+                    </div>
+
+                    {/* Options */}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-bold text-center mb-1 text-white">How do you respond?</h3>
+                      {scenario.choices.map((choice, index) => (
+                        <motion.button
+                          key={index}
+                          onClick={() => handleChoice(choice)}
+                          disabled={selectedChoice !== null}
+                          className={`w-full glass-card border-white/10 hover:border-blue-500/50 rounded-lg p-3 text-left transition-all ${
+                            selectedChoice === choice.id 
+                              ? 'bg-gradient-to-r from-green-600 to-green-500 border-green-400 shadow-green-500/25' 
+                              : ''
+                          }`}
+                          whileHover={{ scale: selectedChoice === null ? 1.02 : 1 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="text-base text-white">{choice.text}</div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
           </div>
-
-      {/* Progress Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl mx-auto mb-8"
-          >
-            <Card className="glass-card border-white/10">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">{selectedAvatar}</div>
-              <div>
-                      <div className="font-bold text-white">{playerName}</div>
-                      <div className="text-sm text-gray-400">Scenario {currentQuestion + 1} of {BPOC_SCENARIOS.length}</div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-400">Progress</div>
-                    <div className="text-lg font-bold text-white">{Math.round((currentQuestion / BPOC_SCENARIOS.length) * 100)}%</div>
-            </div>
-          </div>
-          <div className="w-full bg-gray-800 rounded-full h-4 border border-gray-700 overflow-hidden relative">
-            <motion.div 
-              className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-4 rounded-full shadow-lg"
-              initial={{ width: 0 }}
-              animate={{ width: `${(currentQuestion / BPOC_SCENARIOS.length) * 100}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            />
-            {/* Progress Milestones */}
-            {[25, 50, 75, 100].map((milestone) => (
-              <div
-                key={milestone}
-                className="absolute top-0 w-1 h-4 bg-white/30 rounded-full"
-                style={{ left: `${milestone}%` }}
-              />
-            ))}
-          </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-      {/* Scenario */}
-        <motion.div
-            key={currentQuestion}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="max-w-4xl mx-auto"
-        >
-            <Card className="glass-card border-white/10 mb-8">
-              <CardContent className="p-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-3xl font-bold gradient-text mb-2">{scenario.title}</h2>
-                  <p className="text-lg text-gray-300">{scenario.visual}</p>
-          </div>
-
-            <div className="mb-6">
-                  <p className="text-xl text-gray-200 mb-4">{scenario.scene}</p>
-                  <div className="bg-red-900/50 border border-red-700 rounded-lg p-4">
-                <p className="text-red-100 font-semibold">{scenario.problem}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-center mb-6 text-white">How do you respond?</h3>
-              {scenario.choices.map((choice, index) => (
-                <motion.button
-                  key={index}
-                  onClick={() => handleChoice(choice)}
-                  disabled={selectedChoice !== null}
-                  className={`w-full glass-card border-white/10 hover:border-blue-500/50 rounded-lg p-4 text-left transition-all ${
-                    selectedChoice === choice.id 
-                      ? 'bg-gradient-to-r from-green-600 to-green-500 border-green-400 shadow-green-500/25' 
-                      : ''
-                  }`}
-                  whileHover={{ scale: selectedChoice === null ? 1.02 : 1 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="text-lg text-white">{choice.text}</div>
-                </motion.button>
-              ))}
-            </div>
-              </CardContent>
-            </Card>
-
-
-
-            
-          </motion.div>
-            </div>
-            </div>
+        </div>
+      </div>
 
       {/* Reaction Popup */}
       {showReaction && (

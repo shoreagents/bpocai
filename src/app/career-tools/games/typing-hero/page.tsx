@@ -36,7 +36,8 @@ import {
   Lock,
   CheckCircle,
   Star,
-  Share
+  Share,
+  Eye
 } from 'lucide-react';
 
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
@@ -155,6 +156,15 @@ export default function TypingHeroPage() {
   const endCalledRef = useRef<boolean>(false);
   const sessionSavedRef = useRef<boolean>(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  
+  // Typing animation state for demo
+  const [currentTypingIndex, setCurrentTypingIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(150);
+  
+  const demoWords = ['create', 'assist', 'design', 'manage'];
   
   // Game intervals
   const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -993,6 +1003,34 @@ export default function TypingHeroPage() {
     }
   }, [gameState]);
 
+  // Typing animation effect for demo
+  useEffect(() => {
+    if (!showDemoModal) return;
+    
+    const currentText = demoWords[currentTypingIndex];
+    
+    const timer = setTimeout(() => {
+      if (!isDeleting) {
+        if (displayText.length < currentText.length) {
+          setDisplayText(currentText.slice(0, displayText.length + 1));
+          setTypingSpeed(Math.random() * 100 + 50);
+        } else {
+          setTimeout(() => setIsDeleting(true), 2000);
+        }
+      } else {
+        if (displayText.length > 0) {
+          setDisplayText(currentText.slice(0, displayText.length - 1));
+          setTypingSpeed(25);
+        } else {
+          setIsDeleting(false);
+          setCurrentTypingIndex((prev) => (prev + 1) % demoWords.length);
+        }
+      }
+    }, typingSpeed);
+
+    return () => clearTimeout(timer);
+  }, [displayText, currentTypingIndex, isDeleting, typingSpeed, showDemoModal, demoWords]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -1095,87 +1133,86 @@ export default function TypingHeroPage() {
             >
               <Card className="glass-card border-white/10">
                 <CardHeader className="pb-6">
-                  <div className="flex items-center justify-center mb-6">
-                    <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mr-4">
-                      <Guitar className="w-8 h-8 text-green-400" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-3xl font-bold gradient-text mb-2">
-                        Welcome to Typing Hero!
-                      </CardTitle>
-                      <CardDescription className="text-gray-300 text-lg">
-                        Click "Start Typing" to begin the medium difficulty challenge!
-                      </CardDescription>
-                    </div>
-                  </div>
+                                     <div className="text-center mb-6">
+                     <CardTitle className="text-3xl font-bold gradient-text mb-2">
+                       Welcome to Typing Hero!
+                     </CardTitle>
+                     <CardDescription className="text-gray-300 text-lg">
+                       Click "Start Typing" to begin the medium difficulty challenge!
+                     </CardDescription>
+                   </div>
                   
-                  <div className="text-gray-300 space-y-6 text-left max-w-3xl mx-auto">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-red-400" />
-                        How to Play
-                      </h3>
-                      <ul className="space-y-3 text-sm">
-                        <li className="flex items-start">
-                          <span className="text-purple-400 mr-3 mt-0.5 text-lg">🎵</span>
-                          <span>Words and phrases fall down 5 lanes like notes in Guitar Hero</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-green-400 mr-3 mt-0.5 text-lg">⚡</span>
-                          <span>Type any visible word anytime - no need to wait! Spaces are optional for multi-word phrases.</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎯</span>
-                          <span>Get bonus points for perfect timing in the target zone</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-orange-400 mr-3 mt-0.5 text-lg">🔥</span>
-                          <span>Correct words = Fire effects and points!</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-red-400 mr-3 mt-0.5 text-lg">💩</span>
-                          <span>Wrong words = Poo effects and lost combo</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
-                          <span>Complete the challenge to see your final WPM and accuracy</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-orange-400 mr-3 mt-0.5 text-lg">📊</span>
-                          <span>Accuracy is realistic - increases with difficulty and typing speed</span>
-                        </li>
-                      </ul>
-                    </div>
-                    
+                                     {/* How to Play Section */}
+                   <div className="text-gray-300 space-y-4 mb-8">
+                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                       <Target className="w-5 h-5 text-red-400" />
+                       How to Play
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex items-start">
+                         <span className="text-purple-400 mr-3 mt-0.5 text-lg">🎵</span>
+                         <span className="text-sm">Words fall down 5 lanes like Guitar Hero notes</span>
+                       </div>
+                       <div className="flex items-start">
+                         <span className="text-green-400 mr-3 mt-0.5 text-lg">⚡</span>
+                         <span className="text-sm">Type any visible word anytime - spaces optional</span>
+                       </div>
+                       <div className="flex items-start">
+                         <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎯</span>
+                         <span className="text-sm">Perfect timing in target zone = bonus points</span>
+                       </div>
+                       <div className="flex items-start">
+                         <span className="text-orange-400 mr-3 mt-0.5 text-lg">🔥</span>
+                         <span className="text-sm">Correct words = Fire effects & points!</span>
+                       </div>
+                       <div className="flex items-start">
+                         <span className="text-red-400 mr-3 mt-0.5 text-lg">💩</span>
+                         <span className="text-sm">Wrong words = Poo effects & lost combo</span>
+                       </div>
+                       <div className="flex items-start">
+                         <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
+                         <span className="text-sm">Complete challenge for WPM & accuracy</span>
+                       </div>
+                     </div>
+                   </div>
 
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-purple-400 text-lg">🎵</span>
-                          <h4 className="text-white font-semibold">Dynamic Music</h4>
-                        </div>
-                        <p className="text-gray-300 text-sm">Each difficulty has unique music and challenge levels!</p>
-                      </div>
-                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-cyan-400 text-lg">📝</span>
-                          <h4 className="text-white font-semibold">Progressive Challenge</h4>
-                        </div>
-                        <p className="text-gray-300 text-sm">Start with Easy and work your way up to Expert!</p>
-                      </div>
-                    </div>
-                  </div>
+                   {/* Features Grid */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                       <div className="flex items-center gap-2 mb-2">
+                         <span className="text-purple-400 text-lg">🎵</span>
+                         <h4 className="text-white font-semibold">Dynamic Music</h4>
+                       </div>
+                       <p className="text-gray-300 text-sm">Each difficulty has unique music and challenge levels!</p>
+                     </div>
+                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                       <div className="flex items-center gap-2 mb-2">
+                         <span className="text-cyan-400 text-lg">📝</span>
+                         <h4 className="text-white font-semibold">Progressive Challenge</h4>
+                       </div>
+                       <p className="text-gray-300 text-sm">Start with Easy and work your way up to Expert!</p>
+                     </div>
+                   </div>
                 </CardHeader>
-                <CardContent>
-                  <Button
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
-                    onClick={() => startGame('medium')}
-                  >
-                    <Play className="h-6 w-6 mr-3" />
-                    Start Typing
-                  </Button>
-                </CardContent>
+                                 <CardContent>
+                   <div className="flex gap-4">
+                     <Button
+                       variant="outline"
+                       className="flex-1 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400/70 font-bold text-lg py-6 h-14"
+                       onClick={() => setShowDemoModal(true)}
+                     >
+                       <Eye className="h-6 w-6 mr-3" />
+                       Live Demo
+                     </Button>
+                     <Button
+                       className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
+                       onClick={() => startGame('medium')}
+                     >
+                       <Play className="h-6 w-6 mr-3" />
+                       Start Typing
+                     </Button>
+                   </div>
+                 </CardContent>
               </Card>
             </motion.div>
           )}
@@ -1315,18 +1352,18 @@ export default function TypingHeroPage() {
                     />
                   ))}
 
-                  {/* Target Zone */}
-                  <div
-                    className="absolute left-0 right-0 border-t-2 border-b-2 border-yellow-400/60 bg-yellow-400/10"
-                    style={{
-                      top: `${TARGET_ZONE_Y - TARGET_ZONE_TOLERANCE}%`,
-                      height: `${TARGET_ZONE_TOLERANCE * 2}%`
-                    }}
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-yellow-400 font-bold text-sm opacity-60">TARGET ZONE</span>
-                    </div>
-                  </div>
+                                     {/* Danger Zone */}
+                   <div
+                     className="absolute left-0 right-0 border-t-2 border-b-2 border-red-400/60 bg-red-400/10"
+                     style={{
+                       top: '90%',
+                       height: '10%'
+                     }}
+                   >
+                     <div className="absolute inset-0 flex items-center justify-center">
+                       <span className="text-red-400 font-bold text-sm opacity-60">DANGER ZONE</span>
+                     </div>
+                   </div>
 
                   {/* Falling Words */}
                   <AnimatePresence>
@@ -1451,21 +1488,18 @@ export default function TypingHeroPage() {
                         )}
                       </AnimatePresence>
                       
-                      <Input
-                        ref={inputRef}
-                        value={currentInput}
-                        onChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                        placeholder={fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).length > 0 ? 
-                          `Type any visible: ${fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).slice(0, 2).map(w => w.word).join(', ')}${fallingWords.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100).length > 2 ? '...' : ''}` : 
-                          "Type any word or phrase (spaces optional)..."
-                        }
-                        className="bg-gray-800/50 border-white/20 text-white text-lg font-mono focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20"
-                        disabled={gameState !== 'playing'}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                      />
+                                             <Input
+                         ref={inputRef}
+                         value={currentInput}
+                         onChange={handleInputChange}
+                         onKeyPress={handleKeyPress}
+                         
+                         className="bg-gray-800/50 border-white/20 text-white text-xl font-mono focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20 h-16 px-6"
+                         disabled={gameState !== 'playing'}
+                         autoComplete="off"
+                         autoCorrect="off"
+                         spellCheck="false"
+                       />
                     </div>
                                           <div className="text-sm text-gray-400">
                         <div className="mt-1 text-xs">
@@ -1504,7 +1538,7 @@ export default function TypingHeroPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-yellow-400">{gameStats.score.toLocaleString()}</div>
-                      <div className="text-sm text-gray-400">Final Score</div>
+                      <div className="text-sm text-gray-400">Score</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-cyan-400">{gameStats.wpm}</div>
@@ -1512,7 +1546,7 @@ export default function TypingHeroPage() {
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-green-400">{gameStats.fires}</div>
-                      <div className="text-sm text-gray-400">🔥 Fires</div>
+                      <div className="text-sm text-gray-400">Fires</div>
                     </div>
                     <div className="text-center">
                       <div className={`text-3xl font-bold ${gameStats.accuracy >= 70 ? 'text-green-400' : 'text-red-400'}`}>
@@ -1573,28 +1607,215 @@ export default function TypingHeroPage() {
         </div>
       </div>
       
-      {/* Exit Game Alert Dialog */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-                    <AlertDialogContent className="bg-black border-gray-700">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Leave Typing Hero?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
-              Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
-              Continue Playing
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => router.back()}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
-            >
-              Exit Game
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+             {/* Demo Modal */}
+       <AlertDialog open={showDemoModal} onOpenChange={setShowDemoModal}>
+         <AlertDialogContent className="bg-black border-gray-700 max-w-4xl">
+           <AlertDialogHeader>
+             <AlertDialogTitle className="text-white text-2xl">Typing Hero - Interactive Demo</AlertDialogTitle>
+             <AlertDialogDescription className="text-gray-300">
+               Experience the gameplay mechanics in this live demo
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           
+           <div className="glass-card p-6 rounded-2xl relative overflow-hidden min-h-[400px] my-4">
+             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 via-cyan-400 to-purple-400 rounded-t-2xl"></div>
+             
+             {/* Demo Header */}
+             <div className="flex items-center justify-between mb-4">
+               <div>
+                 <h3 className="font-semibold text-white">Typing Hero</h3>
+                 <p className="text-sm text-gray-400">Interactive Demo</p>
+               </div>
+               <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                 <Play className="w-3 h-3 mr-1" />
+                 Live Demo
+               </Badge>
+             </div>
+
+             {/* Demo Game Area */}
+             <div className="relative h-48 bg-gradient-to-b from-gray-900/50 to-gray-800/50 rounded-lg border border-white/10 overflow-hidden">
+               {/* Lane Dividers */}
+               {Array.from({ length: 6 }, (_, i) => (
+                 <div
+                   key={i}
+                   className="absolute top-0 bottom-0 w-px bg-cyan-400/30"
+                   style={{ left: `${(i / 5) * 100}%` }}
+                 />
+               ))}
+
+               {/* Danger Zone */}
+               <div
+                 className="absolute left-0 right-0 border-t-2 border-b-2 border-red-400/60 bg-red-400/10"
+                 style={{
+                   top: '85%',
+                   height: '15%'
+                 }}
+               >
+                 <div className="absolute inset-0 flex items-center justify-center">
+                   <span className="text-red-400 font-bold text-xs opacity-60">DANGER ZONE</span>
+                 </div>
+               </div>
+
+               {/* Animated Falling Words */}
+               <AnimatePresence>
+                 {Array.from({ length: 8 }, (_, i) => (
+                   <motion.div
+                     key={i}
+                     initial={{ y: -20, opacity: 0 }}
+                     animate={{ 
+                       y: [0, 100, 200, 300, 400],
+                       opacity: [0, 1, 1, 1, 0]
+                     }}
+                     transition={{ 
+                       duration: 6,
+                       delay: i * 0.8,
+                       repeat: Infinity,
+                       repeatDelay: 3
+                     }}
+                     className={`absolute text-white font-bold text-xs px-2 py-1 rounded bg-blue-500/80`}
+                     style={{
+                       left: `${((i % 5) / 5) * 100 + (1 / 5) * 50}%`,
+                       top: '0%',
+                       transform: 'translateX(-50%)'
+                     }}
+                   >
+                     {['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project'][i % 8]}
+                   </motion.div>
+                 ))}
+               </AnimatePresence>
+
+               {/* Animated Effects */}
+               <AnimatePresence>
+                 {Array.from({ length: 4 }, (_, i) => (
+                   <motion.div
+                     key={`effect-${i}`}
+                     initial={{ scale: 0, opacity: 1 }}
+                     animate={{ scale: [0, 2, 0], opacity: [1, 1, 0] }}
+                     transition={{ 
+                       duration: 1.5,
+                       delay: i * 1.5 + 1,
+                       repeat: Infinity,
+                       repeatDelay: 2
+                     }}
+                     className="absolute text-4xl pointer-events-none"
+                     style={{
+                       left: `${((i % 5) / 5) * 100 + (1 / 5) * 50}%`,
+                       top: '70%',
+                       transform: 'translate(-50%, -50%)'
+                     }}
+                   >
+                     {i % 2 === 0 ? '🔥' : '💩'}
+                   </motion.div>
+                 ))}
+               </AnimatePresence>
+
+               {/* Bonus Text Effects */}
+               <AnimatePresence>
+                 {Array.from({ length: 2 }, (_, i) => (
+                   <motion.div
+                     key={`bonus-${i}`}
+                     initial={{ opacity: 1, y: 0, scale: 1 }}
+                     animate={{ opacity: 0, y: -30, scale: 1.2 }}
+                     transition={{ 
+                       duration: 1.5,
+                       delay: i * 3 + 2,
+                       repeat: Infinity,
+                       repeatDelay: 4
+                     }}
+                     className="absolute text-xs font-bold pointer-events-none text-green-400"
+                     style={{
+                       left: `${((i % 5) / 5) * 100 + (1 / 5) * 50}%`,
+                       top: '65%',
+                       transform: 'translateX(-50%)',
+                       textShadow: '0 0 4px rgba(0,0,0,0.8)'
+                     }}
+                   >
+                     PERFECT! +50
+                   </motion.div>
+                 ))}
+               </AnimatePresence>
+             </div>
+
+             {/* Demo Stats */}
+             <div className="flex items-center justify-between mt-4 text-sm">
+               <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2">
+                   <Trophy className="h-4 w-4 text-yellow-400" />
+                   <span className="text-white font-bold">2,450</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <span className="text-lg">🔥</span>
+                   <span className="text-green-400 font-bold">12</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <span className="text-lg">💩</span>
+                   <span className="text-red-400 font-bold">3</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <Zap className="h-4 w-4 text-purple-400" />
+                   <span className="text-purple-400 font-bold">5x</span>
+                 </div>
+               </div>
+               <div className="flex items-center gap-4">
+                 <span className="text-cyan-400 font-bold">45 WPM</span>
+                 <span className="text-white">92% Accuracy</span>
+               </div>
+             </div>
+
+             {/* Demo Input Area */}
+             <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-white/10">
+               <div className="flex items-center gap-3">
+                 <div className="flex-1 relative">
+                   <div className="bg-gray-700/50 border border-white/20 rounded-md px-3 py-2 text-sm font-mono text-white relative">
+                     <span className="text-white">{displayText}</span>
+                     <span className="text-cyan-400 animate-pulse">|</span>
+                   </div>
+                 </div>
+                 <div className="text-xs text-gray-400">
+                   <div>Timing bonuses: <span className="text-green-400">Perfect +50</span></div>
+                   <div>Realistic accuracy system</div>
+                 </div>
+               </div>
+               
+               <div className="mt-2 text-xs text-gray-400 text-center">
+                 <span className="text-cyan-400 font-semibold">Disclaimer:</span> You type the words in the input area below the game screen, not directly on the falling words
+               </div>
+             </div>
+           </div>
+
+           <AlertDialogFooter>
+             <AlertDialogAction 
+               onClick={() => setShowDemoModal(false)}
+               className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white border-0"
+             >
+               Close Demo
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+
+       {/* Exit Game Alert Dialog */}
+       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+                     <AlertDialogContent className="bg-black border-gray-700">
+           <AlertDialogHeader>
+             <AlertDialogTitle className="text-white">Leave Typing Hero?</AlertDialogTitle>
+             <AlertDialogDescription className="text-gray-300">
+               Are you sure you want to exit the game? This will take you back to the main menu and you'll lose your current progress.
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter>
+             <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+               Continue Playing
+             </AlertDialogCancel>
+             <AlertDialogAction 
+               onClick={() => router.back()}
+               className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
+             >
+               Exit Game
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
     </div>
   );
 } 
