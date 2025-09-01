@@ -692,8 +692,8 @@ export default function ProfileCompletionModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card border-white/20 !max-w-[60vw] w-full mx-4 sm:mx-auto h-[700px] overflow-hidden flex flex-col">
+         <Dialog open={open} onOpenChange={() => {}}>
+       <DialogContent className="glass-card border-white/20 !max-w-[60vw] w-full mx-4 sm:mx-auto h-[700px] overflow-hidden flex flex-col" showCloseButton={false} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader className="text-center space-y-3 pb-4 flex-shrink-0">
           <DialogTitle className="text-2xl font-bold gradient-text">
             Complete Your Profile
