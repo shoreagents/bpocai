@@ -11,6 +11,8 @@ export interface UserProfile {
   position?: string
   completed_data?: boolean
   birthday?: string | null
+  gender?: string | null
+  slug?: string
   created_at: string
   updated_at: string
   is_admin?: boolean

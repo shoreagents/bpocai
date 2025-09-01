@@ -3525,6 +3525,7 @@ export default function SavedResumePage() {
 
 
         {/* Fixed Sidebar */}
+      {isProfileMode && (
       <div className="h-[calc(100vh-16rem)] fixed left-0 top-32 w-64 glass-card border-r border-white/10 overflow-y-auto z-40 rounded-r-lg">
             <div className="p-6">
                   {/* Profile Section */}
@@ -3570,13 +3571,12 @@ export default function SavedResumePage() {
                   {/* Navigation */}
 
                   <nav className="space-y-2">
-                    {[
-                      { id: 'profile', label: 'Profile', icon: User, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', description: 'Personal information' },
-                      { id: 'resume', label: 'Resume', icon: FileText, color: 'text-blue-400', bgColor: 'bg-blue-500/10', description: 'View resume content' },
-                      { id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', description: 'Employment status' },
-                      { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', description: 'Resume insights' },
-                      { id: 'career-games', label: 'Career Games', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', description: 'Game results' },
-                    ].map((item) => {
+                    {([
+                            { id: 'profile', label: 'Profile', icon: User, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', description: 'Personal information' },
+                            { id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', description: 'Employment status' },
+                            { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', description: 'Resume insights' },
+                            { id: 'career-games', label: 'Career Games', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', description: 'Game results' },
+                          ].filter((item) => !isProfileMode || item.id !== 'resume')).map((item) => {
 
                       const Icon = item.icon;
 
@@ -3618,10 +3618,11 @@ export default function SavedResumePage() {
                   </nav>
               </div>
             </div>
+      )}
             
       {/* Main Content */}
-      <div className="ml-64 pt-16 relative z-10">
-        <div className="container mx-auto px-6 py-8">
+      <div className={`${isProfileMode ? 'ml-64' : ''} pt-16 relative z-10`}>
+        <div className={`container mx-auto px-6 py-8 ${isProfileMode ? '' : 'flex justify-center'}`}>
             {/* Mobile Menu Button */}
 
 
@@ -3956,15 +3957,17 @@ export default function SavedResumePage() {
 
 
 
-                    {[
+                    {([
 
 
 
 
-
-                      { id: 'resume', label: 'Resume', icon: FileText },
 
                       { id: 'profile', label: 'Profile', icon: User },
+
+
+
+
 
                       { id: 'work-status', label: 'Work Status', icon: Briefcase },
 
@@ -3984,7 +3987,7 @@ export default function SavedResumePage() {
 
 
 
-                    ].map((item) => (
+                    ].filter((item) => (isProfileMode ? item.id !== 'resume' : item.id === 'resume'))).map((item) => (
 
 
 
