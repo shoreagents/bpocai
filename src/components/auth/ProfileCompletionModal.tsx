@@ -126,6 +126,8 @@ export default function ProfileCompletionModal({
 
     switch (step) {
       case 1: // Profile Information
+        // Temporarily disabled for UI review
+        /*
         if (!formData.gender.trim()) {
           newErrors.gender = 'Gender is required'
         }
@@ -159,9 +161,12 @@ export default function ProfileCompletionModal({
             newErrors.birthday = `Age must be between ${minAge} and ${maxAge} years`
           }
         }
+        */
         break
       
       case 2: // Work Status Information
+        // Temporarily disabled for UI review
+        /*
         if (!formData.workStatus.trim()) {
           newErrors.workStatus = 'Work status is required'
         }
@@ -169,6 +174,7 @@ export default function ProfileCompletionModal({
           newErrors.currentMood = 'Current mood is required'
         }
         // Optional fields validation can be added here if needed
+        */
         break
     }
 
@@ -240,7 +246,8 @@ export default function ProfileCompletionModal({
         expectedSalary: formData.expectedSalary,
         currentMood: formData.currentMood,
         workStatus: formData.workStatus,
-        preferredShift: formData.preferredShift
+        preferredShift: formData.preferredShift,
+        completedData: true
       }
 
       const workStatusResponse = await fetch('/api/user/work-status', {
@@ -391,6 +398,16 @@ export default function ProfileCompletionModal({
                   onChange={(e) => handleInputChange('bio', e.target.value)}
                   className="pl-10 min-h-[100px] bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 resize-none"
                 />
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400">
+                  {formData.bio.length}/500 characters (minimum 10 required)
+                </span>
+                {formData.bio.length < 10 && formData.bio.length > 0 && (
+                  <span className="text-red-400">
+                    At least 10 characters required
+                  </span>
+                )}
               </div>
               {errors.bio && <p className="text-red-400 text-xs">{errors.bio}</p>}
             </div>
@@ -593,7 +610,7 @@ export default function ProfileCompletionModal({
 
                     return (
            <Dialog open={open} onOpenChange={onOpenChange}>
-             <DialogContent className="glass-card border-white/20 max-w-4xl w-full mx-4 sm:mx-auto h-[700px] overflow-hidden flex flex-col">
+             <DialogContent className="glass-card border-white/20 !max-w-[60vw] w-full mx-4 sm:mx-auto h-[700px] overflow-hidden flex flex-col">
                <DialogHeader className="text-center space-y-3 pb-4 flex-shrink-0">
                  <DialogTitle className="text-2xl font-bold gradient-text">
                    Complete Your Profile
