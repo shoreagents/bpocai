@@ -13,6 +13,7 @@ interface UserData {
   position?: string
   completed_data?: boolean
   birthday?: string | null
+  gender?: string | null
 }
 
 export const syncUserToDatabaseServer = async (userData: UserData) => {
@@ -44,7 +45,7 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
         UPDATE users 
         SET email = $2, first_name = $3, last_name = $4, full_name = $5, 
             location = $6, avatar_url = $7, phone = $8, bio = $9, position = $10, 
-            completed_data = COALESCE($11, completed_data), birthday = COALESCE($12, birthday), updated_at = NOW()
+            completed_data = COALESCE($11, completed_data), birthday = COALESCE($12, birthday), gender = COALESCE($13, gender), updated_at = NOW()
         WHERE id = $1
         RETURNING *
       `
@@ -60,7 +61,8 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
         userData.bio || null,
         userData.position || null,
         userData.completed_data ?? null,
-        userData.birthday ?? null
+        userData.birthday ?? null,
+        userData.gender ?? null
       ])
       
       console.log('✅ User updated in Railway:', updateResult.rows[0])
@@ -69,8 +71,8 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
       // Insert new user
       console.log('➕ Inserting new user in Railway')
       const insertQuery = `
-        INSERT INTO users (id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, false), $12)
+        INSERT INTO users (id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, gender)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, false), $12, $13)
         RETURNING *
       `
       const insertResult = await client.query(insertQuery, [
@@ -85,7 +87,8 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
         userData.bio || null,
         userData.position || null,
         userData.completed_data ?? null,
-        userData.birthday ?? null
+        userData.birthday ?? null,
+        userData.gender ?? null
       ])
       
       console.log('✅ User inserted in Railway:', insertResult.rows[0])

@@ -1,14 +1,5 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import Header from '@/components/layout/Header'
-
-export default function ProfileBySlugPage() {
-  return (
-    <div className="min-h-screen cyber-grid overflow-hidden">
-      <Header />
-    </div>
-  )
+export default function ProfileBySlugPage({ params }: { params: { slug: string } }) {
+	redirect(`/${params.slug}?mode=profile`)
 }
-
-
-
