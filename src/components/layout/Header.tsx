@@ -348,26 +348,83 @@ export default function Header({}: HeaderProps) {
             {navigationItems.map((item) => {
               const isActive = isActiveRoute(item.href)
               
-                             // If item has dropdown, render dropdown component
-               if (item.dropdown) {
-                 return (
-                   <div key={item.title} className="relative group">
-                     <div
-                       className={cn(
-                         "relative font-medium transition-all duration-200 flex items-center cursor-pointer",
-                         isActive 
-                           ? "text-cyan-400" 
-                           : "text-white hover:text-cyan-400"
-                       )}
-                     >
-                       {item.title}
-                       <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
-                       {/* Active indicator */}
-                       <div className={cn(
-                         "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-200",
-                         isActive ? "w-full" : "w-0 group-hover:w-full"
-                       )} />
-                     </div>
+                                            // If item has dropdown, render dropdown component
+              if (item.dropdown) {
+                // Special case: Talent Search should be clickable
+                if (item.title === 'Talent Search') {
+                  return (
+                    <div key={item.title} className="relative group">
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "relative font-medium transition-all duration-200 flex items-center",
+                          isActive 
+                            ? "text-cyan-400" 
+                            : "text-white hover:text-cyan-400"
+                        )}
+                      >
+                        {item.title}
+                        <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                        {/* Active indicator */}
+                        <div className={cn(
+                          "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-200",
+                          isActive ? "w-full" : "w-0 group-hover:w-full"
+                        )} />
+                      </Link>
+                      
+                      {/* Dropdown Menu */}
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-black border border-white/10 rounded-lg py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">
+                        {item.dropdown.map((dropdownItem: any) => (
+                          dropdownItem.soon ? (
+                            <div
+                              key={dropdownItem.title}
+                              className="flex items-center justify-between px-4 py-2 text-sm text-gray-500 cursor-not-allowed"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <dropdownItem.icon className="w-4 h-4" />
+                                <span>{dropdownItem.title}</span>
+                              </div>
+                              <Badge variant="secondary" className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                Soon
+                              </Badge>
+                            </div>
+                          ) : (
+                            <Link
+                              key={dropdownItem.title}
+                              href={dropdownItem.href}
+                              className="flex items-center justify-between px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <dropdownItem.icon className="w-4 h-4" />
+                                <span>{dropdownItem.title}</span>
+                              </div>
+                            </Link>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )
+                }
+                
+                // Default: Non-clickable dropdown (like Career Tools)
+                return (
+                  <div key={item.title} className="relative group">
+                    <div
+                      className={cn(
+                        "relative font-medium transition-all duration-200 flex items-center cursor-pointer",
+                        isActive 
+                          ? "text-cyan-400" 
+                          : "text-white hover:text-cyan-400"
+                      )}
+                    >
+                      {item.title}
+                      <ChevronDown className="w-4 h-4 ml-1 transition-transform group-hover:rotate-180" />
+                      {/* Active indicator */}
+                      <div className={cn(
+                        "absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 transition-all duration-200",
+                        isActive ? "w-full" : "w-0 group-hover:w-full"
+                      )} />
+                    </div>
                     
                                                               {/* Dropdown Menu */}
                      <div className="absolute top-full left-0 mt-2 w-48 bg-black border border-white/10 rounded-lg py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-lg z-50">
@@ -537,6 +594,65 @@ export default function Header({}: HeaderProps) {
                         
                                                  // If item has dropdown, render main item and dropdown items
                          if (item.dropdown) {
+                           // Special case: Talent Search should be clickable
+                           if (item.title === 'Talent Search') {
+                             return (
+                               <div key={item.title}>
+                                 <Link
+                                   href={item.href}
+                                   className={cn(
+                                     "flex items-center p-3 rounded-lg transition-all duration-200 font-medium relative",
+                                     isActive 
+                                       ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-400 border border-cyan-500/30" 
+                                       : "hover:bg-white/10"
+                                   )}
+                                   onClick={() => setIsMobileMenuOpen(false)}
+                                 >
+                                   <item.icon className="w-5 h-5 mr-3" />
+                                   {item.title}
+                                   <ChevronDown className="w-4 h-4 ml-auto" />
+                                   {/* Active indicator for mobile */}
+                                   {isActive && (
+                                     <div className="absolute right-3 w-2 h-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full" />
+                                   )}
+                                 </Link>
+                                 
+                                 {/* Dropdown items */}
+                                 <div className="ml-6 space-y-1">
+                                   {item.dropdown.map((dropdownItem: any) => (
+                                     dropdownItem.soon ? (
+                                       <div
+                                         key={dropdownItem.title}
+                                         className="flex items-center justify-between p-2 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+                                       >
+                                         <div className="flex items-center">
+                                           <dropdownItem.icon className="w-4 h-4 mr-3" />
+                                           {dropdownItem.title}
+                                         </div>
+                                         <Badge variant="secondary" className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                           Soon
+                                         </Badge>
+                                       </div>
+                                     ) : (
+                                       <Link
+                                         key={dropdownItem.title}
+                                         href={dropdownItem.href}
+                                         className="flex items-center justify-between p-2 rounded-lg transition-all duration-200 text-sm text-gray-300 hover:text-white hover:bg-white/5"
+                                         onClick={() => setIsMobileMenuOpen(false)}
+                                       >
+                                         <div className="flex items-center">
+                                           <dropdownItem.icon className="w-4 h-4 mr-3" />
+                                           {dropdownItem.title}
+                                         </div>
+                                       </Link>
+                                     )
+                                   ))}
+                                 </div>
+                               </div>
+                             )
+                           }
+                           
+                           // Default: Non-clickable dropdown (like Career Tools)
                            return (
                              <div key={item.title}>
                                <div
