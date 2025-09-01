@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     console.log('🔍 API: Fetching profile for user:', userId)
 
     const query = `
-      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, created_at, updated_at
+      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, gender, created_at, updated_at
       FROM users 
       WHERE id = $1
     `
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest) {
 
     // Load existing values to avoid overwriting with nulls when not provided
     const existingRes = await pool.query(
-      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday FROM users WHERE id = $1`,
+      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, gender FROM users WHERE id = $1`,
       [userId]
     )
 
@@ -84,6 +84,7 @@ export async function PUT(request: NextRequest) {
     const phone = updateData.phone ?? existing.phone
     const bio = updateData.bio ?? existing.bio
     const position = updateData.position ?? existing.position
+    const gender = updateData.gender ?? existing.gender
 
     // Handle completed_data and birthday, preserving ability to clear birthday
     const completedData = Object.prototype.hasOwnProperty.call(updateData, 'completed_data')
@@ -100,7 +101,7 @@ export async function PUT(request: NextRequest) {
     const query = `
       UPDATE users 
       SET first_name = $2, last_name = $3, full_name = $4, location = $5, 
-          avatar_url = $6, phone = $7, bio = $8, position = $9, completed_data = $10, birthday = $11, updated_at = NOW()
+          avatar_url = $6, phone = $7, bio = $8, position = $9, completed_data = $10, birthday = $11, gender = $12, updated_at = NOW()
       WHERE id = $1
       RETURNING *
     `
@@ -115,7 +116,8 @@ export async function PUT(request: NextRequest) {
       bio,
       position,
       completedData,
-      birthday
+      birthday,
+      gender
     ])
 
     if (result.rows.length === 0) {
