@@ -171,6 +171,16 @@ export default function JobMatchingPage() {
   const [matchScores, setMatchScores] = useState<{[key: string]: any}>({})
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [showMatchTooltip, setShowMatchTooltip] = useState<string | null>(null)
+  const [showLocationPopup, setShowLocationPopup] = useState(false)
+
+  // Show location popup when page loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLocationPopup(true)
+    }, 1000) // Show after 1 second
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Fetch jobs and calculate match scores
   useEffect(() => {
@@ -1355,6 +1365,44 @@ export default function JobMatchingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Office Location Notice Popup - Top Right */}
+      {showLocationPopup && (
+        <motion.div
+          initial={{ opacity: 0, x: 100, y: -20 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          exit={{ opacity: 0, x: 100, y: -20 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="fixed top-4 right-4 z-50 bg-gray-800/95 border border-blue-500/40 rounded-lg shadow-2xl p-4 max-w-sm"
+        >
+          <button
+            onClick={() => setShowLocationPopup(false)}
+            className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-blue-400 font-semibold mb-1">Office Location Notice</h3>
+              <p className="text-gray-300 text-sm">
+                Please note that our office is based in <span className="font-medium text-white">Clark, Pampanga</span>. 
+                All positions may require reporting to this location unless specifically marked as remote work opportunities.
+              </p>
+            </div>
+          </div>
+          
+          {/* Auto-close timer indicator */}
+          <motion.div
+            initial={{ width: "100%" }}
+            animate={{ width: "0%" }}
+            transition={{ duration: 8, ease: "linear" }}
+            className="absolute bottom-0 left-0 h-1 bg-blue-500/30 rounded-b-lg"
+            onAnimationComplete={() => setShowLocationPopup(false)}
+          />
+        </motion.div>
+      )}
     </div>
   );
 } 
