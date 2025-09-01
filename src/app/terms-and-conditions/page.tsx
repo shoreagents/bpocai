@@ -25,6 +25,7 @@ function TermsAndConditionsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
+  const [readingProgress, setReadingProgress] = useState(0)
   const fromSignup = searchParams.get('from') === 'signup'
 
   useEffect(() => {
@@ -35,6 +36,11 @@ function TermsAndConditionsContent() {
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = document.documentElement.clientHeight
       
+      // Calculate reading progress
+      const progress = Math.min(100, Math.round((scrollTop / (scrollHeight - clientHeight)) * 100))
+      setReadingProgress(progress)
+      
+      // Check if user has scrolled to within 100px of the bottom
       if (scrollTop + clientHeight >= scrollHeight - 100) {
         setHasScrolledToBottom(true)
       }
@@ -47,8 +53,11 @@ function TermsAndConditionsContent() {
   useEffect(() => {
     if (hasScrolledToBottom && fromSignup) {
       const timer = setTimeout(() => {
+        // Store that terms were accepted and locked
         sessionStorage.setItem('termsAccepted', 'true')
-        router.back()
+        sessionStorage.setItem('termsLocked', 'true')
+        // Redirect back to home page with signup modal open
+        router.push('/?signup=true')
       }, 2000)
 
       return () => clearTimeout(timer)
@@ -59,8 +68,37 @@ function TermsAndConditionsContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-100">
       <Header />
       
+      {/* Reading Progress Bar */}
+      {fromSignup && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900/90 backdrop-blur-sm border-b border-gray-700">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
+              <span>Reading Progress</span>
+              <span>{readingProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <motion.div
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${readingProgress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            {readingProgress === 100 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center text-green-400 text-sm mt-2"
+              >
+                ✓ Terms reviewed! Redirecting you back...
+              </motion.div>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
