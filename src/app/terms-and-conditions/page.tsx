@@ -10,21 +10,18 @@ export default function TermsAndConditionsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
-  const [readingProgress, setReadingProgress] = useState(0)
   const fromSignup = searchParams.get('from') === 'signup'
 
   useEffect(() => {
+    if (!fromSignup) return
+
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = document.documentElement.clientHeight
       
-      // Calculate reading progress percentage
-      const progress = Math.min(100, Math.round((scrollTop / (scrollHeight - clientHeight)) * 100))
-      setReadingProgress(progress)
-      
-      // Check if user has scrolled to within 100px of the bottom (for signup flow)
-      if (fromSignup && scrollTop + clientHeight >= scrollHeight - 100) {
+      // Check if user has scrolled to within 100px of the bottom
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
         setHasScrolledToBottom(true)
       }
     }
@@ -37,11 +34,10 @@ export default function TermsAndConditionsPage() {
     if (hasScrolledToBottom && fromSignup) {
       // Wait 2 seconds after reaching bottom, then redirect
       const timer = setTimeout(() => {
-        // Store that terms were accepted and locked
+        // Store that terms were accepted
         sessionStorage.setItem('termsAccepted', 'true')
-        sessionStorage.setItem('termsLocked', 'true')
-        // Redirect back to home page with signup modal open
-        router.push('/?signup=true')
+        // Go back to previous page
+        router.back()
       }, 2000)
 
       return () => clearTimeout(timer)
@@ -52,24 +48,8 @@ export default function TermsAndConditionsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-100">
       <Header />
       
-      {/* Reading Progress Bar */}
-      <div className="fixed top-16 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700">
-        <div className="h-1 bg-gray-700">
-          <motion.div
-            className="h-full bg-gradient-to-r from-cyan-500 to-blue-600"
-            initial={{ width: 0 }}
-            animate={{ width: `${readingProgress}%` }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          />
-        </div>
-        <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-400">
-          <span>Reading Progress</span>
-          <span>{readingProgress}%</span>
-        </div>
-      </div>
-      
       {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

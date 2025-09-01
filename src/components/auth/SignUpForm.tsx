@@ -53,24 +53,9 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
   // Check if terms were accepted from the terms page
   useEffect(() => {
     const termsAccepted = sessionStorage.getItem('termsAccepted')
-    const termsLocked = sessionStorage.getItem('termsLocked')
-    const hasReadTerms = sessionStorage.getItem('hasReadTerms')
-    
     if (termsAccepted === 'true') {
       setAgreedToTerms(true)
       sessionStorage.removeItem('termsAccepted') // Clean up
-    }
-    
-    if (termsLocked === 'true') {
-      setAgreedToTerms(true)
-      setTermsLocked(true)
-      setHasReadTerms(true)
-      sessionStorage.removeItem('termsLocked') // Clean up
-    }
-
-    // Check if user has previously read terms
-    if (hasReadTerms === 'true') {
-      setHasReadTerms(true)
     }
   }, [])
 
@@ -525,38 +510,43 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
 
               {/* Terms and Conditions */}
               <div className="space-y-2">
-                                 <div className="flex items-start space-x-3">
-                   <button
-                     type="button"
-                     onClick={handleTermsCheckboxChange}
-                     className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black ${
-                       agreedToTerms 
-                         ? 'bg-cyan-500 border-cyan-500' 
-                         : 'border-white/20 hover:border-cyan-500'
-                     } ${errors.terms ? 'border-red-500' : ''} ${termsLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
-                     disabled={isLoading || termsLocked}
-                     aria-label="Agree to terms and conditions"
-                   >
-                     {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
-                   </button>
-                   <label className="text-sm text-gray-300 leading-relaxed">
-                     I agree to the{' '}
-                     <button
-                       type="button"
-                       className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
-                       onClick={handleTermsLinkClick}
-                     >
-                       Terms and Conditions
-                     </button>
-                     {termsLocked && (
-                       <span className="ml-2 text-xs text-green-400 font-medium">
-                         ✓ Terms reviewed and accepted
-                       </span>
-                     )}
-                   </label>
-                 </div>
-                
-                
+                <div className="flex items-start space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setAgreedToTerms(!agreedToTerms)}
+                    className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black ${
+                      agreedToTerms 
+                        ? 'bg-cyan-500 border-cyan-500' 
+                        : 'border-white/20 hover:border-cyan-500'
+                    } ${errors.terms ? 'border-red-500' : ''}`}
+                    disabled={isLoading}
+                    aria-label="Agree to terms and conditions"
+                  >
+                    {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
+                  </button>
+                  <label className="text-sm text-gray-300 leading-relaxed">
+                    I agree to the{' '}
+                    <button
+                      type="button"
+                      className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                      onClick={() => {
+                        window.open('/terms-and-conditions?from=signup', '_blank')
+                      }}
+                    >
+                      Terms and Conditions
+                    </button>
+                    {' '}and{' '}
+                    <button
+                      type="button"
+                      className="text-cyan-400 hover:text-cyan-300 underline transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                      onClick={() => {
+                        window.open('/privacy-policy', '_blank')
+                      }}
+                    >
+                      Privacy Policy
+                    </button>
+                  </label>
+                </div>
                 {errors.terms && (
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
