@@ -383,13 +383,50 @@ export default function AnalysisPage() {
       
       console.log('🔍 DEBUG: Combined resume data structure:', combinedResumeData);
       
-      // Map the first resume data for UI display (for backward compatibility)
-      const firstResumeData = processedResumes[0];
-      const mapped = mapResumeData(firstResumeData);
-      console.log('🔍 DEBUG: Mapped data for UI (from first file):', mapped);
-      
+      // Build a merged mapped view across ALL processed files so multi-page/multi-file data shows up
+      const mappedPerFile = processedResumes.map((file) => mapResumeData(file));
+      const mergeUnique = (arrA: any[] = [], arrB: any[] = []) => {
+        const merged = [...(Array.isArray(arrA) ? arrA : []), ...(Array.isArray(arrB) ? arrB : [])];
+        const seen = new Set<string>();
+        const result: any[] = [];
+        for (const item of merged) {
+          const key = typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item);
+          if (!seen.has(key)) { seen.add(key); result.push(item); }
+        }
+        return result;
+      };
+      const pickLonger = (a?: string | null, b?: string | null) => {
+        const aa = a || '';
+        const bb = b || '';
+        return bb.length > aa.length ? bb : aa;
+      };
+
+      const mergedMapped = mappedPerFile.reduce((acc: any, curr: any) => {
+        return {
+          name: acc.name || curr.name || null,
+          email: acc.email || curr.email || null,
+          phone: acc.phone || curr.phone || null,
+          location: acc.location || curr.location || null,
+          summary: pickLonger(acc.summary, curr.summary) || null,
+          skills: (() => {
+            const a = acc.skills || {};
+            const c = curr.skills || {};
+            return {
+              technical: mergeUnique(a.technical, c.technical),
+              soft_skills: mergeUnique(a.soft_skills, c.soft_skills),
+              tools: mergeUnique(a.tools, c.tools),
+              languages: mergeUnique(a.languages, c.languages)
+            };
+          })(),
+          experience: mergeUnique(acc.experience, curr.experience),
+          education: mergeUnique(acc.education, curr.education)
+        };
+      }, {} as any);
+
+      console.log('🔍 DEBUG: Merged mapped data for UI (all files/pages):', mergedMapped);
+
       setResumeData(combinedResumeData); // Store combined data for Claude
-      setMappedResumeData(mapped); // Store mapped data for UI display
+      setMappedResumeData(mergedMapped); // Store merged data for UI display
       const portfolioData = portfolioLinks.map(link => ({
         url: link.url,
         type: link.type,

@@ -1,0 +1,79 @@
+{
+  "name": "Mark Nicole John P. Nobleza",
+  "email": "mnj.nobleza@gmail.com",
+  "phone": "0939-287-0132",
+  "location": "Xevera Tabun, Mabalacat, Pampanga",
+  "summary": "Results-driven professional with extensive experience in real estate support, recruitment, client services, and customer relations. Adept at streamlining processes, enhancing client satisfaction, and delivering efficient solutions. Committed to building long-term partnerships, driving business success, and contributing to organizational growth.",
+  "skills": [
+    "Real estate support",
+    "Tenancy administration",
+    "Arrears management",
+    "Communication",
+    "Presentation",
+    "Interpersonal skills",
+    "Work under pressure",
+    "Deliver results within deadlines",
+    "Sales support",
+    "Lead management",
+    "Contract preparation",
+    "Customer service",
+    "Conflict resolution",
+    "Microsoft Office Suite (Word, Excel, PowerPoint, Outlook)",
+    "Organization",
+    "Detail-oriented",
+    "Independent work",
+    "Teamwork"
+  ],
+  "experience": [
+    {
+      "company": "ShoreAgents Inc.",
+      "position": "Real Estate Support",
+      "duration": "May 2022 – Present",
+      "description": [
+        "Screen and endorse candidates to clients, providing detailed feedback on role suitability.",
+        "Conduct client presentations to highlight services and secure business partnerships.",
+        "Manage sales leads by scheduling meetings, preparing proposals, and processing contracts.",
+        "Handle arrears management by coordinating with clients on overdue accounts.",
+        "Maintain strong communication channels with clients and resolve hiring concerns efficiently."
+      ]
+    },
+    {
+      "company": "Cloudstaff Philippines Inc. (Universal Property Systems)",
+      "position": "Executive Services Specialist / Lease Administrator",
+      "duration": "Jan 2021 – May 2022",
+      "description": [
+        "Conducted tenancy application reference checks within 24 hours.",
+        "Processed and coordinated tenancy start payments and documentation.",
+        "Followed up with prospective tenants, ensuring applications and inspections were completed.",
+        "Prepared tenancy lease renewals, conducted periodic inspections, and generated monthly rent reviews."
+      ]
+    },
+    {
+      "company": "Dnata Travel Inc. (Etihad Airways)",
+      "position": "Travel Consultant",
+      "duration": "Sep 2020 – Dec 2020",
+      "description": [
+        "Handled inbound/outbound calls and emails for reservations and ticketing inquiries.",
+        "Delivered solutions to customer issues, resolving complaints with professionalism.",
+        "Provided accurate product and service information to enhance customer experience."
+      ]
+    },
+    {
+      "company": "Dnata Travel Inc. (Etihad Airways)",
+      "position": "Customer Service Associate",
+      "duration": "Mar 2019 – Aug 2020",
+      "description": [
+        "Supported team leaders with escalated calls and assisted new hires during nesting.",
+        "Provided accurate product and service information to customers.",
+        "Assisted in resolving agent errors and customer complaints effectively."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "System Plus College Foundation",
+      "degree": "Bachelor of Science in Accounting Technology",
+      "year": "2019"
+    }
+  ]
+}

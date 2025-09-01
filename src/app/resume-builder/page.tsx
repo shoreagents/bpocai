@@ -176,7 +176,12 @@ export default function ResumeBuilderPage() {
       log(`✅ API keys obtained, processing file with CloudConvert + GPT pipeline...`);
       
       // Process file using the updated CloudConvert + GPT pipeline with API keys
-      const processedResume = await processResumeFileWithLogs(file, keyResult.openaiApiKey, keyResult.cloudConvertApiKey, log);
+      const processedResume = await processResumeFileWithLogs(file, keyResult.openaiApiKey, keyResult.cloudConvertApiKey, (m) => {
+        log(m)
+        if (m.includes('converted to JPEG format')) {
+          log('🔎 Verifying multi-page conversion…')
+        }
+      });
       
       return processedResume;
       
