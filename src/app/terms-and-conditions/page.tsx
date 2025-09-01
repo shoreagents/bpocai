@@ -1,12 +1,27 @@
-'use client'
+"use client"
 
 import { motion } from 'framer-motion'
 import { FileText } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '@/components/layout/Header'
 
 export default function TermsAndConditionsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-100">
+        <Header />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
+          <div className="text-center text-gray-400">Loading terms…</div>
+        </div>
+      </div>
+    }>
+      <TermsAndConditionsContent />
+    </Suspense>
+  )
+}
+
+function TermsAndConditionsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
@@ -20,7 +35,6 @@ export default function TermsAndConditionsPage() {
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = document.documentElement.clientHeight
       
-      // Check if user has scrolled to within 100px of the bottom
       if (scrollTop + clientHeight >= scrollHeight - 100) {
         setHasScrolledToBottom(true)
       }
@@ -32,11 +46,8 @@ export default function TermsAndConditionsPage() {
 
   useEffect(() => {
     if (hasScrolledToBottom && fromSignup) {
-      // Wait 2 seconds after reaching bottom, then redirect
       const timer = setTimeout(() => {
-        // Store that terms were accepted
         sessionStorage.setItem('termsAccepted', 'true')
-        // Go back to previous page
         router.back()
       }, 2000)
 
