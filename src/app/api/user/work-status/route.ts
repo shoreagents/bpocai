@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest) {
       preferredShift,
       workSetup,
       completedData,
+      completed_data,
     } = body || {}
 
     if (!userId) {
@@ -117,7 +118,7 @@ export async function PUT(request: NextRequest) {
              work_status = $8,
              preferred_shift = $9,
              work_setup = $10,
-             completed_data = COALESCE($11, completed_data),
+                           completed_data = $11,
              updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
@@ -132,7 +133,7 @@ export async function PUT(request: NextRequest) {
           sanitizedStatus,
           preferredShift ?? null,
           workSetup ?? null,
-          typeof completedData === 'boolean' ? completedData : null,
+          typeof (completedData || completed_data) === 'boolean' ? (completedData || completed_data) : null,
         ]
       )
       return NextResponse.json({ saved: true, workStatus: updateRes.rows[0] })
@@ -140,9 +141,9 @@ export async function PUT(request: NextRequest) {
 
     const insertRes = await pool.query(
       `INSERT INTO user_work_status (
-         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, work_setup, created_at, updated_at
+         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()
        ) RETURNING *`,
       [
         userId,
@@ -155,6 +156,7 @@ export async function PUT(request: NextRequest) {
         sanitizedStatus,
         preferredShift ?? null,
         workSetup ?? null,
+        typeof (completedData || completed_data) === 'boolean' ? (completedData || completed_data) : null,
       ]
     )
     return NextResponse.json({ saved: true, workStatus: insertRes.rows[0] })

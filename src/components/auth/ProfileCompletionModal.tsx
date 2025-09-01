@@ -50,6 +50,7 @@ interface ProfileCompletionData {
   currentMood: string
   workStatus: string
   preferredShift: string
+  workSetup: string
 }
 
 interface ProfileCompletionModalProps {
@@ -90,7 +91,8 @@ export default function ProfileCompletionModal({
     expectedSalary: '',
     currentMood: '',
     workStatus: '',
-    preferredShift: ''
+    preferredShift: '',
+    workSetup: ''
   })
 
   const [age, setAge] = useState<number | null>(null)
@@ -161,15 +163,37 @@ export default function ProfileCompletionModal({
         }
         break
       
-      case 2: // Work Status Information
-        if (!formData.workStatus.trim()) {
-          newErrors.workStatus = 'Work status is required'
-        }
-        if (!formData.currentMood.trim()) {
-          newErrors.currentMood = 'Current mood is required'
-        }
-        // Optional fields validation can be added here if needed
-        break
+             case 2: // Work Status Information
+         if (!formData.workStatus.trim()) {
+           newErrors.workStatus = 'Work status is required'
+         }
+         if (!formData.currentMood.trim()) {
+           newErrors.currentMood = 'Current mood is required'
+         }
+         if (!formData.currentEmployer.trim()) {
+           newErrors.currentEmployer = 'Current employer is required'
+         }
+         if (!formData.currentPosition.trim()) {
+           newErrors.currentPosition = 'Current position is required'
+         }
+         if (!formData.currentSalary.trim()) {
+           newErrors.currentSalary = 'Current salary is required'
+         }
+                   if (!formData.expectedSalary.trim()) {
+            newErrors.expectedSalary = 'Expected salary range is required'
+          } else if (!formData.expectedSalary.includes('-')) {
+            newErrors.expectedSalary = 'Please enter a salary range (e.g., ₱60,000 - ₱80,000)'
+          }
+         if (!formData.noticePeriod.trim()) {
+           newErrors.noticePeriod = 'Notice period is required'
+         }
+         if (!formData.preferredShift.trim()) {
+           newErrors.preferredShift = 'Preferred shift is required'
+         }
+         if (!formData.workSetup.trim()) {
+           newErrors.workSetup = 'Work setup is required'
+         }
+         break
     }
 
     return newErrors
@@ -230,19 +254,20 @@ export default function ProfileCompletionModal({
         throw new Error('Failed to update profile')
       }
 
-      // Update work status in Railway database
-      const workStatusData = {
-        userId: user?.id,
-        currentEmployer: formData.currentEmployer,
-        currentPosition: formData.currentPosition,
-        currentSalary: formData.currentSalary,
-        noticePeriod: formData.noticePeriod ? parseInt(formData.noticePeriod) : null,
-        expectedSalary: formData.expectedSalary,
-        currentMood: formData.currentMood,
-        workStatus: formData.workStatus,
-        preferredShift: formData.preferredShift,
-        completedData: true
-      }
+             // Update work status in Railway database
+               const workStatusData = {
+          userId: user?.id,
+          currentEmployer: formData.currentEmployer,
+          currentPosition: formData.currentPosition,
+          currentSalary: formData.currentSalary,
+          noticePeriod: formData.noticePeriod ? parseInt(formData.noticePeriod) : null,
+          expectedSalary: formData.expectedSalary,
+          currentMood: formData.currentMood,
+          workStatus: formData.workStatus,
+          preferredShift: formData.preferredShift,
+          workSetup: formData.workSetup,
+          completed_data: true
+        }
 
       const workStatusResponse = await fetch('/api/user/work-status', {
         method: 'PUT',
@@ -269,32 +294,38 @@ export default function ProfileCompletionModal({
     }
   }
 
-  // Work status options
-  const WORK_STATUS_OPTIONS = [
-    { value: 'employed', label: 'Employed', icon: '💼' },
-    { value: 'unemployed-looking-for-work', label: 'Unemployed (Looking for Work)', icon: '🔍' },
-    { value: 'freelancer', label: 'Freelancer/Contractor', icon: '🆓' },
-    { value: 'part-time', label: 'Part-time', icon: '⏰' },
-    { value: 'on-leave', label: 'On Leave', icon: '🏖️' },
-    { value: 'retired', label: 'Retired', icon: '🎯' },
-    { value: 'student', label: 'Student', icon: '🎓' },
-    { value: 'career-break', label: 'Career Break', icon: '⏸️' },
-    { value: 'transitioning', label: 'Transitioning', icon: '🔄' },
-    { value: 'remote-worker', label: 'Remote Worker', icon: '🏠' },
-  ]
+           // Work status options
+    const WORK_STATUS_OPTIONS = [
+      { value: 'employed', label: 'Employed', icon: '💼' },
+      { value: 'unemployed-looking-for-work', label: 'Unemployed Looking for Work', icon: '🔍' },
+      { value: 'freelancer', label: 'Freelancer', icon: '🆓' },
+      { value: 'part-time', label: 'Part-time', icon: '⏰' },
+      { value: 'on-leave', label: 'On Leave', icon: '🏖️' },
+      { value: 'retired', label: 'Retired', icon: '🎯' },
+      { value: 'student', label: 'Student', icon: '🎓' },
+      { value: 'career-break', label: 'Career Break', icon: '⏸️' },
+      { value: 'transitioning', label: 'Transitioning', icon: '🔄' },
+      { value: 'remote-worker', label: 'Remote Worker', icon: '🏠' },
+    ]
 
-  const MOOD_OPTIONS = [
-    { value: 'satisfied', label: 'Satisfied', icon: '😊' },
-    { value: 'neutral', label: 'Neutral', icon: '😐' },
-    { value: 'stressed', label: 'Stressed', icon: '😰' },
-    { value: 'excited', label: 'Excited', icon: '🤩' }
-  ]
+     const MOOD_OPTIONS = [
+     { value: 'happy', label: 'Happy', icon: '😊' },
+     { value: 'satisfied', label: 'Satisfied', icon: '😌' },
+     { value: 'sad', label: 'Sad', icon: '😔' },
+     { value: 'undecided', label: 'Undecided', icon: '🤔' }
+   ]
 
-  const SHIFT_OPTIONS = [
-    { value: 'day', label: 'Day Shift' },
-    { value: 'night', label: 'Night Shift' },
-    { value: 'flexible', label: 'Flexible' },
-    { value: 'rotating', label: 'Rotating' }
+           const SHIFT_OPTIONS = [
+      { value: 'day', label: 'Day' },
+      { value: 'night', label: 'Night' },
+      { value: 'both', label: 'Both' }
+    ]
+
+  const WORK_SETUP_OPTIONS = [
+    { value: 'Work From Office', label: 'Work From Office' },
+    { value: 'Hybrid', label: 'Hybrid' },
+    { value: 'Work From Home', label: 'Work From Home' },
+    { value: 'Any', label: 'Any' }
   ]
 
   const renderStepContent = () => {
@@ -461,79 +492,116 @@ export default function ProfileCompletionModal({
                 {errors.currentMood && <p className="text-red-400 text-xs">{errors.currentMood}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">Current Employer</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., ABC Company"
-                  value={formData.currentEmployer}
-                  onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
-                  className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                />
-              </div>
+                             <div className="space-y-2">
+                 <label className="text-sm font-medium text-white block">
+                   Current Employer <span className="text-red-400">*</span>
+                 </label>
+                 <Input
+                   type="text"
+                   placeholder="e.g., ABC Company"
+                   value={formData.currentEmployer}
+                   onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
+                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                 />
+                 {errors.currentEmployer && <p className="text-red-400 text-xs">{errors.currentEmployer}</p>}
+               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">Current Position</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., Senior Developer"
-                  value={formData.currentPosition}
-                  onChange={(e) => handleInputChange('currentPosition', e.target.value)}
-                  className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                />
-              </div>
+                             <div className="space-y-2">
+                 <label className="text-sm font-medium text-white block">
+                   Current Position <span className="text-red-400">*</span>
+                 </label>
+                 <Input
+                   type="text"
+                   placeholder="e.g., Senior Developer"
+                   value={formData.currentPosition}
+                   onChange={(e) => handleInputChange('currentPosition', e.target.value)}
+                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                 />
+                 {errors.currentPosition && <p className="text-red-400 text-xs">{errors.currentPosition}</p>}
+               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">Current Salary</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., ₱50,000"
-                  value={formData.currentSalary}
-                  onChange={(e) => handleInputChange('currentSalary', e.target.value)}
-                  className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                />
-              </div>
+                             <div className="space-y-2">
+                 <label className="text-sm font-medium text-white block">
+                   Current Salary <span className="text-red-400">*</span>
+                 </label>
+                 <Input
+                   type="text"
+                   placeholder="e.g., ₱50,000"
+                   value={formData.currentSalary}
+                   onChange={(e) => handleInputChange('currentSalary', e.target.value)}
+                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                 />
+                 {errors.currentSalary && <p className="text-red-400 text-xs">{errors.currentSalary}</p>}
+               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">Expected Salary</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., ₱60,000"
-                  value={formData.expectedSalary}
-                  onChange={(e) => handleInputChange('expectedSalary', e.target.value)}
-                  className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                />
-              </div>
+                                                           <div className="space-y-2">
+                  <label className="text-sm font-medium text-white block">
+                    Expected Salary Range <span className="text-red-400">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g., ₱60,000 - ₱80,000"
+                    value={formData.expectedSalary}
+                    onChange={(e) => handleInputChange('expectedSalary', e.target.value)}
+                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                  />
+                  {errors.expectedSalary && <p className="text-red-400 text-xs">{errors.expectedSalary}</p>}
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">Notice Period (Days)</label>
-                <Input
-                  type="number"
-                  placeholder="e.g., 30"
-                  value={formData.noticePeriod}
-                  onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
-                  className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                />
-              </div>
+                             <div className="space-y-2">
+                 <label className="text-sm font-medium text-white block">
+                   Notice Period (Days) <span className="text-red-400">*</span>
+                 </label>
+                 <Input
+                   type="number"
+                   placeholder="e.g., 30"
+                   value={formData.noticePeriod}
+                   onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
+                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                 />
+                 {errors.noticePeriod && <p className="text-red-400 text-xs">{errors.noticePeriod}</p>}
+               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">Preferred Shift</label>
-                <Select value={formData.preferredShift} onValueChange={(value) => handleInputChange('preferredShift', value)}>
-                  <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
-                    <SelectValue placeholder="Select preferred shift" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-white/20">
-                    {SHIFT_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        )
+                                                           <div className="space-y-2">
+                  <label className="text-sm font-medium text-white block">
+                    Preferred Shift <span className="text-red-400">*</span>
+                  </label>
+                  <Select value={formData.preferredShift} onValueChange={(value) => handleInputChange('preferredShift', value)}>
+                    <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
+                      <SelectValue placeholder="Select preferred shift" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-white/20">
+                      {SHIFT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.preferredShift && <p className="text-red-400 text-xs">{errors.preferredShift}</p>}
+                </div>
+
+                               <div className="space-y-2">
+                  <label className="text-sm font-medium text-white block">
+                    Work Setup <span className="text-red-400">*</span>
+                  </label>
+                  <Select value={formData.workSetup} onValueChange={(value) => handleInputChange('workSetup', value)}>
+                    <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
+                      <SelectValue placeholder="Select work setup preference" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-white/20">
+                      {WORK_SETUP_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.workSetup && <p className="text-red-400 text-xs">{errors.workSetup}</p>}
+                </div>
+             </div>
+           </div>
+         )
 
       case 3: // Confirmation
         return (
@@ -605,14 +673,18 @@ export default function ProfileCompletionModal({
                   <span className="text-gray-400">Notice Period:</span>
                   <span className="text-white ml-2">{formData.noticePeriod ? `${formData.noticePeriod} days` : 'Not specified'}</span>
                 </div>
-                <div>
-                  <span className="text-gray-400">Preferred Shift:</span>
-                  <span className="text-white ml-2">{formData.preferredShift || 'Not specified'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
+                                 <div>
+                   <span className="text-gray-400">Preferred Shift:</span>
+                   <span className="text-white ml-2">{formData.preferredShift || 'Not specified'}</span>
+                 </div>
+                 <div>
+                   <span className="text-gray-400">Work Setup:</span>
+                   <span className="text-white ml-2">{formData.workSetup || 'Not specified'}</span>
+                 </div>
+               </div>
+             </div>
+           </div>
+         )
 
       default:
         return null
