@@ -84,15 +84,7 @@ function TermsAndConditionsContent() {
                 transition={{ duration: 0.3 }}
               />
             </div>
-            {readingProgress === 100 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center text-green-400 text-sm mt-2"
-              >
-                ✓ Terms reviewed! Redirecting you back...
-              </motion.div>
-            )}
+
           </div>
         </div>
       )}

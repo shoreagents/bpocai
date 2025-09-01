@@ -68,9 +68,13 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
       sessionStorage.removeItem('termsLocked') // Clean up
     }
 
-    // Check if user has previously read terms
-    if (hasReadTerms === 'true') {
+    // Only set hasReadTerms to true if terms were locked (meaning they completed reading)
+    // Otherwise, reset it to false to allow the error message to work
+    if (termsLocked === 'true') {
       setHasReadTerms(true)
+    } else {
+      setHasReadTerms(false)
+      sessionStorage.removeItem('hasReadTerms') // Clear it so error message can show
     }
   }, [])
 
