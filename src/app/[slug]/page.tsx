@@ -838,7 +838,13 @@ export default function SavedResumePage() {
               userId: u.id,
               user: { fullName: u.full_name, avatarUrl: u.avatar_url }
             } as any);
-            setIsOwner(false);
+            try {
+              const { data: authData } = await supabase.auth.getUser();
+              const currentUserId = authData?.user?.id;
+              setIsOwner(!!currentUserId && String(currentUserId) === String(u.id || ''));
+            } catch {
+              setIsOwner(false);
+            }
             setError(null);
           } catch (e) {
             setError('Failed to load profile');
@@ -2410,63 +2416,40 @@ export default function SavedResumePage() {
 
 
 
-
     console.log('Edit Resume clicked!', { resume: resume?.data });
 
 
 
     try {
+      // Prefer existing generated resume from database
+      try {
+        const sessionToken = await getSessionToken();
+        if (sessionToken) {
+          const res = await fetch('/api/user/generated-resume', {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${sessionToken}` },
+            cache: 'no-store'
+          });
+          const text = await res.text();
+          let json: any = null; try { json = JSON.parse(text); } catch {}
+          if (res.ok && json?.found && json?.generatedResumeData) {
+            localStorage.setItem('resumeData', JSON.stringify(json.generatedResumeData));
+            console.log('Loaded existing generated resume from database');
+            window.location.href = '/resume-builder/build';
+            return;
+          }
+        }
+      } catch {}
 
-
-
-
-
-      // Put current resume content back to localStorage and go to builder
-
-
-
-
-
+      // Fallback to current resume content
       if (resume?.data) {
-
-
-
-
-
         localStorage.setItem('resumeData', JSON.stringify(resume.data.content));
-
-
-
-
-
         console.log('Resume data saved to localStorage');
-
-
-
       }
-
-
-
-
-
       console.log('Redirecting to resume builder...');
-
-
-
       window.location.href = '/resume-builder/build';
-
-
-
-
-
     } catch (e) {
-
-
-
       console.error('Error in editResume:', e);
-
-
-
     }
 
 

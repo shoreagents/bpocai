@@ -33,19 +33,10 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
       // Update existing user
       console.log('📝 Updating existing user in Railway')
       
-      // Get existing user data to preserve avatar_url if not provided
-      const existingUserQuery = 'SELECT avatar_url FROM users WHERE id = $1'
-      const existingUserResult = await client.query(existingUserQuery, [userData.id])
-      const existingAvatarUrl = existingUserResult.rows[0]?.avatar_url
-      
-             // Always preserve existing avatar_url from Railway - don't overwrite with Supabase data
-       const avatarUrl = existingAvatarUrl
-      
+      // Keep avatar_url and user-managed fields untouched; only keep identity/name fresh
       const updateQuery = `
         UPDATE users 
-        SET email = $2, first_name = $3, last_name = $4, full_name = $5, 
-            location = $6, avatar_url = $7, phone = $8, bio = $9, position = $10, 
-            completed_data = COALESCE($11, completed_data), birthday = COALESCE($12, birthday), gender = COALESCE($13, gender), updated_at = NOW()
+        SET email = $2, first_name = $3, last_name = $4, full_name = $5, updated_at = NOW()
         WHERE id = $1
         RETURNING *
       `
@@ -54,15 +45,7 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
         userData.email,
         userData.first_name || '',
         userData.last_name || '',
-        fullName || '',
-        userData.location || '',
-        avatarUrl,
-        userData.phone || null,
-        userData.bio || null,
-        userData.position || null,
-        userData.completed_data ?? null,
-        userData.birthday ?? null,
-        userData.gender ?? null
+        fullName || ''
       ])
       
       console.log('✅ User updated in Railway:', updateResult.rows[0])

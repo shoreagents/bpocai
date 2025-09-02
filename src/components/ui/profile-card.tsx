@@ -3,14 +3,24 @@
 import { motion } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
+// Removed Card wrappers to avoid double containers in Profile tab
 import { Button } from '@/components/ui/button';
 
 import { 
   Edit3,
-  Loader2
+  Loader2,
+  Mail,
+  Phone as PhoneIcon,
+  MapPin,
+  Briefcase,
+  CalendarDays,
+  User as UserIcon
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { getSessionToken } from '@/lib/auth-helpers';
 import { uploadProfilePhoto, optimizeImage } from '@/lib/storage';
 
 interface UserProfile {
@@ -24,8 +34,12 @@ interface UserProfile {
   phone?: string
   bio?: string
   position?: string
+  gender?: string | null
+  slug?: string | null
   created_at: string
   updated_at: string
+  birthday?: string | null
+  gender_custom?: string | null
 }
 
 interface ProfileCardProps {
@@ -50,37 +64,57 @@ export default function ProfileCard({ userId, showEditButton = true, className =
   const [completedGames, setCompletedGames] = useState<number>(0);
   const [jobMatchesCount, setJobMatchesCount] = useState<number>(0);
   const [jobMatchesLoading, setJobMatchesLoading] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Use provided userId or fall back to current user
   const targetUserId = userId || user?.id;
   
-  // Fetch user profile from Railway
+  // Fetch user profile from Railway (owner via private API with auth, others via public API)
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (targetUserId) {
-        try {
-          setProfileLoading(true);
-          console.log('🔄 Profile card: Fetching user profile for:', targetUserId);
-          const response = await fetch(`/api/user/profile?userId=${targetUserId}`)
-          if (response.ok) {
-            const data = await response.json()
-            console.log('✅ Profile card: User profile loaded:', data.user);
-            setUserProfile(data.user)
-          } else {
-            console.error('❌ Profile card: Failed to fetch user profile:', response.status, response.statusText);
-          }
-        } catch (error) {
-          console.error('❌ Profile card: Error fetching user profile:', error)
-        } finally {
-          setProfileLoading(false);
-        }
-      } else {
+      if (!targetUserId) {
         console.log('⚠️ Profile card: No user ID available for profile fetch');
+        return;
       }
-    }
+      try {
+        setProfileLoading(true);
+        const isOwner = !!user?.id && user.id === targetUserId && showEditButton;
+        if (isOwner) {
+          const token = await getSessionToken();
+          const response = await fetch(`/api/user/profile?userId=${targetUserId}` , {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            cache: 'no-store'
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUserProfile(data.user);
+          } else {
+            console.error('❌ Profile card: Failed to fetch private profile:', response.status, response.statusText);
+          }
+        } else {
+          const fields = [
+            'id','email','first_name','last_name','full_name','location','avatar_url',
+            'phone','bio','position','gender','slug','created_at','updated_at'
+          ].join(',');
+          const response = await fetch(`/api/public/users?ids=${encodeURIComponent(targetUserId)}&fields=${encodeURIComponent(fields)}`, { cache: 'no-store' });
+          if (response.ok) {
+            const data = await response.json();
+            const u = (data?.items && data.items[0]) || null;
+            if (u) setUserProfile(u as any);
+          } else {
+            console.error('❌ Profile card: Failed to fetch public user profile:', response.status, response.statusText);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Profile card: Error fetching user profile:', error);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
 
-    fetchUserProfile()
-  }, [targetUserId])
+    fetchUserProfile();
+  }, [targetUserId, user?.id, showEditButton])
 
   // Fetch professional summary from saved resume data
   useEffect(() => {
@@ -225,7 +259,10 @@ export default function ProfileCard({ userId, showEditButton = true, className =
     location: '',
     jobTitle: '',
     company: '',
-    bio: ''
+    bio: '',
+    gender: '',
+    genderCustom: '',
+    birthday: ''
   });
 
   // Update profile data when Railway data loads
@@ -239,13 +276,93 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         location: userProfile.location || '',
         jobTitle: userProfile.position || '',
         company: '',
-        bio: userProfile.bio || ''
+        bio: userProfile.bio || '',
+        gender: userProfile.gender || '',
+        genderCustom: userProfile.gender_custom || '',
+        birthday: userProfile.birthday || ''
       });
     }
   }, [userProfile]);
 
+  // Helpers
+  const computeAge = (birthday?: string | null): number | null => {
+    if (!birthday) return null;
+    const dob = new Date(birthday);
+    if (isNaN(dob.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+  };
+  const formatMonthYear = (iso?: string | null): string | null => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  };
+  const formatDisplayGender = (gender?: string | null, custom?: string | null): string => {
+    if (!gender) return '—';
+    const g = String(gender).toLowerCase();
+    if (g === 'others') {
+      return custom && custom.trim().length > 0 ? custom : 'Others';
+    }
+    return g.charAt(0).toUpperCase() + g.slice(1);
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveProfileChanges = async () => {
+    if (!user) return;
+    try {
+      setIsSaving(true);
+      const payload: any = {
+        userId: user.id,
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        location: profileData.location,
+        phone: profileData.phone,
+        bio: profileData.bio,
+        position: profileData.jobTitle,
+        gender: profileData.gender || null,
+        gender_custom: profileData.gender === 'others' ? (profileData.genderCustom || null) : null,
+        birthday: profileData.birthday || null
+      };
+      const token = await getSessionToken();
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      let data: any = null; try { data = JSON.parse(text); } catch {}
+      if (!res.ok) throw new Error(data?.error || 'Failed to save profile');
+      setUserProfile(prev => prev ? {
+        ...prev,
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        full_name: `${payload.first_name || ''} ${payload.last_name || ''}`.trim() || (prev.full_name || ''),
+        location: payload.location,
+        phone: payload.phone,
+        bio: payload.bio,
+        position: payload.position,
+        gender: payload.gender,
+        gender_custom: payload.gender_custom,
+        birthday: payload.birthday || null,
+        updated_at: new Date().toISOString()
+      } : prev);
+      setIsEditing(false);
+    } catch (e) {
+      console.error('❌ Failed to save profile:', e);
+      alert(e instanceof Error ? e.message : 'Failed to save');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,6 +385,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
       
       // Update local state
       setProfilePicture(publicUrl);
+      setUserProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : prev);
       
       // Update Railway database
       const response = await fetch('/api/user/profile', {
@@ -383,9 +501,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
       transition={{ delay: 0.1 }}
       className={className}
     >
-      <Card className="glass-card border-white/10 profile-card-no-hover">
-        <CardContent className="p-8">
-          <div className="flex flex-col md:flex-row items-start gap-8">
+      <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Profile Picture */}
             <div className="relative flex-shrink-0">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gradient-to-br from-cyan-400 to-purple-400 p-1">
@@ -414,6 +530,20 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                 )}
               </div>
 
+              {showEditButton && user?.id === targetUserId && isEditing && (
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded-md shadow"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={photoUploading}
+                  >
+                    {photoUploading ? 'Uploading…' : 'Change Photo'}
+                  </Button>
+                </div>
+              )}
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -430,27 +560,214 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                   <h2 className="text-3xl font-bold text-white">{userDisplayName}</h2>
                 </div>
                 {showEditButton && user?.id === targetUserId && (
-                  <Button
-                    onClick={() => router.push('/settings')}
-                    className="bg-cyan-500"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isEditing ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="border-white/20 text-gray-300 hover:bg-white/10"
+                          onClick={() => {
+                            if (userProfile) {
+                              setProfileData({
+                                firstName: userProfile.first_name || '',
+                                lastName: userProfile.last_name || '',
+                                email: userProfile.email || '',
+                                phone: userProfile.phone || '',
+                                location: userProfile.location || '',
+                                jobTitle: userProfile.position || '',
+                                company: '',
+                                bio: userProfile.bio || '',
+                                gender: userProfile.gender || '',
+                                birthday: userProfile.birthday || ''
+                              });
+                            }
+                            setIsEditing(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveProfileChanges}
+                          disabled={isSaving}
+                          className="bg-cyan-500 hover:bg-cyan-600"
+                        >
+                          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Edit3 className="w-4 h-4 mr-2" />}
+                          Save
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={() => setIsEditing(true)} className="bg-cyan-500">
+                        <Edit3 className="w-4 h-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
 
-              {/* Professional Summary or Bio */}
-              {(professionalSummary || profileData.bio) && (
-                <div className="p-4 bg-white/5 rounded-lg">
-                  <h4 className="text-white font-medium mb-2">
-                    {professionalSummary ? 'Professional Summary' : 'About Me'}
-                  </h4>
+              {/* Bio (editable for owner) */}
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <h4 className="text-white font-medium mb-2">Bio</h4>
+                {isEditing ? (
+                  <Textarea
+                    value={profileData.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    placeholder="Tell us about yourself…"
+                    className="bg-black/30 text-white border-white/20"
+                  />
+                ) : (
                   <p className="text-gray-300 text-sm leading-relaxed">
-                    {professionalSummary || profileData.bio}
+                    {profileData.bio || '—'}
                   </p>
+                )}
+              </div>
+
+              {/* Contact & Details from Users table (colorful, on-brand). If editing, show inputs. */}
+              <div className="p-5 rounded-lg border border-white/10 bg-gradient-to-br from-cyan-500/10 via-transparent to-purple-600/10">
+                <h4 className="text-white font-semibold mb-4">Profile Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Email */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-purple-500/20 flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-purple-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Email</div>
+                      {isEditing ? (
+                        <Input
+                          value={profileData.email}
+                          disabled
+                          placeholder="Email"
+                          className="mt-1 bg-black/40 text-white border-white/20 opacity-70 cursor-not-allowed"
+                        />
+                      ) : (
+                        <div className="text-gray-100 break-all">{userProfile?.email || '—'}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Phone */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-emerald-500/20 flex items-center justify-center">
+                      <PhoneIcon className="w-4 h-4 text-emerald-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Phone</div>
+                      {isEditing ? (
+                        <Input
+                          value={profileData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          placeholder="Phone"
+                          className="mt-1 bg-black/40 text-white border-white/20"
+                        />
+                      ) : (
+                        <div className="text-gray-100">{userProfile?.phone || '—'}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Location */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-pink-500/20 flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-pink-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Location</div>
+                      {isEditing ? (
+                        <Input
+                          value={profileData.location}
+                          onChange={(e) => handleInputChange('location', e.target.value)}
+                          placeholder="Location"
+                          className="mt-1 bg-black/40 text-white border-white/20"
+                        />
+                      ) : (
+                        <div className="text-gray-100">{userProfile?.location || '—'}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Position */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-amber-500/20 flex items-center justify-center">
+                      <Briefcase className="w-4 h-4 text-amber-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Position</div>
+                      {isEditing ? (
+                        <Input
+                          value={profileData.jobTitle}
+                          onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                          placeholder="Position"
+                          className="mt-1 bg-black/40 text-white border-white/20"
+                        />
+                      ) : (
+                        <div className="text-gray-100">{userProfile?.position || '—'}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Gender */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-indigo-500/20 flex items-center justify-center">
+                      <UserIcon className="w-4 h-4 text-indigo-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Gender</div>
+                      {isEditing ? (
+                        <>
+                          <Select value={profileData.gender} onValueChange={(v) => handleInputChange('gender', v)}>
+                            <SelectTrigger className="mt-1 bg-black/50 text-white border-white/20">
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="others">Others</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {profileData.gender === 'others' && (
+                            <Input
+                              value={profileData.genderCustom}
+                              onChange={(e) => handleInputChange('genderCustom', e.target.value)}
+                              placeholder="Enter preferred gender"
+                              className="mt-2 bg-black/40 text-white border-white/20"
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <div className="text-gray-100">{formatDisplayGender(userProfile?.gender, userProfile?.gender_custom)}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Birthday + Age */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-sky-500/20 flex items-center justify-center">
+                      <CalendarDays className="w-4 h-4 text-sky-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Birthday</div>
+                      {isEditing ? (
+                        <Input
+                          type="date"
+                          value={profileData.birthday}
+                          onChange={(e) => handleInputChange('birthday', e.target.value)}
+                          className="mt-1 bg-black/40 text-white border-white/20"
+                        />
+                      ) : (
+                        <div className="text-gray-100">
+                          {userProfile?.birthday ? `${new Date(userProfile.birthday as string).toLocaleDateString()}${computeAge(userProfile.birthday) !== null ? ` • Age ${computeAge(userProfile.birthday)}` : ''}` : '—'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Account Created */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-fuchsia-500/20 flex items-center justify-center">
+                      <CalendarDays className="w-4 h-4 text-fuchsia-300" />
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase text-gray-400">Account Created</div>
+                      <div className="text-gray-100">{formatMonthYear(userProfile?.created_at) || '—'}</div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
 
                              {/* Quick Stats */}
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -478,9 +795,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                  </div>
                </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </div>
     </motion.div>
   );
 }
