@@ -45,6 +45,9 @@ export default function ResumeBuilderPage() {
   const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
   const [showExtractedModal, setShowExtractedModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
+  // Progress modal UX
+  const [modalStep, setModalStep] = useState<number>(0);
+  const [latestActivity, setLatestActivity] = useState<string>('');
 
   // Trigger header SignUp dialog via URL param when not logged in
   const openSignup = () => {
@@ -234,6 +237,7 @@ export default function ResumeBuilderPage() {
       const logEntry = `[${timestamp}] ${message}`;
       logs.push(logEntry);
       console.log(message); // Still log to console
+      setLatestActivity(message);
       
       // Update logs state
       setProcessingLogs(prev => ({
@@ -257,6 +261,8 @@ export default function ResumeBuilderPage() {
     setShowProcessingLogs(false);
     setIsAnalyzingWithClaude(true);
     setShowProgressModal(true);
+    setModalStep(0);
+    setLatestActivity('');
     setAnalysisProgress(0);
     
     // Initialize individual file progress
@@ -302,13 +308,9 @@ export default function ResumeBuilderPage() {
     
     setProcessedResumes(processedResults);
     
-    // Hide modal and reset analysis state after a delay
-    setTimeout(() => {
-      setShowProgressModal(false);
-      setIsAnalyzingWithClaude(false);
-      setAnalysisProgress(0);
-      setFileProgress({});
-    }, 2000);
+    // Keep modal open to show completion + CTA
+    setIsAnalyzingWithClaude(false);
+    setAnalysisProgress(100);
   };
 
   // Process a single resume file with logs
@@ -321,29 +323,34 @@ export default function ResumeBuilderPage() {
       
       // Step 1: Document Conversion (if needed)
       if (needsCloudConvert) {
+        setModalStep(1);
         log(`📄 Step 1: Converting document to image format...`);
         setFileProgress(prev => ({ ...prev, [file.name]: 20 }));
         // Add delay to simulate actual processing time
         await new Promise(resolve => setTimeout(resolve, 2000));
       } else {
+        setModalStep(1);
         log(`📄 Step 1: Preparing document for processing...`);
         setFileProgress(prev => ({ ...prev, [file.name]: 20 }));
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       // Step 2: Text Extraction
+      setModalStep(2);
       log(`🤖 Step 2: Extracting text from document pages...`);
       setFileProgress(prev => ({ ...prev, [file.name]: 45 }));
       // Add delay to simulate OCR processing time
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Step 3: Document Creation
+      setModalStep(3);
       log(`📝 Step 3: Creating organized document structure...`);
       setFileProgress(prev => ({ ...prev, [file.name]: 70 }));
       // Add delay to simulate document creation time
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Step 4: JSON Conversion
+      setModalStep(3);
       log(`🔄 Step 4: Converting to structured data format...`);
       setFileProgress(prev => ({ ...prev, [file.name]: 85 }));
       // Add delay to simulate JSON conversion time
@@ -355,6 +362,7 @@ export default function ResumeBuilderPage() {
       // Complete
       log(`✅ Processing complete: Resume data extracted successfully!`);
       setFileProgress(prev => ({ ...prev, [file.name]: 95 }));
+      setModalStep(4);
       
       return result;
     } catch (error) {
@@ -478,35 +486,104 @@ export default function ResumeBuilderPage() {
       <Header />
       {/* Progress Modal */}
       <Dialog open={showProgressModal} onOpenChange={setShowProgressModal}>
-        <DialogContent showCloseButton={false}>
+        <DialogContent 
+          showCloseButton={false}
+          className="max-w-md w-full"
+          onInteractOutside={(e) => {
+            if (processedResumes.length > 0 && !isAnalyzingWithClaude) e.preventDefault()
+          }}
+          onEscapeKeyDown={(e) => {
+            if (processedResumes.length > 0 && !isAnalyzingWithClaude) e.preventDefault()
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Extracting Resume Data…</DialogTitle>
             <DialogDescription>
-              Hang tight while we capture your details for analysis.
+              This usually takes about 2–3 minutes. We’ll keep you updated with each step.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <PacmanLoader 
-                color="#fbbf24" 
-                size={40}
-                margin={4}
-                speedMultiplier={1.2}
-              />
-            </div>
-            <div className="max-w-md mx-auto space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Progress</span>
-                <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${analysisProgress}%` }}
-                ></div>
-              </div>
-            </div>
+          <div className="text-center space-y-4 flex flex-col items-center">
+            {processedResumes.length === 0 && (
+              <>
+                <div className="flex justify-center">
+                  <PacmanLoader 
+                    color="#fbbf24" 
+                    size={40}
+                    margin={4}
+                    speedMultiplier={1.2}
+                  />
+                </div>
+                <div className="max-w-md mx-auto space-y-2 w-full">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Progress</span>
+                    <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${analysisProgress}%` }}
+                    ></div>
+                  </div>
+                  {/* Activity steps */}
+                  <div className="text-left text-sm mt-3 space-y-1">
+                    <div className={`flex items-center gap-2 ${modalStep >= 1 ? 'text-white' : 'text-gray-400'}`}>
+                      <span>•</span>
+                      <span>Converting document (CloudConvert)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${modalStep >= 2 ? 'text-white' : 'text-gray-400'}`}>
+                      <span>•</span>
+                      <span>Reading pages (GPT Vision / OCR)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${modalStep >= 3 ? 'text-white' : 'text-gray-400'}`}>
+                      <span>•</span>
+                      <span>Extracting and organizing content</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${modalStep >= 4 ? 'text-white' : 'text-gray-400'}`}>
+                      <span>•</span>
+                      <span>Saving extracted data</span>
+                    </div>
+                  </div>
+                  {/* Latest compact activity */}
+                  {latestActivity && (
+                    <div className="text-xs text-gray-300 font-mono bg-black/20 rounded p-2 mt-2 truncate">
+                      {latestActivity}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
+
+          {/* Completion & CTA inside modal when extraction finishes */}
+          {processedResumes.length > 0 && !isAnalyzingWithClaude && (
+            <div className="mt-6">
+              <div className="max-w-sm mx-auto mb-3">
+                <div className="glass-card border-green-500/30 bg-green-500/5 p-4 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center">
+                      <svg className="h-3 w-3 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-green-400 font-medium text-sm">Extraction Complete</h3>
+                      <p className="text-gray-300 text-xs">Your resume data has been extracted.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-gray-300 text-sm mb-3">Ready for Step 2: Analyze resume data</div>
+                <Button
+                  onClick={handleContinue}
+                  disabled={!canContinue}
+                  size="lg"
+                  className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Analyze Extracted Data
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       {/* Modal: Continue from extracted checkpoint */}

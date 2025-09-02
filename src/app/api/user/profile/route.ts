@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 API: Fetching profile for user:', userId)
 
-    // Start with basic query without gender
+    // Base query (avoid selecting optional columns that may not exist across envs)
     const query = `
       SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, gender, created_at, updated_at
       FROM users 
@@ -40,6 +40,15 @@ export async function GET(request: NextRequest) {
       console.log('⚠️ Gender column does not exist yet, defaulting to null')
     }
     
+    // Try to get gender_custom separately if column exists
+    let genderCustom: string | null = null
+    try {
+      const gcRes = await pool.query(`SELECT gender_custom FROM users WHERE id = $1`, [userId])
+      genderCustom = gcRes.rows?.[0]?.gender_custom ?? null
+    } catch (e) {
+      console.log('⚠️ gender_custom column not found, defaulting to null')
+    }
+
     const userProfile = {
       id: user.id,
       email: user.email,
@@ -55,6 +64,7 @@ export async function GET(request: NextRequest) {
       birthday: user.birthday,
       slug: user.slug,
       gender: gender,
+      gender_custom: genderCustom,
       created_at: user.created_at,
       updated_at: user.updated_at
     }
@@ -82,7 +92,7 @@ export async function PUT(request: NextRequest) {
 
     // Load existing values to avoid overwriting with nulls when not provided
     const existingRes = await pool.query(
-      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, gender FROM users WHERE id = $1`,
+      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, gender, gender_custom FROM users WHERE id = $1`,
       [userId]
     )
     
@@ -111,42 +121,62 @@ export async function PUT(request: NextRequest) {
     const position = updateData.position ?? existing.position
 
     const gender = updateData.gender ?? existing.gender
+    const genderCustom = updateData.gender_custom ?? existing.gender_custom
 
 
     // Handle completed_data and birthday, preserving ability to clear birthday
     const completedData = Object.prototype.hasOwnProperty.call(updateData, 'completed_data')
       ? updateData.completed_data
       : existing.completed_data
-    const birthday = Object.prototype.hasOwnProperty.call(updateData, 'birthday')
+    let birthday = Object.prototype.hasOwnProperty.call(updateData, 'birthday')
       ? updateData.birthday
       : existing.birthday
+    // Normalize birthday: empty strings -> null to satisfy DATE type
+    if (typeof birthday === 'string' && birthday.trim() === '') {
+      birthday = null
+    }
 
     // Recompute full_name from first/last when applicable, otherwise keep existing
     const recomputedFullName = `${firstName || ''} ${lastName || ''}`.trim()
     const fullName = recomputedFullName || existing.full_name
 
-    // Update basic fields first
-    const query = `
-      UPDATE users 
-      SET first_name = $2, last_name = $3, full_name = $4, location = $5, 
-          avatar_url = $6, phone = $7, bio = $8, position = $9, completed_data = $10, birthday = $11, gender = $12, updated_at = NOW()
-      WHERE id = $1
-      RETURNING *
-    `
-    const result = await pool.query(query, [
-      userId,
-      firstName,
-      lastName,
-      fullName,
-      location,
-      avatarUrl,
-      phone,
-      bio,
-      position,
-      completedData,
-      birthday,
-      gender
-    ])
+    // Dynamically build UPDATE based on available columns to avoid env drift
+    const colsRes = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users'`
+    )
+    const available = new Set<string>(colsRes.rows.map((r: any) => r.column_name))
+
+    type Field = { col: string, val: any }
+    const baseFields: Field[] = [
+      { col: 'first_name', val: firstName },
+      { col: 'last_name', val: lastName },
+      { col: 'full_name', val: fullName },
+      { col: 'location', val: location },
+      { col: 'avatar_url', val: avatarUrl },
+      { col: 'phone', val: phone },
+      { col: 'bio', val: bio },
+      { col: 'position', val: position }
+    ]
+    const optionalFields: Field[] = []
+    if (available.has('completed_data')) optionalFields.push({ col: 'completed_data', val: completedData })
+    if (available.has('birthday')) optionalFields.push({ col: 'birthday', val: birthday })
+    if (available.has('gender')) optionalFields.push({ col: 'gender', val: gender })
+    if (available.has('gender_custom')) optionalFields.push({ col: 'gender_custom', val: genderCustom })
+
+    const allFields = [...baseFields, ...optionalFields]
+    const setClauses: string[] = []
+    const params: any[] = [userId]
+    let i = 2
+    for (const f of allFields) {
+      setClauses.push(`${f.col} = $${i}`)
+      params.push(f.val)
+      i++
+    }
+    setClauses.push('updated_at = NOW()')
+
+    const updateSql = `UPDATE users SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`
+    console.log('🔧 UPDATE users dynamic SQL:', updateSql)
+    const result = await pool.query(updateSql, params)
     
     // Try to update gender separately if column exists and gender is provided
     if (updateData.gender && gender) {
@@ -155,6 +185,14 @@ export async function PUT(request: NextRequest) {
         console.log('✅ Gender updated successfully')
       } catch (error) {
         console.log('⚠️ Gender column does not exist yet, skipping gender update')
+      }
+    }
+    if (typeof updateData.gender_custom !== 'undefined') {
+      try {
+        await pool.query(`UPDATE users SET gender_custom = $1 WHERE id = $2`, [genderCustom, userId])
+        console.log('✅ Gender custom updated successfully')
+      } catch (error) {
+        console.log('⚠️ gender_custom column does not exist yet, skipping gender_custom update')
       }
     }
 
