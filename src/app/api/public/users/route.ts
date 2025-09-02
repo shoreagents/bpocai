@@ -17,7 +17,7 @@ export async function OPTIONS() { return withCors(new NextResponse(null, { statu
 
 // Only expose non-sensitive columns
 const SAFE_FIELDS = new Set([
-	'id','email','first_name','last_name','full_name','location','avatar_url','position','created_at','updated_at'
+	'id','email','first_name','last_name','full_name','location','avatar_url','position','phone','bio','gender','created_at','updated_at'
 ])
 
 export async function GET(request: NextRequest) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 	const idsParam = (url.searchParams.get('ids') || '').trim()
 
 	const fields = fieldsParam ? fieldsParam.split(',').map(s => s.trim()).filter(s => SAFE_FIELDS.has(s))
-		: ['id','full_name','email','location','position','avatar_url','created_at']
+		: ['id','full_name','email','location','position','avatar_url','phone','bio','gender','created_at']
 	const selectList = fields.map(f => `"${f}"`).join(', ')
 
 	const client = await pool.connect()

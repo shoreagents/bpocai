@@ -165,36 +165,52 @@ export async function POST(request: NextRequest) {
     const analysisPrompt = createAnalysisPrompt(resumeData, portfolioLinks);
     console.log('🔍 DEBUG: Analysis prompt length:', analysisPrompt.length);
 
-    // Call Claude API
+    // Call Claude API with retry/backoff for overloaded/temporary errors
     console.log('🔍 DEBUG: Calling Claude API...');
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': claudeApiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: analysisPrompt
-          }
-        ]
-      })
-    });
+    const maxAttempts = 4;
+    let claudeResponse: Response | null = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const start = Date.now();
+      claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeApiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 4000,
+          messages: [
+            { role: 'user', content: analysisPrompt }
+          ]
+        })
+      });
+      console.log(`🔍 DEBUG: Claude attempt ${attempt} status:`, claudeResponse.status, `(${Date.now() - start}ms)`);
+      // Break if success
+      if (claudeResponse.ok) break;
+      // Retry on transient/overload
+      if ([429, 500, 502, 503, 504, 529].includes(claudeResponse.status)) {
+        const backoffMs = 1500 * attempt + Math.floor(Math.random() * 500);
+        console.warn(`⚠️ Claude transient error ${claudeResponse.status}. Retrying in ${backoffMs}ms...`);
+        await new Promise(r => setTimeout(r, backoffMs));
+        continue;
+      }
+      // Non-retryable
+      break;
+    }
 
-    console.log('🔍 DEBUG: Claude API response status:', claudeResponse.status);
+    console.log('🔍 DEBUG: Claude API response status:', claudeResponse?.status);
 
-    if (!claudeResponse.ok) {
-      const errorData = await claudeResponse.text();
+    if (!claudeResponse || !claudeResponse.ok) {
+      const errorData = claudeResponse ? await claudeResponse.text() : 'no response';
       console.error('❌ Claude API error:', errorData);
-      console.error('❌ Claude API status:', claudeResponse.status);
+      console.error('❌ Claude API status:', claudeResponse ? claudeResponse.status : 'no status');
+      const status = claudeResponse ? claudeResponse.status : 502;
+      const isOverloaded = status === 529 || status === 503 || status === 504;
       return NextResponse.json(
-        { success: false, error: `Failed to analyze resume with Claude: ${claudeResponse.status} - ${errorData}` },
-        { status: 500 }
+        { success: false, error: `Failed to analyze resume with Claude: ${status} - ${errorData}` },
+        { status: isOverloaded ? 503 : 500 }
       );
     }
 

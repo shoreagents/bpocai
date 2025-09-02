@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
 		params.push(pageSize, offset)
 		const dataSql = `
 			SELECT id, company_id, job_title, department, work_arrangement, salary_min, salary_max,
-			       currency, status, views, applicants, created_at
+			       currency, salary_type, experience_level, priority, shift, application_deadline,
+			       industry, work_type, status, views, applicants, created_at, updated_at
 			FROM processed_job_requests
 			${whereParts.length ? 'WHERE ' + whereParts.join(' AND ') : ''}
 			ORDER BY created_at DESC

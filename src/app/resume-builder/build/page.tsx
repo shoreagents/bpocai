@@ -2034,9 +2034,17 @@ export default function ResumeBuilderPage() {
             <DialogHeader>
               <DialogTitle>Delete saved resume?</DialogTitle>
               <DialogDescription className="text-gray-300">
-                This action cannot be undone. Deleting your saved resume <span className="font-semibold text-red-400">will also remove all of your existing job applications linked to this resume</span>. You will need to restart any applications afterwards.
+                This action cannot be undone. Deleting your saved resume will also remove associated data.
               </DialogDescription>
             </DialogHeader>
+            <div className="text-gray-300">
+              <ul className="list-disc list-inside mt-2 text-gray-400">
+                <li>AI Analysis Results</li>
+                <li>Generated Resume</li>
+                <li>Extracted Resume Data</li>
+              </ul>
+              <span className="font-semibold text-red-400 block mt-2">Any job applications linked to this resume may be affected.</span>
+            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeletingSaved(false)} className="border-gray-600 text-gray-300 hover:bg-gray-800">
                 Cancel
@@ -2070,6 +2078,10 @@ export default function ResumeBuilderPage() {
                       let djson: any = null; try { djson = JSON.parse(dtext); } catch {}
                       throw new Error((djson && (djson.details || djson.error)) || dtext || 'Delete failed');
                     }
+                    // Also clear analysis, generated, and extracted data
+                    await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/save-generated-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
                     setIsDeletingSaved(false);
                     try { sessionStorage.setItem('resumeDeleted', '1'); } catch {}
                     router.push('/resume-builder');

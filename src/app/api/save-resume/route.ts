@@ -121,3 +121,22 @@ export async function POST(request: NextRequest) {
     )
   }
 } 
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = request.headers.get('x-user-id')
+    if (!userId) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('DELETE FROM resumes_extracted WHERE user_id = $1', [userId])
+      return NextResponse.json({ success: true })
+    } finally {
+      client.release()
+    }
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to clear extracted resume' }, { status: 500 })
+  }
+} 

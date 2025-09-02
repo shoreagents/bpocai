@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
       const listRes = await pool.query(
         `SELECT user_id, current_employer, current_position, current_salary, notice_period_days,
-                expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
+                expected_salary, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
            FROM user_work_status
           ORDER BY updated_at DESC
           LIMIT $1 OFFSET $2`,
@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
         currentMood: row.current_mood,
         workStatus: row.work_status,
         preferredShift: row.preferred_shift,
+        workSetup: row.work_setup,
+        completedData: row.completed_data,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }))
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(
       `SELECT user_id, current_employer, current_position, current_salary, notice_period_days,
-              expected_salary, current_mood, work_status, preferred_shift, created_at, updated_at
+              expected_salary, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
          FROM user_work_status
         WHERE user_id = $1`,
       [userId]
@@ -79,6 +81,8 @@ export async function GET(request: NextRequest) {
       currentMood: row.current_mood,
       workStatus: row.work_status,
       preferredShift: row.preferred_shift,
+      workSetup: row.work_setup,
+      completedData: row.completed_data,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }

@@ -56,18 +56,16 @@
     {
       "name": "Foundations of User Experience (UX) Design",
       "issuer": "Google",
-      "issued": "February 2024"
+      "issued_date": "February 2024"
     }
   ],
-  "references": [
-    {
-      "name": "James Dulinayan",
-      "position": "Web Developer at ShoreAgents",
-      "email": "james.d@shoreagents.com",
-      "phone": "+63 956 362 - 0905"
-    }
-  ],
+  "reference": {
+    "name": "James Dulinayan",
+    "position": "Web Developer at ShoreAgents",
+    "email": "james.d@shoreagents.com",
+    "phone": "+63 956 362 - 0905"
+  },
   "interests": [
-    "the art of making art"
+    "The art of making art."
   ]
 }

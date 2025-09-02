@@ -68,4 +68,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = request.headers.get('x-user-id')
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('DELETE FROM ai_analysis_results WHERE user_id = $1', [userId])
+      return NextResponse.json({ success: true })
+    } finally {
+      client.release()
+    }
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to clear analysis results' }, { status: 500 })
+  }
+}
+
 
