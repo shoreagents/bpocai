@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     }
 
     const res = await pool.query(
-      `SELECT id, email, first_name, last_name, full_name, location, avatar_url, gender, created_at, updated_at, slug
+      `SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, gender, created_at, updated_at, slug
        FROM users WHERE slug = $1 LIMIT 1`,
       [slug]
     )

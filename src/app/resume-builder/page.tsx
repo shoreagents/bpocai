@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Upload, Link, X, FileText, Image, AlertCircle, Check, Plus, Sparkles, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PacmanLoader } from 'react-spinners';
@@ -42,6 +43,8 @@ export default function ResumeBuilderPage() {
   
   // Individual file progress tracking
   const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
+  const [showExtractedModal, setShowExtractedModal] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
 
   // Trigger header SignUp dialog via URL param when not logged in
   const openSignup = () => {
@@ -75,6 +78,37 @@ export default function ResumeBuilderPage() {
         const data = await res.json();
         if (data?.success && data?.hasSavedResume && data?.resumeSlug) {
           router.replace(`/${data.resumeSlug}`);
+          return;
+        }
+
+        // If user already has AI analysis results, go straight to analysis
+        const ar = await fetch(`/api/user/analysis-results`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store'
+        });
+        if (ar.ok) {
+          const arData = await ar.json();
+          if (arData?.found) {
+            router.replace('/resume-builder/analysis');
+            return;
+          }
+        }
+
+        // Checkpoint resume_extracted: if present, show continue prompt later
+        const ex = await fetch('/api/user/extracted-resume', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store'
+        });
+        if (ex.ok) {
+          const exData = await ex.json();
+          if (exData?.hasData) {
+            try { localStorage.setItem('bpoc_has_extracted', '1'); } catch {}
+            // If user also has analysis, we already redirected above.
+            // Otherwise, open the modal to continue to analysis.
+            setShowExtractedModal(true);
+          }
         }
       } catch (e) {
         // Fail open: do nothing
@@ -176,7 +210,12 @@ export default function ResumeBuilderPage() {
       log(`✅ API keys obtained, processing file with CloudConvert + GPT pipeline...`);
       
       // Process file using the updated CloudConvert + GPT pipeline with API keys
-      const processedResume = await processResumeFileWithLogs(file, keyResult.openaiApiKey, keyResult.cloudConvertApiKey, log);
+      const processedResume = await processResumeFileWithLogs(file, keyResult.openaiApiKey, keyResult.cloudConvertApiKey, (m) => {
+        log(m)
+        if (m.includes('converted to JPEG format')) {
+          log('🔎 Verifying multi-page conversion…')
+        }
+      });
       
       return processedResume;
       
@@ -209,12 +248,15 @@ export default function ResumeBuilderPage() {
   // Process uploaded files to JSON using OpenAI
   const processUploadedFiles = async () => {
     if (!user) { openSignup(); return; }
+    // If we already have checkpoint, route to analysis
+    try { if (localStorage.getItem('bpoc_has_extracted') === '1') { router.push('/resume-builder/analysis'); return; } } catch {}
     if (uploadedFiles.length === 0) return;
 
     // Clear previous logs and show processing
     setProcessingLogs({});
-    setShowProcessingLogs(true);
+    setShowProcessingLogs(false);
     setIsAnalyzingWithClaude(true);
+    setShowProgressModal(true);
     setAnalysisProgress(0);
     
     // Initialize individual file progress
@@ -260,9 +302,9 @@ export default function ResumeBuilderPage() {
     
     setProcessedResumes(processedResults);
     
-    // Hide logs and reset analysis state after a delay
+    // Hide modal and reset analysis state after a delay
     setTimeout(() => {
-      setShowProcessingLogs(false);
+      setShowProgressModal(false);
       setIsAnalyzingWithClaude(false);
       setAnalysisProgress(0);
       setFileProgress({});
@@ -434,6 +476,73 @@ export default function ResumeBuilderPage() {
       </div>
 
       <Header />
+      {/* Progress Modal */}
+      <Dialog open={showProgressModal} onOpenChange={setShowProgressModal}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Extracting Resume Data…</DialogTitle>
+            <DialogDescription>
+              Hang tight while we capture your details for analysis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <PacmanLoader 
+                color="#fbbf24" 
+                size={40}
+                margin={4}
+                speedMultiplier={1.2}
+              />
+            </div>
+            <div className="max-w-md mx-auto space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Progress</span>
+                <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${analysisProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Modal: Continue from extracted checkpoint */}
+      <Dialog open={showExtractedModal} onOpenChange={setShowExtractedModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Continue your resume?</DialogTitle>
+            <DialogDescription>
+              We found existing extracted resume data. Continue directly to AI analysis or start over.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => { setShowExtractedModal(false); router.push('/resume-builder/analysis?force=1') }} className="bg-cyan-600 hover:bg-cyan-700">
+              Continue to Analysis
+            </Button>
+            <Button
+              variant="outline"
+              className="border-white/20 text-gray-300 hover:bg-white/10"
+              onClick={async () => {
+                try {
+                  const token = await getSessionToken();
+                  if (token) {
+                    await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                  }
+                } catch {}
+                try { localStorage.removeItem('bpoc_has_extracted') } catch {}
+                setShowExtractedModal(false)
+                toast.success('Progress cleared. You can upload a new resume.')
+              }}
+            >
+              Start Over
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
@@ -744,36 +853,7 @@ export default function ResumeBuilderPage() {
                         </Button>
                       )}
                       
-                      {/* Simple Pac-Man Loading */}
-                      {isAnalyzingWithClaude && (
-                        <div className="text-center space-y-4">
-                          <div className="flex justify-center">
-                            <PacmanLoader 
-                              color="#fbbf24" 
-                              size={40}
-                              margin={4}
-                              speedMultiplier={1.2}
-                            />
-                          </div>
-                          <div className="text-center">
-                            <h3 className="text-white font-medium mb-2">Extracting Resume Data…</h3>
-                            <p className="text-gray-400 text-sm">Hang tight while we capture your details for analysis.</p>
-                          </div>
-                          {/* Progress Bar */}
-                          <div className="max-w-md mx-auto space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-400">Progress</span>
-                              <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all duration-300 ease-out"
-                                style={{ width: `${analysisProgress}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      {/* Loading moved to modal; inline loader removed */}
                       
                       {/* Processing Logs with Enhanced Progress Bar */}
                       {showProcessingLogs && Object.keys(processingLogs).length > 0 && !isAnalyzingWithClaude && (
@@ -861,6 +941,8 @@ export default function ResumeBuilderPage() {
                 </Card>
               </motion.div>
             )}
+
+            {/* Continue from checkpoint Section removed; handled via modal */}
 
             {/* Continue Button */}
             {/* This section is now moved inside the AI-Powered Resume Analysis card */}

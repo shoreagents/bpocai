@@ -31,6 +31,8 @@ import {
 import LoadingScreen from '@/components/ui/loading-screen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+// (duplicate dialog import removed)
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -84,6 +86,8 @@ export default function AnalysisPage() {
   const [aggregatedResumeData, setAggregatedResumeData] = useState<any>(null);
   const [improvedSummary, setImprovedSummary] = useState<string | null>(null);
   const [isImprovingSummary, setIsImprovingSummary] = useState(false);
+  const [serverProfile, setServerProfile] = useState<any | null>(null);
+  const [showExistingAnalysisModal, setShowExistingAnalysisModal] = useState(false);
 
   // Smart mapping function to extract data from flexible JSON structure
   const mapResumeData = (rawData: any) => {
@@ -227,6 +231,9 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     const init = async () => {
+      // Read force flag first to control reuse behavior
+      const urlNow = new URL(window.location.href);
+      const force = urlNow.searchParams.get('force') === '1';
       // Load data from localStorage
       const sessionId = getFromLocalStorage('bpoc_session_id', '');
       const uploadedFiles = getFromLocalStorage('bpoc_uploaded_files', []);
@@ -241,11 +248,8 @@ export default function AnalysisPage() {
       console.log('  - processedFiles:', processedFiles);
       console.log('  - processedResumes:', debugProcessedResumes);
 
-      if (!sessionId && (!uploadedFiles.length && !portfolioLinks.length)) {
-        // No data found, redirect to upload
-        router.push('/resume-builder');
-        return;
-      }
+      // If there's no local session/data, we will try server checkpoint
+      const hasLocalData = (sessionId || uploadedFiles.length || processedFiles.length || debugProcessedResumes.length);
 
       setAnalysisData({
         sessionId,
@@ -267,11 +271,13 @@ export default function AnalysisPage() {
           if (res.ok) {
             const data = await res.json();
             const hasNewUpload = (uploadedFiles && uploadedFiles.length > 0) || (processedFiles && processedFiles.length > 0);
-            if (data.found && data.analysis && !hasNewUpload) {
+            // Prefer existing DB analysis unless force is explicitly requested
+            if (data.found && data.analysis && !force) {
               console.log('✅ Loaded existing analysis from DB');
               setAnalysisResults(data.analysis);
               setIsAnalyzing(false);
               setAnalysisComplete(true);
+              setShowExistingAnalysisModal(true);
               // Populate overview fallbacks from DB snapshots if present
               const prof = data.analysis.candidateProfile;
               const skills = data.analysis.skillsSnapshot;
@@ -314,8 +320,54 @@ export default function AnalysisPage() {
         console.warn('⚠️ Failed to preload analysis from DB:', e);
       }
 
-      // Start real AI analysis process (force fresh run after reupload)
-      performAIAnalysis(sessionId, uploadedFiles, portfolioLinks, processedFiles);
+      // If force=1 is present, skip old local cache and prefer server checkpoint
+      if (!force) {
+        // If local processed resumes exist, run analysis as usual
+        if (Array.isArray(debugProcessedResumes) && debugProcessedResumes.length > 0) {
+          performAIAnalysis(sessionId, uploadedFiles, portfolioLinks, processedFiles);
+          return;
+        }
+      }
+
+      // If no local processed data, attempt to load server checkpoint (resumes_extracted)
+      try {
+        const token = await getSessionToken();
+        if (token) {
+          const ex = await fetch('/api/user/extracted-resume', {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store'
+          });
+          if (ex.ok) {
+            const exData = await ex.json();
+            if (exData?.hasData && exData?.resumeData) {
+              const fallbackSession = sessionId || `resume_extracted_${Date.now()}`;
+              const serverUploaded = [{ name: 'Extracted Resume', type: 'application/json' }];
+              const serverProcessed = [exData.resumeData];
+
+              setAnalysisData({
+                sessionId: fallbackSession,
+                uploadedFiles: serverUploaded,
+                portfolioLinks: [],
+                processedFiles: []
+              });
+
+              // Trigger AI analysis using server-extracted resume as source
+              setIsAnalyzing(true);
+              performAIAnalysis(fallbackSession, serverUploaded, [], serverProcessed, true);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // ignore and continue fallback below
+      }
+
+      // No local or server data; send user back to upload
+      if (!hasLocalData) {
+        router.push('/resume-builder');
+        return;
+      }
     };
 
     init();
@@ -328,6 +380,42 @@ export default function AnalysisPage() {
 
   // Use real analysis results from Claude API or show loading state
   const finalAnalysisResults = analysisResults;
+
+  // If user arrived without processedResumes but has checkpoint, load and trigger analysis
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const hasExtracted = localStorage.getItem('bpoc_has_extracted') === '1';
+      if (hasExtracted && !analysisData) {
+        // Kick off init which loads local data and triggers performAIAnalysis
+        // The existing init() in the main effect will run on mount; nothing else needed here.
+      }
+    } catch {}
+  }, [analysisData]);
+
+  // Fetch authoritative candidate profile from users table and overlay onto mapped fields
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (!user?.id) return;
+        const res = await fetch(`/api/user/profile?userId=${user.id}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.user) return;
+        setServerProfile(data.user);
+        setMappedResumeData((prev: any) => ({
+          ...(prev || {}),
+          name: data.user.full_name || prev?.name || null,
+          email: data.user.email || prev?.email || null,
+          phone: data.user.phone || prev?.phone || null,
+          location: data.user.location || prev?.location || null,
+        }));
+      } catch (e) {
+        // ignore
+      }
+    };
+    fetchProfile();
+  }, [user?.id]);
 
   // Auto-improve summary when analysis is complete and summary is available
   useEffect(() => {
@@ -342,7 +430,7 @@ export default function AnalysisPage() {
   }, [analysisComplete, finalAnalysisResults?.improvedSummary, improvedSummary, isImprovingSummary]);
 
   // Perform AI analysis using Claude API
-  const performAIAnalysis = async (sessionId: string, uploadedFiles: any[], portfolioLinks: any[], processedFiles: any[]) => {
+  const performAIAnalysis = async (sessionId: string, uploadedFiles: any[], portfolioLinks: any[], processedFiles: any[], force = false) => {
     try {
       // Start with 0% and simulate progress
       setProgressValue(0);
@@ -358,10 +446,10 @@ export default function AnalysisPage() {
         });
       }, 600);
 
-      // Get processed resumes from localStorage
-      const processedResumes = getFromLocalStorage('bpoc_processed_resumes', []);
+      // Get processed resumes from localStorage unless force refresh
+      const processedResumes = force ? [] : getFromLocalStorage('bpoc_processed_resumes', []);
       
-      if (processedResumes.length === 0) {
+      if (processedResumes.length === 0 && (!Array.isArray(processedFiles) || processedFiles.length === 0)) {
         throw new Error('No processed resume data found. Please go back and process your files first.');
       }
 
@@ -370,26 +458,64 @@ export default function AnalysisPage() {
       console.log('🔍 DEBUG: Number of processed files:', processedResumes.length);
       
       // Combine all processed files into a comprehensive dataset
+      const effectiveFiles = (processedResumes.length > 0 ? processedResumes : processedFiles);
       const combinedResumeData = {
-        files: processedResumes.map((file, index) => ({
+        files: effectiveFiles.map((file, index) => ({
           fileName: uploadedFiles[index]?.name || `File ${index + 1}`,
           fileType: uploadedFiles[index]?.type || 'unknown',
           data: file
         })),
-        totalFiles: processedResumes.length,
+        totalFiles: effectiveFiles.length,
         fileTypes: uploadedFiles.map(file => file.type),
         fileNames: uploadedFiles.map(file => file.name)
       };
       
       console.log('🔍 DEBUG: Combined resume data structure:', combinedResumeData);
       
-      // Map the first resume data for UI display (for backward compatibility)
-      const firstResumeData = processedResumes[0];
-      const mapped = mapResumeData(firstResumeData);
-      console.log('🔍 DEBUG: Mapped data for UI (from first file):', mapped);
-      
+      // Build a merged mapped view across ALL processed files so multi-page/multi-file data shows up
+      const mappedPerFile = processedResumes.map((file) => mapResumeData(file));
+      const mergeUnique = (arrA: any[] = [], arrB: any[] = []) => {
+        const merged = [...(Array.isArray(arrA) ? arrA : []), ...(Array.isArray(arrB) ? arrB : [])];
+        const seen = new Set<string>();
+        const result: any[] = [];
+        for (const item of merged) {
+          const key = typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item);
+          if (!seen.has(key)) { seen.add(key); result.push(item); }
+        }
+        return result;
+      };
+      const pickLonger = (a?: string | null, b?: string | null) => {
+        const aa = a || '';
+        const bb = b || '';
+        return bb.length > aa.length ? bb : aa;
+      };
+
+      const mergedMapped = mappedPerFile.reduce((acc: any, curr: any) => {
+        return {
+          name: acc.name || curr.name || null,
+          email: acc.email || curr.email || null,
+          phone: acc.phone || curr.phone || null,
+          location: acc.location || curr.location || null,
+          summary: pickLonger(acc.summary, curr.summary) || null,
+          skills: (() => {
+            const a = acc.skills || {};
+            const c = curr.skills || {};
+            return {
+              technical: mergeUnique(a.technical, c.technical),
+              soft_skills: mergeUnique(a.soft_skills, c.soft_skills),
+              tools: mergeUnique(a.tools, c.tools),
+              languages: mergeUnique(a.languages, c.languages)
+            };
+          })(),
+          experience: mergeUnique(acc.experience, curr.experience),
+          education: mergeUnique(acc.education, curr.education)
+        };
+      }, {} as any);
+
+      console.log('🔍 DEBUG: Merged mapped data for UI (all files/pages):', mergedMapped);
+
       setResumeData(combinedResumeData); // Store combined data for Claude
-      setMappedResumeData(mapped); // Store mapped data for UI display
+      setMappedResumeData(mergedMapped); // Store merged data for UI display
       const portfolioData = portfolioLinks.map(link => ({
         url: link.url,
         type: link.type,
@@ -659,6 +785,40 @@ export default function AnalysisPage() {
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
       <Header />
+      {/* Existing analysis modal */}
+      <Dialog open={showExistingAnalysisModal} onOpenChange={setShowExistingAnalysisModal}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Existing analysis found</DialogTitle>
+            <DialogDescription>
+              We found data that’s already extracted and analyzed. Continue to build a resume, or start over?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => { setShowExistingAnalysisModal(false); }} className="bg-cyan-600 hover:bg-cyan-700">
+              Continue to Build
+            </Button>
+            <Button
+              variant="outline"
+              className="border-white/20 text-gray-300 hover:bg-white/10"
+              onClick={async () => {
+                try {
+                  const token = await getSessionToken();
+                  if (token) {
+                    await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/save-generated-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                  }
+                } catch {}
+                setShowExistingAnalysisModal(false);
+                window.location.href = '/resume-builder';
+              }}
+            >
+              Start Over
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Background Effects */}
       <div className="absolute inset-0">
@@ -987,7 +1147,7 @@ export default function AnalysisPage() {
                              <div>
                                <p className="text-xs text-gray-400">Name</p>
                                <p className="text-white font-medium text-sm">
-                                 {mappedResumeData?.name || 'No name found'}
+                                 {serverProfile?.full_name || 'No name found'}
                                </p>
                              </div>
                            </div>
@@ -997,7 +1157,7 @@ export default function AnalysisPage() {
                              <div>
                                <p className="text-xs text-gray-400">Email</p>
                                <p className="text-white font-medium text-sm">
-                                 {mappedResumeData?.email || 'No email found'}
+                                 {serverProfile?.email || 'No email found'}
                                </p>
                              </div>
                            </div>
@@ -1007,7 +1167,7 @@ export default function AnalysisPage() {
                              <div>
                                <p className="text-xs text-gray-400">Phone</p>
                                <p className="text-white font-medium text-sm">
-                                 {mappedResumeData?.phone || 'No phone found'}
+                                 {serverProfile?.phone || 'No phone found'}
                                </p>
                              </div>
                            </div>
@@ -1017,7 +1177,7 @@ export default function AnalysisPage() {
                              <div>
                                <p className="text-xs text-gray-400">Location</p>
                                <p className="text-white font-medium text-sm">
-                                 {mappedResumeData?.location || 'No location found'}
+                                 {serverProfile?.location || 'No location found'}
                                </p>
                              </div>
                            </div>

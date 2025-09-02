@@ -620,6 +620,47 @@ async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloud
   try {
     // Step 1: Create conversion job with enhanced error handling
     console.log('📤 Creating CloudConvert job...');
+    // Build task graph: for DOCX/DOC do a two-step (DOCX/DOC -> PDF -> JPG) to better preserve multi-page/layout
+    const tasks = (fileType === 'DOCX' || fileType === 'DOC') ? {
+      'import-file': { operation: 'import/upload' },
+      'convert-to-pdf': {
+        operation: 'convert',
+        input: 'import-file',
+        output_format: 'pdf',
+        options: {
+          engine: 'office'
+        }
+      },
+      'convert-file': {
+        operation: 'convert',
+        input: 'convert-to-pdf',
+        output_format: 'jpg',
+        options: {
+          quality: 95,
+          strip: false,
+          density: 300,
+          pages: 'all',
+          page_range: '1-100'
+        }
+      },
+      'export-file': { operation: 'export/url', input: 'convert-file' }
+    } : {
+      'import-file': { operation: 'import/upload' },
+      'convert-file': {
+        operation: 'convert',
+        input: 'import-file',
+        output_format: 'jpg',
+        options: {
+          quality: 95,
+          strip: false,
+          density: 300,
+          pages: 'all',
+          page_range: '1-100'
+        }
+      },
+      'export-file': { operation: 'export/url', input: 'convert-file' }
+    };
+
     const jobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
       method: 'POST',
       headers: {
@@ -627,25 +668,7 @@ async function convertToJPEGWithCloudConvert(file: File, fileType: string, cloud
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        tasks: {
-          'import-file': {
-            operation: 'import/upload'
-          },
-          'convert-file': {
-            operation: 'convert',
-            input: 'import-file',
-            output_format: 'jpg',
-            options: {
-              quality: 95,
-              strip: false,
-              density: 300 // Higher DPI for better OCR results
-            }
-          },
-          'export-file': {
-            operation: 'export/url',
-            input: 'convert-file'
-          }
-        }
+        tasks
       })
     });
 
@@ -888,8 +911,35 @@ export async function processResumeFile(file: File, openaiApiKey?: string, cloud
     
     // Step 2: Extract text using GPT Vision OCR from JPEG images
     console.log('🤖 Step 2: Performing GPT Vision OCR on JPEG images...');
-    const extractedText = await performGPTOCROnImages(jpegImages, openaiApiKey);
+    let extractedText = await performGPTOCROnImages(jpegImages, openaiApiKey);
     console.log(`✅ Step 2 Complete: Text extracted via GPT OCR (${extractedText.length} characters)`);
+
+    // Step 2b (DOCX/DOC only): Direct text extraction fallback using Mammoth
+    const lowerName = file.name.toLowerCase();
+    const isDocx = file.type.toLowerCase().includes('wordprocessingml') || lowerName.endsWith('.docx');
+    const isDoc = file.type.toLowerCase().includes('msword') || lowerName.endsWith('.doc');
+    if (isDocx || isDoc) {
+      try {
+        console.log('🧪 DOCX/DOC detected: attempting direct text extraction as fallback...');
+        // Mammoth supports DOCX best; for .doc we still try, but results may vary
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const direct = await mammoth.extractRawText({ arrayBuffer } as any);
+        const directText: string = (direct as any)?.value || '';
+        console.log(`🔎 Direct DOCX/DOC text length: ${directText.length} characters`);
+        if (directText && (extractedText.length < 500 || directText.length > extractedText.length * 1.2)) {
+          console.log('✅ Using direct DOCX/DOC text (better coverage than OCR)');
+          extractedText = directText;
+        } else if (directText && extractedText && directText.length !== extractedText.length) {
+          // Merge if both exist and are substantially different
+          const merged = extractedText + '\n\n' + directText;
+          console.log(`🔗 Merging OCR and direct text. New length: ${merged.length}`);
+          extractedText = merged;
+        }
+      } catch (e) {
+        console.warn('⚠️ Direct DOCX/DOC text extraction failed, continuing with OCR text:', e);
+      }
+    }
     
     // Step 3: Create organized DOCX from extracted text
     console.log('📄 Step 3: Creating organized DOCX from extracted text...');
@@ -1074,6 +1124,22 @@ async function performGPTOCROnImages(jpegImages: string[], openaiApiKey: string)
 
             if (extractedText) {
               console.log(`✅ Image ${imageIndex + 1} processed: ${extractedText.length} characters extracted`);
+              // Fallback: if text is suspiciously short, try Tesseract for this page and merge if better
+              if (extractedText.length < 200) {
+                try {
+                  console.log(`🧪 Low text detected on image ${imageIndex + 1} (${extractedText.length} chars). Trying Tesseract fallback...`);
+                  const Tesseract = await import('tesseract.js');
+                  const tessRes = await (Tesseract as any).recognize(jpegUrl, 'eng');
+                  const tessText: string = tessRes?.data?.text || '';
+                  console.log(`🔁 Tesseract OCR produced ${tessText.length} characters on image ${imageIndex + 1}`);
+                  if (tessText.length > extractedText.length) {
+                    console.log(`✅ Using Tesseract result for image ${imageIndex + 1} (better coverage)`);
+                    return tessText;
+                  }
+                } catch (tessErr) {
+                  console.warn(`⚠️ Tesseract fallback failed on image ${imageIndex + 1}:`, tessErr);
+                }
+              }
               return extractedText;
             } else {
               console.log(`⚠️ No text extracted from image ${imageIndex + 1}`);
