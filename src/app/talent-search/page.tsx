@@ -136,12 +136,12 @@ export default function TalentSearchPage() {
            <div className="flex gap-4 mb-8">
              <div className="relative flex-1">
                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-               <Input 
-                 placeholder="Search talents..." 
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 className="pl-10 bg-black/50 border-white/20 text-white placeholder:text-gray-400"
-               />
+                                                               <Input 
+                   placeholder="Search talents..." 
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   className="pl-10 bg-black/50 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none [&:focus]:ring-0 [&:focus]:outline-none [&:focus]:border-white/20 [&:focus-visible]:border-white/20 [&:focus]:shadow-none [&:focus-visible]:shadow-none"
+                 />
              </div>
              <Button 
                className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"

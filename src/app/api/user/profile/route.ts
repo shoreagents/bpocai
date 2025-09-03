@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ user: userProfile })
   } catch (error) {
     console.error('❌ API: Error fetching user profile:', error)
-    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 })
   }
 }
 
@@ -91,27 +92,32 @@ export async function PUT(request: NextRequest) {
     console.log('🔄 API: Updating profile for user:', userId)
     console.log('📊 API: Update data received:', updateData)
 
-    // Load existing values to avoid overwriting with nulls when not provided
-    const existingRes = await pool.query(
-      `SELECT first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, gender, gender_custom FROM users WHERE id = $1`,
-      [userId]
+    // First, check what columns actually exist in the users table
+    const colsRes = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users'`
     )
-    
-    // Try to get existing gender separately
-    let existingGender = null
-    try {
-      const genderRes = await pool.query(`SELECT gender FROM users WHERE id = $1`, [userId])
-      existingGender = genderRes.rows[0]?.gender || null
-    } catch (error) {
-      console.log('⚠️ Gender column does not exist yet')
-    }
+    const available = new Set<string>(colsRes.rows.map((r: any) => r.column_name))
+    console.log('🔍 Available columns in users table:', Array.from(available))
 
-    if (existingRes.rows.length === 0) {
-      console.log('❌ API: User not found for update:', userId)
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    // Build SELECT query dynamically based on available columns
+    const selectFields = ['first_name', 'last_name', 'full_name', 'location', 'avatar_url', 'phone', 'bio', 'position', 'completed_data', 'birthday']
+    if (available.has('gender')) selectFields.push('gender')
+    if (available.has('gender_custom')) selectFields.push('gender_custom')
+    
+    const selectQuery = `SELECT ${selectFields.join(', ')} FROM users WHERE id = $1`
+    console.log('🔍 SELECT query:', selectQuery)
+    
+    try {
+      const existingRes = await pool.query(selectQuery, [userId])
+      console.log('✅ SELECT query executed successfully')
+      
+      if (existingRes.rows.length === 0) {
+        console.log('❌ API: User not found for update:', userId)
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      }
 
     const existing = existingRes.rows[0]
+    console.log('📊 Existing user data:', existing)
 
     const firstName = updateData.first_name ?? existing.first_name
     const lastName = updateData.last_name ?? existing.last_name
@@ -121,8 +127,12 @@ export async function PUT(request: NextRequest) {
     const bio = updateData.bio ?? existing.bio
     const position = updateData.position ?? existing.position
 
-    const gender = updateData.gender ?? existing.gender
-    const genderCustom = updateData.gender_custom ?? existing.gender_custom
+    const gender = available.has('gender') ? (updateData.gender ?? existing.gender) : null
+    const genderCustom = available.has('gender_custom') ? (updateData.gender_custom ?? existing.gender_custom) : null
+
+    console.log('🔧 Processed field values:', {
+      firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom
+    })
 
 
     // Handle completed_data and birthday, preserving ability to clear birthday
@@ -141,11 +151,8 @@ export async function PUT(request: NextRequest) {
     const recomputedFullName = `${firstName || ''} ${lastName || ''}`.trim()
     const fullName = recomputedFullName || existing.full_name
 
-    // Dynamically build UPDATE based on available columns to avoid env drift
-    const colsRes = await pool.query(
-      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users'`
-    )
-    const available = new Set<string>(colsRes.rows.map((r: any) => r.column_name))
+    // Use the available columns we already checked above
+    console.log('🔍 Building UPDATE query with available columns')
 
     type Field = { col: string, val: any }
     const baseFields: Field[] = [
@@ -177,25 +184,10 @@ export async function PUT(request: NextRequest) {
 
     const updateSql = `UPDATE users SET ${setClauses.join(', ')} WHERE id = $1 RETURNING *`
     console.log('🔧 UPDATE users dynamic SQL:', updateSql)
-    const result = await pool.query(updateSql, params)
+    console.log('🔧 UPDATE parameters:', params)
     
-    // Try to update gender separately if column exists and gender is provided
-    if (updateData.gender && gender) {
-      try {
-        await pool.query(`UPDATE users SET gender = $1 WHERE id = $2`, [gender, userId])
-        console.log('✅ Gender updated successfully')
-      } catch (error) {
-        console.log('⚠️ Gender column does not exist yet, skipping gender update')
-      }
-    }
-    if (typeof updateData.gender_custom !== 'undefined') {
-      try {
-        await pool.query(`UPDATE users SET gender_custom = $1 WHERE id = $2`, [genderCustom, userId])
-        console.log('✅ Gender custom updated successfully')
-      } catch (error) {
-        console.log('⚠️ gender_custom column does not exist yet, skipping gender_custom update')
-      }
-    }
+    const result = await pool.query(updateSql, params)
+    console.log('✅ UPDATE query executed successfully')
 
     if (result.rows.length === 0) {
       console.log('❌ API: User not found for update:', userId)
@@ -208,6 +200,7 @@ export async function PUT(request: NextRequest) {
       full_name: updatedUser.full_name,
       avatar_url: updatedUser.avatar_url
     })
+
 
     // Also update Supabase auth user metadata so future syncs won't revert names
     try {
@@ -302,8 +295,10 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({ user: updatedUser, resumeSlugUpdated, newResumeSlug })
+      
   } catch (error) {
     console.error('❌ API: Error updating user profile:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 })
   }
 } 
