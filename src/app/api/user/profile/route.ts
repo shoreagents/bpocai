@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     // Base query (avoid selecting optional columns that may not exist across envs)
     const query = `
-      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, gender, created_at, updated_at
+      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, created_at, updated_at
       FROM users 
       WHERE id = $1
     `
@@ -32,22 +32,28 @@ export async function GET(request: NextRequest) {
     
     // Try to get gender separately if column exists
     let gender = null
-    try {
-      const genderResult = await pool.query(`
-        SELECT gender FROM users WHERE id = $1
-      `, [userId])
-      gender = genderResult.rows[0]?.gender || null
-    } catch (error) {
-      console.log('⚠️ Gender column does not exist yet, defaulting to null')
-    }
-    
-    // Try to get gender_custom separately if column exists
     let genderCustom: string | null = null
+    
     try {
-      const gcRes = await pool.query(`SELECT gender_custom FROM users WHERE id = $1`, [userId])
-      genderCustom = gcRes.rows?.[0]?.gender_custom ?? null
-    } catch (e) {
-      console.log('⚠️ gender_custom column not found, defaulting to null')
+      // Check if gender columns exist first
+      const genderColsRes = await pool.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'users' 
+        AND column_name IN ('gender', 'gender_custom')
+      `)
+      const genderCols = new Set(genderColsRes.rows.map((r: any) => r.column_name))
+      
+      if (genderCols.has('gender')) {
+        const genderResult = await pool.query(`SELECT gender FROM users WHERE id = $1`, [userId])
+        gender = genderResult.rows[0]?.gender || null
+      }
+      
+      if (genderCols.has('gender_custom')) {
+        const gcRes = await pool.query(`SELECT gender_custom FROM users WHERE id = $1`, [userId])
+        genderCustom = gcRes.rows?.[0]?.gender_custom ?? null
+      }
+    } catch (error) {
+      console.log('⚠️ Error checking gender columns, defaulting to null:', error instanceof Error ? error.message : String(error))
     }
 
     const userProfile = {
@@ -116,8 +122,8 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
-    const existing = existingRes.rows[0]
-    console.log('📊 Existing user data:', existing)
+      const existing = existingRes.rows[0]
+      console.log('📊 Existing user data:', existing)
 
     const firstName = updateData.first_name ?? existing.first_name
     const lastName = updateData.last_name ?? existing.last_name
@@ -294,8 +300,13 @@ export async function PUT(request: NextRequest) {
       console.log('⚠️ Skipping resume slug update:', e instanceof Error ? e.message : String(e))
     }
 
-    return NextResponse.json({ user: updatedUser, resumeSlugUpdated, newResumeSlug })
+      return NextResponse.json({ user: updatedUser, resumeSlugUpdated, newResumeSlug })
       
+    } catch (dbError) {
+      console.error('❌ Database error during profile update:', dbError)
+      const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError)
+      return NextResponse.json({ error: 'Database error during profile update', details: dbErrorMessage }, { status: 500 })
+    }
   } catch (error) {
     console.error('❌ API: Error updating user profile:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
