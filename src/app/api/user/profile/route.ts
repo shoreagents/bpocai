@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
+import { createClient } from '@supabase/supabase-js'
 
 // GET - Fetch user profile from Railway
 export async function GET(request: NextRequest) {
@@ -208,7 +209,99 @@ export async function PUT(request: NextRequest) {
       avatar_url: updatedUser.avatar_url
     })
 
-    return NextResponse.json({ user: updatedUser })
+    // Also update Supabase auth user metadata so future syncs won't revert names
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (supabaseUrl && serviceKey) {
+        const supabaseAdmin = createClient(supabaseUrl, serviceKey)
+        const adminRes = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: fullName,
+            location,
+            phone,
+            position
+          }
+        })
+        if (adminRes.error) {
+          console.log('⚠️ Supabase admin metadata update failed:', adminRes.error.message)
+        } else {
+          console.log('✅ Supabase metadata updated for user:', userId)
+        }
+      } else {
+        console.log('⚠️ Skipping Supabase metadata update - missing env vars')
+      }
+    } catch (e) {
+      console.log('⚠️ Error updating Supabase metadata (non-fatal):', e instanceof Error ? e.message : String(e))
+    }
+
+    // Ensure saved resume slug reflects the updated first/last name
+    let resumeSlugUpdated = false
+    let newResumeSlug: string | null = null
+    try {
+      // Find the most recent saved resume for this user (if any)
+      const savedRes = await pool.query(
+        `SELECT id, resume_slug FROM saved_resumes WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1`,
+        [userId]
+      )
+      if (savedRes.rows.length > 0) {
+        const resumeId: string = savedRes.rows[0].id
+        const currentSlug: string = savedRes.rows[0].resume_slug
+
+        // Build base slug from updated full name and ensure it ends with -resume
+        const baseFromFullName = String(fullName || '').toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim()
+        let baseSlug = baseFromFullName || 'user'
+        if (!baseSlug.endsWith('-resume')) {
+          baseSlug += '-resume'
+        }
+
+        // If slug is already correct, skip
+        if (currentSlug !== baseSlug) {
+          // Ensure uniqueness
+          let candidate = baseSlug
+          let counter = 1
+          // Avoid conflicting with other rows (excluding this resume id)
+          // Try a reasonable number of attempts; collisions unlikely
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const check = await pool.query(
+              `SELECT 1 FROM saved_resumes WHERE resume_slug = $1 AND id <> $2 LIMIT 1`,
+              [candidate, resumeId]
+            )
+            if (check.rows.length === 0) break
+            candidate = `${baseSlug}-${counter}`
+            counter++
+          }
+
+          // Update saved_resumes slug
+          await pool.query(
+            `UPDATE saved_resumes SET resume_slug = $1, updated_at = NOW() WHERE id = $2`,
+            [candidate, resumeId]
+          )
+
+          // Keep applications table in sync for convenience
+          try {
+            await pool.query(
+              `UPDATE applications SET resume_slug = $1 WHERE resume_id = $2`,
+              [candidate, resumeId]
+            )
+          } catch {}
+
+          resumeSlugUpdated = true
+          newResumeSlug = candidate
+        }
+      }
+    } catch (e) {
+      console.log('⚠️ Skipping resume slug update:', e instanceof Error ? e.message : String(e))
+    }
+
+    return NextResponse.json({ user: updatedUser, resumeSlugUpdated, newResumeSlug })
   } catch (error) {
     console.error('❌ API: Error updating user profile:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

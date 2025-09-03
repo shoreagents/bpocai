@@ -161,6 +161,7 @@ const resumeTemplates: ResumeTemplate[] = [
 export default function ResumeBuilderPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<any | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(resumeTemplates[0]);
   const [customColors, setCustomColors] = useState({
     primary: resumeTemplates[0].primaryColor,
@@ -251,6 +252,21 @@ export default function ResumeBuilderPage() {
         try { data = JSON.parse(text); } catch {}
         if (res.ok && data?.success) {
           setHasSavedResume(Boolean(data.hasSavedResume));
+        }
+      } catch {}
+    })();
+  }, [user?.id]);
+
+  // Load user profile to lock header fields to users table values
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const res = await fetch(`/api/user/profile?userId=${user.id}`, { cache: 'no-store' });
+        const text = await res.text();
+        let data: any = null; try { data = JSON.parse(text); } catch {}
+        if (res.ok && data?.user) {
+          setUserProfile(data.user);
         }
       } catch {}
     })();
@@ -574,11 +590,11 @@ export default function ResumeBuilderPage() {
     if (!originalResumeData) {
       console.log('🔍 DEBUG: No original resume data available');
       return {
-        name: 'Name not found',
+        name: (userProfile && (userProfile.full_name || 'Name not found')) || 'Name not found',
         title: 'Title not found',
-        location: 'Location not found',
-        email: 'Email not found',
-        phone: 'Phone not found'
+        location: (userProfile && (userProfile.location || 'Location not found')) || 'Location not found',
+        email: (userProfile && (userProfile.email || 'Email not found')) || 'Email not found',
+        phone: (userProfile && (userProfile.phone || 'Phone not found')) || 'Phone not found'
       };
     }
 
@@ -746,7 +762,8 @@ export default function ResumeBuilderPage() {
     };
 
     const headerInfo = {
-      name: (improvedResume && improvedResume.name) ||
+      name: (userProfile && userProfile.full_name) ||
+            (improvedResume && improvedResume.name) ||
             findField(originalResumeData, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) ||
             combineFields(originalResumeData, ['first_name', 'last_name']) ||
             extractFromContact(originalResumeData, 'name') ||
@@ -759,7 +776,8 @@ export default function ResumeBuilderPage() {
              improvedTitle ||
              'Title not found',
       
-      location: findField(originalResumeData, ['location', 'address', 'city', 'residence', 'current_location']) ||
+      location: (userProfile && userProfile.location) ||
+                findField(originalResumeData, ['location', 'address', 'city', 'residence', 'current_location']) ||
                 extractFromContact(originalResumeData, 'location') ||
                 combineFields(originalResumeData, ['city', 'state']) ||
                 combineFields(originalResumeData, ['city', 'country']) ||
@@ -770,19 +788,21 @@ export default function ResumeBuilderPage() {
                 (firstProcessedResume ? findField(firstProcessedResume, ['location', 'address', 'city', 'residence', 'current_location']) : null) ||
                 'Location not found',
       
-      email: findField(originalResumeData, ['email', 'email_address', 'contact_email', 'primary_email']) ||
+      email: (userProfile && userProfile.email) ||
+             findField(originalResumeData, ['email', 'email_address', 'contact_email', 'primary_email']) ||
              extractFromContact(originalResumeData, 'email') ||
              extractFromArray(originalResumeData, ['emails', 'contact_emails']) ||
-              (extractedFallback ? (findField(extractedFallback, ['email', 'email_address', 'contact_email', 'primary_email']) ||
+             (extractedFallback ? (findField(extractedFallback, ['email', 'email_address', 'contact_email', 'primary_email']) ||
                                     extractFromContact(extractedFallback, 'email') ||
                                     extractFromArray(extractedFallback, ['emails', 'contact_emails'])) : null) ||
              (firstProcessedResume ? findField(firstProcessedResume, ['email', 'email_address', 'contact_email', 'primary_email']) : null) ||
              'Email not found',
       
-      phone: findField(originalResumeData, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
+      phone: (userProfile && userProfile.phone) ||
+             findField(originalResumeData, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
              extractFromContact(originalResumeData, 'phone') ||
              extractFromArray(originalResumeData, ['phones', 'phone_numbers']) ||
-              (extractedFallback ? (findField(extractedFallback, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
+             (extractedFallback ? (findField(extractedFallback, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) ||
                                     extractFromContact(extractedFallback, 'phone') ||
                                     extractFromArray(extractedFallback, ['phones', 'phone_numbers'])) : null) ||
              (firstProcessedResume ? findField(firstProcessedResume, ['phone', 'phone_number', 'contact_phone', 'mobile', 'telephone']) : null) ||
@@ -1630,20 +1650,8 @@ export default function ResumeBuilderPage() {
               <div className="flex items-center">
                 <Type className="h-12 w-12 text-cyan-400 mr-4" />
                 <div>
-                  <Editable
-                    as="h1"
-                    className="text-4xl font-bold gradient-text"
-                    value={getHeaderInfo().name || 'Your Name'}
-                    onChange={(val) => updateResumeText('name', val)}
-                    placeholder="Your Name"
-                  />
-                  <Editable
-                    as="p"
-                    className="text-gray-400"
-                    value={getHeaderInfo().title || ''}
-                    onChange={(val) => updateResumeText('bestJobTitle', val)}
-                    placeholder="Your Title"
-                  />
+                  <h1 className="text-4xl font-bold gradient-text">{getHeaderInfo().name || 'Your Name'}</h1>
+                  <p className="text-gray-400">{getHeaderInfo().title || ''}</p>
                 </div>
               </div>
           </div>
@@ -1909,43 +1917,18 @@ export default function ResumeBuilderPage() {
                           })
                         }}
                       >
-                        <Editable
-                          as="h1"
-                          className="text-3xl font-bold text-gray-900 mb-2"
-                          value={getHeaderInfo().name}
-                          onChange={(val) => updateResumeText('name', val)}
-                          multiline
-                        />
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{getHeaderInfo().name}</h1>
                         <p className="text-gray-600">
-                          <Editable
-                            as="span"
-                            value={getHeaderInfo().title}
-                            onChange={(val) => updateResumeText('bestJobTitle', val)}
-                          multiline
-                          />
+                          <span>{getHeaderInfo().title}</span>
                           {' '}
                           •{' '}
-                          <Editable
-                            as="span"
-                            value={getHeaderInfo().location}
-                            onChange={(val) => updateResumeText('location', val)}
-                          multiline
-                          />
+                          <span>{getHeaderInfo().location}</span>
                         </p>
                         <p className="text-gray-600">
-                          <Editable
-                            as="span"
-                            value={getHeaderInfo().email}
-                            onChange={(val) => updateResumeText('email', val)}
-                          multiline
-                          />
+                          <span>{getHeaderInfo().email}</span>
                           {' '}
                           •{' '}
-                          <Editable
-                            as="span"
-                            value={getHeaderInfo().phone}
-                            onChange={(val) => updateResumeText('phone', val)}
-                          />
+                          <span>{getHeaderInfo().phone}</span>
                         </p>
                       </div>
 
