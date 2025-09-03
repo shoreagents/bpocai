@@ -33,11 +33,16 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
       // Update existing user
       console.log('📝 Updating existing user in Railway')
       
-      // Keep avatar_url and user-managed fields untouched; only keep identity/name fresh
+      // Only backfill names from Supabase if missing in Railway to avoid overwriting user edits
       const updateQuery = `
-        UPDATE users 
-        SET email = $2, first_name = $3, last_name = $4, full_name = $5, updated_at = NOW()
-        WHERE id = $1
+        UPDATE users u
+        SET 
+          email = $2,
+          first_name = CASE WHEN (u.first_name IS NULL OR u.first_name = '') THEN $3 ELSE u.first_name END,
+          last_name  = CASE WHEN (u.last_name  IS NULL OR u.last_name  = '') THEN $4 ELSE u.last_name  END,
+          full_name  = CASE WHEN (u.full_name  IS NULL OR u.full_name  = '') THEN $5 ELSE u.full_name  END,
+          updated_at = NOW()
+        WHERE u.id = $1
         RETURNING *
       `
       const updateResult = await client.query(updateQuery, [
@@ -48,7 +53,7 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
         fullName || ''
       ])
       
-      console.log('✅ User updated in Railway:', updateResult.rows[0])
+      console.log('✅ User updated in Railway (non-destructive):', updateResult.rows[0])
       return { success: true, action: 'updated', user: updateResult.rows[0] }
     } else {
       // Insert new user

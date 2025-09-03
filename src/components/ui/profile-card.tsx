@@ -357,6 +357,15 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         updated_at: new Date().toISOString()
       } : prev);
       setIsEditing(false);
+
+      // If user slug or resume slug changed due to name change, navigate
+      try {
+        const newSlug: string | undefined = data?.user?.slug;
+        const oldSlug: string | undefined = (userProfile as any)?.slug;
+        const newResumeSlug: string | undefined = data?.newResumeSlug;
+        if (newSlug && newSlug !== oldSlug) router.replace(`/${newSlug}`);
+        else if (newResumeSlug) router.replace(`/${newResumeSlug}`);
+      } catch {}
     } catch (e) {
       console.error('❌ Failed to save profile:', e);
       alert(e instanceof Error ? e.message : 'Failed to save');
@@ -558,6 +567,9 @@ export default function ProfileCard({ userId, showEditButton = true, className =
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-3xl font-bold text-white">{userDisplayName}</h2>
+                  {userProfile?.position && (
+                    <div className="text-sm text-gray-300 mt-1">{userProfile.position}</div>
+                  )}
                 </div>
                 {showEditButton && user?.id === targetUserId && (
                   <div className="flex items-center gap-2">
@@ -626,6 +638,44 @@ export default function ProfileCard({ userId, showEditButton = true, className =
               <div className="p-5 rounded-lg border border-white/10 bg-gradient-to-br from-cyan-500/10 via-transparent to-purple-600/10">
                 <h4 className="text-white font-semibold mb-4">Profile Details</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* First Name */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-cyan-500/20 flex items-center justify-center">
+                      <UserIcon className="w-4 h-4 text-cyan-300" />
+                    </div>
+                    <div className="w-full">
+                      <div className="text-xs uppercase text-gray-400">First Name</div>
+                      {isEditing ? (
+                        <Input
+                          value={profileData.firstName}
+                          onChange={(e) => handleInputChange('firstName', e.target.value)}
+                          placeholder="First Name"
+                          className="mt-1 bg-black/40 text-white border-white/20"
+                        />
+                      ) : (
+                        <div className="text-gray-100">{userProfile?.first_name || '—'}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Last Name */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="w-8 h-8 rounded-md bg-cyan-500/20 flex items-center justify-center">
+                      <UserIcon className="w-4 h-4 text-cyan-300" />
+                    </div>
+                    <div className="w-full">
+                      <div className="text-xs uppercase text-gray-400">Last Name</div>
+                      {isEditing ? (
+                        <Input
+                          value={profileData.lastName}
+                          onChange={(e) => handleInputChange('lastName', e.target.value)}
+                          placeholder="Last Name"
+                          className="mt-1 bg-black/40 text-white border-white/20"
+                        />
+                      ) : (
+                        <div className="text-gray-100">{userProfile?.last_name || '—'}</div>
+                      )}
+                    </div>
+                  </div>
                   {/* Email */}
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                     <div className="w-8 h-8 rounded-md bg-purple-500/20 flex items-center justify-center">

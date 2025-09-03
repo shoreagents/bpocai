@@ -477,6 +477,11 @@ interface SavedResume {
 
 
 
+    email?: string;
+    phone?: string;
+    location?: string;
+    position?: string;
+
   };
 
 
@@ -839,7 +844,7 @@ export default function SavedResumePage() {
               createdAt: '',
               updatedAt: '',
               userId: u.id,
-              user: { fullName: u.full_name, avatarUrl: u.avatar_url }
+              user: { fullName: u.full_name, avatarUrl: u.avatar_url, email: u.email, phone: u.phone, location: u.location, position: u.position }
             } as any);
             try {
               const { data: authData } = await supabase.auth.getUser();
@@ -3442,7 +3447,13 @@ export default function SavedResumePage() {
 
 
 
-  const headerInfo = resume.data.headerInfo;
+  const headerInfo = {
+    name: resume.user?.fullName || resume.data?.headerInfo?.name,
+    title: resume.user?.position || resume.data?.headerInfo?.title,
+    email: resume.user?.email || resume.data?.headerInfo?.email,
+    phone: resume.user?.phone || resume.data?.headerInfo?.phone,
+    location: resume.user?.location || resume.data?.headerInfo?.location
+  };
 
 
 

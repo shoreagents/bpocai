@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Insert the generated resume data into the database
-                        console.log('💾 Upserting generated resume data (overwrite if exists)...')
+      console.log('💾 Upserting generated resume data (overwrite if exists)...')
                   const upsertResult = await client.query(
                     `INSERT INTO resumes_generated (user_id, original_resume_id, generated_resume_data, template_used, generation_metadata, updated_at)
                      VALUES ($1, $2, $3, $4, $5, NOW())
@@ -133,6 +133,28 @@ export async function POST(request: NextRequest) {
                   console.log(`👤 User ID: ${userId}`)
                   console.log(`📁 Original resume ID: ${originalResumeId || 'none'}`)
                   console.log(`🎨 Template used: ${templateUsed || 'none'}`)
+
+      // Optional: Update users.position from generated recommendation to keep consistent across views
+      try {
+        const recommendedPosition = (generatedResumeData && (
+          (generatedResumeData as any).bestJobTitle ||
+          (generatedResumeData as any).title ||
+          (generatedResumeData as any).recommendedTitle ||
+          (generatedResumeData as any).recommendedRole ||
+          ((generatedResumeData as any).summary && (generatedResumeData as any).summary.bestJobTitle)
+        )) || null
+
+        if (recommendedPosition && typeof recommendedPosition === 'string' && recommendedPosition.trim().length > 0) {
+          const newPos = recommendedPosition.trim()
+          console.log('📝 Updating users.position from generated resume recommendation:', newPos)
+          await client.query(
+            'UPDATE users SET position = $1, updated_at = NOW() WHERE id = $2',
+            [newPos, userId]
+          )
+        }
+      } catch (e) {
+        console.log('⚠️ Skipping users.position update from generated resume:', e instanceof Error ? e.message : 'unknown error')
+      }
 
       return NextResponse.json({
         success: true,
