@@ -59,7 +59,11 @@ export async function GET(
           sr.created_at,
           sr.updated_at,
           u.full_name,
-          u.avatar_url
+          u.avatar_url,
+          u.email,
+          u.phone,
+          u.location
+          ,u.position
          FROM saved_resumes sr
          JOIN users u ON sr.user_id = u.id
          WHERE sr.resume_slug = $1`,
@@ -99,7 +103,11 @@ export async function GET(
           updatedAt: resume.updated_at,
           user: {
             fullName: resume.full_name,
-            avatarUrl: resume.avatar_url
+            avatarUrl: resume.avatar_url,
+            email: resume.email,
+            phone: resume.phone,
+            location: resume.location,
+            position: resume.position
           }
         }
       })
