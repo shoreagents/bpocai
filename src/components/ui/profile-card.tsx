@@ -77,8 +77,8 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         console.log('⚠️ Profile card: No user ID available for profile fetch');
         return;
       }
-      try {
-        setProfileLoading(true);
+        try {
+          setProfileLoading(true);
         const isOwner = !!user?.id && user.id === targetUserId && showEditButton;
         if (isOwner) {
           const token = await getSessionToken();
@@ -105,12 +105,12 @@ export default function ProfileCard({ userId, showEditButton = true, className =
           } else {
             console.error('❌ Profile card: Failed to fetch public user profile:', response.status, response.statusText);
           }
-        }
-      } catch (error) {
+          }
+        } catch (error) {
         console.error('❌ Profile card: Error fetching user profile:', error);
-      } finally {
-        setProfileLoading(false);
-      }
+        } finally {
+          setProfileLoading(false);
+        }
     };
 
     fetchUserProfile();
@@ -501,7 +501,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
       transition={{ delay: 0.1 }}
       className={className}
     >
-      <div className="flex flex-col md:flex-row items-start gap-8">
+          <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Profile Picture */}
             <div className="relative flex-shrink-0">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gradient-to-br from-cyan-400 to-purple-400 p-1">
@@ -586,7 +586,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                         >
                           Cancel
                         </Button>
-                        <Button
+                  <Button
                           onClick={saveProfileChanges}
                           disabled={isSaving}
                           className="bg-cyan-500 hover:bg-cyan-600"
@@ -597,9 +597,9 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                       </>
                     ) : (
                       <Button onClick={() => setIsEditing(true)} className="bg-cyan-500">
-                        <Edit3 className="w-4 h-4 mr-2" />
-                        Edit Profile
-                      </Button>
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
                     )}
                   </div>
                 )}
@@ -752,8 +752,8 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                       ) : (
                         <div className="text-gray-100">
                           {userProfile?.birthday ? `${new Date(userProfile.birthday as string).toLocaleDateString()}${computeAge(userProfile.birthday) !== null ? ` • Age ${computeAge(userProfile.birthday)}` : ''}` : '—'}
-                        </div>
-                      )}
+                </div>
+              )}
                     </div>
                   </div>
                   {/* Account Created */}
@@ -795,7 +795,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                  </div>
                </div>
             </div>
-      </div>
+          </div>
     </motion.div>
   );
 }
