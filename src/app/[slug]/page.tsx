@@ -738,7 +738,10 @@ export default function SavedResumePage() {
 
 
   const searchParams = useSearchParams();
-  const initialMode = (searchParams?.get('mode') === 'profile') ? 'profile' : 'resume';
+  const modeParam = searchParams?.get('mode');
+  const slugLower = (slug || '').toLowerCase();
+  const inferredMode = slugLower.endsWith('-resume') ? 'resume' : 'profile';
+  const initialMode = (modeParam === 'resume' || modeParam === 'profile') ? modeParam : inferredMode;
   const isProfileMode = initialMode === 'profile';
   const [activeSection, setActiveSection] = useState<string>(initialMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
