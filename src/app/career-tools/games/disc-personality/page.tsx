@@ -1043,9 +1043,6 @@ export default function DISCPersonalityGame() {
               <Card className="glass-card border-white/10">
                 <CardHeader className="pb-6">
                   <div className="flex items-center justify-center mb-6">
-                    <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mr-4">
-                      <Brain className="w-8 h-8 text-green-400" />
-                    </div>
                     <div>
                       <CardTitle className="text-3xl font-bold gradient-text mb-2">
                         Welcome to BPOC DISC!
@@ -1133,13 +1130,13 @@ export default function DISCPersonalityGame() {
       
       <Header />
       
-      <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 md:px-6 py-6 md:py-8">
-          {/* Header */}
+      <div className="pt-16 relative z-10 h-screen">
+        <div className="container mx-auto px-4 md:px-6 py-4 h-full">
+          {/* Compact Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
+            className="flex items-center justify-between mb-4"
           >
             <div className="flex items-center">
               <Button
@@ -1155,202 +1152,159 @@ export default function DISCPersonalityGame() {
                   animate={{ rotate: [0, 10, -10, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <Brain className="h-12 w-12 text-green-400 mr-4" />
+                  <Brain className="h-8 w-8 text-green-400 mr-3" />
                 </motion.div>
                 <div>
-                  <h1 className="text-4xl font-bold gradient-text">BPOC DISC</h1>
-                  <p className="text-gray-400">The Complete Candidate Revelation</p>
+                  <h1 className="text-2xl font-bold gradient-text">BPOC DISC</h1>
+                  <p className="text-gray-400 text-sm">The Complete Candidate Revelation</p>
                 </div>
               </div>
             </div>
+            
+
           </motion.div>
 
-                    {/* DISC Progress Cards - Separate from XP Card */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl mx-auto mb-6"
-          >
-            <div className="flex gap-4">
-              <Card className="glass-card border-green-500/20 flex-1">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-400">{gameState.scores.D || 0}</div>
-                  <div className="text-sm text-green-300">D-Type</div>
-                  <div className="text-xs text-green-400 mt-1">{(gameState.scores.D || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.D || 0) + 1}`}</div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card border-blue-500/20 flex-1">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-400">{gameState.scores.I || 0}</div>
-                  <div className="text-sm text-blue-300">I-Type</div>
-                  <div className="text-xs text-blue-400 mt-1">{(gameState.scores.I || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.I || 0) + 1}`}</div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card border-purple-500/20 flex-1">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-400">{gameState.scores.S || 0}</div>
-                  <div className="text-sm text-purple-300">S-Type</div>
-                  <div className="text-xs text-purple-400 mt-1">{(gameState.scores.S || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.S || 0) + 1}`}</div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card border-orange-500/20 flex-1">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-orange-400">{gameState.scores.C || 0}</div>
-                  <div className="text-sm text-orange-300">C-Type</div>
-                  <div className="text-xs text-orange-400 mt-1">{(gameState.scores.C || 0) >= 20 ? 'MAX LEVEL' : `Level ${(gameState.scores.C || 0) + 1}`}</div>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
+          {/* Main Game Layout - Side by Side */}
+          <div className="flex gap-4 h-[calc(100vh-140px)]">
+            {/* Left Side - Progress and Stats */}
+            <div className="w-1/3 space-y-4">
+              {/* DISC Progress Cards - Compact */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-2 gap-2"
+              >
+                <Card className="glass-card border-green-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-green-400">{gameState.scores.D || 0}</div>
+                    <div className="text-xs text-green-300">D-Type</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-blue-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-blue-400">{gameState.scores.I || 0}</div>
+                    <div className="text-xs text-blue-300">I-Type</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-purple-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-purple-400">{gameState.scores.S || 0}</div>
+                    <div className="text-xs text-purple-300">S-Type</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-orange-500/20">
+                  <CardContent className="p-3 text-center">
+                    <div className="text-xl font-bold text-orange-400">{gameState.scores.C || 0}</div>
+                    <div className="text-xs text-orange-300">C-Type</div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-          {/* XP and Achievements Bar - Separate Card */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl mx-auto mb-8"
-          >
-            <Card className="glass-card border-white/10 mb-8">
-              <CardContent className="p-6">
-                <div className="flex justify-center items-center gap-6 flex-wrap">
-                  <motion.div 
-                    className="glass-card border-white/10 rounded-2xl px-8 py-4 shadow-lg"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <div className="flex items-center gap-3">
-                    <Zap className="w-6 h-6 text-yellow-400" />
-                      <span className="text-white font-bold text-xl">XP: {gameState.totalXP}</span>
-                    </div>
-                  </motion.div>
-                  
-                  <div 
-                    className="glass-card border-red-500/30 rounded-2xl px-8 py-4 shadow-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🔥</span>
-                      <span className="text-red-400 font-bold text-xl">Streak: {gameState.streak || 0}</span>
-                    </div>
-                  </div>
-                  
-                  <div 
-                    className="glass-card border-purple-500/30 rounded-2xl px-8 py-4 shadow-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">💫</span>
-                      <span className="text-purple-400 font-bold text-xl">Combo: {gameState.combo || 0}</span>
-                    </div>
-                  </div>
-                  
-                  <motion.div 
-                    className="glass-card border-yellow-500/30 rounded-2xl px-8 py-4 shadow-lg"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🏆</span>
-                      <span className="text-yellow-400 font-bold text-xl">{gameState.achievements.length || 0} Achievements</span>
-                    </div>
-                  </motion.div>
-                
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-          {/* Main Game Content Area */}
-          <div className="max-w-4xl mx-auto">
-            {/* Game Progress and Info */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-4xl mx-auto mb-8"
-            >
-              <Card className="glass-card border-white/10 mb-8">
-                <CardContent className="p-6">
-                  {/* Progress Header */}
-                  <div className="mb-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="text-gray-300">
-                        Question {gameState.currentQuestion + 1} of {DISC_SCENARIOS.length}
+              {/* XP and Stats - Compact */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-2"
+              >
+                <Card className="glass-card border-white/10">
+                  <CardContent className="p-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-sm">XP:</span>
+                        <span className="text-yellow-400 font-bold">{gameState.totalXP}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-gray-300 text-sm">Progress</div>
-                        <div className="text-white font-bold text-lg">
-                          {Math.round((gameState.currentQuestion / DISC_SCENARIOS.length) * 100)}%
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-sm">Streak:</span>
+                        <span className="text-red-400 font-bold">{gameState.streak || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-sm">Combo:</span>
+                        <span className="text-purple-400 font-bold">{gameState.combo || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-sm">Achievements:</span>
+                        <span className="text-yellow-400 font-bold">{gameState.achievements.length || 0}</span>
                       </div>
                     </div>
-                    <div className="w-full bg-gray-800 rounded-full h-4 border border-gray-700 overflow-hidden relative">
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Progress Bar - Compact */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="glass-card border-white/10">
+                  <CardContent className="p-3">
+                                         {/* Progress Info - Top Right */}
+                     <div className="flex justify-between items-center mb-1">
+                       <div className="text-gray-300 text-sm">Question {gameState.currentQuestion + 1} of {DISC_SCENARIOS.length}</div>
+                       <div className="text-white font-bold text-lg">
+                         {Math.round((gameState.currentQuestion / DISC_SCENARIOS.length) * 100)}%
+                       </div>
+                     </div>
+                    <div className="w-full bg-gray-800 rounded-full h-3 border border-gray-700 overflow-hidden relative">
                       <motion.div 
-                        className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-4 rounded-full shadow-lg"
+                        className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-3 rounded-full shadow-lg"
                         initial={{ width: 0 }}
                         animate={{ width: `${(gameState.currentQuestion / DISC_SCENARIOS.length) * 100}%` }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                       />
-                      {/* Progress Milestones */}
-                      {[25, 50, 75, 100].map((milestone) => (
-                        <div
-                          key={milestone}
-                          className="absolute top-0 w-1 h-4 bg-white/30 rounded-full"
-                          style={{ left: `${milestone}%` }}
-                        />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* Right Side - Main Game Content */}
+            <div className="w-2/3">
+              <motion.div
+                key={gameState.currentQuestion}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="h-full"
+              >
+                <Card className="glass-card border-white/10 h-full">
+                  <CardContent className="p-6 h-full flex flex-col">
+                    {/* Scenario Header */}
+                    <div className="text-center mb-4">
+                      <h2 className="text-2xl font-bold gradient-text mb-2">{currentScenario.title}</h2>
+                      <p className="text-sm text-gray-300">{currentScenario.visual}</p>
+                    </div>
+
+                                         {/* Scenario Description */}
+                     <div className="mb-2 flex-1">
+                       <p className="text-lg text-gray-200 mb-2">{currentScenario.description}</p>
+                       <div className="bg-red-900/50 border border-red-700 rounded-lg p-3 mb-2">
+                         <p className="text-red-100 font-semibold text-sm">Choose your DISC personality response</p>
+                       </div>
+                     </div>
+
+                     {/* Options */}
+                     <div className="space-y-3">
+                       <h3 className="text-lg font-bold text-center mb-1 text-white">How do you respond?</h3>
+                      {currentScenario.options.map((choice, index) => (
+                        <motion.button
+                          key={choice.id}
+                          onClick={() => handleOptionSelect(choice.id, choice.disc, choice.reaction)}
+                          disabled={selectedOption !== null}
+                          className={`w-full glass-card border-white/10 hover:border-blue-500/50 rounded-lg p-3 text-left transition-all ${
+                            selectedChoice === choice.id 
+                              ? 'bg-gradient-to-r from-green-600 to-green-500 border-green-400 shadow-green-500/25' 
+                              : ''
+                          }`}
+                          whileHover={{ scale: selectedOption === null ? 1.02 : 1 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="text-base text-white">{choice.text}</div>
+                        </motion.button>
                       ))}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-
-
-            {/* Combined Scenario and Options Card */}
-            <motion.div
-              key={gameState.currentQuestion}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="max-w-4xl mx-auto"
-            >
-              <Card className="glass-card border-white/10 mb-8">
-                <CardContent className="p-6">
-                  <div className="text-center mb-6">
-                    <h2 className="text-3xl font-bold gradient-text mb-2">{currentScenario.title}</h2>
-                    <p className="text-lg text-gray-300">{currentScenario.visual}</p>
-                  </div>
-
-                  <div className="mb-6">
-                    <p className="text-xl text-gray-200 mb-4">{currentScenario.description}</p>
-                    <div className="bg-red-900/50 border border-red-700 rounded-lg p-4">
-                      <p className="text-red-100 font-semibold">Choose your DISC personality response</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-center mb-6 text-white">How do you respond?</h3>
-                    {currentScenario.options.map((choice, index) => (
-                      <motion.button
-                        key={choice.id}
-                        onClick={() => handleOptionSelect(choice.id, choice.disc, choice.reaction)}
-                        disabled={selectedOption !== null}
-                        className={`w-full glass-card border-white/10 hover:border-blue-500/50 rounded-lg p-4 text-left transition-all ${
-                          selectedChoice === choice.id 
-                            ? 'bg-gradient-to-r from-green-600 to-green-500 border-green-400 shadow-green-500/25' 
-                            : ''
-                        }`}
-                        whileHover={{ scale: selectedOption === null ? 1.02 : 1 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="text-lg text-white">{choice.text}</div>
-                      </motion.button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>

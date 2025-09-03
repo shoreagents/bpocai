@@ -57,7 +57,7 @@ function TermsAndConditionsContent() {
         sessionStorage.setItem('termsAccepted', 'true')
         sessionStorage.setItem('termsLocked', 'true')
         // Redirect back to home page with signup modal open
-        router.push('/?signup=true')
+        router.push('/home?signup=true')
       }, 2000)
 
       return () => clearTimeout(timer)
@@ -150,9 +150,9 @@ function TermsAndConditionsContent() {
                   <li>• <strong className="text-white">Provide career development</strong> insights and professional growth opportunities</li>
                   <li>• <strong className="text-white">Optimize recruitment efficiency</strong> through automated screening and evaluation</li>
                 </ul>
-                <div className="mt-4 p-4 bg-blue-600/20 rounded-lg border border-blue-500/30">
-                  <p className="text-blue-300 font-semibold">By using BPOC.IO, you are applying for potential employment with ShoreAgents Inc.</p>
-                </div>
+                                 <div className="mt-4 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                   <p className="text-gray-200 font-semibold">By using BPOC.IO, you are applying for potential employment with ShoreAgents Inc.</p>
+                 </div>
               </div>
             </div>
 
@@ -363,26 +363,26 @@ function TermsAndConditionsContent() {
               </div>
             </div>
 
-            {/* Acknowledgment & Agreement */}
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold text-white mb-6">Acknowledgment & Agreement</h2>
-              <div className="bg-blue-600/20 p-6 rounded-lg border border-blue-500/30">
-                <p className="text-blue-300 mb-4 font-semibold">By using BPOC.IO, you acknowledge that:</p>
-                <ul className="space-y-2 text-blue-200">
-                  <li>1. You have <strong>read and understood</strong> these Terms of Use in their entirety</li>
-                  <li>2. You <strong>agree to be bound</strong> by all terms and conditions stated herein</li>
-                  <li>3. You understand this is a <strong>recruitment platform for ShoreAgents employment</strong></li>
-                  <li>4. You will <strong>comply with all acceptable use policies</strong> and platform rules</li>
-                  <li>5. You <strong>consent to data collection and processing</strong> as outlined in our Privacy Policy</li>
-                  <li>6. You meet all <strong>age and legal eligibility requirements</strong></li>
-                  <li>7. You will provide <strong>accurate and truthful information</strong> at all times</li>
-                  <li>8. You understand <strong>platform use does not guarantee employment</strong></li>
-                </ul>
-                <div className="mt-4 pt-4 border-t border-blue-500/30">
-                  <p className="text-blue-300 font-semibold">Your continued use of BPOC.IO constitutes ongoing acceptance of these Terms of Use.</p>
-                </div>
-              </div>
-            </div>
+                         {/* Acknowledgment & Agreement */}
+             <div className="mb-12">
+               <h2 className="text-2xl font-bold text-white mb-6">Acknowledgment & Agreement</h2>
+               <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700">
+                 <p className="text-gray-300 mb-4 font-semibold">By using BPOC.IO, you acknowledge that:</p>
+                 <ul className="space-y-2 text-gray-300">
+                   <li>1. You have <strong className="text-white">read and understood</strong> these Terms of Use in their entirety</li>
+                   <li>2. You <strong className="text-white">agree to be bound</strong> by all terms and conditions stated herein</li>
+                   <li>3. You understand this is a <strong className="text-white">recruitment platform for ShoreAgents employment</strong></li>
+                   <li>4. You will <strong className="text-white">comply with all acceptable use policies</strong> and platform rules</li>
+                   <li>5. You <strong className="text-white">consent to data collection and processing</strong> as outlined in our Privacy Policy</li>
+                   <li>6. You meet all <strong className="text-white">age and legal eligibility requirements</strong></li>
+                   <li>7. You will provide <strong className="text-white">accurate and truthful information</strong> at all times</li>
+                   <li>8. You understand <strong className="text-white">platform use does not guarantee employment</strong></li>
+                 </ul>
+                 <div className="mt-4 pt-4 border-t border-gray-700">
+                   <p className="text-gray-300 font-semibold">Your continued use of BPOC.IO constitutes ongoing acceptance of these Terms of Use.</p>
+                 </div>
+               </div>
+             </div>
 
             {/* Document Information */}
             <div className="mb-12">

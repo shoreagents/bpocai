@@ -2086,9 +2086,6 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                 <Card className="glass-card border-white/10">
                   <CardHeader className="pb-6">
                     <div className="flex items-center justify-center mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center mr-4">
-                        <Globe className="w-8 h-8 text-green-400" />
-                      </div>
                       <div>
                         <CardTitle className="text-3xl font-bold gradient-text mb-2">
                           Welcome to BPOC Cultural!
@@ -2475,74 +2472,127 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
         
         <Header />
         
-        <div className="pt-16 relative z-10">
-        <div className="container mx-auto px-4 py-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
-          >
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={handleBackClick}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
-              <div className="flex items-center">
-                <Globe className="h-12 w-12 text-green-400 mr-4" />
-                <div>
-                  <h1 className="text-4xl font-bold gradient-text">BPOC Cultural</h1>
-                  <p className="text-gray-400">The Ultimate Client Survival Arena</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Header with progress and stats */}
-          <div className="p-4 mb-8 border-b border-white/10" style={{ backgroundColor: '#111315' }}>
-            <div className="container mx-auto">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl">🏟️</div>
-                  <div>
-                    <div className="font-bold text-lg">{playerName}</div>
-                    <div className="text-sm text-gray-400">
-                      Stage {currentStage}: {stages[currentStage - 1].name} • Challenge {currentStage}{String.fromCharCode(65 + currentChallenge)}: {stages[currentStage - 1].challenges[currentChallenge].title}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="flex items-center gap-2 text-red-400">
-                      <Timer className="w-5 h-5" />
-                      <span className="text-xl font-bold">{formatTime(timeLeft)}</span>
-                    </div>
-                    <div className="text-xs text-gray-400">Arena Time</div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-green-400">{survivalStatus}%</div>
-                    <div className="text-xs text-gray-400">Survival</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Main challenge area */}
-          <div className="container mx-auto px-4 py-8">
+        <div className="pt-16 relative z-10 h-screen">
+          <div className="container mx-auto px-4 h-[calc(100vh-140px)]">
+            {/* Compact Header */}
             <motion.div
-              key={`${currentStage}-${currentChallenge}`}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="max-w-4xl mx-auto"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between mb-4"
             >
-              {/* Challenge header */}
-              <div className="rounded-xl p-6 mb-8 text-center border border-white/10 relative" style={{ backgroundColor: '#111315' }}>
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  onClick={handleBackClick}
+                  className="mr-4 text-gray-400 hover:text-white"
+                >
+                  <ArrowLeft className="h-5 w-5 mr-2" />
+                  Back
+                </Button>
+                <div className="flex items-center">
+                  <Globe className="h-8 w-8 text-green-400 mr-3" />
+                  <div>
+                    <h1 className="text-2xl font-bold gradient-text">BPOC Cultural</h1>
+                    <p className="text-sm text-gray-400">The Ultimate Client Survival Arena</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Side-by-Side Layout */}
+            <div className="flex gap-6 h-[calc(100vh-200px)]">
+              {/* Left Sidebar - Progress & Stats */}
+              <div className="w-1/3 space-y-4 overflow-hidden">
+
+
+
+
+                {/* Timer & Survival - Compact */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="glass-card border-white/10">
+                    <CardContent className="p-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 text-red-400 mb-1">
+                            <Timer className="w-4 h-4" />
+                            <span className="text-lg font-bold">{formatTime(timeLeft)}</span>
+                          </div>
+                          <div className="text-xs text-gray-400">Arena Time</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-green-400">{survivalStatus}%</div>
+                          <div className="text-xs text-gray-400">Survival</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Progress Bar - Compact */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="glass-card border-white/10">
+                    <CardContent className="p-3">
+                      {/* Progress Info - Top Right */}
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="text-gray-300 text-xs">Stage {currentStage} Challenge {String.fromCharCode(65 + currentChallenge)}</div>
+                        <div className="text-white font-bold text-sm">
+                          {Math.round(((currentStage - 1) * 4 + currentChallenge) / (stages.length * 4) * 100)}%
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-800 rounded-full h-2 border border-gray-700 overflow-hidden relative">
+                        <motion.div 
+                          className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-2 rounded-full shadow-lg"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${((currentStage - 1) * 4 + currentChallenge) / (stages.length * 4) * 100}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Achievements - Compact */}
+                {achievements.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Card className="glass-card border-white/10">
+                      <CardContent className="p-3">
+                        <h3 className="text-sm font-bold text-white mb-2">Achievements</h3>
+                        <div className="space-y-1">
+                          {achievements.slice(0, 3).map((achievement, index) => (
+                            <div key={index} className="text-xs text-yellow-400 flex items-center gap-1">
+                              <Trophy className="w-3 h-3" />
+                              {achievement}
+                            </div>
+                          ))}
+                          {achievements.length > 3 && (
+                            <div className="text-xs text-gray-400">+{achievements.length - 3} more</div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Right Side - Main Game Content */}
+              <div className="w-2/3 overflow-y-auto">
+                <motion.div
+                  key={`${currentStage}-${currentChallenge}`}
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-4"
+                >
+                  {/* Challenge header - Compact */}
+                  <div className="rounded-xl p-4 text-center border border-white/10 relative" style={{ backgroundColor: '#111315' }}>
                 {/* Challenge Info */}
                 <div>
                   {(() => {
@@ -3250,58 +3300,30 @@ Return ONLY the script text, no explanations or formatting. Make it sound like a
                 })()}
               </div>
 
-              {/* Challenge actions */}
-              <div className="text-center">
-                {(() => {
-                  const current = stages[currentStage - 1].challenges[currentChallenge];
-                  // Toggle this flag to re-enable gating in the future
-                  const enforceCompletion = false;
-                  let disabled = false;
-                  if (enforceCompletion) {
-                    if (current.type === 'combo') {
-                      disabled = !(comboVoiceDone && comboWriteDone);
-                    } else if (current.type === 'ultimate') {
-                      disabled = bossRoundIndex < 3 || !bossVoiceDone; // require finishing rounds
-                    }
-                  }
-                  return (
-                    <motion.button
-                      onClick={nextChallenge}
-                      disabled={disabled}
-                      className={`px-10 py-4 rounded-full text-white font-bold text-lg shadow-lg transition-all flex items-center gap-3 mx-auto ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-600' : 'bg-gradient-to-r from-green-500 via-teal-500 to-blue-600 hover:from-green-500 hover:via-teal-500 hover:to-blue-700'}`}
-                      whileHover={{ scale: disabled ? 1 : 1.05 }}
-                      whileTap={{ scale: disabled ? 1 : 0.98 }}
-                    >
-                      <Target className="w-5 h-5" />
-                      {currentStage === stages.length && currentChallenge === stages[currentStage - 1].challenges.length - 1 
-                        ? 'COMPLETE ARENA' 
-                        : 'NEXT CHALLENGE'}
-                    </motion.button>
-                  );
-                })()}
-              </div>
 
-              {/* Achievement toast (global, positioned top-right) */}
-              <AnimatePresence>
-                {toastAchievement && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 50, y: -10 }}
-                    animate={{ opacity: 1, x: 0, y: 0 }}
-                    exit={{ opacity: 0, x: 50 }}
-                    className="fixed top-24 right-6 z-[100000] pointer-events-none"
-                  >
-                    <div className="bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg px-4 py-2 shadow-2xl text-white max-w-sm border border-white/10 backdrop-blur-sm">
-                      <div className="flex items-center gap-2">
-                        <span>🏆</span>
-                        <span className="font-semibold truncate">{toastAchievement}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+
+                  {/* Achievement toast (global, positioned top-right) */}
+                  <AnimatePresence>
+                    {toastAchievement && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 50, y: -10 }}
+                        animate={{ opacity: 1, x: 0, y: 0 }}
+                        exit={{ opacity: 0, x: 50 }}
+                        className="fixed top-24 right-6 z-[100000] pointer-events-none"
+                      >
+                        <div className="bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg px-4 py-2 shadow-2xl text-white max-w-sm border border-white/10 backdrop-blur-sm">
+                          <div className="flex items-center gap-2">
+                            <span>🏆</span>
+                            <span className="font-semibold truncate">{toastAchievement}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+            </div>
           </div>
-        </div>
       
         {/* Exit Dialog */}
         <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>

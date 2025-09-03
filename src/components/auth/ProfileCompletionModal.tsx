@@ -47,6 +47,8 @@ interface ProfileCompletionData {
   currentSalary: string
   noticePeriod: string
   expectedSalary: string
+  expectedSalaryMin: string
+  expectedSalaryMax: string
   currentMood: string
   workStatus: string
   preferredShift: string
@@ -89,6 +91,8 @@ export default function ProfileCompletionModal({
     currentSalary: '',
     noticePeriod: '',
     expectedSalary: '',
+    expectedSalaryMin: '',
+    expectedSalaryMax: '',
     currentMood: '',
     workStatus: '',
     preferredShift: '',
@@ -179,11 +183,14 @@ export default function ProfileCompletionModal({
          if (!formData.currentSalary.trim()) {
            newErrors.currentSalary = 'Current salary is required'
          }
-                   if (!formData.expectedSalary.trim()) {
-            newErrors.expectedSalary = 'Expected salary range is required'
-          } else if (!formData.expectedSalary.includes('-')) {
-            newErrors.expectedSalary = 'Please enter a salary range (e.g., ₱60,000 - ₱80,000)'
-          }
+                            if (!formData.expectedSalaryMin.trim() || !formData.expectedSalaryMax.trim()) {
+           newErrors.expectedSalary = 'Both minimum and maximum salary are required'
+         } else {
+           // Combine min and max into expectedSalary for saving
+           const minSalary = formData.expectedSalaryMin.trim()
+           const maxSalary = formData.expectedSalaryMax.trim()
+           formData.expectedSalary = `${minSalary} - ${maxSalary}`
+         }
          if (!formData.noticePeriod.trim()) {
            newErrors.noticePeriod = 'Notice period is required'
          }
@@ -534,17 +541,31 @@ export default function ProfileCompletionModal({
                  {errors.currentSalary && <p className="text-red-400 text-xs">{errors.currentSalary}</p>}
                </div>
 
-                                                           <div className="space-y-2">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-white block">
                     Expected Salary Range <span className="text-red-400">*</span>
                   </label>
-                  <Input
-                    type="text"
-                    placeholder="e.g., ₱60,000 - ₱80,000"
-                    value={formData.expectedSalary}
-                    onChange={(e) => handleInputChange('expectedSalary', e.target.value)}
-                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                  />
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        placeholder="₱60,000"
+                        value={formData.expectedSalaryMin}
+                        onChange={(e) => handleInputChange('expectedSalaryMin', e.target.value)}
+                        className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                      />
+                    </div>
+                    <span className="text-white font-medium">-</span>
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        placeholder="₱80,000"
+                        value={formData.expectedSalaryMax}
+                        onChange={(e) => handleInputChange('expectedSalaryMax', e.target.value)}
+                        className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
+                      />
+                    </div>
+                  </div>
                   {errors.expectedSalary && <p className="text-red-400 text-xs">{errors.expectedSalary}</p>}
                 </div>
 

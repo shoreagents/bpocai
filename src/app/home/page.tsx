@@ -912,16 +912,16 @@ export default function HomePage() {
                         </TableCell>
                         <TableCell className="text-right">{row.score}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={async () => {
+                          <Button variant="outline" size="sm" className="hover:bg-cyan-500/20 hover:border-cyan-400 hover:text-cyan-300 transition-all duration-200 hover:scale-105" onClick={async () => {
                             try {
-                              const r = await fetch(`/api/users/${row.userId}/resume`, { cache: 'no-store' })
+                              const r = await fetch(`/api/users/${row.userId}/profile`, { cache: 'no-store' })
                               if (!r.ok) {
                                 setShowProfileModal(true)
                                 return
                               }
                               const data = await r.json()
                               if (data?.slug) {
-                                router.push(`/${data.slug}`)
+                                router.push(`/${data.slug}?mode=profile`)
                               } else {
                                 setShowProfileModal(true)
                               }
