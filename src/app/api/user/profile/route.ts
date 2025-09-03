@@ -201,6 +201,7 @@ export async function PUT(request: NextRequest) {
       avatar_url: updatedUser.avatar_url
     })
 
+
     // Also update Supabase auth user metadata so future syncs won't revert names
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -294,6 +295,7 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({ user: updatedUser, resumeSlugUpdated, newResumeSlug })
+      
   } catch (error) {
     console.error('❌ API: Error updating user profile:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
