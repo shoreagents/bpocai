@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { PacmanLoader } from 'react-spinners'
 import Header from '@/components/layout/Header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -54,7 +55,6 @@ import {
   Upload
 } from 'lucide-react'
 import { uploadProfilePhoto, deleteProfilePhoto, optimizeImage, testStorageConnection } from '@/lib/storage'
-import { PacmanLoader } from 'react-spinners'
 
 interface UserProfile {
   id: string
@@ -526,8 +526,17 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
-              <span className="ml-2 text-gray-300">Loading profile...</span>
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <PacmanLoader 
+                    color="#fbbf24" 
+                    size={40}
+                    margin={3}
+                    speedMultiplier={1.2}
+                  />
+                </div>
+                <span className="text-gray-300 text-sm">Loading profile...</span>
+              </div>
             </div>
           ) : (
             <>

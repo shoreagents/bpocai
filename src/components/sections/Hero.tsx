@@ -44,6 +44,7 @@ const demoTabs = [
   { id: 'resume', label: 'Resume Builder', icon: FileText },
   { id: 'tools', label: 'Career Tools', icon: Wrench },
   { id: 'jobs', label: 'Jobs', icon: Briefcase },
+  { id: 'talent', label: 'Talent Search', icon: Search },
   { id: 'leaderboards', label: 'Leaderboards', icon: Trophy }
 ]
 
@@ -125,54 +126,52 @@ export default function Hero() {
     switch (currentTab.id) {
       case 'resume':
         return (
-          <div className="space-y-3">
-            {/* What You'll Get */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                  <span className="text-sm font-medium text-cyan-400">AI-Powered Analysis</span>
-                </div>
-                <div className="text-xs text-yellow-400">🎯 Instant Results</div>
-              </div>
-              
-              <div className="bg-white/5 rounded-lg p-3 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm text-white font-medium">Upload Any Resume Format</span>
-                </div>
-                <div className="text-xs text-gray-400">PDF, DOCX, Images - We handle them all</div>
-              </div>
-            </div>
-
-            {/* Expected Outcomes */}
-            <div className="space-y-2">
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-sm font-medium text-green-400">What You'll Discover</span>
+                <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-white">Resume Builder</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Active</span>
+              </div>
+            </div>
+            
+            {/* Main Feature Card */}
+            <div className="glass-card p-4 rounded-xl border border-cyan-500/20 backdrop-blur-sm">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-white">AI-Powered Builder</div>
+                  <div className="text-xs text-gray-300">Professional BPO resumes in minutes</div>
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
-                  <div className="text-xs text-green-400 font-medium">✨ Skills Gap Analysis</div>
-                  <div className="text-xs text-gray-300">Find missing skills for your target roles</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2 text-center">
+                  <div className="text-sm font-bold text-cyan-400">95%</div>
+                  <div className="text-xs text-gray-300">ATS Score</div>
                 </div>
-                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2">
-                  <div className="text-xs text-cyan-400 font-medium">🚀 ATS Optimization Score</div>
-                  <div className="text-xs text-gray-300">See how well you'll pass automated filters</div>
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-2 text-center">
+                  <div className="text-sm font-bold text-purple-400">3x</div>
+                  <div className="text-xs text-gray-300">More Interviews</div>
                 </div>
               </div>
             </div>
 
-            {/* Value Proposition */}
-            <div className="border-t border-white/10 pt-3">
-              <div className="flex items-center space-x-2 mb-2">
-                <Target className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm font-medium text-yellow-400">Your Advantage</span>
+            {/* Features */}
+            <div className="space-y-2">
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-3">
+                <div className="text-xs text-green-400 font-medium">✨ Smart Templates</div>
+                <div className="text-xs text-gray-300">Industry-specific designs that get noticed</div>
               </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
-                <div className="text-xs text-yellow-400 font-medium">💡 Personalized Recommendations</div>
-                <div className="text-xs text-gray-300">Get specific advice to land more interviews</div>
+              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="text-xs text-yellow-400 font-medium">🚀 Instant Analysis</div>
+                <div className="text-xs text-gray-300">Real-time feedback and improvements</div>
               </div>
             </div>
           </div>
@@ -180,110 +179,226 @@ export default function Hero() {
 
       case 'tools':
         return (
-          <div className="space-y-3">
-            {/* Skill Development */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-400">Skill Development</span>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-white">Career Tools</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Active</span>
+              </div>
+            </div>
+            
+            {/* Games Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="glass-card p-3 rounded-xl border border-green-500/20 backdrop-blur-sm text-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <GamepadIcon className="w-4 h-4 text-white" />
                 </div>
-                <div className="text-xs text-cyan-400">📈 Level Up</div>
+                <div className="text-xs font-semibold text-white">Typing Hero</div>
+                <div className="text-xs text-green-400">Level 8</div>
+              </div>
+              <div className="glass-card p-3 rounded-xl border border-cyan-500/20 backdrop-blur-sm text-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <Brain className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-xs font-semibold text-white">DISC Test</div>
+                <div className="text-xs text-cyan-400">Completed</div>
+              </div>
+            </div>
+
+            {/* Skills Progress */}
+            <div className="glass-card p-4 rounded-xl border border-purple-500/20 backdrop-blur-sm">
+              <div className="flex items-center space-x-2 mb-3">
+                <BarChart3 className="w-4 h-4 text-purple-400" />
+                <span className="text-sm font-semibold text-purple-400">Skills Progress</span>
               </div>
               
               <div className="space-y-2">
-                <div className="bg-white/5 rounded-lg p-3 border-l-2 border-green-400">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <GamepadIcon className="w-4 h-4 text-green-400" />
-                      <span className="text-sm text-white font-medium">Gamified Learning</span>
-                    </div>
-                    <span className="text-xs text-green-400">Fun & Engaging</span>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">Earn achievements while improving skills</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300">Typing Speed</span>
+                  <span className="text-xs text-green-400">85 WPM</span>
                 </div>
-                <div className="bg-white/5 rounded-lg p-3 border-l-2 border-cyan-400">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Brain className="w-4 h-4 text-cyan-400" />
-                      <span className="text-sm text-white font-medium">Comprehensive Tests</span>
-                    </div>
-                    <span className="text-xs text-cyan-400">Know Your Level</span>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">Typing, personality, logic & communication</div>
+                <div className="w-full bg-white/10 rounded-full h-1.5">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full" style={{ width: '85%' }}></div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300">Communication</span>
+                  <span className="text-xs text-cyan-400">92%</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-1.5">
+                  <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-1.5 rounded-full" style={{ width: '92%' }}></div>
                 </div>
               </div>
             </div>
 
-            {/* Career Growth */}
-            <div className="border-t border-white/10 pt-3">
-              <div className="flex items-center space-x-2 mb-2">
-                <Calculator className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm font-medium text-yellow-400">Career Planning</span>
-              </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
-                <div className="text-xs text-yellow-400 font-medium">💰 Know Your Worth</div>
-                <div className="text-xs text-gray-300">Get accurate salary estimates for your skills</div>
-              </div>
+            {/* Coming Soon */}
+            <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg p-3">
+              <div className="text-xs text-yellow-400 font-medium">💰 Salary Calculator</div>
+              <div className="text-xs text-gray-300">Know your market value - Coming Soon</div>
             </div>
           </div>
         )
 
       case 'jobs':
         return (
-          <div className="space-y-3">
-            {/* Job Discovery */}
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-white">Smart Job Matching</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Live</span>
+              </div>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="glass-card p-3 rounded-xl border border-purple-500/20 backdrop-blur-sm">
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-purple-400" />
+                <input 
+                  type="text" 
+                  placeholder="Customer Service, Team Lead..." 
+                  className="bg-transparent text-white text-sm placeholder-gray-400 flex-1 outline-none"
+                  readOnly
+                />
+                <Filter className="w-4 h-4 text-purple-400" />
+              </div>
+            </div>
+
+            {/* Job Matches */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                  <span className="text-sm font-medium text-purple-400">Smart Job Matching</span>
-                </div>
-                <div className="text-xs text-green-400">🎯 Perfect Fits</div>
+              <div className="flex items-center space-x-2 mb-2">
+                <Target className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-semibold text-green-400">Top Matches</span>
               </div>
               
-              <div className="bg-white/5 rounded-lg p-3 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Target className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm text-white font-medium">Find Your Dream Role</span>
-                </div>
-                <div className="text-xs text-gray-400">AI matches you with top BPO companies</div>
-              </div>
-            </div>
-
-            {/* What You'll Get */}
-            <div className="space-y-2">
               <div className="space-y-2">
-                <div className="bg-white/5 rounded-lg p-3 border-l-2 border-green-400">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm text-white font-medium">High-Match Opportunities</div>
-                      <div className="text-xs text-gray-400">Amazon, Google, Microsoft & more</div>
-                    </div>
-                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-medium">95%+ Match</span>
+                <div className="glass-card p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-sm font-semibold text-white">Customer Service Rep</div>
+                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-medium">98% Match</span>
                   </div>
+                  <div className="text-xs text-gray-400">Amazon • ₱25K-35K • Full-time</div>
                 </div>
-                <div className="bg-white/5 rounded-lg p-3 border-l-2 border-blue-400">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm text-white font-medium">Detailed Job Insights</div>
-                      <div className="text-xs text-gray-400">Salaries, benefits, requirements</div>
-                    </div>
-                    <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded font-medium">Full Details</span>
+                
+                <div className="glass-card p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-sm font-semibold text-white">Team Lead</div>
+                    <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded font-medium">95% Match</span>
                   </div>
+                  <div className="text-xs text-gray-400">Google • ₱40K-55K • Full-time</div>
                 </div>
               </div>
             </div>
 
-            {/* Success Potential */}
-            <div className="border-t border-white/10 pt-3">
-              <div className="flex items-center space-x-2 mb-2">
-                <Star className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm font-medium text-yellow-400">Your Success</span>
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="glass-card p-2 rounded-lg backdrop-blur-sm text-center">
+                <div className="text-sm font-bold text-cyan-400">47</div>
+                <div className="text-xs text-gray-300">Jobs Applied</div>
               </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
-                <div className="text-xs text-yellow-400 font-medium">🚀 3x Higher Interview Rate</div>
-                <div className="text-xs text-gray-300">Better matches = more opportunities</div>
+              <div className="glass-card p-2 rounded-lg backdrop-blur-sm text-center">
+                <div className="text-sm font-bold text-purple-400">12</div>
+                <div className="text-xs text-gray-300">Interviews</div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'talent':
+        return (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-white">Talent Search</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Live</span>
+              </div>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="glass-card p-3 rounded-xl border border-blue-500/20 backdrop-blur-sm">
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-blue-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search for BPO talent..." 
+                  className="bg-transparent text-white text-sm placeholder-gray-400 flex-1 outline-none"
+                  readOnly
+                />
+                <Filter className="w-4 h-4 text-blue-400" />
+              </div>
+            </div>
+
+            {/* Top Candidates */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 mb-2">
+                <Users className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm font-semibold text-cyan-400">Top Candidates</span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="glass-card p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                        RJ
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">Rica Javier</div>
+                        <div className="text-xs text-gray-300">Customer Service Expert</div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded font-medium">Resume</span>
+                      <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded font-medium">AI Analyzed</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">5+ years experience • 98% match rate</div>
+                </div>
+                
+                <div className="glass-card p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                        MJ
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">Maria Santos</div>
+                        <div className="text-xs text-gray-300">Team Lead</div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-medium">Resume</span>
+                      <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded font-medium">AI Analyzed</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400">7+ years experience • 95% match rate</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="glass-card p-2 rounded-lg backdrop-blur-sm text-center">
+                <div className="text-sm font-bold text-blue-400">2,847</div>
+                <div className="text-xs text-gray-300">Active Talent</div>
+              </div>
+              <div className="glass-card p-2 rounded-lg backdrop-blur-sm text-center">
+                <div className="text-sm font-bold text-cyan-400">1,234</div>
+                <div className="text-xs text-gray-300">Resumes Available</div>
               </div>
             </div>
           </div>
@@ -291,64 +406,87 @@ export default function Hero() {
 
       case 'leaderboards':
         return (
-          <div className="space-y-3">
-            {/* Community & Recognition */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                  <span className="text-sm font-medium text-yellow-400">Recognition & Growth</span>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-white">Leaderboards</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">Live</span>
+              </div>
+            </div>
+            
+            {/* Competition Overview */}
+            <div className="glass-card p-4 rounded-xl border border-yellow-500/20 backdrop-blur-sm">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Trophy className="w-5 h-5 text-white" />
                 </div>
-                <div className="text-xs text-cyan-400">🏆 Compete</div>
+                <div>
+                  <div className="text-sm font-semibold text-white">Skill Competitions</div>
+                  <div className="text-xs text-gray-300">Compete in 4 different challenges</div>
+                </div>
               </div>
               
-              <div className="bg-white/5 rounded-lg p-3 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Trophy className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm text-white font-medium">Showcase Your Skills</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 text-center">
+                  <div className="text-sm font-bold text-green-400">#12</div>
+                  <div className="text-xs text-gray-300">Your Rank</div>
                 </div>
-                <div className="text-xs text-gray-400">Earn recognition from top employers</div>
+                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2 text-center">
+                  <div className="text-sm font-bold text-cyan-400">2,847</div>
+                  <div className="text-xs text-gray-300">Total Players</div>
+                </div>
               </div>
             </div>
 
-            {/* What You'll Achieve */}
+            {/* Top Performers */}
             <div className="space-y-2">
-              <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-400/5 rounded-lg p-2 border border-yellow-400/20">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
-                    <Crown className="w-3 h-3 text-black" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm text-white font-medium">Climb the Rankings</div>
-                    <div className="text-xs text-gray-400">Show you're among the best</div>
-                  </div>
-                  <div className="text-sm font-bold text-yellow-400">Top 1%</div>
-                </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <Crown className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-semibold text-yellow-400">Top Performers</span>
               </div>
-              <div className="bg-white/5 rounded-lg p-2">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center">
-                    <Users className="w-3 h-3 text-white" />
+              
+              <div className="space-y-2">
+                <div className="glass-card p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center text-xs font-bold text-black">
+                        1
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">Alex Chen</div>
+                        <div className="text-xs text-gray-300">Typing Hero Champion</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-yellow-400">125 WPM</div>
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm text-white font-medium">Connect with Peers</div>
-                    <div className="text-xs text-gray-400">Network with top performers</div>
+                </div>
+                
+                <div className="glass-card p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                        2
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">Sarah Kim</div>
+                        <div className="text-xs text-gray-300">DISC Master</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-purple-400">Perfect Score</div>
                   </div>
-                  <div className="text-sm font-bold text-purple-400">2,847</div>
                 </div>
               </div>
             </div>
 
-            {/* Career Benefits */}
-            <div className="border-t border-white/10 pt-3">
-              <div className="flex items-center space-x-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-cyan-400" />
-                <span className="text-sm font-medium text-cyan-400">Career Impact</span>
-              </div>
-              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2">
-                <div className="text-xs text-cyan-400 font-medium">📈 Get Noticed by Recruiters</div>
-                <div className="text-xs text-gray-300">Top performers get exclusive opportunities</div>
-              </div>
+            {/* Achievement Badge */}
+            <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 rounded-lg p-3">
+              <div className="text-xs text-cyan-400 font-medium">🏆 Rising Star Badge</div>
+              <div className="text-xs text-gray-300">Climb 10 ranks to unlock</div>
             </div>
           </div>
         )
@@ -607,6 +745,6 @@ export default function Hero() {
           />
         </motion.div>
       </motion.div>
-    </section>
-  )
-} 
+          </section>
+    )
+  } 
