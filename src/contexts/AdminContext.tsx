@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { useAuth } from './AuthContext'
+import { getSessionToken } from '@/lib/auth-helpers'
 import { AdminUser, AdminDashboardStats } from '@/types/user'
 
 interface AdminContextType {
@@ -42,7 +43,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     console.log('Checking admin status for user:', user.id)
     try {
       // Check admin status directly in Railway database
-      const response = await fetch(`/api/admin/check-status?userId=${user.id}`)
+      const token = await getSessionToken()
+      const response = await fetch(`/api/admin/check-status?userId=${user.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        cache: 'no-store'
+      })
       const data = await response.json()
       
       console.log('Admin check response:', data)
@@ -67,10 +72,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     if (!isAdmin || !user) return
 
     try {
+      const token = await getSessionToken()
       await fetch('/api/admin/log-action', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ 
           action, 
