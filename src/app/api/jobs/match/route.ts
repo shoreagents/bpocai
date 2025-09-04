@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
+import { calculateDistance } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,11 +18,14 @@ export async function GET(request: NextRequest) {
       const userResult = await client.query(`
         SELECT 
           u.id, u.full_name, u.location, u.position, u.bio,
+          u.location_place_id, u.location_lat, u.location_lng, u.location_city, u.location_province, u.location_barangay, u.location_region,
           sr.resume_data,
-          aar.skills_snapshot, aar.experience_snapshot, aar.education_snapshot
+          aar.skills_snapshot, aar.experience_snapshot, aar.education_snapshot,
+          uws.current_employer, uws.current_position, uws.current_salary, uws.expected_salary, uws.work_status, uws.preferred_shift, uws.work_setup
         FROM users u
         LEFT JOIN saved_resumes sr ON u.id = sr.user_id
         LEFT JOIN ai_analysis_results aar ON u.id = aar.user_id
+        LEFT JOIN user_work_status uws ON u.id = uws.user_id
         WHERE u.id = $1
       `, [userId]);
 
@@ -73,33 +77,71 @@ export async function GET(request: NextRequest) {
         console.warn('Failed to check cached results (table may not exist):', cacheErr);
       }
 
-      // Prepare data for Anthropic analysis
-    const analysisData = {
-      user: {
-        name: user.full_name,
-        location: user.location,
-        currentPosition: user.position,
-        bio: user.bio,
-        resumeData: user.resume_data,
-        skills: user.skills_snapshot || [],
-        experience: user.experience_snapshot || [],
-        education: user.education_snapshot || []
-      },
-      job: {
-        title: job.job_title,
-        company: job.company_name,
-        description: job.job_description,
-        requirements: job.requirements || [],
-        responsibilities: job.responsibilities || [],
-        benefits: job.benefits || [],
-        skills: job.skills || [],
-        experienceLevel: job.experience_level,
-        industry: job.industry,
-        department: job.department,
-        workArrangement: job.work_arrangement,
-        salaryRange: job.salary_min && job.salary_max ? `${job.salary_min}-${job.salary_max}` : 'Not specified'
+      // Calculate distance from user to office (Clark, Pampanga)
+      const officeLat = 15.175949880147643;
+      const officeLng = 120.53233701473826;
+      let distanceKm = null;
+      let distanceDescription = 'Location not available';
+      
+      if (user.location_lat && user.location_lng) {
+        distanceKm = calculateDistance(user.location_lat, user.location_lng, officeLat, officeLng);
+        if (distanceKm <= 5) {
+          distanceDescription = 'Very close to office (< 5km)';
+        } else if (distanceKm <= 15) {
+          distanceDescription = 'Close to office (5-15km)';
+        } else if (distanceKm <= 30) {
+          distanceDescription = 'Moderate distance (15-30km)';
+        } else if (distanceKm <= 50) {
+          distanceDescription = 'Far from office (30-50km)';
+        } else {
+          distanceDescription = 'Very far from office (> 50km)';
+        }
       }
-    };
+
+      // Prepare data for Anthropic analysis
+      const analysisData = {
+        user: {
+          name: user.full_name,
+          location: user.location,
+          locationDetails: {
+            city: user.location_city,
+            province: user.location_province,
+            barangay: user.location_barangay,
+            region: user.location_region,
+            distanceKm: distanceKm,
+            distanceDescription: distanceDescription
+          },
+          currentPosition: user.position,
+          bio: user.bio,
+          resumeData: user.resume_data,
+          skills: user.skills_snapshot || [],
+          experience: user.experience_snapshot || [],
+          education: user.education_snapshot || [],
+          workStatus: {
+            currentEmployer: user.current_employer,
+            currentPosition: user.current_position,
+            currentSalary: user.current_salary,
+            expectedSalary: user.expected_salary,
+            workStatus: user.work_status,
+            preferredShift: user.preferred_shift,
+            workSetup: user.work_setup
+          }
+        },
+        job: {
+          title: job.job_title,
+          company: job.company_name,
+          description: job.job_description,
+          requirements: job.requirements || [],
+          responsibilities: job.responsibilities || [],
+          benefits: job.benefits || [],
+          skills: job.skills || [],
+          experienceLevel: job.experience_level,
+          industry: job.industry,
+          department: job.department,
+          workArrangement: job.work_arrangement,
+          salaryRange: job.salary_min && job.salary_max ? `${job.salary_min}-${job.salary_max}` : 'Not specified'
+        }
+      };
 
     // Debug: Log the data types we're getting
     console.log('Data types from database:', {
@@ -108,7 +150,21 @@ export async function GET(request: NextRequest) {
       userEducation: Array.isArray(user.education_snapshot) ? user.education_snapshot.map((ed: any) => ({ value: ed, type: typeof ed })) : 'Not array',
       jobRequirements: Array.isArray(job.requirements) ? job.requirements.map((r: any) => ({ value: r, type: typeof r })) : 'Not array',
       jobResponsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.map((r: any) => ({ value: r, type: typeof r })) : 'Not array',
-      jobSkills: Array.isArray(job.skills) ? job.skills.map((s: any) => ({ value: s, type: typeof s })) : 'Not array'
+      jobSkills: Array.isArray(job.skills) ? job.skills.map((s: any) => ({ value: s, type: typeof s })) : 'Not array',
+      userLocation: {
+        lat: user.location_lat,
+        lng: user.location_lng,
+        city: user.location_city,
+        province: user.location_province,
+        distanceKm: distanceKm
+      },
+      workStatus: {
+        currentSalary: user.current_salary,
+        expectedSalary: user.expected_salary,
+        workStatus: user.work_status,
+        preferredShift: user.preferred_shift,
+        workSetup: user.work_setup
+      }
     });
 
       // Call Anthropic API for intelligent matching
@@ -170,11 +226,22 @@ CANDIDATE PROFILE:
 - Name: ${data.user.name || 'Not specified'}
 - Current Position: ${data.user.currentPosition || 'Not specified'}
 - Location: ${data.user.location || 'Not specified'}
+- Location Details: ${data.user.locationDetails.city ? `${data.user.locationDetails.city}, ${data.user.locationDetails.province}` : 'Not specified'}
+- Distance from Office: ${data.user.locationDetails.distanceDescription}${data.user.locationDetails.distanceKm ? ` (${data.user.locationDetails.distanceKm.toFixed(1)}km)` : ''} (estimated based on city coordinates)
 - Bio: ${data.user.bio || 'Not specified'}
 - Skills: ${cleanUserSkills.length > 0 ? cleanUserSkills.join(', ') : 'Not specified'}
 - Experience: ${cleanUserExperience.length > 0 ? cleanUserExperience.join(', ') : 'Not specified'}
 - Education: ${cleanUserEducation.length > 0 ? cleanUserEducation.join(', ') : 'Not specified'}
 - Resume Data: ${data.user.resumeData ? JSON.stringify(data.user.resumeData, null, 2) : 'Not available'}
+
+WORK STATUS & PREFERENCES:
+- Current Employer: ${data.user.workStatus.currentEmployer || 'Not specified'}
+- Current Position: ${data.user.workStatus.currentPosition || 'Not specified'}
+- Current Salary: ${data.user.workStatus.currentSalary || 'Not specified'}
+- Expected Salary: ${data.user.workStatus.expectedSalary || 'Not specified'}
+- Work Status: ${data.user.workStatus.workStatus || 'Not specified'}
+- Preferred Shift: ${data.user.workStatus.preferredShift || 'Not specified'}
+- Work Setup Preference: ${data.user.workStatus.workSetup || 'Not specified'}
 
 JOB POSTING:
 - Title: ${data.job.title || 'Not specified'}
@@ -195,35 +262,63 @@ Analyze the match between the candidate and job posting. Consider:
 1. Skills alignment (technical skills, soft skills)
 2. Experience level compatibility
 3. Industry/domain knowledge
-4. Location preferences
-5. Career progression fit
-6. Overall suitability
+4. Location and distance from office (Clark, Pampanga)
+5. Salary expectations vs job offering
+6. Work setup preferences (remote/hybrid/onsite)
+7. Shift preferences alignment
+8. Career progression fit
+9. Overall suitability
 
-Provide your analysis in this exact JSON format:
+Provide your analysis in this exact JSON format (ensure proper JSON escaping):
 {
   "score": 85,
-  "reasoning": "Strong technical skills match with React and Node.js. Good experience level alignment. Location works well. Some industry experience gaps but transferable skills present.",
+  "reasoning": "• Great news! Your React and Node.js skills are exactly what they're looking for\\n• Your experience level aligns perfectly with their requirements\\n• You're only 12km from the office, which is totally manageable for daily commute\\n• Your expected salary of P25,000 fits nicely within their P20,000-30,000 range\\n• Perfect match on work setup - you want hybrid and they offer exactly that",
   "breakdown": {
     "skillsMatch": 90,
     "experienceMatch": 85,
     "locationMatch": 80,
-    "industryMatch": 70,
+    "salaryMatch": 85,
+    "workSetupMatch": 90,
     "overallFit": 85
   }
 }
 
 The score should be 0-100 where:
-- 90-100: Excellent match, highly recommended
-- 80-89: Very good match, strongly recommended
-- 70-79: Good match, recommended
-- 60-69: Not recommended
-- Below 60: Not recommended
+- 95-100: Perfect match, highly recommended
+- 85-94: Excellent match, strongly recommended  
+- 75-84: Very good match, recommended
+- 65-74: Good match, worth considering
+- 55-64: Fair match, some concerns
+- 45-54: Poor match, not recommended
+- Below 45: Not suitable, avoid
 
-Be realistic and thorough in your analysis. If there's insufficient data, provide a conservative estimate.`;
+IMPORTANT: Write the reasoning as conversational bullet points that speak directly to the candidate. Keep it friendly and encouraging while highlighting key strengths and any concerns. Use bullet points (•) and mention specific details like skills, distance, salary, and work preferences. Make it feel like you're giving personalized career advice.
+
+SCORING GUIDELINES:
+- 95-100: Perfect alignment across all major factors (skills, experience, location, salary, work setup)
+- 85-94: Strong alignment with minor concerns or one area needing improvement
+- 75-84: Good overall fit with some areas that could be better
+- 65-74: Decent match with several areas needing attention
+- 55-64: Fair match with significant concerns or mismatches
+- 45-54: Poor match with major issues
+- Below 45: Major misalignment across multiple factors`;
 
     console.log('Calling Anthropic API with data:', {
-      user: { name: data.user.name, skills: cleanUserSkills.length, experience: cleanUserExperience.length },
-      job: { title: data.job.title, requirements: cleanJobRequirements.length, skills: cleanJobSkills.length }
+      user: { 
+        name: data.user.name, 
+        skills: cleanUserSkills.length, 
+        experience: cleanUserExperience.length,
+        location: data.user.locationDetails.distanceDescription,
+        workStatus: data.user.workStatus.workStatus,
+        expectedSalary: data.user.workStatus.expectedSalary
+      },
+      job: { 
+        title: data.job.title, 
+        requirements: cleanJobRequirements.length, 
+        skills: cleanJobSkills.length,
+        workArrangement: data.job.workArrangement,
+        salaryRange: data.job.salaryRange
+      }
     });
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -257,23 +352,56 @@ Be realistic and thorough in your analysis. If there's insufficient data, provid
     const content = result.content[0].text;
     console.log('AI response content:', content);
     
-    // Extract JSON from the response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      console.log('Parsed AI response:', parsed);
-      
-      // Validate the response
-      if (typeof parsed.score === 'number' && parsed.score >= 0 && parsed.score <= 100) {
-        return {
-          score: parsed.score,
-          reasoning: parsed.reasoning || 'Analysis completed',
-          breakdown: parsed.breakdown || {}
-        };
-      } else {
-        throw new Error('Invalid score in AI response');
-      }
-    }
+         // Extract JSON from the response with better error handling
+     const jsonMatch = content.match(/\{[\s\S]*\}/);
+     if (jsonMatch) {
+       try {
+         // Clean the JSON string by removing control characters and fixing common issues
+         let jsonString = jsonMatch[0];
+         
+         // Remove control characters that might break JSON parsing
+         jsonString = jsonString.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+         
+         // Fix common JSON issues
+         jsonString = jsonString.replace(/\n/g, '\\n'); // Escape newlines in strings
+         jsonString = jsonString.replace(/\r/g, '\\r'); // Escape carriage returns
+         jsonString = jsonString.replace(/\t/g, '\\t'); // Escape tabs
+         
+         const parsed = JSON.parse(jsonString);
+         console.log('Parsed AI response:', parsed);
+         
+         // Validate the response
+         if (typeof parsed.score === 'number' && parsed.score >= 0 && parsed.score <= 100) {
+           return {
+             score: parsed.score,
+             reasoning: parsed.reasoning || 'Analysis completed',
+             breakdown: parsed.breakdown || {}
+           };
+         } else {
+           throw new Error('Invalid score in AI response');
+         }
+       } catch (parseError) {
+         console.error('JSON parsing error:', parseError);
+         console.error('Raw JSON string:', jsonMatch[0]);
+         
+         // Try to extract just the essential parts manually
+         const scoreMatch = content.match(/"score":\s*(\d+)/);
+         const reasoningMatch = content.match(/"reasoning":\s*"([^"]+)"/);
+         
+         if (scoreMatch && reasoningMatch) {
+           const score = parseInt(scoreMatch[1]);
+           const reasoning = reasoningMatch[1].replace(/\\n/g, '\n');
+           
+           return {
+             score: score,
+             reasoning: reasoning,
+             breakdown: {}
+           };
+         }
+         
+         throw new Error('Failed to parse AI response JSON');
+       }
+     }
 
     throw new Error('No valid JSON found in AI response');
 
