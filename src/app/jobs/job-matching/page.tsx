@@ -172,6 +172,8 @@ export default function JobMatchingPage() {
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [showMatchTooltip, setShowMatchTooltip] = useState<string | null>(null)
   const [showLocationPopup, setShowLocationPopup] = useState(false)
+  const [showResumeModal, setShowResumeModal] = useState(false)
+  const [hasResume, setHasResume] = useState<boolean | null>(null)
 
   // Show location popup when page loads
   useEffect(() => {
@@ -186,6 +188,41 @@ export default function JobMatchingPage() {
   useEffect(() => {
     (async () => {
       try {
+        // Check if user has a resume first - only if user is logged in
+        if (user?.id) {
+          try {
+            const token = await getSessionToken()
+            const resumeCheck = await fetch(`/api/user/saved-resumes`, { 
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store' 
+            })
+            
+            if (resumeCheck.ok) {
+              const resumeData = await resumeCheck.json()
+              console.log('Resume check result:', resumeData)
+              
+              if (!resumeData.hasSavedResume) {
+                setHasResume(false)
+                setShowResumeModal(true)
+                return // Don't proceed with job fetching
+              } else {
+                setHasResume(true)
+              }
+            } else {
+              console.error('Failed to check resume:', resumeCheck.status)
+              // If we can't check, assume they have a resume to avoid blocking
+              setHasResume(true)
+            }
+          } catch (error) {
+            console.error('Error checking resume:', error)
+            // If there's an error, assume they have a resume to avoid blocking
+            setHasResume(true)
+          }
+        } else {
+          // No user logged in, don't show resume modal
+          setHasResume(null)
+        }
+
         // Public endpoint for active jobs (no auth required)
         const res = await fetch('/api/jobs/active', { cache: 'no-store' })
         if (!res.ok) throw new Error('Failed to load jobs')
@@ -326,19 +363,23 @@ export default function JobMatchingPage() {
   };
 
   const getMatchColor = (percentage: number) => {
-    if (percentage >= 90) return 'bg-green-500/20 text-green-400 border-green-500/30';
-    if (percentage >= 80) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-    if (percentage >= 70) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    if (percentage >= 60) return 'bg-red-500/20 text-red-400 border-red-500/30';
-    return 'bg-red-500/20 text-red-400 border-red-500/30';
+    if (percentage >= 95) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+    if (percentage >= 85) return 'bg-green-500/20 text-green-400 border-green-500/30';
+    if (percentage >= 75) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    if (percentage >= 65) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    if (percentage >= 55) return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+    if (percentage >= 45) return 'bg-red-500/20 text-red-400 border-red-500/30';
+    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
   const getMatchLabel = (percentage: number) => {
-    if (percentage >= 90) return `${percentage}% Match`;
-    if (percentage >= 80) return `${percentage}% Match`;
-    if (percentage >= 70) return `${percentage}% Match`;
-    if (percentage >= 60) return `${percentage}% Match`;
-    return "Not Recommended";
+    if (percentage >= 95) return `${percentage}% Perfect Match`;
+    if (percentage >= 85) return `${percentage}% Excellent Match`;
+    if (percentage >= 75) return `${percentage}% Very Good Match`;
+    if (percentage >= 65) return `${percentage}% Good Match`;
+    if (percentage >= 55) return `${percentage}% Fair Match`;
+    if (percentage >= 45) return `${percentage}% Poor Match`;
+    return "Not Suitable";
   };
 
   const getWorkType = (job: any) => {
@@ -611,17 +652,21 @@ export default function JobMatchingPage() {
                 <span>
                   {totalPages > 1 
                     ? `Showing ${((currentPage - 1) * itemsPerPage) + 1}-${Math.min(currentPage * itemsPerPage, filteredJobs.length)} of ${filteredJobs.length} jobs`
-                    : user?.id 
+                    : user?.id && hasResume
                       ? `Showing ${filteredJobs.length} jobs matched to your profile`
-                      : `Showing ${filteredJobs.length} active jobs`
+                      : user?.id && hasResume === false
+                        ? 'Resume required for job matching'
+                        : `Showing ${filteredJobs.length} active jobs`
                   }
                 </span>
                 <span>
                   {totalPages > 1 
                     ? `Page ${currentPage} of ${totalPages}` 
-                    : user?.id && Object.keys(matchScores).length > 0
+                    : user?.id && hasResume && Object.keys(matchScores).length > 0
                       ? 'Sorted by match percentage'
-                      : 'Sign in to see personalized matches'
+                      : user?.id && hasResume === false
+                        ? 'Create resume to continue'
+                        : 'Sign in to see personalized matches'
                   }
                 </span>
               </div>
@@ -629,7 +674,26 @@ export default function JobMatchingPage() {
           </motion.div>
 
           {/* Job Cards */}
-          {filteredJobs.length === 0 ? (
+          {!user?.id ? (
+            <div className="py-16 text-center text-gray-400">
+              <Target className="h-16 w-16 mx-auto mb-4 text-gray-500" />
+              <h3 className="text-xl font-semibold mb-2">Sign in to see personalized job matches</h3>
+              <p className="text-gray-500">Get AI-powered recommendations based on your skills and preferences</p>
+            </div>
+          ) : hasResume === false ? (
+            <div className="py-16 text-center text-gray-400">
+              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-500" />
+              <h3 className="text-xl font-semibold mb-2">Resume Required</h3>
+              <p className="text-gray-500 mb-4">Create your resume to get personalized job matches</p>
+              <Button 
+                onClick={() => router.push('/resume-builder')}
+                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white border-0"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Build Resume
+              </Button>
+            </div>
+          ) : filteredJobs.length === 0 ? (
             <div className="py-16 text-center text-gray-400">No active jobs</div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1365,6 +1429,62 @@ export default function JobMatchingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Resume Required Modal */}
+      <Dialog open={showResumeModal} onOpenChange={setShowResumeModal}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl font-bold flex items-center gap-3">
+              <FileText className="h-6 w-6 text-cyan-400" />
+              Resume Required
+            </DialogTitle>
+            <DialogDescription className="text-gray-300 mt-3">
+              To get personalized job matches and apply to positions, you need to create your resume first.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <h4 className="font-semibold text-white mb-2">Why you need a resume:</h4>
+              <ul className="text-sm text-gray-300 space-y-1">
+                <li>• Get AI-powered job matching</li>
+                <li>• Apply to positions with one click</li>
+                <li>• Showcase your skills and experience</li>
+                <li>• Stand out to employers</li>
+              </ul>
+            </div>
+            
+                         <div className="flex gap-3">
+               <Button 
+                 onClick={() => router.push('/resume-builder')}
+                 className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white border-0"
+               >
+                 <FileText className="w-4 h-4 mr-2" />
+                 Build Resume
+               </Button>
+               <Button 
+                 variant="outline"
+                 onClick={() => router.push('/')}
+                 className="border-white/20 text-white hover:bg-white/10"
+               >
+                 Go Home
+               </Button>
+             </div>
+             
+             {/* Debug button - remove in production */}
+             <Button 
+               variant="ghost"
+               onClick={() => {
+                 setShowResumeModal(false)
+                 setHasResume(true)
+               }}
+               className="text-xs text-gray-500 hover:text-gray-300"
+             >
+               Debug: Skip Resume Check
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Office Location Notice Popup - Top Right */}
       {showLocationPopup && (

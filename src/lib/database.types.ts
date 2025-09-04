@@ -17,6 +17,14 @@ export interface Database {
           last_name: string
           full_name: string
           location: string
+          location_place_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_city?: string | null
+          location_province?: string | null
+          location_country?: string | null
+          location_barangay?: string | null
+          location_region?: string | null
           avatar_url: string | null
           phone: string | null
           bio: string | null
@@ -36,6 +44,14 @@ export interface Database {
           last_name: string
           full_name: string
           location: string
+          location_place_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_city?: string | null
+          location_province?: string | null
+          location_country?: string | null
+          location_barangay?: string | null
+          location_region?: string | null
           avatar_url?: string | null
           phone?: string | null
           bio?: string | null
@@ -55,6 +71,14 @@ export interface Database {
           last_name?: string
           full_name?: string
           location?: string
+          location_place_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_city?: string | null
+          location_province?: string | null
+          location_country?: string | null
+          location_barangay?: string | null
+          location_region?: string | null
           avatar_url?: string | null
           phone?: string | null
           bio?: string | null

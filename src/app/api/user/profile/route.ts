@@ -107,6 +107,13 @@ export async function PUT(request: NextRequest) {
 
     // Build SELECT query dynamically based on available columns
     const selectFields = ['first_name', 'last_name', 'full_name', 'location', 'avatar_url', 'phone', 'bio', 'position', 'completed_data', 'birthday']
+    // Optional structured location fields
+    if (available.has('location_place_id')) selectFields.push('location_place_id')
+    if (available.has('location_lat')) selectFields.push('location_lat')
+    if (available.has('location_lng')) selectFields.push('location_lng')
+    if (available.has('location_city')) selectFields.push('location_city')
+    if (available.has('location_province')) selectFields.push('location_province')
+    if (available.has('location_country')) selectFields.push('location_country')
     if (available.has('gender')) selectFields.push('gender')
     if (available.has('gender_custom')) selectFields.push('gender_custom')
     
@@ -132,12 +139,22 @@ export async function PUT(request: NextRequest) {
     const phone = updateData.phone ?? existing.phone
     const bio = updateData.bio ?? existing.bio
     const position = updateData.position ?? existing.position
+    // Structured location
+    const locationPlaceId = available.has('location_place_id') ? (updateData.location_place_id ?? existing.location_place_id) : null
+    const locationLat = available.has('location_lat') ? (updateData.location_lat ?? existing.location_lat) : null
+    const locationLng = available.has('location_lng') ? (updateData.location_lng ?? existing.location_lng) : null
+    const locationCity = available.has('location_city') ? (updateData.location_city ?? existing.location_city) : null
+    const locationProvince = available.has('location_province') ? (updateData.location_province ?? existing.location_province) : null
+    const locationCountry = available.has('location_country') ? (updateData.location_country ?? existing.location_country) : null
+    const locationBarangay = available.has('location_barangay') ? (updateData.location_barangay ?? existing.location_barangay) : null
+    const locationRegion = available.has('location_region') ? (updateData.location_region ?? existing.location_region) : null
 
     const gender = available.has('gender') ? (updateData.gender ?? existing.gender) : null
     const genderCustom = available.has('gender_custom') ? (updateData.gender_custom ?? existing.gender_custom) : null
 
     console.log('🔧 Processed field values:', {
-      firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom
+      firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom,
+      locationPlaceId, locationLat, locationLng, locationCity, locationProvince, locationCountry
     })
 
 
@@ -172,6 +189,14 @@ export async function PUT(request: NextRequest) {
       { col: 'position', val: position }
     ]
     const optionalFields: Field[] = []
+    if (available.has('location_place_id')) optionalFields.push({ col: 'location_place_id', val: locationPlaceId })
+    if (available.has('location_lat')) optionalFields.push({ col: 'location_lat', val: locationLat })
+    if (available.has('location_lng')) optionalFields.push({ col: 'location_lng', val: locationLng })
+    if (available.has('location_city')) optionalFields.push({ col: 'location_city', val: locationCity })
+    if (available.has('location_province')) optionalFields.push({ col: 'location_province', val: locationProvince })
+    if (available.has('location_country')) optionalFields.push({ col: 'location_country', val: locationCountry })
+    if (available.has('location_barangay')) optionalFields.push({ col: 'location_barangay', val: locationBarangay })
+    if (available.has('location_region')) optionalFields.push({ col: 'location_region', val: locationRegion })
     if (available.has('completed_data')) optionalFields.push({ col: 'completed_data', val: completedData })
     if (available.has('birthday')) optionalFields.push({ col: 'birthday', val: birthday })
     if (available.has('gender')) optionalFields.push({ col: 'gender', val: gender })
@@ -221,7 +246,13 @@ export async function PUT(request: NextRequest) {
             full_name: fullName,
             location,
             phone,
-            position
+            position,
+            location_place_id: locationPlaceId,
+            location_lat: locationLat,
+            location_lng: locationLng,
+            location_city: locationCity,
+            location_province: locationProvince,
+            location_country: locationCountry
           }
         })
         if (adminRes.error) {

@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { Loader as GoogleMapsLoader } from '@googlemaps/js-api-loader'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import PlacesAutocomplete from '@/components/ui/places-autocomplete'
 import { Textarea } from '@/components/ui/textarea'
 import { 
   Dialog,
@@ -38,6 +40,15 @@ interface ProfileCompletionData {
   gender: string
   genderCustom: string
   location: string
+  // Structured location fields (optional)
+  location_place_id?: string
+  location_lat?: number | null
+  location_lng?: number | null
+  location_city?: string
+  location_province?: string
+  location_country?: string
+  location_barangay?: string
+  location_region?: string
   phone: string
   position: string
   bio: string
@@ -102,6 +113,79 @@ export default function ProfileCompletionModal({
   })
 
   const [age, setAge] = useState<number | null>(null)
+  const locationInputRef = useRef<HTMLInputElement | null>(null)
+  const placesAutocompleteRef = useRef<any>(null)
+
+  // Initialize Google Places Autocomplete when modal opens and step 1 is visible
+  useEffect(() => {
+    const initPlaces = async () => {
+      try {
+        if (!open || currentStep !== 1) return
+        if (placesAutocompleteRef.current) return // already initialized
+        if (!locationInputRef.current) return
+
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        if (!apiKey) {
+          console.warn('Google Maps API key missing: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY')
+          return
+        }
+
+        const loader = new GoogleMapsLoader({ apiKey, libraries: ['places'] })
+        const google = await loader.load()
+        if (!locationInputRef.current) return
+
+        const autocomplete = new google.maps.places.Autocomplete(locationInputRef.current, {
+          fields: ['place_id', 'formatted_address', 'address_components', 'geometry'],
+          types: ['(regions)'],
+          componentRestrictions: { country: 'ph' }
+        })
+
+        placesAutocompleteRef.current = autocomplete
+        console.log('✅ Google Places Autocomplete attached to location input')
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace()
+          if (!place || !place.geometry || !place.address_components) return
+
+          const get = (type: string) =>
+            place.address_components?.find(c => c.types.includes(type))?.long_name || ''
+
+          const province = get('administrative_area_level_2') || get('administrative_area_level_1')
+          const city = get('locality') || get('administrative_area_level_3')
+          const country = get('country')
+
+          console.log('📍 Selected place', { placeId: place.place_id, province, city, country })
+
+          handleInputChange('location', place.formatted_address || '')
+          setFormData(prev => ({
+            ...prev,
+            location_place_id: place.place_id || '',
+            location_lat: place.geometry!.location?.lat() ?? null,
+            location_lng: place.geometry!.location?.lng() ?? null,
+            location_city: city,
+            location_province: province,
+            location_country: country
+          }))
+        })
+      } catch (e) {
+        console.warn('Google Places init failed', e)
+      }
+    }
+    // Defer to ensure the input is mounted inside the modal
+    const t = setTimeout(initPlaces, 0)
+    return () => clearTimeout(t)
+  }, [open, currentStep])
+
+  // Ensure Google suggestions dropdown is above modal
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const id = 'gm-places-zfix'
+    if (document.getElementById(id)) return
+    const style = document.createElement('style')
+    style.id = id
+    style.innerHTML = `.pac-container{z-index:99999 !important;}`
+    document.head.appendChild(style)
+  }, [])
 
   // Calculate age when birthday changes
   useEffect(() => {
@@ -254,6 +338,14 @@ export default function ProfileCompletionModal({
         gender: formData.gender,
                  gender_custom: formData.gender === 'others' ? formData.genderCustom : null,
         location: formData.location,
+        location_place_id: formData.location_place_id,
+        location_lat: formData.location_lat,
+        location_lng: formData.location_lng,
+        location_city: formData.location_city,
+        location_province: formData.location_province,
+        location_country: formData.location_country,
+        location_barangay: formData.location_barangay,
+        location_region: formData.location_region,
         phone: formData.phone,
         position: formData.position,
         bio: formData.bio,
@@ -394,14 +486,26 @@ export default function ProfileCompletionModal({
                   Location <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                     <Input
-                     type="text"
-                     placeholder="e.g., Clark, Pampanga"
-                     value={formData.location}
-                     onChange={(e) => handleInputChange('location', e.target.value)}
-                     className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                   />
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <PlacesAutocomplete
+                    value={formData.location}
+                    placeholder="Type city, province, municipality, or barangay"
+                    onChange={(val) => handleInputChange('location', val)}
+                    onSelect={(p) => {
+                      handleInputChange('location', p.description)
+                      setFormData(prev => ({
+                        ...prev,
+                        location_place_id: p.place_id,
+                        location_lat: p.lat,
+                        location_lng: p.lng,
+                        location_city: p.city,
+                        location_province: p.province,
+                        location_country: p.country,
+                        location_barangay: p.barangay,
+                        location_region: p.region,
+                      }))
+                    }}
+                  />
                 </div>
                 {errors.location && <p className="text-red-400 text-xs">{errors.location}</p>}
               </div>

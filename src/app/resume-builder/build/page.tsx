@@ -1957,8 +1957,8 @@ export default function ResumeBuilderPage() {
           </motion.div>
 
           {/* Save Success Modal */}
-        <Dialog open={showSaveSuccessModal} onOpenChange={setShowSaveSuccessModal}>
-          <DialogContent className="bg-[#0b0b0d] border border-white/10 text-white max-w-md">
+        <Dialog open={showSaveSuccessModal}>
+          <DialogContent className="bg-[#0b0b0d] border border-white/10 text-white max-w-md [&>button]:hidden">
             <DialogHeader>
               <div className="flex items-center justify-center mb-4">
                 <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1998,16 +1998,6 @@ export default function ResumeBuilderPage() {
                 View Saved Resume
               </Button>
             </div>
-            
-            <DialogFooter className="mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowSaveSuccessModal(false)}
-                className="w-full border-white/10 text-gray-300 hover:bg-white/5"
-              >
-                Continue Editing
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
 
