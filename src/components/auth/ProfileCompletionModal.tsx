@@ -36,6 +36,7 @@ import {
 interface ProfileCompletionData {
   // Step 1: Profile Information
   gender: string
+  genderCustom: string
   location: string
   phone: string
   position: string
@@ -80,6 +81,7 @@ export default function ProfileCompletionModal({
   const [formData, setFormData] = useState<ProfileCompletionData>({
     // Step 1: Profile Information
     gender: '',
+    genderCustom: '',
     location: '',
     phone: '',
     position: '',
@@ -125,6 +127,14 @@ export default function ProfileCompletionModal({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+    
+         // Clear genderCustom when gender changes to something other than 'others'
+     if (field === 'gender' && value !== 'others') {
+       setFormData(prev => ({ ...prev, genderCustom: '' }))
+       if (errors.genderCustom) {
+         setErrors(prev => ({ ...prev, genderCustom: '' }))
+       }
+     }
   }
 
   const validateStep = (step: number) => {
@@ -134,7 +144,9 @@ export default function ProfileCompletionModal({
       case 1: // Profile Information
         if (!formData.gender.trim()) {
           newErrors.gender = 'Gender is required'
-        }
+                 } else if (formData.gender === 'others' && !formData.genderCustom.trim()) {
+           newErrors.genderCustom = 'Please specify your gender'
+         }
         if (!formData.location.trim()) {
           newErrors.location = 'Location is required'
         }
@@ -240,6 +252,7 @@ export default function ProfileCompletionModal({
       const profileUpdateData = {
         userId: user?.id,
         gender: formData.gender,
+                 gender_custom: formData.gender === 'others' ? formData.genderCustom : null,
         location: formData.location,
         phone: formData.phone,
         position: formData.position,
@@ -258,7 +271,9 @@ export default function ProfileCompletionModal({
       })
 
       if (!profileResponse.ok) {
-        throw new Error('Failed to update profile')
+        const errorData = await profileResponse.json().catch(() => ({}))
+        const errorMessage = errorData.details || errorData.error || 'Failed to update profile'
+        throw new Error(`Failed to update profile: ${profileResponse.status} ${errorMessage}`)
       }
 
              // Update work status in Railway database
@@ -285,7 +300,9 @@ export default function ProfileCompletionModal({
       })
 
       if (!workStatusResponse.ok) {
-        throw new Error('Failed to update work status')
+        const errorData = await workStatusResponse.json().catch(() => ({}))
+        const errorMessage = errorData.details || errorData.error || 'Failed to update work status'
+        throw new Error(`Failed to update work status: ${workStatusResponse.status} ${errorMessage}`)
       }
 
       // Update Supabase metadata
@@ -346,17 +363,30 @@ export default function ProfileCompletionModal({
                   Gender <span className="text-red-400">*</span>
                 </label>
                 <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                  <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
+                  <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
                     <SelectValue placeholder="Select your gender" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
                     <SelectItem value="male" className="text-white hover:bg-white/10">Male</SelectItem>
                     <SelectItem value="female" className="text-white hover:bg-white/10">Female</SelectItem>
-                    <SelectItem value="other" className="text-white hover:bg-white/10">Other</SelectItem>
-                    <SelectItem value="prefer-not-to-say" className="text-white hover:bg-white/10">Prefer not to say</SelectItem>
+                                         <SelectItem value="others" className="text-white hover:bg-white/10">Other</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.gender && <p className="text-red-400 text-xs">{errors.gender}</p>}
+                
+                                 {/* Custom gender input field */}
+                 {formData.gender === 'others' && (
+                  <div className="mt-2">
+                                         <Input
+                       type="text"
+                       placeholder="Please specify your gender"
+                       value={formData.genderCustom}
+                       onChange={(e) => handleInputChange('genderCustom', e.target.value)}
+                       className="h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                     />
+                    {errors.genderCustom && <p className="text-red-400 text-xs mt-1">{errors.genderCustom}</p>}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -365,13 +395,13 @@ export default function ProfileCompletionModal({
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="e.g., Clark, Pampanga"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                  />
+                                     <Input
+                     type="text"
+                     placeholder="e.g., Clark, Pampanga"
+                     value={formData.location}
+                     onChange={(e) => handleInputChange('location', e.target.value)}
+                     className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                   />
                 </div>
                 {errors.location && <p className="text-red-400 text-xs">{errors.location}</p>}
               </div>
@@ -382,13 +412,13 @@ export default function ProfileCompletionModal({
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="tel"
-                    placeholder="e.g., +63 912 345 6789"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                  />
+                                     <Input
+                     type="tel"
+                     placeholder="e.g., +63 912 345 6789"
+                     value={formData.phone}
+                     onChange={(e) => handleInputChange('phone', e.target.value)}
+                     className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                   />
                 </div>
                 {errors.phone && <p className="text-red-400 text-xs">{errors.phone}</p>}
               </div>
@@ -399,13 +429,13 @@ export default function ProfileCompletionModal({
                 </label>
                 <div className="relative">
                   <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="e.g., Customer Service Representative"
-                    value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                  />
+                                     <Input
+                     type="text"
+                     placeholder="e.g., Customer Service Representative"
+                     value={formData.position}
+                     onChange={(e) => handleInputChange('position', e.target.value)}
+                     className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                   />
                 </div>
                 {errors.position && <p className="text-red-400 text-xs">{errors.position}</p>}
               </div>
@@ -416,12 +446,12 @@ export default function ProfileCompletionModal({
                 </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="date"
-                    value={formData.birthday}
-                    onChange={(e) => handleInputChange('birthday', e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20"
-                  />
+                                     <Input
+                     type="date"
+                     value={formData.birthday}
+                     onChange={(e) => handleInputChange('birthday', e.target.value)}
+                     className="pl-10 h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                   />
                 </div>
                 {errors.birthday && <p className="text-red-400 text-xs">{errors.birthday}</p>}
                 {age !== null && <p className="text-cyan-400 text-sm">Age: {age} years old</p>}
@@ -435,12 +465,12 @@ export default function ProfileCompletionModal({
               </label>
               <div className="relative">
                 <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                <Textarea
-                  placeholder="Tell us about yourself, your experience, and career goals..."
-                  value={formData.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                  className="pl-10 min-h-[100px] bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20 resize-none"
-                />
+                                 <Textarea
+                   placeholder="Tell us about yourself, your experience, and career goals..."
+                   value={formData.bio}
+                   onChange={(e) => handleInputChange('bio', e.target.value)}
+                   className="pl-10 min-h-[100px] bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none resize-none"
+                 />
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-400">
@@ -465,10 +495,10 @@ export default function ProfileCompletionModal({
                 <label className="text-sm font-medium text-white block">
                   Work Status <span className="text-red-400">*</span>
                 </label>
-                <Select value={formData.workStatus} onValueChange={(value) => handleInputChange('workStatus', value)}>
-                  <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
-                    <SelectValue placeholder="Select your work status" />
-                  </SelectTrigger>
+                                 <Select value={formData.workStatus} onValueChange={(value) => handleInputChange('workStatus', value)}>
+                   <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                     <SelectValue placeholder="Select your work status" />
+                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
                     {WORK_STATUS_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
@@ -484,10 +514,10 @@ export default function ProfileCompletionModal({
                 <label className="text-sm font-medium text-white block">
                   Current Mood <span className="text-red-400">*</span>
                 </label>
-                <Select value={formData.currentMood} onValueChange={(value) => handleInputChange('currentMood', value)}>
-                  <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
-                    <SelectValue placeholder="How are you feeling?" />
-                  </SelectTrigger>
+                                 <Select value={formData.currentMood} onValueChange={(value) => handleInputChange('currentMood', value)}>
+                   <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                     <SelectValue placeholder="How are you feeling?" />
+                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
                     {MOOD_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
@@ -503,13 +533,13 @@ export default function ProfileCompletionModal({
                  <label className="text-sm font-medium text-white block">
                    Current Employer <span className="text-red-400">*</span>
                  </label>
-                 <Input
-                   type="text"
-                   placeholder="e.g., ABC Company"
-                   value={formData.currentEmployer}
-                   onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
-                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                 />
+                                   <Input
+                    type="text"
+                    placeholder="e.g., ABC Company"
+                    value={formData.currentEmployer}
+                    onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
+                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
                  {errors.currentEmployer && <p className="text-red-400 text-xs">{errors.currentEmployer}</p>}
                </div>
 
@@ -517,13 +547,13 @@ export default function ProfileCompletionModal({
                  <label className="text-sm font-medium text-white block">
                    Current Position <span className="text-red-400">*</span>
                  </label>
-                 <Input
-                   type="text"
-                   placeholder="e.g., Senior Developer"
-                   value={formData.currentPosition}
-                   onChange={(e) => handleInputChange('currentPosition', e.target.value)}
-                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                 />
+                                   <Input
+                    type="text"
+                    placeholder="e.g., Senior Developer"
+                    value={formData.currentPosition}
+                    onChange={(e) => handleInputChange('currentPosition', e.target.value)}
+                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
                  {errors.currentPosition && <p className="text-red-400 text-xs">{errors.currentPosition}</p>}
                </div>
 
@@ -531,13 +561,13 @@ export default function ProfileCompletionModal({
                  <label className="text-sm font-medium text-white block">
                    Current Salary <span className="text-red-400">*</span>
                  </label>
-                 <Input
-                   type="text"
-                   placeholder="e.g., ₱50,000"
-                   value={formData.currentSalary}
-                   onChange={(e) => handleInputChange('currentSalary', e.target.value)}
-                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                 />
+                                   <Input
+                    type="text"
+                    placeholder="e.g., ₱50,000"
+                    value={formData.currentSalary}
+                    onChange={(e) => handleInputChange('currentSalary', e.target.value)}
+                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
                  {errors.currentSalary && <p className="text-red-400 text-xs">{errors.currentSalary}</p>}
                </div>
 
@@ -547,23 +577,23 @@ export default function ProfileCompletionModal({
                   </label>
                   <div className="flex items-center space-x-3">
                     <div className="flex-1">
-                      <Input
-                        type="text"
-                        placeholder="₱60,000"
-                        value={formData.expectedSalaryMin}
-                        onChange={(e) => handleInputChange('expectedSalaryMin', e.target.value)}
-                        className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                      />
+                                             <Input
+                         type="text"
+                         placeholder="₱60,000"
+                         value={formData.expectedSalaryMin}
+                         onChange={(e) => handleInputChange('expectedSalaryMin', e.target.value)}
+                         className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                       />
                     </div>
                     <span className="text-white font-medium">-</span>
                     <div className="flex-1">
-                      <Input
-                        type="text"
-                        placeholder="₱80,000"
-                        value={formData.expectedSalaryMax}
-                        onChange={(e) => handleInputChange('expectedSalaryMax', e.target.value)}
-                        className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                      />
+                                             <Input
+                         type="text"
+                         placeholder="₱80,000"
+                         value={formData.expectedSalaryMax}
+                         onChange={(e) => handleInputChange('expectedSalaryMax', e.target.value)}
+                         className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                       />
                     </div>
                   </div>
                   {errors.expectedSalary && <p className="text-red-400 text-xs">{errors.expectedSalary}</p>}
@@ -573,13 +603,13 @@ export default function ProfileCompletionModal({
                  <label className="text-sm font-medium text-white block">
                    Notice Period (Days) <span className="text-red-400">*</span>
                  </label>
-                 <Input
-                   type="number"
-                   placeholder="e.g., 30"
-                   value={formData.noticePeriod}
-                   onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
-                   className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
-                 />
+                                   <Input
+                    type="number"
+                    placeholder="e.g., 30"
+                    value={formData.noticePeriod}
+                    onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
+                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
                  {errors.noticePeriod && <p className="text-red-400 text-xs">{errors.noticePeriod}</p>}
                </div>
 
@@ -587,10 +617,10 @@ export default function ProfileCompletionModal({
                   <label className="text-sm font-medium text-white block">
                     Preferred Shift <span className="text-red-400">*</span>
                   </label>
-                  <Select value={formData.preferredShift} onValueChange={(value) => handleInputChange('preferredShift', value)}>
-                    <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
-                      <SelectValue placeholder="Select preferred shift" />
-                    </SelectTrigger>
+                                     <Select value={formData.preferredShift} onValueChange={(value) => handleInputChange('preferredShift', value)}>
+                     <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                       <SelectValue placeholder="Select preferred shift" />
+                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-white/20">
                       {SHIFT_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
@@ -606,10 +636,10 @@ export default function ProfileCompletionModal({
                   <label className="text-sm font-medium text-white block">
                     Work Setup <span className="text-red-400">*</span>
                   </label>
-                  <Select value={formData.workSetup} onValueChange={(value) => handleInputChange('workSetup', value)}>
-                    <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:border-cyan-500 focus:ring-cyan-500/20">
-                      <SelectValue placeholder="Select work setup preference" />
-                    </SelectTrigger>
+                                     <Select value={formData.workSetup} onValueChange={(value) => handleInputChange('workSetup', value)}>
+                     <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                       <SelectValue placeholder="Select work setup preference" />
+                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-white/20">
                       {WORK_SETUP_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">

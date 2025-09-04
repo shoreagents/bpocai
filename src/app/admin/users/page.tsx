@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
 import { 
   Users, 
@@ -63,9 +63,29 @@ interface User {
   is_admin?: boolean
 }
 
+interface UserWorkStatus {
+  userId: string
+  fullName?: string
+  email?: string
+  avatarUrl?: string
+  currentEmployer?: string
+  currentPosition?: string
+  currentSalary?: string
+  noticePeriodDays?: number
+  expectedSalary?: string
+  currentMood?: string
+  workStatus?: string
+  preferredShift?: string
+  workSetup?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [userWorkStatuses, setUserWorkStatuses] = useState<UserWorkStatus[]>([])
   const [loading, setLoading] = useState(true)
+  const [workStatusLoading, setWorkStatusLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [adminLevelFilter, setAdminLevelFilter] = useState<string>('all')
   const [sortOrder, setSortOrder] = useState<string>('latest')
@@ -114,44 +134,106 @@ export default function UsersPage() {
       }
     }
 
+    // Fetch user work statuses
+    const fetchUserWorkStatuses = async () => {
+      try {
+        setWorkStatusLoading(true)
+        console.log('Frontend: Fetching user work statuses...')
+        
+        const response = await fetch('/api/admin/user-work-status?limit=1000')
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Frontend: Received work status data:', data)
+          setUserWorkStatuses(data.results || [])
+        } else {
+          const errorText = await response.text()
+          console.error('Frontend: Failed to fetch work statuses:', errorText)
+          setUserWorkStatuses([])
+        }
+      } catch (error) {
+        console.error('Frontend: Error fetching work statuses:', error)
+        setUserWorkStatuses([])
+      } finally {
+        setWorkStatusLoading(false)
+      }
+    }
+
     fetchUsers()
+    fetchUserWorkStatuses()
     
     // Cleanup function to ensure loading is reset if component unmounts
     return () => {
       setLoading(false)
+      setWorkStatusLoading(false)
     }
   }, [])
 
+  // Filter and sort users
+  const filteredUsers = useMemo(() => {
+    console.log('🔍 Filtering users:', { 
+      searchTerm, 
+      adminLevelFilter, 
+      sortOrder, 
+      totalUsers: users.length,
+      users: users.slice(0, 3) // Log first 3 users for debugging
+    })
+    
+    if (users.length === 0) {
+      console.log('⚠️ No users to filter')
+      return []
+    }
+    
+    const filtered = users.filter(user => {
+      const matchesSearch = searchTerm === '' || 
+                           user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.position?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesAdminLevel = adminLevelFilter === 'all' || user.admin_level === adminLevelFilter
+      
+      const matches = matchesSearch && matchesAdminLevel
+      if (!matches) {
+        console.log('❌ User filtered out:', { 
+          id: user.id, 
+          name: user.full_name, 
+          searchMatch: matchesSearch, 
+          adminMatch: matchesAdminLevel 
+        })
+      }
+      
+      return matches
+    })
+    
+    const sorted = filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB
+    })
+    
+    console.log('✅ Filtered results:', { 
+      filtered: filtered.length, 
+      sorted: sorted.length,
+      searchTerm: searchTerm || 'empty',
+      adminLevelFilter,
+      sortOrder
+    })
+    return sorted
+  }, [users, searchTerm, adminLevelFilter, sortOrder])
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentUsers = filteredUsers.slice(startIndex, endIndex)
 
-          const filteredUsers = users.filter(user => {
-     const matchesSearch = searchTerm === '' || 
-                          user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.position?.toLowerCase().includes(searchTerm.toLowerCase())
-     
-     const matchesAdminLevel = adminLevelFilter === 'all' || user.admin_level === adminLevelFilter
-     
-     return matchesSearch && matchesAdminLevel
-   }).sort((a, b) => {
-     const dateA = new Date(a.created_at).getTime()
-     const dateB = new Date(b.created_at).getTime()
-     return sortOrder === 'latest' ? dateB - dateA : dateA - dateB
-   })
-
-   // Pagination logic
-   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
-   const startIndex = (currentPage - 1) * itemsPerPage
-   const endIndex = startIndex + itemsPerPage
-   const currentUsers = filteredUsers.slice(startIndex, endIndex)
-
-       // Reset to first page when filters change
-    useEffect(() => {
-      setCurrentPage(1)
-    }, [searchTerm, adminLevelFilter, sortOrder])
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, adminLevelFilter, sortOrder])
 
 
 
@@ -167,6 +249,10 @@ export default function UsersPage() {
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
+  }
+
+  const getUserWorkStatus = (userId: string): UserWorkStatus | undefined => {
+    return userWorkStatuses.find(ws => ws.userId === userId)
   }
 
   const handleToggleAdmin = async (userId: string, currentAdminLevel: string | undefined) => {
@@ -264,8 +350,8 @@ export default function UsersPage() {
   return (
     <AdminLayout title="Users" description="Manage platform users and their accounts">
       <div className="admin-users-page space-y-6">
-        {/* Header Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                 {/* Header Stats */}
+         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -328,38 +414,74 @@ export default function UsersPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <UserCheck className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Admin Users</p>
-                  <p className="text-2xl font-bold text-white">
-                    {users.filter(u => u.admin_level === 'admin').length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                     <Card className="glass-card">
+             <CardContent className="p-6">
+               <div className="flex items-center space-x-4">
+                 <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center">
+                   <UserCheck className="w-6 h-6 text-white" />
+                 </div>
+                 <div>
+                   <p className="text-sm text-gray-400">Admin Users</p>
+                   <p className="text-2xl font-bold text-white">
+                     {users.filter(u => u.admin_level === 'admin').length}
+                   </p>
+                 </div>
+               </div>
+             </CardContent>
+           </Card>
+
+           <Card className="glass-card">
+             <CardContent className="p-6">
+               <div className="flex items-center space-x-4">
+                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
+                   <Users className="w-6 h-6 text-white" />
+                 </div>
+                 <div>
+                   <p className="text-sm text-gray-400">With Work Status</p>
+                   <p className="text-2xl font-bold text-white">
+                     {userWorkStatuses.length}
+                   </p>
+                 </div>
+               </div>
+             </CardContent>
+           </Card>
         </div>
 
 
 
-        {/* Filters and Search */}
-        <Card className="glass-card">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/3 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search users by name, email, location, phone, bio, or position..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
-                />
-              </div>
+                 {/* Filters and Search */}
+         <Card className="glass-card">
+           <CardContent className="p-6">
+             {/* Debug Info */}
+             <div className="mb-4 p-3 bg-gray-800/50 rounded-lg text-xs text-gray-300">
+               <div className="grid grid-cols-3 gap-4">
+                 <div>Users: {users.length}</div>
+                 <div>Filtered: {filteredUsers.length}</div>
+                 <div>Search: "{searchTerm}"</div>
+                 <div>Admin Filter: {adminLevelFilter}</div>
+                 <div>Sort: {sortOrder}</div>
+                 <div>Page: {currentPage}</div>
+               </div>
+             </div>
+             
+             <div className="flex flex-col sm:flex-row gap-4">
+               <div className="flex-1 relative">
+                 <Search className="absolute left-4 top-1/3 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                  <Input
+                   placeholder="Search users by name, email, location, phone, bio, or position..."
+                   value={searchTerm}
+                   onChange={(e) => {
+                     const newValue = e.target.value
+                     console.log('🔍 Search input changed:', { 
+                       oldValue: searchTerm, 
+                       newValue,
+                       usersLength: users.length 
+                     })
+                     setSearchTerm(newValue)
+                   }}
+                   className="pl-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-white/20 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/20 invalid:border-white/20"
+                 />
+               </div>
                                                            <div className="flex gap-2">
                  <DropdownMenu>
                    <DropdownMenuTrigger asChild>
@@ -369,18 +491,24 @@ export default function UsersPage() {
                      </Button>
                    </DropdownMenuTrigger>
                    <DropdownMenuContent className="bg-gray-800 border-white/10">
-                     <DropdownMenuItem 
-                       onClick={() => setSortOrder('latest')}
-                       className="text-white hover:bg-white/10"
-                     >
-                       Latest Users
-                     </DropdownMenuItem>
-                     <DropdownMenuItem 
-                       onClick={() => setSortOrder('oldest')}
-                       className="text-white hover:bg-white/10"
-                     >
-                       Oldest Users
-                     </DropdownMenuItem>
+                                           <DropdownMenuItem 
+                        onClick={() => {
+                          console.log('🔍 Sort order changed to: latest')
+                          setSortOrder('latest')
+                        }}
+                        className="text-white hover:bg-white/10"
+                      >
+                        Latest Users
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          console.log('🔍 Sort order changed to: oldest')
+                          setSortOrder('oldest')
+                        }}
+                        className="text-white hover:bg-white/10"
+                      >
+                        Oldest Users
+                      </DropdownMenuItem>
                    </DropdownMenuContent>
                  </DropdownMenu>
 
@@ -392,25 +520,34 @@ export default function UsersPage() {
                      </Button>
                    </DropdownMenuTrigger>
                    <DropdownMenuContent className="bg-gray-800 border-white/10">
-                     <DropdownMenuItem 
-                       onClick={() => setAdminLevelFilter('all')}
-                       className="text-white hover:bg-white/10"
-                     >
-                       All Admin Levels
-                     </DropdownMenuItem>
-                     <DropdownMenuSeparator className="bg-white/10" />
-                     <DropdownMenuItem 
-                       onClick={() => setAdminLevelFilter('user')}
-                       className="text-white hover:bg-white/10"
-                     >
-                       User
-                     </DropdownMenuItem>
-                     <DropdownMenuItem 
-                       onClick={() => setAdminLevelFilter('admin')}
-                       className="text-white hover:bg-white/10"
-                     >
-                       Admin
-                     </DropdownMenuItem>
+                                           <DropdownMenuItem 
+                        onClick={() => {
+                          console.log('🔍 Admin filter changed to: all')
+                          setAdminLevelFilter('all')
+                        }}
+                        className="text-white hover:bg-white/10"
+                      >
+                        All Admin Levels
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-white/10" />
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          console.log('🔍 Admin filter changed to: user')
+                          setAdminLevelFilter('user')
+                        }}
+                        className="text-white hover:bg-white/10"
+                      >
+                        User
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          console.log('🔍 Admin filter changed to: admin')
+                          setAdminLevelFilter('admin')
+                        }}
+                        className="text-white hover:bg-white/10"
+                      >
+                        Admin
+                      </DropdownMenuItem>
                    </DropdownMenuContent>
                  </DropdownMenu>
 
@@ -434,17 +571,20 @@ export default function UsersPage() {
               <div className="overflow-x-auto">
                 <Table>
                                      <TableHeader>
-                     <TableRow className="border-white/10 hover:bg-white/5">
-                       <TableHead className="text-white font-medium">Full Name</TableHead>
-                       <TableHead className="text-white font-medium">Location</TableHead>
-                       <TableHead className="text-white font-medium">Created At</TableHead>
-                       <TableHead className="text-white font-medium">Updated At</TableHead>
-                       <TableHead className="text-white font-medium">Phone</TableHead>
-                       <TableHead className="text-white font-medium">Bio</TableHead>
-                       <TableHead className="text-white font-medium">Position</TableHead>
-                       <TableHead className="text-white font-medium">Admin Level</TableHead>
-                       <TableHead className="text-white font-medium text-right">Actions</TableHead>
-                     </TableRow>
+                                           <TableRow className="border-white/10 hover:bg-white/5">
+                        <TableHead className="text-white font-medium">Full Name</TableHead>
+                        <TableHead className="text-white font-medium">Location</TableHead>
+                        <TableHead className="text-white font-medium">Created At</TableHead>
+                        <TableHead className="text-white font-medium">Updated At</TableHead>
+                        <TableHead className="text-white font-medium">Phone</TableHead>
+                        <TableHead className="text-white font-medium">Bio</TableHead>
+                        <TableHead className="text-white font-medium">Position</TableHead>
+                        <TableHead className="text-white font-medium">Work Status</TableHead>
+                        <TableHead className="text-white font-medium">Current Employer</TableHead>
+                        <TableHead className="text-white font-medium">Current Position</TableHead>
+                        <TableHead className="text-white font-medium">Admin Level</TableHead>
+                        <TableHead className="text-white font-medium text-right">Actions</TableHead>
+                      </TableRow>
                    </TableHeader>
                   <TableBody>
                                          {currentUsers.map((user) => (
@@ -481,26 +621,58 @@ export default function UsersPage() {
                          <TableCell>
                            <span className="text-gray-300">{user.phone || 'N/A'}</span>
                          </TableCell>
-                         <TableCell>
-                           <span className="text-gray-300 max-w-xs truncate" title={user.bio || ''}>
+                         <TableCell className="max-w-[200px]">
+                           <span 
+                             className="text-gray-300 block truncate" 
+                             title={user.bio || ''}
+                           >
                              {user.bio || 'N/A'}
                            </span>
                          </TableCell>
-                         <TableCell>
-                           <span className="text-gray-300">{user.position || 'N/A'}</span>
-                         </TableCell>
-                         <TableCell>
-                           <Badge 
-                             variant={user.admin_level === 'admin' ? 'default' : 'secondary'}
-                             className={
-                               user.admin_level === 'admin' 
-                                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
-                                 : 'bg-gray-600 text-gray-200'
-                             }
-                           >
-                             {user.admin_level || 'user'}
-                           </Badge>
-                         </TableCell>
+                                                                              <TableCell className="max-w-[200px]">
+                             <span 
+                               className="text-gray-300 block truncate" 
+                               title={user.position || ''}
+                             >
+                               {user.position || 'N/A'}
+                             </span>
+                           </TableCell>
+                           <TableCell>
+                             <Badge 
+                               variant="secondary"
+                               className="bg-gray-600 text-gray-200"
+                             >
+                               {getUserWorkStatus(user.id)?.workStatus || 'N/A'}
+                             </Badge>
+                           </TableCell>
+                           <TableCell className="max-w-[150px]">
+                             <span 
+                               className="text-gray-300 block truncate" 
+                               title={getUserWorkStatus(user.id)?.currentEmployer || ''}
+                             >
+                               {getUserWorkStatus(user.id)?.currentEmployer || 'N/A'}
+                             </span>
+                           </TableCell>
+                           <TableCell className="max-w-[150px]">
+                             <span 
+                               className="text-gray-300 block truncate" 
+                               title={getUserWorkStatus(user.id)?.currentPosition || ''}
+                             >
+                               {getUserWorkStatus(user.id)?.currentPosition || 'N/A'}
+                             </span>
+                           </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={user.admin_level === 'admin' ? 'default' : 'secondary'}
+                              className={
+                                user.admin_level === 'admin' 
+                                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                                  : 'bg-gray-600 text-gray-200'
+                              }
+                            >
+                              {user.admin_level || 'user'}
+                            </Badge>
+                          </TableCell>
                          <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
