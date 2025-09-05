@@ -47,6 +47,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import AdminLayout from '@/components/layout/AdminLayout'
 import { ChevronDown } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface User {
   id: string
@@ -61,6 +63,9 @@ interface User {
   position?: string
   admin_level?: string
   is_admin?: boolean
+  gender?: string
+  birthday?: string
+  completed_data?: boolean
 }
 
 interface UserWorkStatus {
@@ -82,6 +87,7 @@ interface UserWorkStatus {
 }
 
 export default function UsersPage() {
+  const { session } = useAuth()
   const [users, setUsers] = useState<User[]>([])
   const [userWorkStatuses, setUserWorkStatuses] = useState<UserWorkStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,8 +98,27 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [togglingUsers, setTogglingUsers] = useState<Set<string>>(new Set())
-  const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
+const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; userId: string; userName: string } | null>(null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<any | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+
+  // Test database connection first
+  useEffect(() => {
+    const testDatabase = async () => {
+      try {
+        console.log('Testing database connection...')
+        const response = await fetch('/api/admin/test-db')
+        const data = await response.json()
+        console.log('Database test result:', data)
+      } catch (error) {
+        console.error('Database test failed:', error)
+      }
+    }
+    
+    testDatabase()
+  }, [])
 
   // Fetch users from database
   useEffect(() => {
@@ -118,7 +143,14 @@ export default function UsersPage() {
           setUsers(data.users || [])
         } else {
           const errorText = await response.text()
-          console.error('Frontend: Failed to fetch users:', errorText)
+          console.error('Frontend: Failed to fetch users:', response.status, response.statusText)
+          console.error('Frontend: Error response:', errorText)
+          
+          // Check if the response is HTML (error page)
+          if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+            console.error('Frontend: Received HTML error page instead of JSON')
+          }
+          
           setUsers([])
         }
       } catch (error) {
@@ -148,7 +180,14 @@ export default function UsersPage() {
           setUserWorkStatuses(data.results || [])
         } else {
           const errorText = await response.text()
-          console.error('Frontend: Failed to fetch work statuses:', errorText)
+          console.error('Frontend: Failed to fetch work statuses:', response.status, response.statusText)
+          console.error('Frontend: Error response:', errorText)
+          
+          // Check if the response is HTML (error page)
+          if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+            console.error('Frontend: Received HTML error page instead of JSON for work statuses')
+          }
+          
           setUserWorkStatuses([])
         }
       } catch (error) {
@@ -347,6 +386,24 @@ export default function UsersPage() {
     }
   }
 
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      setProfileLoading(true)
+      setUserProfile(null)
+      const res = await fetch(`/api/user/profile?userId=${encodeURIComponent(userId)}` , {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        cache: 'no-store'
+      })
+      if (!res.ok) throw new Error(`Failed: ${res.status}`)
+      const data = await res.json()
+      setUserProfile(data.user || null)
+    } catch (e) {
+      setUserProfile(null)
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
   return (
     <AdminLayout title="Users" description="Manage platform users and their accounts">
       <div className="admin-users-page space-y-6">
@@ -452,17 +509,6 @@ export default function UsersPage() {
                  {/* Filters and Search */}
          <Card className="glass-card">
            <CardContent className="p-6">
-             {/* Debug Info */}
-             <div className="mb-4 p-3 bg-gray-800/50 rounded-lg text-xs text-gray-300">
-               <div className="grid grid-cols-3 gap-4">
-                 <div>Users: {users.length}</div>
-                 <div>Filtered: {filteredUsers.length}</div>
-                 <div>Search: "{searchTerm}"</div>
-                 <div>Admin Filter: {adminLevelFilter}</div>
-                 <div>Sort: {sortOrder}</div>
-                 <div>Page: {currentPage}</div>
-               </div>
-             </div>
              
              <div className="flex flex-col sm:flex-row gap-4">
                <div className="flex-1 relative">
@@ -579,9 +625,9 @@ export default function UsersPage() {
                         <TableHead className="text-white font-medium">Phone</TableHead>
                         <TableHead className="text-white font-medium">Bio</TableHead>
                         <TableHead className="text-white font-medium">Position</TableHead>
-                        <TableHead className="text-white font-medium">Work Status</TableHead>
-                        <TableHead className="text-white font-medium">Current Employer</TableHead>
-                        <TableHead className="text-white font-medium">Current Position</TableHead>
+                        <TableHead className="text-white font-medium">Gender</TableHead>
+                        <TableHead className="text-white font-medium">Birthday</TableHead>
+                        <TableHead className="text-white font-medium">Completed Data</TableHead>
                         <TableHead className="text-white font-medium">Admin Level</TableHead>
                         <TableHead className="text-white font-medium text-right">Actions</TableHead>
                       </TableRow>
@@ -589,7 +635,7 @@ export default function UsersPage() {
                   <TableBody>
                                          {currentUsers.map((user) => (
                        <TableRow key={user.id} className="border-white/10 hover:bg-white/5">
-                         <TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <div className="flex items-center space-x-3">
                              <Avatar className="w-8 h-8">
                                <AvatarImage src={user.avatar_url} />
@@ -603,25 +649,25 @@ export default function UsersPage() {
                              </div>
                            </div>
                          </TableCell>
-                         <TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <span className="text-gray-300">{user.location || 'N/A'}</span>
                          </TableCell>
-                         <TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <div className="flex items-center space-x-2 text-sm">
                              <Calendar className="w-3 h-3 text-gray-400" />
                              <span className="text-gray-300">{formatDate(user.created_at)}</span>
                            </div>
                          </TableCell>
-                         <TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <div className="flex items-center space-x-2 text-sm">
                              <Calendar className="w-3 h-3 text-gray-400" />
                              <span className="text-gray-300">{user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'N/A'}</span>
                            </div>
                          </TableCell>
-                         <TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <span className="text-gray-300">{user.phone || 'N/A'}</span>
                          </TableCell>
-                         <TableCell className="max-w-[200px]">
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer max-w-[200px]">
                            <span 
                              className="text-gray-300 block truncate" 
                              title={user.bio || ''}
@@ -629,7 +675,7 @@ export default function UsersPage() {
                              {user.bio || 'N/A'}
                            </span>
                          </TableCell>
-                                                                              <TableCell className="max-w-[200px]">
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer max-w-[200px]">
                              <span 
                                className="text-gray-300 block truncate" 
                                title={user.position || ''}
@@ -637,31 +683,29 @@ export default function UsersPage() {
                                {user.position || 'N/A'}
                              </span>
                            </TableCell>
-                           <TableCell>
+                           <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
+                             <span className="text-gray-300 capitalize">
+                               {user.gender || 'N/A'}
+                             </span>
+                           </TableCell>
+                           <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
+                             <span className="text-gray-300">
+                               {user.birthday ? new Date(user.birthday).toLocaleDateString() : 'N/A'}
+                             </span>
+                           </TableCell>
+                           <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                              <Badge 
-                               variant="secondary"
-                               className="bg-gray-600 text-gray-200"
+                               variant={user.completed_data ? 'default' : 'secondary'}
+                               className={
+                                 user.completed_data 
+                                   ? 'bg-green-600 text-white' 
+                                   : 'bg-gray-600 text-gray-200'
+                               }
                              >
-                               {getUserWorkStatus(user.id)?.workStatus || 'N/A'}
+                               {user.completed_data ? 'Yes' : 'No'}
                              </Badge>
                            </TableCell>
-                           <TableCell className="max-w-[150px]">
-                             <span 
-                               className="text-gray-300 block truncate" 
-                               title={getUserWorkStatus(user.id)?.currentEmployer || ''}
-                             >
-                               {getUserWorkStatus(user.id)?.currentEmployer || 'N/A'}
-                             </span>
-                           </TableCell>
-                           <TableCell className="max-w-[150px]">
-                             <span 
-                               className="text-gray-300 block truncate" 
-                               title={getUserWorkStatus(user.id)?.currentPosition || ''}
-                             >
-                               {getUserWorkStatus(user.id)?.currentPosition || 'N/A'}
-                             </span>
-                           </TableCell>
-                          <TableCell>
+                          <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                             <Badge 
                               variant={user.admin_level === 'admin' ? 'default' : 'secondary'}
                               className={
@@ -824,6 +868,106 @@ export default function UsersPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* User Details Modal */}
+        <Dialog open={!!selectedUser} onOpenChange={(open) => { if (!open) { setSelectedUser(null); setUserProfile(null) } }}>
+          <DialogContent className="bg-gray-900 border-white/10 text-white max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={selectedUser?.avatar_url || undefined} alt={selectedUser?.full_name || selectedUser?.email || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xs">
+                    {getInitials(selectedUser?.full_name || selectedUser?.email || '?')}
+                  </AvatarFallback>
+                </Avatar>
+                {selectedUser?.full_name || selectedUser?.email}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Basic Profile */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-gray-400 text-xs">Email</div>
+                  <div className="text-white text-sm">{selectedUser?.email || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Location</div>
+                  <div className="text-white text-sm">{userProfile?.location || selectedUser?.location || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Phone</div>
+                  <div className="text-white text-sm">{userProfile?.phone || selectedUser?.phone || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Position</div>
+                  <div className="text-white text-sm">{userProfile?.position || selectedUser?.position || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Gender</div>
+                  <div className="text-white text-sm capitalize">{userProfile?.gender || selectedUser?.gender || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Birthday</div>
+                  <div className="text-white text-sm">{userProfile?.birthday || selectedUser?.birthday ? new Date(userProfile?.birthday || selectedUser?.birthday || '').toLocaleDateString() : '—'}</div>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="text-gray-400 text-xs">Bio</div>
+                  <div className="text-white text-sm whitespace-pre-wrap">{userProfile?.bio || selectedUser?.bio || '—'}</div>
+                </div>
+              </div>
+              
+              {/* Account Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-gray-400 text-xs">Admin Level</div>
+                  <div className="mt-1">
+                    <Badge 
+                      variant={selectedUser?.admin_level === 'admin' ? 'default' : 'secondary'}
+                      className={
+                        selectedUser?.admin_level === 'admin' 
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                          : 'bg-gray-600 text-gray-200'
+                      }
+                    >
+                      {selectedUser?.admin_level || 'user'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Completed Data</div>
+                  <div className="mt-1">
+                    <Badge 
+                      variant={userProfile?.completed_data || selectedUser?.completed_data ? 'default' : 'secondary'}
+                      className={
+                        userProfile?.completed_data || selectedUser?.completed_data
+                          ? 'bg-green-600 text-white' 
+                          : 'bg-gray-600 text-gray-200'
+                      }
+                    >
+                      {userProfile?.completed_data || selectedUser?.completed_data ? 'Yes' : 'No'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-gray-400 text-xs">Account Created</div>
+                  <div className="text-white text-sm">{selectedUser?.created_at ? new Date(selectedUser.created_at).toLocaleString() : '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Last Sign In</div>
+                  <div className="text-white text-sm">{selectedUser?.last_sign_in_at ? new Date(selectedUser.last_sign_in_at).toLocaleString() : '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs">Profile Updated</div>
+                  <div className="text-white text-sm">{profileLoading ? 'Loading…' : (userProfile?.updated_at ? new Date(userProfile.updated_at).toLocaleString() : '—')}</div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   )
