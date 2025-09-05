@@ -44,8 +44,8 @@ export default function AdminWorkStatusesPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [q, setQ] = useState('')
-  const [mood, setMood] = useState<string | undefined>()
-  const [status, setStatus] = useState<string | undefined>()
+  const [mood, setMood] = useState<string>('all')
+  const [status, setStatus] = useState<string>('all')
   const [limit] = useState(50)
   const [offset, setOffset] = useState(0)
   const [total, setTotal] = useState(0)
@@ -60,9 +60,9 @@ export default function AdminWorkStatusesPage() {
       const params = new URLSearchParams()
       params.set('limit', String(limit))
       params.set('offset', String(offset))
-      if (q) params.set('q', q)
-      if (mood) params.set('mood', mood)
-      if (status) params.set('status', status)
+      if (q && q.trim() !== '') params.set('q', q)
+      if (mood && mood.trim() !== '' && mood !== 'all') params.set('mood', mood)
+      if (status && status.trim() !== '' && status !== 'all') params.set('status', status)
       const res = await fetch(`/api/admin/user-work-status?${params.toString()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(`Failed: ${res.status}`)
       const data = await res.json()
@@ -76,6 +76,20 @@ export default function AdminWorkStatusesPage() {
     }
   }
 
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (offset === 0) {
+        fetchData()
+      } else {
+        setOffset(0) // Reset to first page when search/filter changes
+      }
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [q, mood, status])
+
+  // Fetch data when offset changes (pagination)
   useEffect(() => {
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,13 +98,10 @@ export default function AdminWorkStatusesPage() {
   const moodBadge = (m: string | null) => {
     if (!m) return <Badge className="bg-white/10 text-white border-white/20">—</Badge>
     const map: Record<string, string> = {
-      happy: 'bg-green-500/20 text-green-400 border-green-500/30',
-      satisfied: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      neutral: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-      frustrated: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      stressed: 'bg-red-500/20 text-red-400 border-red-500/30',
-      excited: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-      bored: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      Happy: 'bg-green-500/20 text-green-400 border-green-500/30',
+      Satisfied: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      Sad: 'bg-red-500/20 text-red-400 border-red-500/30',
+      Undecided: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
     }
     const cls = map[m] || 'bg-white/10 text-white border-white/20'
     return <Badge className={cls}>{m}</Badge>
@@ -169,8 +180,9 @@ export default function AdminWorkStatusesPage() {
                   <SelectValue placeholder="Mood" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-white/10 text-white">
-                  {['happy','satisfied','neutral','frustrated','stressed','excited','bored'].map((m) => (
-                    <SelectItem key={m} value={m}>{formatOptionLabel(m)}</SelectItem>
+                  <SelectItem value="all">All Moods</SelectItem>
+                  {['Happy','Satisfied','Sad','Undecided'].map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -179,6 +191,7 @@ export default function AdminWorkStatusesPage() {
                   <SelectValue placeholder="Work status" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-white/10 text-white">
+                  <SelectItem value="all">All Statuses</SelectItem>
                   {[
                     'employed','unemployed-looking-for-work','freelancer','part-time','on-leave','retired','student','career-break','transitioning','remote-worker'
                   ].map((s) => (
@@ -190,7 +203,7 @@ export default function AdminWorkStatusesPage() {
                 onClick={() => { setOffset(0); fetchData() }}
                 className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
               >
-                <RefreshCw className="w-4 h-4 mr-2" /> Apply
+                <RefreshCw className="w-4 h-4 mr-2" /> Refresh
               </Button>
             </div>
           </CardContent>

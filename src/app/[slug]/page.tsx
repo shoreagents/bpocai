@@ -2498,9 +2498,6 @@ export default function SavedResumePage() {
     } catch (e) {
       console.error('Error in editResume:', e);
     }
-
-
-
   };
 
 

@@ -22,7 +22,9 @@ import {
   Loader2,
   Chrome,
   User,
-  CheckCircle
+  CheckCircle,
+  ArrowLeft,
+  FileText
 } from 'lucide-react'
 
 interface SignUpFormProps {
@@ -49,6 +51,7 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
   const [showVerifyDialog, setShowVerifyDialog] = useState(false)
+  const [showTermsContent, setShowTermsContent] = useState(false)
 
   // Check if terms were accepted from the terms page
   useEffect(() => {
@@ -119,13 +122,17 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
   }
 
   const handleTermsLinkClick = () => {
+    setShowTermsContent(true)
     setHasReadTerms(true)
     sessionStorage.setItem('hasReadTerms', 'true')
     // Clear any existing terms error when they click to read terms
     if (errors.terms) {
       setErrors(prev => ({ ...prev, terms: '' }))
     }
-    window.location.href = '/terms-and-conditions?from=signup'
+  }
+
+  const handleBackToSignup = () => {
+    setShowTermsContent(false)
   }
 
   const validateForm = () => {
@@ -303,11 +310,23 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
             {/* Header */}
             <DialogHeader className="text-center space-y-3">
               <DialogTitle className="text-2xl sm:text-3xl font-bold gradient-text flex items-center justify-center gap-3">
-                <UserPlus className="w-6 h-6 sm:w-8 sm:h-8" />
-                Join BPOC.IO
+                {showTermsContent ? (
+                  <>
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
+                    Terms and Conditions
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-6 h-6 sm:w-8 sm:h-8" />
+                    Join BPOC.IO
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription className="text-gray-300 text-sm sm:text-base">
-                Start your BPO career journey with our FREE platform
+                {showTermsContent 
+                  ? "Please read and understand our terms before joining"
+                  : "Start your BPO career journey with our FREE platform"
+                }
               </DialogDescription>
             </DialogHeader>
 
@@ -333,8 +352,27 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
               </motion.div>
             )}
 
-            {/* Sign Up Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Back Button for Terms */}
+            {showTermsContent && (
+              <div className="flex justify-start">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleBackToSignup}
+                  className="text-gray-400 hover:text-white flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Sign Up
+                </Button>
+              </div>
+            )}
+
+            {/* Conditional Content */}
+            {showTermsContent ? (
+              <TermsContent />
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -596,18 +634,18 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
               </div>
             </div>
 
-                         {/* Social Sign Up Button */}
-             <Button
-               type="button"
-               variant="outline"
-               className="w-full h-12 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
-               onClick={handleSocialSignUp}
-               disabled={isLoading || !agreedToTerms}
-               title={!agreedToTerms ? 'You must agree to the Terms and Conditions first' : undefined}
-             >
-               <Chrome className="w-4 h-4 mr-2" />
-               Sign up with Google
-             </Button>
+            {/* Social Sign Up Button */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSocialSignUp}
+              disabled={isLoading || !agreedToTerms}
+              title={!agreedToTerms ? 'You must agree to the Terms and Conditions first' : undefined}
+            >
+              <Chrome className="w-4 h-4 mr-2" />
+              Sign up with Google
+            </Button>
 
             {/* Sign In Link */}
             <div className="text-center text-sm text-gray-300 pt-2">
@@ -620,6 +658,8 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
                 Sign in
               </button>
             </div>
+              </>
+            )}
           </motion.div>
         </DialogContent>
       </Dialog>
@@ -645,5 +685,128 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+// Terms Content Component
+function TermsContent() {
+  return (
+    <div className="max-h-[60vh] overflow-y-auto space-y-6 text-sm">
+      {/* Platform Information */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">Platform Information</h3>
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <div className="space-y-2 text-gray-300">
+            <div><strong className="text-gray-300">Platform:</strong> <span className="text-gray-100">BPOC.IO</span></div>
+            <div><strong className="text-gray-300">Operated By:</strong> <span className="text-gray-100">ShoreAgents Inc.</span></div>
+            <div><strong className="text-gray-300">Registration:</strong> <span className="text-gray-100">SEC CS201918140 | TIN 010-425-223-00000</span></div>
+            <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+61 488 845 828</span></div>
+            <div><strong className="text-gray-300">Email:</strong> <span className="text-gray-100">careers@shoreagents.com</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* About BPOC.IO */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">About BPOC.IO</h3>
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <p className="text-gray-300 mb-3">BPOC.IO is ShoreAgents Inc.'s recruitment and assessment platform designed to:</p>
+          <ul className="space-y-1 text-gray-300">
+            <li>• <strong className="text-white">Streamline hiring</strong> for positions within ShoreAgents organization</li>
+            <li>• <strong className="text-white">Evaluate candidate qualifications</strong> through AI-powered assessments</li>
+            <li>• <strong className="text-white">Match talent</strong> with appropriate roles in our company</li>
+            <li>• <strong className="text-white">Provide career development</strong> insights and professional growth opportunities</li>
+          </ul>
+          <div className="mt-3 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+            <p className="text-gray-200 font-semibold">By using BPOC.IO, you are applying for potential employment with ShoreAgents Inc.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Acceptance of Terms */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">Acceptance of Terms</h3>
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <p className="text-gray-300 mb-3">By accessing, registering for, or using BPOC.IO, you acknowledge that you have read, understood, and agree to be bound by these Terms of Use.</p>
+          <div className="space-y-2 text-gray-300">
+            <p><strong className="text-white">You represent and warrant that:</strong></p>
+            <ul className="space-y-1 ml-4">
+              <li>• You are <strong className="text-white">18 years of age or older</strong></li>
+              <li>• You have the <strong className="text-white">legal capacity</strong> to enter into this agreement</li>
+              <li>• You are <strong className="text-white">legally eligible for employment</strong> in the Philippines</li>
+              <li>• All information you provide is <strong className="text-white">accurate and complete</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Acceptable Use Policy */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">Acceptable Use Policy</h3>
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <div className="mb-3">
+            <p className="text-gray-300 mb-2"><strong className="text-white">Permitted Uses:</strong></p>
+            <div className="bg-green-600/20 p-3 rounded-lg border border-green-500/30">
+              <ul className="space-y-1 text-green-300 text-xs">
+                <li>✅ Complete job applications for ShoreAgents positions</li>
+                <li>✅ Take skills assessments and career evaluations honestly</li>
+                <li>✅ Communicate with ShoreAgents recruitment team</li>
+                <li>✅ Access your assessment results and feedback</li>
+              </ul>
+            </div>
+          </div>
+          <div>
+            <p className="text-gray-300 mb-2"><strong className="text-white">Prohibited Activities:</strong></p>
+            <div className="bg-red-600/20 p-3 rounded-lg border border-red-500/30">
+              <ul className="space-y-1 text-red-300 text-xs">
+                <li>❌ Provide false, misleading, or incomplete information</li>
+                <li>❌ Create multiple accounts or impersonate others</li>
+                <li>❌ Use automated tools, bots, or scripts for assessments</li>
+                <li>❌ Attempt to hack, disrupt, or compromise platform security</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Employment Relationship */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">Employment Relationship</h3>
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <ul className="space-y-2 text-gray-300">
+            <li>• Platform use <strong className="text-white">does not guarantee</strong> job interviews or employment offers</li>
+            <li>• All hiring decisions are <strong className="text-white">at ShoreAgents' sole discretion</strong></li>
+            <li>• Employment offers are subject to <strong className="text-white">additional requirements</strong> (background checks, references, etc.)</li>
+            <li>• Any employment relationship will be <strong className="text-white">at-will</strong>, meaning either party may terminate at any time</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Acknowledgment */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">Acknowledgment & Agreement</h3>
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <p className="text-gray-300 mb-3 font-semibold">By using BPOC.IO, you acknowledge that:</p>
+          <ul className="space-y-1 text-gray-300 text-xs">
+            <li>1. You have <strong className="text-white">read and understood</strong> these Terms of Use in their entirety</li>
+            <li>2. You <strong className="text-white">agree to be bound</strong> by all terms and conditions stated herein</li>
+            <li>3. You understand this is a <strong className="text-white">recruitment platform for ShoreAgents employment</strong></li>
+            <li>4. You will <strong className="text-white">comply with all acceptable use policies</strong> and platform rules</li>
+            <li>5. You meet all <strong className="text-white">age and legal eligibility requirements</strong></li>
+            <li>6. You will provide <strong className="text-white">accurate and truthful information</strong> at all times</li>
+            <li>7. You understand <strong className="text-white">platform use does not guarantee employment</strong></li>
+          </ul>
+          <div className="mt-3 pt-3 border-t border-gray-700">
+            <p className="text-gray-300 font-semibold text-xs">Your continued use of BPOC.IO constitutes ongoing acceptance of these Terms of Use.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center py-4 border-t border-gray-700">
+        <p className="text-gray-400 italic text-xs mb-1">These Terms of Use are binding and enforceable. By using BPOC.IO, you accept all terms and conditions outlined above.</p>
+        <p className="text-gray-500 font-semibold text-xs">© 2025 ShoreAgents Inc. All rights reserved.</p>
+      </div>
+    </div>
   )
 } 
