@@ -14,7 +14,10 @@ import {
   MapPin,
   Briefcase,
   CalendarDays,
-  User as UserIcon
+  User as UserIcon,
+  Eye,
+  Heart,
+  FileText
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,6 +43,7 @@ interface UserProfile {
   updated_at: string
   birthday?: string | null
   gender_custom?: string | null
+  overall_score?: number
 }
 
 interface ProfileCardProps {
@@ -52,6 +56,34 @@ export default function ProfileCard({ userId, showEditButton = true, className =
   const router = useRouter();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Function to determine rank based on overall score
+  const getRank = (score: number) => {
+    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30' }
+    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
+    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
+    return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
+  }
+
+  // Function to handle viewing resume
+  const handleViewResume = async () => {
+    if (userProfile?.id) {
+      try {
+        // Fetch the resume slug from saved_resumes table
+        const response = await fetch(`/api/get-user-resume-slug?userId=${userProfile.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.resumeSlug) {
+            router.push(`/${data.resumeSlug}`);
+          } else {
+            console.log('No resume found for this user');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching resume slug:', error);
+      }
+    }
+  }
   
   const [isLoading, setIsLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<string>('');
@@ -95,7 +127,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         } else {
           const fields = [
             'id','email','first_name','last_name','full_name','location','avatar_url',
-            'phone','bio','position','gender','slug','created_at','updated_at'
+            'phone','bio','position','gender','slug','created_at','updated_at','overall_score'
           ].join(',');
           const response = await fetch(`/api/public/users?ids=${encodeURIComponent(targetUserId)}&fields=${encodeURIComponent(fields)}`, { cache: 'no-store' });
           if (response.ok) {
@@ -513,31 +545,42 @@ export default function ProfileCard({ userId, showEditButton = true, className =
           <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Profile Picture */}
             <div className="relative flex-shrink-0">
-              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gradient-to-br from-cyan-400 to-purple-400 p-1">
-                {photoUploading ? (
-                  <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-white animate-spin" />
+              {(() => {
+                const overallScore = userProfile?.overall_score || 0;
+                const rankInfo = getRank(overallScore);
+                const borderClass = rankInfo.rank === 'GOLD' ? 'border-yellow-400' :
+                                  rankInfo.rank === 'SILVER' ? 'border-gray-400' :
+                                  rankInfo.rank === 'BRONZE' ? 'border-orange-400' :
+                                  'border-cyan-400';
+                
+                return (
+                  <div className={`w-32 h-32 rounded-full overflow-hidden border-4 ${borderClass} p-1`}>
+                    {photoUploading ? (
+                      <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                      </div>
+                    ) : profilePicture ? (
+                      <img 
+                        src={profilePicture} 
+                        alt="Profile" 
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : userProfile?.avatar_url ? (
+                      <img 
+                        src={userProfile.avatar_url} 
+                        alt="Profile" 
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
+                        <span className="text-2xl font-bold text-black">
+                          {userInitials}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                ) : profilePicture ? (
-                  <img 
-                    src={profilePicture} 
-                    alt="Profile" 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : userProfile?.avatar_url ? (
-                  <img 
-                    src={userProfile.avatar_url} 
-                    alt="Profile" 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-black">
-                      {userInitials}
-                    </span>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
 
               {showEditButton && user?.id === targetUserId && isEditing && (
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
@@ -565,56 +608,108 @@ export default function ProfileCard({ userId, showEditButton = true, className =
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-white">{userDisplayName}</h2>
+                <div className="flex-1">
+                  <div className="flex items-center gap-6 mb-2">
+                    <h2 className="text-3xl font-bold text-white">{userDisplayName}</h2>
+                    
+                    {/* Likes and Views Stats */}
+                    <div className="flex items-center gap-4">
+                      {/* Views */}
+                      <div className="flex items-center gap-1">
+                        <div className="p-1 rounded-full bg-cyan-500/20">
+                          <Eye className="w-4 h-4 text-cyan-400" />
+                        </div>
+                        <span className="text-sm text-gray-300">1,247</span>
+                      </div>
+                      
+                      {/* Likes */}
+                      <div className="flex items-center gap-1">
+                        <div className="p-1 rounded-full bg-pink-500/20">
+                          <Heart className="w-4 h-4 text-pink-400" />
+                        </div>
+                        <span className="text-sm text-gray-300">89</span>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {userProfile?.position && (
                     <div className="text-sm text-gray-300 mt-1">{userProfile.position}</div>
                   )}
+                  {/* Rank Badge */}
+                  {userProfile?.overall_score && userProfile.overall_score > 0 && (() => {
+                    const rankInfo = getRank(userProfile.overall_score);
+                    if (rankInfo.rank !== 'None') {
+                      return (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${rankInfo.bgColor} ${rankInfo.color} border ${rankInfo.borderColor}`}>
+                            {rankInfo.rank} - Score: {userProfile.overall_score}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
-                {showEditButton && user?.id === targetUserId && (
-                  <div className="flex items-center gap-2">
-                    {isEditing ? (
-                      <>
-                        <Button
-                          variant="outline"
-                          className="border-white/20 text-gray-300 hover:bg-white/10"
-                          onClick={() => {
-                            if (userProfile) {
-                              setProfileData({
-                                firstName: userProfile.first_name || '',
-                                lastName: userProfile.last_name || '',
-                                email: userProfile.email || '',
-                                phone: userProfile.phone || '',
-                                location: userProfile.location || '',
-                                jobTitle: userProfile.position || '',
-                                company: '',
-                                bio: userProfile.bio || '',
-                                gender: userProfile.gender || '',
-                                birthday: userProfile.birthday || ''
-                              });
-                            }
-                            setIsEditing(false);
-                          }}
-                        >
-                          Cancel
+                <div className="flex items-center gap-2">
+                  {/* Edit Profile Button - Only for own profile */}
+                  {showEditButton && user?.id === targetUserId && (
+                    <>
+                      {isEditing ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            className="border-white/20 text-gray-300 hover:bg-white/10"
+                            onClick={() => {
+                              if (userProfile) {
+                                setProfileData({
+                                  firstName: userProfile.first_name || '',
+                                  lastName: userProfile.last_name || '',
+                                  email: userProfile.email || '',
+                                  phone: userProfile.phone || '',
+                                  location: userProfile.location || '',
+                                  jobTitle: userProfile.position || '',
+                                  company: '',
+                                  bio: userProfile.bio || '',
+                                  gender: userProfile.gender || '',
+                                  genderCustom: userProfile.gender_custom || '',
+                                  birthday: userProfile.birthday || ''
+                                });
+                              }
+                              setIsEditing(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={saveProfileChanges}
+                            disabled={isSaving}
+                            className="bg-cyan-500 hover:bg-cyan-600"
+                          >
+                            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Edit3 className="w-4 h-4 mr-2" />}
+                            Save
+                          </Button>
+                        </>
+                      ) : (
+                        <Button onClick={() => setIsEditing(true)} className="bg-cyan-500">
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Edit Profile
                         </Button>
-                  <Button
-                          onClick={saveProfileChanges}
-                          disabled={isSaving}
-                          className="bg-cyan-500 hover:bg-cyan-600"
-                        >
-                          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Edit3 className="w-4 h-4 mr-2" />}
-                          Save
-                        </Button>
-                      </>
-                    ) : (
-                      <Button onClick={() => setIsEditing(true)} className="bg-cyan-500">
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </>
+                  )}
+                  
+                  {/* View Resume Button - Only for other users' profiles */}
+                  {user?.id !== targetUserId && (
+                    <Button 
+                      onClick={handleViewResume} 
+                      variant="outline"
+                      className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      View Resume
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Bio (editable for owner) */}
@@ -676,44 +771,6 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                       )}
                     </div>
                   </div>
-                  {/* Email */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="w-8 h-8 rounded-md bg-purple-500/20 flex items-center justify-center">
-                      <Mail className="w-4 h-4 text-purple-300" />
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase text-gray-400">Email</div>
-                      {isEditing ? (
-                        <Input
-                          value={profileData.email}
-                          disabled
-                          placeholder="Email"
-                          className="mt-1 bg-black/40 text-white border-white/20 opacity-70 cursor-not-allowed"
-                        />
-                      ) : (
-                        <div className="text-gray-100 break-all">{userProfile?.email || '—'}</div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Phone */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                    <div className="w-8 h-8 rounded-md bg-emerald-500/20 flex items-center justify-center">
-                      <PhoneIcon className="w-4 h-4 text-emerald-300" />
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase text-gray-400">Phone</div>
-                      {isEditing ? (
-                        <Input
-                          value={profileData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          placeholder="Phone"
-                          className="mt-1 bg-black/40 text-white border-white/20"
-                        />
-                      ) : (
-                        <div className="text-gray-100">{userProfile?.phone || '—'}</div>
-                      )}
-                    </div>
-                  </div>
                   {/* Location */}
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                     <div className="w-8 h-8 rounded-md bg-pink-500/20 flex items-center justify-center">
@@ -733,18 +790,18 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                       )}
                     </div>
                   </div>
-                  {/* Position */}
+                  {/* Job Title */}
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                     <div className="w-8 h-8 rounded-md bg-amber-500/20 flex items-center justify-center">
                       <Briefcase className="w-4 h-4 text-amber-300" />
                     </div>
                     <div>
-                      <div className="text-xs uppercase text-gray-400">Position</div>
+                      <div className="text-xs uppercase text-gray-400">Job Title</div>
                       {isEditing ? (
                         <Input
                           value={profileData.jobTitle}
                           onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                          placeholder="Position"
+                          placeholder="Job Title"
                           className="mt-1 bg-black/40 text-white border-white/20"
                         />
                       ) : (
@@ -819,31 +876,6 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                 </div>
               </div>
 
-                             {/* Quick Stats */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div className="text-center p-3 bg-white/5 rounded-lg">
-                   <div className="text-2xl font-bold text-cyan-400">
-                     {aiAnalysisScore !== null ? aiAnalysisScore : userStats.resumeScore}
-                   </div>
-                   <div className="text-xs text-gray-400">Resume Score</div>
-                 </div>
-                 <div className="text-center p-3 bg-white/5 rounded-lg">
-                   <div className="text-2xl font-bold text-orange-400">{completedGames}/4</div>
-                   <div className="text-xs text-gray-400">Games</div>
-                 </div>
-                 <div className="text-center p-3 bg-white/5 rounded-lg">
-                   <div className="text-2xl font-bold text-purple-400">
-                     {jobMatchesLoading ? (
-                       <span className="inline-flex items-center gap-2 text-purple-300">
-                         <Loader2 className="w-5 h-5 animate-spin" />
-                       </span>
-                     ) : (
-                       jobMatchesCount
-                     )}
-                   </div>
-                   <div className="text-xs text-gray-400">Job Matches</div>
-                 </div>
-               </div>
             </div>
           </div>
     </motion.div>
