@@ -7,10 +7,10 @@
 -- Drop existing view if it exists
 DROP VIEW IF EXISTS public.v_user_complete_data;
 
--- Create user data view
+-- Create user data view (SIMPLIFIED - Only 3 tables)
 CREATE VIEW public.v_user_complete_data AS
 SELECT 
-    -- User Basic Information
+    -- User Basic Information (ALL COLUMNS)
     u.id as user_id,
     u.email,
     u.first_name,
@@ -39,7 +39,9 @@ SELECT
     u.created_at as user_created_at,
     u.updated_at as user_updated_at,
 
-    -- User Work Status
+    -- User Work Status (ALL COLUMNS)
+    uws.id as work_status_id,
+    uws.user_id as work_status_user_id,
     uws.current_employer,
     uws.current_position,
     uws.current_salary,
@@ -53,7 +55,9 @@ SELECT
     uws.created_at as work_status_created_at,
     uws.updated_at as work_status_updated_at,
 
-    -- AI Analysis Results
+    -- AI Analysis Results (ALL COLUMNS)
+    aar.id as analysis_id,
+    aar.user_id as analysis_user_id,
     aar.session_id,
     aar.original_resume_id,
     aar.overall_score,
@@ -77,56 +81,20 @@ SELECT
     aar.experience_snapshot,
     aar.education_snapshot,
     aar.created_at as analysis_created_at,
-    aar.updated_at as analysis_updated_at,
-
-    -- Saved Resume Information
-    sr.resume_slug,
-    sr.resume_title,
-    sr.resume_data,
-    sr.template_used,
-    sr.is_public as resume_is_public,
-    sr.view_count as resume_view_count,
-    sr.original_resume_id as saved_resume_original_id,
-    sr.created_at as resume_created_at,
-    sr.updated_at as resume_updated_at,
-
-    -- Application Statistics
-    COALESCE(app_stats.total_applications, 0) as total_applications,
-    COALESCE(app_stats.active_applications, 0) as active_applications,
-    COALESCE(app_stats.hired_applications, 0) as hired_applications,
-    COALESCE(app_stats.rejected_applications, 0) as rejected_applications,
-    app_stats.latest_application_date,
-    app_stats.latest_application_status
+    aar.updated_at as analysis_updated_at
 
 FROM public.users u
     -- User Work Status (LEFT JOIN - user might not have work status)
     LEFT JOIN public.user_work_status uws ON u.id = uws.user_id
     
     -- AI Analysis Results (LEFT JOIN - user might not have analysis)
-    LEFT JOIN public.ai_analysis_results aar ON u.id = aar.user_id
-    
-    -- Saved Resume (LEFT JOIN - user might not have saved resume)
-    LEFT JOIN public.saved_resumes sr ON u.id = sr.user_id
-    
-    -- Application Statistics Subquery
-    LEFT JOIN (
-        SELECT 
-            user_id,
-            COUNT(*) as total_applications,
-            COUNT(CASE WHEN status IN ('submitted', 'qualified', 'for verification', 'verified', 'initial interview', 'final interview') THEN 1 END) as active_applications,
-            COUNT(CASE WHEN status = 'hired' THEN 1 END) as hired_applications,
-            COUNT(CASE WHEN status IN ('rejected', 'not qualified', 'failed') THEN 1 END) as rejected_applications,
-            MAX(created_at) as latest_application_date,
-            (SELECT status FROM applications a2 WHERE a2.user_id = applications.user_id ORDER BY created_at DESC LIMIT 1) as latest_application_status
-        FROM public.applications
-        GROUP BY user_id
-    ) app_stats ON u.id = app_stats.user_id;
+    LEFT JOIN public.ai_analysis_results aar ON u.id = aar.user_id;
 
 
 
 
 -- Add comment to document the view
-COMMENT ON VIEW public.v_user_complete_data IS 'User data view combining profile, work status, AI analysis, resume, and application statistics for public API consumption';
+COMMENT ON VIEW public.v_user_complete_data IS 'Simplified user data view combining users, work status, and AI analysis results for public API consumption';
 
 -- =====================================================
 -- Sample Query Examples for API Usage
