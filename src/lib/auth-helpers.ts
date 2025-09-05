@@ -28,4 +28,30 @@ export async function getUserId(): Promise<string | null> {
     console.error('Error getting user id:', error)
     return null
   }
+}
+
+export function handleRefreshTokenError(error: any): void {
+  if (error?.message?.includes('refresh token') || error?.message?.includes('Invalid Refresh Token')) {
+    console.log('🧹 Refresh token error detected, clearing storage')
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+      // Optionally redirect to login page
+      window.location.href = '/'
+    }
+  }
+}
+
+export async function safeGetSession(): Promise<any> {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    if (error) {
+      handleRefreshTokenError(error)
+      return { session: null, error }
+    }
+    return { session, error: null }
+  } catch (error) {
+    handleRefreshTokenError(error)
+    return { session: null, error }
+  }
 } 

@@ -178,16 +178,24 @@ export async function GET(request: NextRequest) {
            VALUES ($1, $2, $3, $4, $5, NOW())
            ON CONFLICT (user_id, job_id)
            DO UPDATE SET score = EXCLUDED.score, reasoning = EXCLUDED.reasoning, breakdown = EXCLUDED.breakdown, analyzed_at = NOW()`,
-          [userId, jobId, matchScore.score ?? 0, matchScore.reasoning ?? '', JSON.stringify(matchScore.breakdown ?? {})]
+          [userId, jobId, Math.round(matchScore.score ?? 0), matchScore.reasoning ?? '', JSON.stringify(matchScore.breakdown ?? {})]
         )
       } catch (persistErr) {
         console.warn('job_match_results upsert failed (table may not exist yet):', persistErr)
       }
 
+      // Round all breakdown scores to whole numbers
+      const roundedBreakdown: { [key: string]: number } = {};
+      if (matchScore.breakdown) {
+        for (const [key, value] of Object.entries(matchScore.breakdown)) {
+          roundedBreakdown[key] = Math.round(Number(value));
+        }
+      }
+
       return NextResponse.json({
-        matchScore: matchScore.score,
+        matchScore: Math.round(matchScore.score),
         reasoning: matchScore.reasoning,
-        breakdown: matchScore.breakdown,
+        breakdown: roundedBreakdown,
         message: 'New AI-powered match analysis completed',
         cached: false
       });
@@ -258,16 +266,26 @@ JOB POSTING:
 - Salary Range: ${data.job.salaryRange || 'Not specified'}
 
 TASK:
-Analyze the match between the candidate and job posting. Consider:
-1. Skills alignment (technical skills, soft skills)
-2. Experience level compatibility
-3. Industry/domain knowledge
-4. Location and distance from office (Clark, Pampanga)
-5. Salary expectations vs job offering
-6. Work setup preferences (remote/hybrid/onsite)
-7. Shift preferences alignment
-8. Career progression fit
-9. Overall suitability
+Analyze the match between the candidate and job posting using this WEIGHTED scoring system:
+
+**PRIMARY FACTORS (High Impact - 75% total weight):**
+1. **Skills Alignment** (25% weight) - Technical skills, soft skills, required competencies
+2. **Experience Level** (20% weight) - Years of experience, seniority level, relevant background
+3. **Career Progression** (15% weight) - Growth opportunities, career advancement fit, long-term potential
+4. **Salary Compatibility** (15% weight) - Expected vs offered salary range alignment
+
+**SECONDARY FACTORS (Medium Impact - 20% total weight):**
+5. **Work Setup Match** (8% weight) - Remote/hybrid/onsite preferences vs job requirements
+6. **Location & Commute** (7% weight) - Distance from office, commute feasibility
+7. **Industry Knowledge** (5% weight) - Domain expertise, industry familiarity
+
+**TERTIARY FACTORS (Low Impact - 5% total weight):**
+8. **Shift Preferences** (3% weight) - Day/night shift alignment
+9. **Cultural Fit** (2% weight) - Company culture, work environment compatibility
+
+**SCORING CALCULATION:**
+Calculate weighted score using this formula:
+Final Score = (Skills×0.25) + (Experience×0.20) + (Career×0.15) + (Salary×0.15) + (WorkSetup×0.08) + (Location×0.07) + (Industry×0.05) + (Shift×0.03) + (Cultural×0.02)
 
 Provide your analysis in this exact JSON format (ensure proper JSON escaping):
 {
@@ -276,11 +294,15 @@ Provide your analysis in this exact JSON format (ensure proper JSON escaping):
   "breakdown": {
     "skillsMatch": 90,
     "experienceMatch": 85,
-    "locationMatch": 80,
+    "careerMatch": 88,
     "salaryMatch": 85,
     "workSetupMatch": 90,
-    "overallFit": 85
-  }
+    "locationMatch": 80,
+    "industryMatch": 75,
+    "shiftMatch": 85,
+    "culturalMatch": 85
+  },
+  "weightedScore": 86.1
 }
 
 The score should be 0-100 where:
@@ -295,13 +317,22 @@ The score should be 0-100 where:
 IMPORTANT: Write the reasoning as conversational bullet points that speak directly to the candidate. Keep it friendly and encouraging while highlighting key strengths and any concerns. Use bullet points (•) and mention specific details like skills, distance, salary, and work preferences. Make it feel like you're giving personalized career advice.
 
 SCORING GUIDELINES:
-- 95-100: Perfect alignment across all major factors (skills, experience, location, salary, work setup)
-- 85-94: Strong alignment with minor concerns or one area needing improvement
-- 75-84: Good overall fit with some areas that could be better
-- 65-74: Decent match with several areas needing attention
-- 55-64: Fair match with significant concerns or mismatches
-- 45-54: Poor match with major issues
-- Below 45: Major misalignment across multiple factors`;
+- 95-100: Perfect alignment across PRIMARY factors (skills, experience, career, salary) with strong secondary factors
+- 85-94: Strong alignment in PRIMARY factors with minor concerns in secondary factors
+- 75-84: Good alignment in PRIMARY factors but some areas in secondary/tertiary factors need improvement
+- 65-74: Decent PRIMARY factor alignment but several secondary factors need attention
+- 55-64: Fair PRIMARY factor alignment with significant concerns in secondary factors
+- 45-54: Poor PRIMARY factor alignment with major issues across multiple factors
+- Below 45: Major misalignment in PRIMARY factors - not suitable
+
+**WEIGHTING PRIORITY:**
+- PRIMARY factors (Skills, Experience, Career Progression, Salary) are CRITICAL - poor scores here significantly impact overall match
+- SECONDARY factors (Work Setup, Location, Industry) are IMPORTANT but can be compensated by strong primary factors
+- TERTIARY factors (Shift, Cultural) are NICE-TO-HAVE and have minimal impact on overall score
+
+**APPLICATION THRESHOLD:** Only jobs with 65% or higher match scores should be recommended for application.
+
+**IMPORTANT:** Always calculate the weighted score using the provided formula and use that as the final score.`;
 
     console.log('Calling Anthropic API with data:', {
       user: { 
@@ -372,10 +403,15 @@ SCORING GUIDELINES:
          
          // Validate the response
          if (typeof parsed.score === 'number' && parsed.score >= 0 && parsed.score <= 100) {
+           // Use weighted score if available, otherwise use regular score
+           const finalScore = parsed.weightedScore || parsed.score;
+           
            return {
-             score: parsed.score,
+             score: finalScore,
              reasoning: parsed.reasoning || 'Analysis completed',
-             breakdown: parsed.breakdown || {}
+             breakdown: parsed.breakdown || {},
+             weightedScore: parsed.weightedScore,
+             originalScore: parsed.score
            };
          } else {
            throw new Error('Invalid score in AI response');

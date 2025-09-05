@@ -41,19 +41,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      // Sync user to Railway database if session exists
-      if (session?.user) {
-        console.log('🔄 Initial session found, syncing user:', session.user.email)
-        try {
-          await syncUserToDatabase(session.user)
-          console.log('✅ Initial sync successful')
-        } catch (error) {
-          console.error('❌ Error syncing user on initial load:', error)
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('❌ Error getting initial session:', error)
+          // If it's a refresh token error, clear storage and continue
+          if (error.message?.includes('refresh token') || error.message?.includes('Invalid Refresh Token')) {
+            console.log('🧹 Clearing storage due to refresh token error')
+            if (typeof window !== 'undefined') {
+              localStorage.clear()
+              sessionStorage.clear()
+            }
+          }
+          setSession(null)
+          setUser(null)
+        } else {
+          setSession(session)
+          setUser(session?.user ?? null)
+          
+          // Sync user to Railway database if session exists
+          if (session?.user) {
+            console.log('🔄 Initial session found, syncing user:', session.user.email)
+            try {
+              await syncUserToDatabase(session.user)
+              console.log('✅ Initial sync successful')
+            } catch (error) {
+              console.error('❌ Error syncing user on initial load:', error)
+            }
+          }
         }
+      } catch (error) {
+        console.error('❌ Unexpected error in getInitialSession:', error)
+        setSession(null)
+        setUser(null)
       }
       
       setLoading(false)
@@ -65,6 +86,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔍 Auth Event:', event, session?.user?.email)
+        
+        // Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.log('❌ Token refresh failed, clearing storage')
+          if (typeof window !== 'undefined') {
+            localStorage.clear()
+            sessionStorage.clear()
+          }
+          setSession(null)
+          setUser(null)
+          setLoading(false)
+          return
+        }
+        
         setSession(session)
         setUser(session?.user ?? null)
         

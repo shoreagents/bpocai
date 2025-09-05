@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +48,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Info
+  MapPin,
+  Users
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,33 +59,10 @@ export default function JobMatchingPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  // Add CSS styles for tooltip positioning and scrolling
+  // Add CSS styles for search input
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      .match-tooltip {
-        position: fixed !important;
-        z-index: 999999 !important;
-        max-height: 24rem !important;
-        overflow-y: auto !important;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-        pointer-events: auto !important;
-      }
-      .match-tooltip::-webkit-scrollbar {
-        width: 6px;
-      }
-      .match-tooltip::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .match-tooltip::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 3px;
-      }
-      .match-tooltip::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.5);
-      }
-      
       /* Remove red outline from search input */
       .search-input-no-red:focus,
       .search-input-no-red:focus-visible,
@@ -94,7 +73,11 @@ export default function JobMatchingPage() {
       }
     `;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
   }, []);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [selectedJobDetails, setSelectedJobDetails] = useState<any | null>(null);
@@ -145,10 +128,6 @@ export default function JobMatchingPage() {
       if (pageSelectorRef.current && !pageSelectorRef.current.contains(event.target as Node)) {
         setIsPageSelectorOpen(false);
       }
-      // Close match tooltip when clicking outside
-      if (showMatchTooltip && !(event.target as Element).closest('.match-tooltip')) {
-        setShowMatchTooltip(null);
-      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -170,10 +149,10 @@ export default function JobMatchingPage() {
   const [jobs, setJobs] = useState<any[]>([])
   const [matchScores, setMatchScores] = useState<{[key: string]: any}>({})
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
-  const [showMatchTooltip, setShowMatchTooltip] = useState<string | null>(null)
   const [showLocationPopup, setShowLocationPopup] = useState(false)
   const [showResumeModal, setShowResumeModal] = useState(false)
   const [hasResume, setHasResume] = useState<boolean | null>(null)
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false)
 
   // Show location popup when page loads
   useEffect(() => {
@@ -265,7 +244,7 @@ export default function JobMatchingPage() {
               if (matchRes.ok) {
                 const matchData = await matchRes.json()
                 scores[job.id] = {
-                  score: matchData.matchScore ?? 75, // Default to 75% if score is undefined
+                  score: Math.round(matchData.matchScore ?? 75), // Round to whole number, default to 75% if score is undefined
                   reasoning: matchData.reasoning || 'Analysis completed',
                   breakdown: matchData.breakdown || {}
                 }
@@ -300,7 +279,7 @@ export default function JobMatchingPage() {
             if (matchRes.ok) {
               const matchData = await matchRes.json()
               scores[job.id] = {
-                score: matchData.matchScore,
+                score: Math.round(matchData.matchScore),
                 reasoning: matchData.reasoning,
                 breakdown: matchData.breakdown
               }
@@ -862,74 +841,7 @@ export default function JobMatchingPage() {
                                  {getMatchLabel(matchScores[job.id].score)}
                                </Badge>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-gray-400 hover:text-white w-4 h-4"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowMatchTooltip(showMatchTooltip === job.id ? null : job.id);
-                              }}
-                            >
-                              <Info className="w-3 h-3" />
-                            </Button>
                           </div>
-                          
-                                                     {/* Match Tooltip */}
-                           {showMatchTooltip === job.id && (
-                             <div 
-                               className="match-tooltip fixed w-80 bg-gray-800 border border-white/20 rounded-lg shadow-2xl z-[999999] p-4 max-h-96 overflow-y-auto"
-                               style={{
-                                 left: '50%',
-                                 top: '50%',
-                                 transform: 'translate(-50%, -50%)',
-                                 maxWidth: 'calc(100vw - 2rem)',
-                                 width: '20rem'
-                               }}
-                             >
-                              <div className="flex items-center justify-between mb-2 sticky top-0 bg-gray-800 py-1">
-                                <h4 className="text-sm font-medium text-white">AI Match Analysis</h4>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowMatchTooltip(null);
-                                  }}
-                                  className="text-gray-400 hover:text-white w-6 h-6 p-0"
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                              
-                              {/* Match Breakdown */}
-                              {matchScores[job.id].breakdown && Object.keys(matchScores[job.id].breakdown).length > 0 && (
-                                <div className="mb-3">
-                                  <h5 className="text-xs font-medium text-gray-300 mb-2">Match Breakdown:</h5>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {Object.entries(matchScores[job.id].breakdown).map(([key, value]) => (
-                                      <div key={key} className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-400 capitalize">
-                                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                                        </span>
-                                        <span className="text-xs font-medium text-white">{value}%</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* AI Reasoning */}
-                              {matchScores[job.id].reasoning && (
-                                <div>
-                                  <h5 className="text-xs font-medium text-gray-300 mb-2">AI Reasoning:</h5>
-                                  <p className="text-xs text-gray-300 leading-relaxed">
-                                    {matchScores[job.id].reasoning}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30 px-3 py-1 text-sm">
@@ -965,17 +877,17 @@ export default function JobMatchingPage() {
                         e.stopPropagation();
                         setSelectedJob(job.id);
                       }}
-                                             disabled={
-                         appliedMap[job.id] || 
-                         (user?.id && matchScores[job.id]?.score !== undefined && matchScores[job.id].score < 60)
-                       }
+                      disabled={Boolean(
+                        !!appliedMap[job.id] || 
+                        (user?.id && matchScores[job.id]?.score !== undefined && matchScores[job.id].score < 65)
+                      )}
                     >
-                                             {appliedMap[job.id] 
-                         ? 'Already Applied' 
-                         : (user?.id && matchScores[job.id]?.score !== undefined && matchScores[job.id].score < 60)
-                           ? 'Not Recommended'
-                           : 'View & Apply'
-                       }
+                      {!!appliedMap[job.id] 
+                        ? 'Already Applied' 
+                        : (user?.id && matchScores[job.id]?.score !== undefined && matchScores[job.id].score < 65)
+                          ? 'Not Recommended'
+                          : 'View & Apply'
+                      }
                     </Button>
                   </CardContent>
                 </Card>
@@ -1107,43 +1019,25 @@ export default function JobMatchingPage() {
 
 
           {/* Job Details Modal */}
-          {selectedJob && selectedJobData && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-              onClick={() => setSelectedJob(null)}
+          <Dialog open={!!selectedJob && !!selectedJobData} onOpenChange={() => setSelectedJob(null)}>
+            <DialogContent 
+              className="bg-gray-900/95 backdrop-blur-md border-white/10 rounded-2xl max-w-7xl w-full max-h-[85vh] p-0 overflow-hidden"
+              showCloseButton={false}
             >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="bg-gray-900/95 backdrop-blur-md border border-white/10 rounded-2xl max-w-5xl w-full max-h-[80vh] overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-2 h-[80vh]">
+              {selectedJobData && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 h-[85vh]">
                   {/* Selected Job Card - Left Side */}
-                  <div className="relative p-6 border-r border-white/10 overflow-y-auto">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedJob(null)}
-                      className="absolute top-6 right-6 z-10 text-gray-400 hover:text-white bg-black/50 hover:bg-black/70 rounded-full"
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                    
-                    <div className="pr-16">
+                  <ScrollArea className="p-6 border-r border-white/10">
+                    <div>
                       {/* Company and Save */}
                       <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-xl flex items-center justify-center">
-                            <span className="text-2xl">{selectedJobData.companyLogo}</span>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
+                            <span className="text-lg">{selectedJobData.companyLogo}</span>
                           </div>
                           <div>
-                            <p className="font-medium text-white text-xl">{selectedJobData.company}</p>
-                            <p className="text-gray-400">{selectedJobData.postedDays} days ago</p>
+                            <p className="font-medium text-white text-lg">{selectedJobData.company}</p>
+                            <p className="text-gray-400 text-sm">{selectedJobData.postedDays} days ago</p>
                           </div>
                         </div>
                         
@@ -1151,19 +1045,19 @@ export default function JobMatchingPage() {
                       </div>
 
                       {/* Job Title */}
-                      <h2 className="text-3xl font-bold text-white mb-6">
+                      <h2 className="text-2xl font-bold text-white mb-4">
                         {selectedJobData.title}
                       </h2>
 
                       {/* Job Details */}
-                      <div className="space-y-4 mb-8">
+                      <div className="space-y-3 mb-6">
                         {/* Industry */}
                         {selectedJobData.industry && (
                           <div className="flex items-center text-gray-300">
-                            <Target className="w-6 h-6 mr-4 text-orange-400" />
+                            <Target className="w-5 h-5 mr-3 text-orange-400" />
                             <div>
-                              <span className="text-sm text-gray-400">Industry:</span>
-                              <span className="ml-2 font-medium text-lg">{selectedJobData.industry}</span>
+                              <span className="text-xs text-gray-400">Industry:</span>
+                              <span className="ml-2 font-medium text-base">{selectedJobData.industry}</span>
                             </div>
                           </div>
                         )}
@@ -1171,23 +1065,23 @@ export default function JobMatchingPage() {
                         {/* Department */}
                         {selectedJobData.department && (
                           <div className="flex items-center text-gray-300">
-                            <FileText className="w-6 h-6 mr-4 text-cyan-400" />
+                            <FileText className="w-5 h-5 mr-3 text-cyan-400" />
                             <div>
-                              <span className="text-sm text-gray-400">Department:</span>
-                              <span className="ml-2 font-medium text-lg">{selectedJobData.department}</span>
+                              <span className="text-xs text-gray-400">Department:</span>
+                              <span className="ml-2 font-medium text-base">{selectedJobData.department}</span>
                             </div>
                           </div>
                         )}
                         
                         {/* Applicants */}
                         <div className="flex items-center text-gray-300">
-                          <span className="text-sm">Applicants:</span>
-                          <span className="ml-2 font-medium">{(selectedJobDetails?.applicants ?? 0).toLocaleString()}</span>
+                          <span className="text-xs">Applicants:</span>
+                          <span className="ml-2 font-medium text-sm">{(selectedJobDetails?.applicants ?? 0).toLocaleString()}</span>
                         </div>
                       </div>
 
                       {/* Match Percentage */}
-                      <div className="mb-6">
+                      <div className="mb-4">
                         {!user?.id ? (
                           <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30 px-3 py-1 text-sm">
                             Sign in to see match
@@ -1215,64 +1109,172 @@ export default function JobMatchingPage() {
 
                       {/* AI Match Analysis */}
                       {user?.id && matchScores[selectedJobData.id] && !isLoadingMatches && (
-                        <div className="mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
-                          <h3 className="text-lg font-semibold text-white mb-3">
-                            {matchScores[selectedJobData.id].error ? 'AI Analysis Error' : 'AI Match Analysis'}
-                          </h3>
-                          
-                          {matchScores[selectedJobData.id].error ? (
-                            <div className="text-red-400 text-sm">
-                              <p className="mb-2">Failed to analyze job match. This could be due to:</p>
-                              <ul className="list-disc list-inside space-y-1 text-xs">
-                                <li>Missing API configuration</li>
-                                <li>Insufficient user or job data</li>
-                                <li>API rate limiting</li>
-                                <li>Network connectivity issues</li>
-                              </ul>
-                              <p className="mt-2 text-xs text-gray-400">
-                                Error: {matchScores[selectedJobData.id].reasoning}
-                              </p>
-                            </div>
-                          ) : (
-                            <>
-                              {/* Match Breakdown */}
-                              {matchScores[selectedJobData.id].breakdown && Object.keys(matchScores[selectedJobData.id].breakdown).length > 0 && (
-                                <div className="mb-4">
-                                  <h4 className="text-sm font-medium text-gray-300 mb-2">Match Breakdown:</h4>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {Object.entries(matchScores[selectedJobData.id].breakdown).map(([key, value]) => (
-                                      <div key={key} className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-400 capitalize">
-                                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                                        </span>
-                                        <span className="text-sm font-medium text-white">{value}%</span>
-                                      </div>
-                                    ))}
-                                  </div>
+                        <div className="mb-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg border border-white/10 overflow-hidden">
+                          {/* Header - Clickable Dropdown */}
+                          <button
+                            onClick={() => setShowAIAnalysis(!showAIAnalysis)}
+                            className="w-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 px-4 py-3 border-b border-white/10 hover:from-purple-500/30 hover:to-cyan-500/30 transition-all duration-200"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-md flex items-center justify-center">
+                                  <Target className="w-3 h-3 text-white" />
                                 </div>
-                              )}
-                              
-                              {/* AI Reasoning */}
-                              {matchScores[selectedJobData.id].reasoning && (
                                 <div>
-                                  <h4 className="text-sm font-medium text-gray-300 mb-2">AI Reasoning:</h4>
-                                  <p className="text-sm text-gray-300 leading-relaxed">
-                                    {matchScores[selectedJobData.id].reasoning}
+                                  <h3 className="text-base font-bold text-white">
+                                    {matchScores[selectedJobData.id].error ? 'AI Analysis Error' : 'AI Match Analysis'}
+                                  </h3>
+                                  <p className="text-xs text-gray-300">
+                                    {matchScores[selectedJobData.id].error ? 'Unable to analyze match' : 'Detailed compatibility assessment'}
                                   </p>
                                 </div>
-                              )}
-                            </>
+                              </div>
+                              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showAIAnalysis ? 'rotate-180' : ''}`} />
+                            </div>
+                          </button>
+
+                          {/* Collapsible Content */}
+                          {showAIAnalysis && (
+                            <div className="p-4">
+                            {matchScores[selectedJobData.id].error ? (
+                              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <X className="w-3 h-3 text-red-400" />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-red-400 font-semibold mb-2">Analysis Failed</h4>
+                                    <p className="text-red-300 text-sm mb-3">Failed to analyze job match. This could be due to:</p>
+                                    <ul className="text-red-300 text-sm space-y-1 mb-3">
+                                      <li>• Missing API configuration</li>
+                                      <li>• Insufficient user or job data</li>
+                                      <li>• API rate limiting</li>
+                                      <li>• Network connectivity issues</li>
+                                    </ul>
+                                    <div className="bg-red-500/5 border border-red-500/20 rounded p-2">
+                                      <p className="text-xs text-red-400 font-mono">
+                                        Error: {matchScores[selectedJobData.id].reasoning}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {/* Match Breakdown */}
+                                {matchScores[selectedJobData.id].breakdown && Object.keys(matchScores[selectedJobData.id].breakdown).length > 0 && (
+                                  <div>
+                                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+                                      <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full shadow-lg shadow-purple-400/20"></div>
+                                      Match Breakdown
+                                    </h4>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      {Object.entries(matchScores[selectedJobData.id].breakdown).map(([key, value]) => {
+                                        const score = Math.round(Number(value));
+                                        const getScoreColor = (score: number) => {
+                                          if (score >= 90) return 'text-emerald-400';
+                                          if (score >= 80) return 'text-green-400';
+                                          if (score >= 70) return 'text-blue-400';
+                                          if (score >= 60) return 'text-yellow-400';
+                                          if (score >= 50) return 'text-orange-400';
+                                          return 'text-red-400';
+                                        };
+                                        
+                                        const getScoreBg = (score: number) => {
+                                          if (score >= 90) return 'bg-emerald-500/20 border-emerald-500/30';
+                                          if (score >= 80) return 'bg-green-500/20 border-green-500/30';
+                                          if (score >= 70) return 'bg-blue-500/20 border-blue-500/30';
+                                          if (score >= 60) return 'bg-yellow-500/20 border-yellow-500/30';
+                                          if (score >= 50) return 'bg-orange-500/20 border-orange-500/30';
+                                          return 'bg-red-500/20 border-red-500/30';
+                                        };
+
+                                        const getFactorIcon = (key: string) => {
+                                          if (key.includes('skills')) return <Star className="w-4 h-4" />;
+                                          if (key.includes('experience')) return <Clock className="w-4 h-4" />;
+                                          if (key.includes('career')) return <Target className="w-4 h-4" />;
+                                          if (key.includes('salary')) return <DollarSign className="w-4 h-4" />;
+                                          if (key.includes('work') || key.includes('setup')) return <Building2 className="w-4 h-4" />;
+                                          if (key.includes('location')) return <MapPin className="w-4 h-4" />;
+                                          if (key.includes('industry')) return <FileText className="w-4 h-4" />;
+                                          if (key.includes('shift')) return <Clock className="w-4 h-4" />;
+                                          if (key.includes('cultural')) return <Users className="w-4 h-4" />;
+                                          return <CheckCircle className="w-4 h-4" />;
+                                        };
+
+                                        return (
+                                          <div key={key} className={`${getScoreBg(score)} border rounded-md p-3 transition-all hover:scale-105`}>
+                                            <div className="flex items-center justify-between mb-1">
+                                              <div className="flex items-center gap-2">
+                                                <div className="text-gray-300">
+                                                  {getFactorIcon(key)}
+                                                </div>
+                                                <span className="text-xs font-medium text-gray-200 capitalize">
+                                                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                </span>
+                                              </div>
+                                              <div className={`text-sm font-bold ${getScoreColor(score)}`}>
+                                                {score}%
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Progress Bar */}
+                                            <div className="w-full bg-gray-700/50 rounded-full h-1.5">
+                                              <div 
+                                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                                  score >= 90 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
+                                                  score >= 80 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                                                  score >= 70 ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
+                                                  score >= 60 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                                  score >= 50 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
+                                                  'bg-gradient-to-r from-red-400 to-red-500'
+                                                }`}
+                                                style={{ width: `${score}%` }}
+                                              ></div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* AI Reasoning */}
+                                {matchScores[selectedJobData.id].reasoning && (
+                                  <div>
+                                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+                                      <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full shadow-lg shadow-cyan-400/20"></div>
+                                      AI Insights
+                                    </h4>
+                                    <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-md p-3 border border-white/10">
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-6 h-6 bg-gradient-to-br from-cyan-500/30 to-purple-500/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg shadow-cyan-500/20">
+                                          <Target className="w-3 h-3 text-cyan-300" />
+                                        </div>
+                                        <div className="flex-1">
+                                          <p className="text-gray-200 leading-relaxed whitespace-pre-line text-sm">
+                                            {matchScores[selectedJobData.id].reasoning}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            </div>
                           )}
                         </div>
                       )}
 
                                               {/* Apply Button */}
                         <Button 
-                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 text-lg py-4 disabled:opacity-60 disabled:cursor-not-allowed"
-                                                     disabled={
-                             appliedMap[selectedJobData.id] || 
-                             (user?.id && matchScores[selectedJobData.id]?.score !== undefined && matchScores[selectedJobData.id].score < 60)
-                           }
+                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 text-base py-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                          disabled={Boolean(
+                            !!appliedMap[selectedJobData.id] || 
+                            (user?.id && matchScores[selectedJobData.id]?.score !== undefined && matchScores[selectedJobData.id].score < 65)
+                          )}
                           onClick={async () => {
                           try {
                             if (!user) { triggerHeaderSignUp(); return }
@@ -1306,102 +1308,102 @@ export default function JobMatchingPage() {
                           }
                         }}
                                                 >
-                                                         {appliedMap[selectedJobData.id] 
+                                                         {!!appliedMap[selectedJobData.id] 
                                ? 'Already Applied' 
-                               : (user?.id && matchScores[selectedJobData.id]?.score !== undefined && matchScores[selectedJobData.id].score < 60)
+                               : (user?.id && matchScores[selectedJobData.id]?.score !== undefined && matchScores[selectedJobData.id].score < 65)
                                  ? 'Not Recommended'
                                  : 'Apply now'
                              }
                           </Button>
                     </div>
-                  </div>
+                  </ScrollArea>
 
                   {/* Job Details - Right Side */}
-                  <div className="p-6 overflow-y-auto max-h-full">
-                    <div className="space-y-6 pb-6">
+                  <ScrollArea className="p-4">
+                    <div className="space-y-4 pb-4">
                       {/* Job Description */}
-                      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                        <h3 className="flex items-center gap-3 text-white text-xl font-semibold mb-4">
-                          <FileText className="h-6 w-6 text-cyan-400" />
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <h3 className="flex items-center gap-2 text-white text-lg font-semibold mb-3">
+                          <FileText className="h-5 w-5 text-cyan-400" />
                           Job Description
                         </h3>
-                        <p className="text-gray-300 leading-relaxed text-lg">{selectedJobDetails?.job_description || selectedJobData.description}</p>
+                        <p className="text-gray-300 leading-relaxed text-sm">{selectedJobDetails?.job_description || selectedJobData.description}</p>
                       </div>
 
                       {/* Responsibilities */}
-                      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                        <h3 className="flex items-center gap-3 text-white text-xl font-semibold mb-4">
-                          <CheckCircle className="h-6 w-6 text-green-400" />
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <h3 className="flex items-center gap-2 text-white text-lg font-semibold mb-3">
+                          <CheckCircle className="h-5 w-5 text-green-400" />
                           Responsibilities
                         </h3>
-                          <ul className="space-y-4">
+                          <ul className="space-y-2">
                             {Array.isArray(selectedJobDetails?.responsibilities) && selectedJobDetails.responsibilities.length > 0
                               ? selectedJobDetails.responsibilities.map((responsibility: string, idx: number) => (
-                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
-                                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 flex-shrink-0"></div>
-                                    <span className="text-lg">{responsibility}</span>
+                                  <li key={idx} className="flex items-start gap-3 text-gray-300">
+                                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-sm">{responsibility}</span>
                                   </li>
                                 ))
                               : (selectedJobData.responsibilities || []).map((responsibility: string, idx: number) => (
-                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
-                                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-3 flex-shrink-0"></div>
-                                    <span className="text-lg">{responsibility}</span>
+                                  <li key={idx} className="flex items-start gap-3 text-gray-300">
+                                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-sm">{responsibility}</span>
                                   </li>
                                 ))}
                           </ul>
                       </div>
 
                       {/* Qualifications */}
-                      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                        <h3 className="flex items-center gap-3 text-white text-xl font-semibold mb-4">
-                          <Star className="h-6 w-6 text-yellow-400" />
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <h3 className="flex items-center gap-2 text-white text-lg font-semibold mb-3">
+                          <Star className="h-5 w-5 text-yellow-400" />
                           Qualifications & Requirements
                         </h3>
-                          <ul className="space-y-4">
+                          <ul className="space-y-2">
                             {Array.isArray(selectedJobDetails?.requirements) && selectedJobDetails.requirements.length > 0
                               ? selectedJobDetails.requirements.map((qualification: string, idx: number) => (
-                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
-                                    <div className="w-2 h-2 bg-cyan-400 rounded-full mt-3 flex-shrink-0"></div>
-                                    <span className="text-lg">{qualification}</span>
+                                  <li key={idx} className="flex items-start gap-3 text-gray-300">
+                                    <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-sm">{qualification}</span>
                                   </li>
                                 ))
                               : (selectedJobData.qualifications || []).map((qualification: string, idx: number) => (
-                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
-                                    <div className="w-2 h-2 bg-cyan-400 rounded-full mt-3 flex-shrink-0"></div>
-                                    <span className="text-lg">{qualification}</span>
+                                  <li key={idx} className="flex items-start gap-3 text-gray-300">
+                                    <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-sm">{qualification}</span>
                                   </li>
                                 ))}
                           </ul>
                       </div>
 
                       {/* Perks & Benefits */}
-                      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                        <h3 className="flex items-center gap-3 text-white text-xl font-semibold mb-4">
-                          <Gift className="h-6 w-6 text-pink-400" />
+                      <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <h3 className="flex items-center gap-2 text-white text-lg font-semibold mb-3">
+                          <Gift className="h-5 w-5 text-pink-400" />
                           Perks & Benefits
                         </h3>
-                          <ul className="space-y-4">
+                          <ul className="space-y-2">
                             {Array.isArray(selectedJobDetails?.benefits) && selectedJobDetails.benefits.length > 0
                               ? selectedJobDetails.benefits.map((perk: string, idx: number) => (
-                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
-                                    <div className="w-2 h-2 bg-green-400 rounded-full mt-3 flex-shrink-0"></div>
-                                    <span className="text-lg">{perk}</span>
+                                  <li key={idx} className="flex items-start gap-3 text-gray-300">
+                                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-sm">{perk}</span>
                                   </li>
                                 ))
                               : (selectedJobData.perks || []).map((perk: string, idx: number) => (
-                                  <li key={idx} className="flex items-start gap-4 text-gray-300">
-                                    <div className="w-2 h-2 bg-green-400 rounded-full mt-3 flex-shrink-0"></div>
-                                    <span className="text-lg">{perk}</span>
+                                  <li key={idx} className="flex items-start gap-3 text-gray-300">
+                                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span className="text-sm">{perk}</span>
                                   </li>
                                 ))}
                           </ul>
                       </div>
                     </div>
-                  </div>
+                  </ScrollArea>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Auth handled by Header via URL search param (?signup=true) */}
         </div>
@@ -1503,7 +1505,7 @@ export default function JobMatchingPage() {
           </button>
           
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+            <Target className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
             <div>
               <h3 className="text-blue-400 font-semibold mb-1">Office Location Notice</h3>
               <p className="text-gray-300 text-sm">
