@@ -16,9 +16,12 @@ export async function GET(request: NextRequest) {
 
     // Base query (avoid selecting optional columns that may not exist across envs)
     const query = `
-      SELECT id, email, first_name, last_name, full_name, location, avatar_url, phone, bio, position, completed_data, birthday, slug, created_at, updated_at
-      FROM users 
-      WHERE id = $1
+      SELECT 
+        u.id, u.email, u.first_name, u.last_name, u.full_name, u.location, u.avatar_url, u.phone, u.bio, u.position, u.completed_data, u.birthday, u.slug, u.created_at, u.updated_at,
+        COALESCE(los.overall_score, 0) as overall_score
+      FROM users u
+      LEFT JOIN leaderboard_overall_scores los ON u.id = los.user_id
+      WHERE u.id = $1
     `
     
     const result = await pool.query(query, [userId])
@@ -73,7 +76,8 @@ export async function GET(request: NextRequest) {
       gender: gender,
       gender_custom: genderCustom,
       created_at: user.created_at,
-      updated_at: user.updated_at
+      updated_at: user.updated_at,
+      overall_score: user.overall_score
     }
     
     console.log('✅ API: User profile loaded:', userProfile)

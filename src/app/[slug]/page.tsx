@@ -259,7 +259,11 @@ import {
 
 
 
-  ChevronRight
+  ChevronRight,
+
+  Medal,
+
+  Zap
 
 
 
@@ -561,6 +565,15 @@ export default function SavedResumePage() {
 
 
   const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [overallScore, setOverallScore] = useState<number>(0);
+
+  // Function to determine rank based on overall score
+  const getRank = (score: number) => {
+    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30' }
+    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
+    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
+    return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
+  }
 
 
 
@@ -750,6 +763,7 @@ export default function SavedResumePage() {
   const isProfileMode = initialMode === 'profile';
   const [activeSection, setActiveSection] = useState<string>(initialMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isGameResultsDropdownOpen, setIsGameResultsDropdownOpen] = useState<boolean>(false);
   const router = useRouter();
 
 
@@ -846,6 +860,20 @@ export default function SavedResumePage() {
               userId: u.id,
               user: { fullName: u.full_name, avatarUrl: u.avatar_url, email: u.email, phone: u.phone, location: u.location, position: u.position }
             } as any);
+            
+            // Fetch overall score for rank system in profile mode
+            if (u.id) {
+              try {
+                const scoreResponse = await fetch(`/api/user/profile?userId=${u.id}`);
+                if (scoreResponse.ok) {
+                  const scoreData = await scoreResponse.json();
+                  setOverallScore(scoreData.user?.overall_score || 0);
+                }
+              } catch (error) {
+                console.log('Failed to fetch overall score for profile mode:', error);
+              }
+            }
+            
             try {
               const { data: authData } = await supabase.auth.getUser();
               const currentUserId = authData?.user?.id;
@@ -1127,7 +1155,18 @@ export default function SavedResumePage() {
 
         setResume(data.resume);
 
-
+        // Fetch overall score for rank system
+        if (data.resume?.userId) {
+          try {
+            const scoreResponse = await fetch(`/api/user/profile?userId=${data.resume.userId}`);
+            if (scoreResponse.ok) {
+              const scoreData = await scoreResponse.json();
+              setOverallScore(scoreData.user?.overall_score || 0);
+            }
+          } catch (error) {
+            console.log('Failed to fetch overall score:', error);
+          }
+        }
 
         // Determine ownership via Supabase client
 
@@ -1327,7 +1366,7 @@ export default function SavedResumePage() {
 
 
 
-  // Fetch Career Games data (Typing Hero)
+  // Fetch Game Results data (Typing Hero)
 
 
 
@@ -3529,35 +3568,34 @@ export default function SavedResumePage() {
           <div className="flex flex-col items-center mb-6">
                     <div className="relative">
 
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500 p-0.5">
-                        <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-
-                          {resume?.user?.avatarUrl ? (
-
-                            <img 
-
-                              src={resume.user.avatarUrl} 
-
-                              alt="Profile" 
-
-                              className="w-full h-full object-cover"
-
-                            />
-
-                          ) : (
-
-                            <User className="w-8 h-8 text-white" />
-                          )}
-
-                  </div>
-
-                        </div>
+                      {(() => {
+                        const rankInfo = getRank(overallScore);
+                        const borderClass = rankInfo.rank === 'GOLD' ? 'border-yellow-400' :
+                                          rankInfo.rank === 'SILVER' ? 'border-gray-400' :
+                                          rankInfo.rank === 'BRONZE' ? 'border-orange-400' :
+                                          'border-cyan-400';
+                        
+                        return (
+                          <div className={`w-20 h-20 rounded-full border-4 ${borderClass} p-0.5`}>
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                              {resume?.user?.avatarUrl ? (
+                                <img 
+                                  src={resume.user.avatarUrl} 
+                                  alt="Profile" 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <User className="w-8 h-8 text-white" />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                         
                         </div>
                         
                     <h3 className="text-lg font-bold text-white mt-4 text-center">
                       {resume?.user?.fullName || 'User Name'}
-
                     </h3>
             {/* Divider line */}
             <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mt-4"></div>
@@ -3572,7 +3610,7 @@ export default function SavedResumePage() {
                             { id: 'profile', label: 'Profile', icon: User, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', description: 'Personal information' },
                             { id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', description: 'Employment status' },
                             { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', description: 'Resume insights' },
-                            { id: 'career-games', label: 'Career Games', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', description: 'Game results' },
+                            { id: 'career-games', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', description: 'Game results', hasDropdown: true },
                           ].filter((item) => !isProfileMode || item.id !== 'resume')).map((item) => {
 
                       const Icon = item.icon;
@@ -3582,32 +3620,72 @@ export default function SavedResumePage() {
                       
                       
                       return (
+                        <div key={item.id} className="space-y-1">
+                          <button
+                            onClick={() => {
+                              if (item.hasDropdown) {
+                                setActiveSection(item.id);
+                                setIsGameResultsDropdownOpen(!isGameResultsDropdownOpen);
+                              } else {
+                                setActiveSection(item.id);
+                              }
+                            }}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left ${
+                              isActive 
+                                ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30'
+                                : 'hover:bg-white/5'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 ${item.bgColor} rounded-lg flex items-center justify-center`}>
+                              <Icon className={`w-4 h-4 ${item.color}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-medium ${isActive ? 'text-white' : 'text-gray-300'}`}>{item.label}</div>
+                              <div className="text-xs text-gray-400 truncate">{item.description}</div>
+                            </div>
+                            {item.hasDropdown ? (
+                              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isGameResultsDropdownOpen ? 'rotate-180' : ''}`} />
+                            ) : isActive ? (
+                              <ChevronRight className="w-4 h-4 text-cyan-400" />
+                            ) : null}
+                          </button>
 
-                        <button
-                          key={item.id}
-
-                          onClick={() => setActiveSection(item.id)}
-
-                          className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left ${
-                            isActive 
-
-                              ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30'
-                              : 'hover:bg-white/5'
-                          }`}
-                        >
-                          <div className={`w-8 h-8 ${item.bgColor} rounded-lg flex items-center justify-center`}>
-                            <Icon className={`w-4 h-4 ${item.color}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className={`font-medium ${isActive ? 'text-white' : 'text-gray-300'}`}>{item.label}</div>
-                            <div className="text-xs text-gray-400 truncate">{item.description}</div>
-                          </div>
-                          {isActive && (
-
-                            <ChevronRight className="w-4 h-4 text-cyan-400" />
+                          {/* Game Results Dropdown */}
+                          {item.hasDropdown && isGameResultsDropdownOpen && (
+                            <div className="ml-4 space-y-1">
+                              <button
+                                onClick={() => setActiveSection('achievements')}
+                                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 text-left ${
+                                  activeSection === 'achievements'
+                                    ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30'
+                                    : 'hover:bg-white/5'
+                                }`}
+                              >
+                                <div className="w-6 h-6 bg-yellow-500/20 rounded-md flex items-center justify-center">
+                                  <Medal className="w-3 h-3 text-yellow-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-sm font-medium ${activeSection === 'achievements' ? 'text-white' : 'text-gray-300'}`}>Achievements</div>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => setActiveSection('power-stats')}
+                                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-200 text-left ${
+                                  activeSection === 'power-stats'
+                                    ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30'
+                                    : 'hover:bg-white/5'
+                                }`}
+                              >
+                                <div className="w-6 h-6 bg-blue-500/20 rounded-md flex items-center justify-center">
+                                  <Zap className="w-3 h-3 text-blue-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-sm font-medium ${activeSection === 'power-stats' ? 'text-white' : 'text-gray-300'}`}>Power Stats</div>
+                                </div>
+                              </button>
+                            </div>
                           )}
-
-                        </button>
+                        </div>
                       );
 
                     })}
@@ -3978,7 +4056,7 @@ export default function SavedResumePage() {
 
 
 
-                      { id: 'career-games', label: 'Career Games', icon: Gamepad2 },
+                      { id: 'career-games', label: 'Game Results', icon: Gamepad2 },
 
 
 
@@ -4546,7 +4624,7 @@ export default function SavedResumePage() {
 
                                  
                                  
-                                 {/* Current Position */}
+                                 {/* Job Title */}
 
 
 
@@ -4570,7 +4648,7 @@ export default function SavedResumePage() {
 
 
 
-                                     Current Position
+                                     Job Title
 
 
 
@@ -5586,7 +5664,7 @@ export default function SavedResumePage() {
 
 
 
-                       {!isEditMode && (
+                       {false && (
 
 
 
@@ -5616,7 +5694,7 @@ export default function SavedResumePage() {
 
 
 
-                               Your Work Status Summary
+                               Work Status Overview
 
 
 
@@ -7796,7 +7874,22 @@ export default function SavedResumePage() {
 
 
 
-                      No analysis found. Login and run an analysis to see results here.
+                      <div className="max-w-md mx-auto">
+                        <div className="mb-6">
+                          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-xl font-semibold text-white mb-2">No AI Analysis Yet</h3>
+                          <p className="text-gray-300 mb-6">
+                            Start building your resume to get your AI Analysis
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => router.push('/resume-builder')}
+                          className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Go to Resume Builder
+                        </Button>
+                      </div>
 
 
 
@@ -9317,7 +9410,7 @@ export default function SavedResumePage() {
 
 
 
-                                   <div className="text-white font-medium mb-1">Recommended Salary Range</div>
+                                   <div className="text-white font-medium mb-1">AI Recommended Salary Range</div>
 
 
 
@@ -10089,7 +10182,7 @@ export default function SavedResumePage() {
 
 
 
-                  {/* Career Games Section */}
+                  {/* Game Results Section */}
 
 
 
@@ -10107,7 +10200,7 @@ export default function SavedResumePage() {
 
 
 
-                      {/* Career Games Header */}
+                      {/* Game Results Header */}
 
                       <motion.div
 
@@ -10133,7 +10226,7 @@ export default function SavedResumePage() {
 
                             <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
 
-                              Career Games Hub
+                              Game Results Hub
 
                             </h1>
 
@@ -10254,9 +10347,16 @@ export default function SavedResumePage() {
 
 
                           <div className="text-center py-8">
-                            <div className="text-6xl mb-2">⌨️</div>
-                            <div className="text-gray-400">No Typing Hero stats yet</div>
-                            <div className="text-yellow-400/60 text-sm mt-1">Start typing to see your progress!</div>
+                            <div className="text-6xl mb-4">⌨️</div>
+                            <div className="text-gray-400 mb-2">No Typing Hero stats yet</div>
+                            <div className="text-yellow-400/60 text-sm mb-4">Start typing to see your progress!</div>
+                            <Button 
+                              onClick={() => router.push('/career-tools/games/typing-hero')}
+                              className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+                            >
+                              <Guitar className="w-4 h-4 mr-2" />
+                              Play Typing Hero
+                            </Button>
                           </div>
 
 
@@ -10440,9 +10540,16 @@ export default function SavedResumePage() {
 
 
                           <div className="text-center py-8">
-                            <div className="text-6xl mb-2">🧠</div>
-                            <div className="text-gray-400">No DISC data yet</div>
-                            <div className="text-amber-400/60 text-sm mt-1">Take the assessment to discover your personality!</div>
+                            <div className="text-6xl mb-4">🧠</div>
+                            <div className="text-gray-400 mb-2">No DISC data yet</div>
+                            <div className="text-amber-400/60 text-sm mb-4">Take the assessment to discover your personality!</div>
+                            <Button 
+                              onClick={() => router.push('/career-tools/games/disc-personality')}
+                              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+                            >
+                              <Brain className="w-4 h-4 mr-2" />
+                              Take DISC Assessment
+                            </Button>
                           </div>
 
 
@@ -10953,9 +11060,16 @@ export default function SavedResumePage() {
 
 
                           <div className="text-center py-8">
-                            <div className="text-6xl mb-2">🌍</div>
-                            <div className="text-gray-400">No cultural data yet</div>
-                            <div className="text-cyan-400/60 text-sm mt-1">Complete the cultural assessment to see your results!</div>
+                            <div className="text-6xl mb-4">🌍</div>
+                            <div className="text-gray-400 mb-2">No cultural data yet</div>
+                            <div className="text-cyan-400/60 text-sm mb-4">Complete the cultural assessment to see your results!</div>
+                            <Button 
+                              onClick={() => router.push('/career-tools/games/bpoc-cultural')}
+                              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+                            >
+                              <Globe className="w-4 h-4 mr-2" />
+                              Take Cultural Assessment
+                            </Button>
                           </div>
 
 
@@ -11241,10 +11355,17 @@ export default function SavedResumePage() {
 
 
                           <div className="text-center py-8">
-                            <div className="text-6xl mb-2">👑</div>
-                            <div className="text-gray-400">No Ultimate data yet</div>
-                            <div className="text-red-400/60 text-sm mt-1">Take on the ultimate business challenge!</div>
-                                </div>
+                            <div className="text-6xl mb-4">👑</div>
+                            <div className="text-gray-400 mb-2">No Ultimate data yet</div>
+                            <div className="text-red-400/60 text-sm mb-4">Take on the ultimate business challenge!</div>
+                            <Button 
+                              onClick={() => router.push('/career-tools/games/ultimate')}
+                              className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+                            >
+                              <Crown className="w-4 h-4 mr-2" />
+                              Play Ultimate Game
+                            </Button>
+                          </div>
 
 
 
@@ -11485,7 +11606,73 @@ export default function SavedResumePage() {
 
                   )}
 
+                  {/* Achievements Section */}
+                  {activeSection === 'achievements' && (
+                    <div className="max-w-6xl w-full">
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="mb-8"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center justify-center w-16 h-16">
+                            <Medal className="w-8 h-8 text-yellow-400" />
+                          </div>
+                          <div>
+                            <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                              Achievements
+                            </h1>
+                            <p className="text-gray-300 text-lg">
+                              Track your gaming milestones and accomplishments
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
 
+                      <Card className="glass-card border-yellow-400/30 bg-gradient-to-br from-yellow-500/10 via-orange-500/5 to-red-500/10">
+                        <CardContent className="p-8 text-center">
+                          <div className="text-6xl mb-4">🏆</div>
+                          <h3 className="text-xl font-semibold text-white mb-2">Achievement System Coming Soon</h3>
+                          <p className="text-gray-400">We're working on an exciting achievement system to track your gaming progress and milestones.</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* Power Stats Section */}
+                  {activeSection === 'power-stats' && (
+                    <div className="max-w-6xl w-full">
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="mb-8"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center justify-center w-16 h-16">
+                            <Zap className="w-8 h-8 text-blue-400" />
+                          </div>
+                          <div>
+                            <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                              Power Stats
+                            </h1>
+                            <p className="text-gray-300 text-lg">
+                              Analyze your performance metrics and gaming statistics
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      <Card className="glass-card border-blue-400/30 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10">
+                        <CardContent className="p-8 text-center">
+                          <div className="text-6xl mb-4">⚡</div>
+                          <h3 className="text-xl font-semibold text-white mb-2">Power Stats System Coming Soon</h3>
+                          <p className="text-gray-400">We're developing a comprehensive power stats system to analyze your gaming performance and provide detailed insights.</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
 
           </motion.div>
 

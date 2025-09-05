@@ -36,6 +36,14 @@ export default function TalentSearchPage() {
      { label: "Profile Complete", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
    ])
 
+  // Function to determine rank based on overall score
+  const getRank = (score: number) => {
+    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30' }
+    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
+    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
+    return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
+  }
+
   // Fetch candidates data on component mount
   useEffect(() => {
     fetchCandidates()
@@ -87,7 +95,7 @@ export default function TalentSearchPage() {
   }
 
   const handleViewProfile = (slug: string) => {
-    router.push(`/${slug}?mode=profile`)
+    router.push(`/${slug}`)
   }
 
   const handleViewResume = (resumeSlug: string) => {
@@ -203,12 +211,25 @@ export default function TalentSearchPage() {
                         </div>
                       </div>
 
-                      {/* Overall Score Badge */}
-                      <div className="flex items-center justify-center gap-2 mb-4">
-                        <Trophy className="w-5 h-5 text-yellow-400" />
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
-                          Score: {candidate.overallScore}
-                        </span>
+                      {/* Overall Score and Rank Badges */}
+                      <div className="flex items-center justify-center gap-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-yellow-400" />
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+                            Score: {candidate.overallScore}
+                          </span>
+                        </div>
+                        {(() => {
+                          const rankInfo = getRank(candidate.overallScore)
+                          if (rankInfo.rank !== 'None') {
+                            return (
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${rankInfo.bgColor} ${rankInfo.color} border ${rankInfo.borderColor}`}>
+                                {rankInfo.rank}
+                              </span>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
 
                       {/* Location and Join Date */}
