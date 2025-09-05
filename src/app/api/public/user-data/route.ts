@@ -86,10 +86,12 @@ export async function GET(request: NextRequest) {
         // Filter out private fields if includePrivate is false
         const allowedFields = fields.filter(field => {
           if (!includePrivate) {
-            // Remove private/sensitive fields
+            // Remove private/sensitive fields (SIMPLIFIED - Only 3 tables)
+            // Note: expected_salary is now PUBLIC, only email, phone, current_salary remain private
             const privateFields = [
-              'email', 'phone', 'current_salary', 'expected_salary',
-              'analysis_metadata', 'files_analyzed'
+              'email', 'phone', 'current_salary',
+              'analysis_metadata', 'files_analyzed', 'original_resume_id',
+              'admin_level', 'is_admin', 'work_status_user_id', 'analysis_user_id'
             ];
             return !privateFields.includes(field);
           }
@@ -100,26 +102,29 @@ export async function GET(request: NextRequest) {
           selectClause = allowedFields.join(', ');
         }
       } else if (!includePrivate) {
-        // Default public fields if no specific fields requested
+        // Default public fields if no specific fields requested (EXCLUDES sensitive data)
+        // Note: expected_salary is now PUBLIC, only email, phone, current_salary remain private
         selectClause = `
           user_id, first_name, last_name, full_name, location, avatar_url, bio, position, 
-          gender, slug, location_city, location_province, location_country, location_region,
-          user_created_at, current_employer, current_position, work_status, preferred_shift, 
-          work_setup, overall_score, ats_compatibility_score, content_quality_score, 
+          gender, gender_custom, slug, location_city, location_province, location_country, 
+          location_region, location_barangay, user_created_at, user_updated_at,
+          work_status_id, current_employer, current_position, work_status, preferred_shift, 
+          work_setup, current_mood, notice_period_days, expected_salary, work_status_completed,
+          work_status_created_at, work_status_updated_at,
+          analysis_id, session_id, overall_score, ats_compatibility_score, content_quality_score, 
           professional_presentation_score, skills_alignment_score, key_strengths, 
           strengths_analysis, improvements, recommendations, improved_summary, 
           salary_analysis, career_path, section_analysis, candidate_profile, 
-          skills_snapshot, experience_snapshot, education_snapshot, resume_slug, 
-          resume_title, template_used, resume_is_public, resume_view_count, 
-          total_applications, active_applications, hired_applications, 
-          latest_application_date, latest_application_status
+          skills_snapshot, experience_snapshot, education_snapshot, portfolio_links,
+          analysis_created_at, analysis_updated_at
         `;
       }
 
-      // Validate sortBy field to prevent SQL injection
+      // Validate sortBy field to prevent SQL injection (SIMPLIFIED - Only 3 tables)
       const allowedSortFields = [
         'user_created_at', 'user_updated_at', 'full_name', 'overall_score',
-        'total_applications', 'active_applications', 'resume_view_count'
+        'ats_compatibility_score', 'content_quality_score', 'professional_presentation_score',
+        'skills_alignment_score', 'work_status_created_at', 'analysis_created_at'
       ];
       const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'user_created_at';
 
