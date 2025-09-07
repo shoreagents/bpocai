@@ -42,6 +42,27 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Custom scrollbars for terms and conditions modal */
+.terms-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(55, 65, 81, 0.8) transparent;
+}
+.terms-modal-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.terms-modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.terms-modal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(55, 65, 81, 0.8);
+  border-radius: 4px;
+  border: 1px solid rgba(75, 85, 99, 0.6);
+}
+.terms-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(55, 65, 81, 1);
+  border: 1px solid rgba(75, 85, 99, 0.8);
+}
+
 /* Job Edit Modal - Enhanced UI */
 .job-edit-modal-v2 {
   width: 95vw !important;
