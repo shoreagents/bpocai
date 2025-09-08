@@ -14,6 +14,7 @@ import {
   TrendingUp, 
   Target, 
   Star,
+  BarChart3,
   Download,
   Share2,
   Sparkles,
@@ -26,7 +27,8 @@ import {
   User,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Menu
 } from 'lucide-react';
 import LoadingScreen from '@/components/ui/loading-screen';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { getFromLocalStorage, cleanupLocalStorageAfterSave } from '@/lib/utils';
 import { getSessionToken } from '@/lib/auth-helpers';
@@ -88,6 +91,8 @@ export default function AnalysisPage() {
   const [isImprovingSummary, setIsImprovingSummary] = useState(false);
   const [serverProfile, setServerProfile] = useState<any | null>(null);
   const [showExistingAnalysisModal, setShowExistingAnalysisModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Smart mapping function to extract data from flexible JSON structure
   const mapResumeData = (rawData: any) => {
@@ -1042,30 +1047,107 @@ export default function AnalysisPage() {
 
 
 
-              {/* Analysis Tabs */}
-              <Tabs defaultValue="overview" className="space-y-8">
-                <div className="flex justify-center">
-                  <TabsList className="glass-card border-white/20 shadow-lg shadow-white/10 p-1 bg-black/20">
-                    <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:text-cyan-400 data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/20">
-                      <Target className="h-4 w-4 mr-2" />
-                      Overview
-                    </TabsTrigger>
-                    <TabsTrigger value="strengths" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500/20 data-[state=active]:to-emerald-500/20 data-[state=active]:text-green-400 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/20">
-                      <Trophy className="h-4 w-4 mr-2" />
-                      Strengths
-                    </TabsTrigger>
-                    <TabsTrigger value="improvements" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500/20 data-[state=active]:to-red-500/20 data-[state=active]:text-orange-400 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/20">
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Improvements
-                    </TabsTrigger>
-                    <TabsTrigger value="salary" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-pink-500/20 data-[state=active]:text-purple-400 data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/20">
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Salary & Career
-                    </TabsTrigger>
-                  </TabsList>
+              {/* Analysis Layout with Sidebar */}
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Sidebar Navigation */}
+                <div className="lg:w-64 flex-shrink-0 lg:sticky lg:top-24 lg:self-start">
+                  {/* Mobile Menu Button */}
+                  <div className="lg:hidden mb-4">
+                    <Button
+                      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                      variant="outline"
+                      className="w-full glass-card border-white/20"
+                    >
+                      <Menu className="h-4 w-4 mr-2" />
+                      Analysis Menu
+                    </Button>
+                  </div>
+
+                  {/* Sidebar Menu */}
+                  <div className={`glass-card p-6 border-white/20 ${isMobileMenuOpen ? 'block' : 'hidden lg:block'}`}>
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-cyan-400" />
+                      Analysis
+                    </h3>
+                    
+                    <nav className="space-y-2">
+                      {[
+                        { id: 'overview', label: 'Overview', icon: Target, color: 'cyan' },
+                        { id: 'strengths', label: 'Strengths', icon: Trophy, color: 'green' },
+                        { id: 'improvements', label: 'Improvements', icon: TrendingUp, color: 'orange' },
+                        { id: 'salary', label: 'Salary & Career', icon: TrendingUp, color: 'purple' }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                            activeTab === item.id
+                              ? `bg-gradient-to-r from-${item.color}-500/20 to-${item.color}-500/10 text-white border border-${item.color}-500/30`
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <item.icon className={`w-5 h-5 mr-3 ${activeTab === item.id ? `text-${item.color}-400` : ''}`} />
+                          <span className="font-medium">{item.label}</span>
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+
+                  {/* Next Steps Card */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="mt-6"
+                  >
+                    <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-auto flex flex-col">
+                      <CardHeader className="pb-4 flex-shrink-0">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-500/20 rounded-lg">
+                            <Sparkles className="h-5 w-5 text-purple-400" />
+                          </div>
+                          <CardTitle className="text-purple-400 text-lg">Next Steps (Step 3)</CardTitle>
+                        </div>
+                        <CardDescription className="text-gray-300 text-sm">
+                          Ready to take your career to the next level?
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1 space-y-4">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.7 }}
+                        >
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-3 flex-col transition-all duration-300 hover:scale-105"
+                            onClick={() => {
+                              if (resumeData) {
+                                localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                                cleanupWorkflowData();
+                                router.push('/resume-builder/build');
+                              }
+                            }}
+                          >
+                            <FileText className="h-5 w-5 mb-2" />
+                            <span className="font-semibold text-xs leading-tight text-center px-1">Generate New Improved Resume</span>
+                            <span className="text-xs opacity-80 mt-1 text-center">AI-powered resume builder</span>
+                          </Button>
+                        </motion.div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </div>
 
-                                                                  <TabsContent value="overview" className="space-y-8">
+                {/* Main Content Area */}
+                <div className="flex-1 min-w-0">
+
+                  {/* Overview Section */}
+                  {activeTab === 'overview' && (
+                    <div className="space-y-8">
                    {/* Header Section */}
                    <div className="text-center mb-8">
                      <motion.div
@@ -1250,8 +1332,8 @@ export default function AnalysisPage() {
                      </Card>
                    </div>
                    
-                   {/* First Row - 3 Cards */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                   {/* Second Row - Skills & Competencies, Professional Summary */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                       {/* Skills Section */}
                       <motion.div
                         initial={{ opacity: 0, y: 30 }}
@@ -1359,13 +1441,17 @@ export default function AnalysisPage() {
                         </Card>
                       </motion.div>
 
+                    </div>
+
+                    {/* Third Row - Work Experience, Education */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       {/* Work Experience */}
                       <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
                       >
-                        <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-80 flex flex-col">
+                        <Card className="glass-card border-green-500/30 shadow-lg shadow-green-500/20 bg-gradient-to-br from-green-500/5 to-emerald-500/5 h-full">
                           <CardHeader className="pb-4 flex-shrink-0">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-green-500/20 rounded-lg">
@@ -1406,10 +1492,7 @@ export default function AnalysisPage() {
                           </CardContent>
                         </Card>
                       </motion.div>
-                    </div>
 
-                    {/* Second Row - 2 Cards */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       {/* Education */}
                       <motion.div
                         initial={{ opacity: 0, y: 30 }}
@@ -1467,53 +1550,13 @@ export default function AnalysisPage() {
                         </Card>
                       </motion.div>
 
-                      {/* Portfolio Links */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 }}
-                      >
-                        <Card className="glass-card border-blue-500/30 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 h-full">
-                          <CardHeader className="pb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-blue-500/20 rounded-lg">
-                                <Link2 className="h-5 w-5 text-blue-400" />
-                              </div>
-                              <CardTitle className="text-blue-400 text-lg">Additional Links</CardTitle>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
-                              {Array.isArray(analysisData?.portfolioLinks) && analysisData.portfolioLinks.length > 0 ? 
-                                analysisData.portfolioLinks.slice(0, 4).map((link: any, index: number) => (
-                                  <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.7 + (index * 0.1) }}
-                                    className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-400/20 hover:bg-blue-500/15 transition-colors"
-                                  >
-                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                                      <Link2 className="h-4 w-4 text-blue-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-white text-sm font-medium truncate">{link.title || link.name}</p>
-                                      <p className="text-blue-400 text-xs truncate">{link.url}</p>
-                                    </div>
-                                  </motion.div>
-                                )) : 
-                                                              <div className="text-center py-8">
-                                <div className="text-gray-400 text-sm">No additional links available</div>
-                              </div>
-                              }
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
                     </div>
-                 </TabsContent>
+                    </div>
+                  )}
 
-                                                                                                  <TabsContent value="strengths" className="space-y-8">
+                  {/* Strengths Section */}
+                  {activeTab === 'strengths' && (
+                    <div className="space-y-8">
                   {/* Header Section */}
                   <div className="text-center mb-8">
                     <motion.div
@@ -1803,9 +1846,12 @@ export default function AnalysisPage() {
                       </Card>
                     </motion.div>
                   </div>
-                </TabsContent>
+                    </div>
+                  )}
 
-                                                  <TabsContent value="improvements" className="space-y-8">
+                  {/* Improvements Section */}
+                  {activeTab === 'improvements' && (
+                    <div className="space-y-8">
                    {/* Header Section */}
                    <div className="text-center mb-8">
                      <motion.div
@@ -2077,11 +2123,12 @@ export default function AnalysisPage() {
                        </Card>
                      </motion.div>
                    </div>
-                 </TabsContent>
+                    </div>
+                  )}
 
-
-
-                <TabsContent value="salary" className="space-y-8">
+                  {/* Salary & Career Section */}
+                  {activeTab === 'salary' && (
+                    <div className="space-y-8">
                   {/* Header Section */}
                   <div className="text-center mb-8">
                     <motion.div
@@ -2416,55 +2463,10 @@ export default function AnalysisPage() {
                       </Card>
                     </motion.div>
                   </div>
-                </TabsContent>
-              </Tabs>
-
-
-
-              {/* Next Steps */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="mt-12"
-              >
-                <Card className="glass-card border-white/20 shadow-lg shadow-white/10">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gradient-text text-lg">
-                      <Sparkles className="h-5 w-5 mr-2" />
-                      Next Steps (Step 3)
-                    </CardTitle>
-                    <CardDescription className="text-gray-300">
-                      Ready to take your career to the next level?
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7 }}
-                      >
-                        <Button 
-                          variant="outline" 
-                          className="w-full border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-6 flex-col transition-all duration-300 hover:scale-105"
-                          onClick={() => {
-                            if (resumeData) {
-                              localStorage.setItem('resumeData', JSON.stringify(resumeData));
-                              cleanupWorkflowData();
-                              router.push('/resume-builder/build');
-                            }
-                          }}
-                        >
-                          <FileText className="h-8 w-8 mb-3" />
-                          <span className="font-semibold text-base">Generate New Improved Resume</span>
-                          <span className="text-xs opacity-80 mt-1">AI-powered resume builder</span>
-                        </Button>
-                      </motion.div>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
         </div>
