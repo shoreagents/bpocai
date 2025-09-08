@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { PacmanLoader } from 'react-spinners';
 import { 
   Download, 
   Share2, 
@@ -222,18 +223,10 @@ export default function ResumeSlugPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState<boolean>(false);
-  const [overallScore, setOverallScore] = useState<number>(0);
   const [activeSection, setActiveSection] = useState<string>('resume');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
-  // Function to determine rank based on overall score
-  const getRank = (score: number) => {
-    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30' };
-    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' };
-    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' };
-    return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' };
-  };
 
   const [typingStats, setTypingStats] = useState<any | null>(null);
   const [typingLatest, setTypingLatest] = useState<any | null>(null);
@@ -245,34 +238,6 @@ export default function ResumeSlugPage() {
   const [culturalLatest, setCulturalLatest] = useState<any | null>(null);
   const [isGameResultsDropdownOpen, setIsGameResultsDropdownOpen] = useState<boolean>(false);
 
-  // Starfield state
-  const [stars, setStars] = useState<Array<{
-    id: number;
-    left: string;
-    top: string;
-    animationDelay: string;
-    animationDuration: string;
-    opacity: number;
-  }>>([]);
-
-  // Initialize starfield
-  useEffect(() => {
-    const generateStars = () => {
-      const newStars = [];
-      for (let i = 0; i < 100; i++) {
-        newStars.push({
-          id: i,
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 3}s`,
-          animationDuration: `${3 + Math.random() * 4}s`,
-          opacity: Math.random() * 0.8 + 0.2,
-        });
-      }
-      setStars(newStars);
-    };
-    generateStars();
-  }, []);
 
   // Close share dropdown when clicking outside
   useEffect(() => {
@@ -314,18 +279,6 @@ export default function ResumeSlugPage() {
           setResume(data.resume);
           setIsOwner(user?.id === data.resume.userId);
           
-          // Fetch overall score
-          if (data.resume.userId) {
-            try {
-              const scoreResponse = await fetch(`/api/user/profile?userId=${data.resume.userId}`);
-              if (scoreResponse.ok) {
-                const scoreData = await scoreResponse.json();
-                setOverallScore(scoreData.user?.overall_score || 0);
-              }
-            } catch (error) {
-              console.log('Failed to fetch overall score:', error);
-            }
-          }
         } else {
           throw new Error('Resume not found');
         }
@@ -504,10 +457,86 @@ export default function ResumeSlugPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p className="text-xl">Loading resume...</p>
+      <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center">
+        {/* Futuristic Space Background */}
+        <div className="absolute inset-0">
+          {/* Nebula Effect */}
+          <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-cyan-900/20"></div>
+          <div className="absolute inset-0 bg-gradient-radial from-blue-900/15 via-transparent to-pink-900/15"></div>
+          
+          {/* Starfield */}
+          <div className="absolute inset-0">
+            {[...Array(50)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`,
+                  opacity: 0.3 + Math.random() * 0.7
+                }}
+              ></div>
+            ))}
+          </div>
+          
+          {/* Floating Space Debris */}
+          <div className="absolute top-20 left-10 w-3 h-3 bg-cyan-400/40 rounded-full animate-bounce"></div>
+          <div className="absolute top-40 right-20 w-2 h-2 bg-purple-400/50 rounded-full animate-ping"></div>
+          <div className="absolute top-60 left-1/4 w-2.5 h-2.5 bg-blue-400/40 rounded-full animate-pulse"></div>
+          <div className="absolute top-80 right-1/3 w-1.5 h-1.5 bg-green-400/60 rounded-full animate-bounce"></div>
+          <div className="absolute top-32 left-2/3 w-2 h-2 bg-pink-400/50 rounded-full animate-ping"></div>
+          <div className="absolute top-72 right-1/6 w-1.5 h-1.5 bg-yellow-400/40 rounded-full animate-pulse"></div>
+          
+          {/* Energy Orbs */}
+          <div className="absolute top-1/4 left-1/6 w-6 h-6 bg-gradient-to-r from-cyan-400/30 to-blue-400/30 rounded-full animate-spin opacity-40"></div>
+          <div className="absolute top-1/3 right-1/4 w-8 h-8 bg-gradient-to-r from-purple-400/25 to-pink-400/25 rounded-full animate-pulse opacity-30"></div>
+          <div className="absolute top-2/3 left-1/3 w-5 h-5 bg-gradient-to-r from-green-400/35 to-cyan-400/35 rounded-full animate-bounce opacity-50"></div>
+          <div className="absolute top-1/2 right-1/6 w-4 h-4 bg-gradient-to-r from-yellow-400/30 to-orange-400/30 rounded-full animate-spin opacity-40" style={{ animationDirection: 'reverse' }}></div>
+          
+          {/* Cosmic Grid */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/8 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/8 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-500/5 to-transparent"></div>
+          
+          {/* Wormhole Effect */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="w-40 h-40 border border-cyan-400/15 rounded-full animate-spin"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-purple-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '4s' }}></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-blue-400/15 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-pink-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
+          </div>
+          
+          {/* Energy Waves */}
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent animate-pulse"></div>
+          <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-purple-500/10 via-transparent to-transparent animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+        
+        <div className="text-center relative z-10">
+          {/* Pacman Loader */}
+          <div className="relative mb-8">
+            <div className="flex justify-center">
+              <PacmanLoader 
+                color="#fbbf24" 
+                size={60}
+                margin={4}
+                speedMultiplier={1.2}
+              />
+            </div>
+            
+            {/* Floating energy particles */}
+            <div className="absolute -top-4 -left-4 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+            <div className="absolute -top-4 -right-4 w-3 h-3 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+            <div className="absolute -bottom-4 -left-4 w-3 h-3 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute -bottom-4 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+          </div>
+          
+          {/* Enhanced Text with Glow Effect */}
+          <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg" style={{ textShadow: '0 0 20px rgba(34, 211, 238, 0.5)' }}>
+            Loading Resume...
+          </h2>
+          <p className="text-gray-400 text-lg">Preparing your professional profile</p>
         </div>
       </div>
     );
@@ -545,25 +574,14 @@ export default function ResumeSlugPage() {
     );
   }
 
-  const rank = getRank(overallScore);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-white">
-      {/* Starfield Background */}
-      <div className="fixed inset-0 z-0">
-        {stars.map((star) => (
-          <div
-            key={star.id}
-            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-            style={{
-              left: star.left,
-              top: star.top,
-              animationDelay: star.animationDelay,
-              animationDuration: star.animationDuration,
-              opacity: star.opacity,
-            }}
-          />
-        ))}
+    <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
       </div>
 
       <Header />
@@ -593,27 +611,13 @@ export default function ResumeSlugPage() {
                         {generateInitials(resume.user.fullName)}
                       </div>
                     )}
-                    {rank.rank !== 'None' && (
-                      <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full ${rank.bgColor} ${rank.borderColor} border-2 flex items-center justify-center`}>
-                        <Crown className={`w-4 h-4 ${rank.color}`} />
-                      </div>
-                    )}
                   </div>
                   
                   <div>
                     <h1 className="text-3xl font-bold gradient-text mb-2">
-                      {resume.user.fullName}
+                      {resume.user.fullName}'s Resume
                     </h1>
-                    <p className="text-xl text-gray-300 mb-1">
-                      {resume.user.position || 'Professional'}
-                    </p>
                     <div className="flex items-center gap-4 text-gray-400">
-                      {resume.user.location && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          <span>{resume.user.location}</span>
-                        </div>
-                      )}
                       <div className="flex items-center gap-1">
                         <Eye className="w-4 h-4" />
                         <span>{formatNumber(resume.viewCount)} views</span>
@@ -621,6 +625,10 @@ export default function ResumeSlugPage() {
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         <span>Updated {new Date(resume.updatedAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FileText className="w-4 h-4" />
+                        <span>Template: {resume.template || 'Default'}</span>
                       </div>
                     </div>
                   </div>
@@ -732,27 +740,6 @@ export default function ResumeSlugPage() {
                  </div>
               </div>
 
-              {/* Overall Score */}
-              {overallScore > 0 && (
-                <div className="mt-6 pt-6 border-t border-white/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">AI Analysis Score</h3>
-                      <div className="flex items-center gap-3">
-                        <div className="text-3xl font-bold gradient-text">
-                          {overallScore}/100
-                        </div>
-                        <Badge className={`${rank.bgColor} ${rank.borderColor} border ${rank.color}`}>
-                          {rank.rank}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="w-32">
-                      <Progress value={overallScore} className="h-3" />
-                    </div>
-                  </div>
-                </div>
-              )}
             </motion.div>
 
             {/* Resume Content */}
