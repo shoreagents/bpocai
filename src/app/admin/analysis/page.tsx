@@ -49,7 +49,8 @@ import {
   Star,
   TrendingDown,
   Award,
-  ChevronDown
+  ChevronDown,
+  MoreHorizontal
 } from 'lucide-react'
 
 interface Analysis {
@@ -410,12 +411,12 @@ export default function AnalysisPage() {
                       <TableHead className="text-white">Skills Alignment</TableHead>
                       <TableHead className="text-white">Created At</TableHead>
                       <TableHead className="text-white">Updated At</TableHead>
-                      <TableHead className="text-white">Actions</TableHead>
+                      <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {currentAnalyses.map((analysis) => (
-                      <TableRow key={analysis.id} className="border-white/10 hover:bg-white/5">
+                      <TableRow key={analysis.id} className="border-white/10 hover:bg-white/5 cursor-pointer" onClick={() => handleViewAnalysis(analysis)}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="w-8 h-8">
@@ -468,16 +469,25 @@ export default function AnalysisPage() {
                             {formatDate(analysis.updated_at)}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewAnalysis(analysis)}
-                            className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Analysis
-                          </Button>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="bg-gray-900 border-white/10">
+                              <DropdownMenuItem 
+                                className="text-red-400"
+                                onClick={() => {
+                                  // Add delete functionality here
+                                  console.log('Delete analysis:', analysis.id)
+                                }}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -551,516 +561,155 @@ export default function AnalysisPage() {
 
         {/* Analysis Details Modal */}
         {analysisModalOpen && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
-              <div className="px-6 py-4 border-b border-white/10 flex-shrink-0 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">AI Analysis Details</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAnalysisModalOpen(false)}
-                  className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-                >
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setAnalysisModalOpen(false)}>
+            <div className="bg-gray-900 border border-white/20 rounded-lg p-6 max-w-6xl w-full mx-4 h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                <div className="text-white font-semibold text-lg">AI Analysis Details</div>
+                <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white" onClick={() => setAnalysisModalOpen(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
+              <div className="flex-1 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-6 text-sm text-gray-300">
               
               {selectedAnalysis && (
-                <div className="space-y-6 px-6 py-6 flex-1 overflow-y-auto">
-                  {/* User Info */}
-                  <div className="flex items-center space-x-6 p-6 bg-white/5 rounded-lg border border-white/10">
-                    <Avatar className="w-16 h-16">
-                      <AvatarImage 
-                        src={selectedAnalysis.user_avatar} 
-                        alt={selectedAnalysis.user_name}
-                      />
-                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white text-xl">
-                        {getInitials(selectedAnalysis.user_name)}
-                      </AvatarFallback>
-                    </Avatar>
+                <>
+                  {/* Left Column */}
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="text-2xl font-bold text-white">{selectedAnalysis.user_name}</h3>
-                      <p className="text-gray-400 text-lg">{selectedAnalysis.user_email}</p>
-                      <p className="text-gray-500">Analysis created: {formatDate(selectedAnalysis.created_at)}</p>
+                      <div className="text-gray-400">User</div>
+                      <div className="text-white">{selectedAnalysis.user_name} <span className="text-gray-400">{selectedAnalysis.user_email}</span></div>
                     </div>
-                  </div>
-
-                  {/* Overall Score */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center text-2xl">
-                        <Trophy className="w-6 h-6 mr-3 text-yellow-400" />
-                        Overall Score: {selectedAnalysis.overall_score || 'N/A'}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {selectedAnalysis.overall_score ? (
-                        <Progress value={selectedAnalysis.overall_score} className="h-4" />
-                      ) : (
-                        <div className="text-gray-400 text-sm">No score data available</div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Detailed Scores */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white text-lg">ATS Compatibility</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.ats_compatibility_score ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-3xl font-bold text-green-400">{selectedAnalysis.ats_compatibility_score}</span>
-                            <Progress value={selectedAnalysis.ats_compatibility_score} className="w-24 h-3" />
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white text-lg">Content Quality</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.content_quality_score ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-3xl font-bold text-blue-400">{selectedAnalysis.content_quality_score}</span>
-                            <Progress value={selectedAnalysis.content_quality_score} className="w-24 h-3" />
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white text-lg">Professional Presentation</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.professional_presentation_score ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-3xl font-bold text-purple-400">{selectedAnalysis.professional_presentation_score}</span>
-                            <Progress value={selectedAnalysis.professional_presentation_score} className="w-24 h-3" />
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white text-lg">Skills Alignment</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.skills_alignment_score ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-3xl font-bold text-cyan-400">{selectedAnalysis.skills_alignment_score}</span>
-                            <Progress value={selectedAnalysis.skills_alignment_score} className="w-24 h-3" />
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Improved Summary */}
-                  <div>
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <Sparkles className="w-5 h-5 mr-2 text-yellow-400" />
-                          Improved Summary
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.improved_summary ? (
-                          <p className="text-gray-300 leading-relaxed">{selectedAnalysis.improved_summary}</p>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No improved summary available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Key Strengths */}
-                  <div>
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <Award className="w-5 h-5 mr-2 text-green-400" />
-                          Key Strengths
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.key_strengths && selectedAnalysis.key_strengths.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {Array.isArray(selectedAnalysis.key_strengths) ? (
-                              selectedAnalysis.key_strengths.map((strength: string, index: number) => (
-                                <Badge key={index} className="bg-green-500/20 text-green-400 border-green-500/30">
-                                  {String(strength)}
-                                </Badge>
-                              ))
-                            ) : (
-                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                                {String(selectedAnalysis.key_strengths)}
-                              </Badge>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No key strengths data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Strengths Analysis */}
-                  <div>
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <Star className="w-5 h-5 mr-2 text-yellow-400" />
-                          Strengths Analysis
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.strengths_analysis ? (
-                          <div className="space-y-4">
-                            {selectedAnalysis.strengths_analysis.topStrengths && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Top Strengths</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {Array.isArray(selectedAnalysis.strengths_analysis.topStrengths) ? 
-                                    selectedAnalysis.strengths_analysis.topStrengths.map((strength: string, index: number) => (
-                                      <Badge key={index} className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                                        {strength}
-                                      </Badge>
-                                    )) : (
-                                      <span className="text-gray-300">No top strengths data</span>
-                                    )
-                                  }
+                    <div>
+                      <div className="text-gray-400">Analysis Created</div>
+                      <div className="text-white">{formatDate(selectedAnalysis.created_at)}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Overall Score</div>
+                      <div className="text-white">{selectedAnalysis.overall_score || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">ATS Compatibility</div>
+                      <div className="text-white">{selectedAnalysis.ats_compatibility_score || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Content Quality</div>
+                      <div className="text-white">{selectedAnalysis.content_quality_score || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Professional Presentation</div>
+                      <div className="text-white">{selectedAnalysis.professional_presentation_score || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Skills Alignment</div>
+                      <div className="text-white">{selectedAnalysis.skills_alignment_score || 'N/A'}</div>
+                    </div>
+                    {selectedAnalysis.improved_summary && (
+                      <div>
+                        <div className="text-gray-400 mb-2">Improved Summary</div>
+                        <div className="text-white whitespace-pre-wrap p-3 bg-white/5 rounded-lg">{selectedAnalysis.improved_summary}</div>
+                      </div>
+                    )}
+                    {selectedAnalysis.key_strengths && selectedAnalysis.key_strengths.length > 0 && (
+                      <div>
+                        <div className="text-gray-400 mb-2">Key Strengths</div>
+                        <div className="space-y-2">
+                          {selectedAnalysis.key_strengths.map((strength: string, index: number) => (
+                            <div key={index} className="p-2 bg-green-500/10 border border-green-500/20 rounded-lg">
+                              <div className="text-green-400 text-sm">{strength}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedAnalysis.section_analysis && Object.keys(selectedAnalysis.section_analysis).length > 0 && (
+                      <div>
+                        <div className="text-gray-400 mb-2">Section Analysis</div>
+                        <div className="space-y-2">
+                          {Object.entries(selectedAnalysis.section_analysis).map(([section, analysis]) => (
+                            <div key={section} className="p-3 bg-white/5 rounded-lg">
+                              <div className="text-white font-medium capitalize mb-2">{section.replace(/_/g, ' ')}</div>
+                              {typeof analysis === 'object' && analysis !== null ? (
+                                <div className="space-y-2">
+                                  {Object.entries(analysis).map(([key, value]) => (
+                                    <div key={key} className="text-sm">
+                                      <span className="text-gray-400 capitalize">{key.replace(/_/g, ' ')}:</span>
+                                      <span className="text-gray-300 ml-2">{String(value)}</span>
+                                    </div>
+                                  ))}
                                 </div>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.strengths_analysis.uniqueValue && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Unique Value</h4>
-                                <p className="text-gray-300">{selectedAnalysis.strengths_analysis.uniqueValue}</p>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.strengths_analysis.areasToHighlight && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Areas to Highlight</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {Array.isArray(selectedAnalysis.strengths_analysis.areasToHighlight) ? 
-                                    selectedAnalysis.strengths_analysis.areasToHighlight.map((area: string, index: number) => (
-                                      <Badge key={index} className="bg-green-500/20 text-green-400 border-green-500/30">
-                                        {area}
-                                      </Badge>
-                                    )) : (
-                                      <span className="text-gray-300">No highlight areas data</span>
-                                    )
-                                  }
+                              ) : (
+                                <div className="text-gray-300 text-sm">{String(analysis)}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    {selectedAnalysis.strengths_analysis && Object.keys(selectedAnalysis.strengths_analysis).length > 0 && (
+                      <div>
+                        <div className="text-gray-400 mb-2">Strengths Analysis</div>
+                        <div className="space-y-2">
+                          {Object.entries(selectedAnalysis.strengths_analysis).map(([key, value]) => (
+                            <div key={key} className="p-3 bg-white/5 rounded-lg">
+                              <div className="text-white font-medium capitalize mb-1">{key.replace(/_/g, ' ')}</div>
+                              <div className="text-gray-300 text-sm">{String(value)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedAnalysis.salary_analysis && Object.keys(selectedAnalysis.salary_analysis).length > 0 && (
+                      <div>
+                        <div className="text-gray-400 mb-2">Salary Analysis</div>
+                        <div className="space-y-2">
+                          {Object.entries(selectedAnalysis.salary_analysis).map(([key, value]) => (
+                            <div key={key} className="p-3 bg-white/5 rounded-lg">
+                              <div className="text-white font-medium capitalize mb-1">{key.replace(/_/g, ' ')}</div>
+                              {Array.isArray(value) ? (
+                                <div className="space-y-1">
+                                  {value.map((item, index) => (
+                                    <div key={index} className="text-gray-300 text-sm">• {String(item)}</div>
+                                  ))}
                                 </div>
-                              </div>
-                            )}
-                            
-                            {/* Fallback for old data structure */}
-                            {!selectedAnalysis.strengths_analysis.topStrengths && 
-                             !selectedAnalysis.strengths_analysis.uniqueValue && 
-                             !selectedAnalysis.strengths_analysis.areasToHighlight && (
-                              <div className="text-gray-400 text-sm">
-                                {Object.keys(selectedAnalysis.strengths_analysis).length > 0 ? (
-                                  Object.entries(selectedAnalysis.strengths_analysis).map(([key, value]) => (
-                                    <div key={key} className="mb-3">
-                                      <h4 className="text-white font-medium capitalize mb-2">
-                                        {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-                                      </h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {Array.isArray(value) ? value.map((item: string, index: number) => (
-                                          <Badge key={index} className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                                            {item}
-                                          </Badge>
-                                        )) : (
-                                          <span className="text-gray-300">{String(value)}</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <span>No strengths analysis data available</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No strengths analysis data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Salary Analysis */}
-                  <div>
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <TrendingUp className="w-5 h-5 mr-2 text-green-400" />
-                          Salary Analysis
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.salary_analysis ? (
-                          <div className="space-y-3">
-                            {selectedAnalysis.salary_analysis.currentLevel && (
-                              <div className="flex items-center gap-3">
-                                <span className="text-gray-300 capitalize min-w-[120px]">Current Level:</span>
-                                <span className="text-white font-medium">{selectedAnalysis.salary_analysis.currentLevel}</span>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.salary_analysis.recommendedSalaryRange && (
-                              <div className="flex items-center gap-3">
-                                <span className="text-gray-300 capitalize min-w-[120px]">Salary Range:</span>
-                                <span className="text-white font-medium">{selectedAnalysis.salary_analysis.recommendedSalaryRange}</span>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.salary_analysis.marketPosition && (
-                              <div className="flex items-center gap-3">
-                                <span className="text-gray-300 capitalize min-w-[120px]">Market Position:</span>
-                                <span className="text-white font-medium">{selectedAnalysis.salary_analysis.marketPosition}</span>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.salary_analysis.growthPotential && (
-                              <div className="flex items-center gap-3">
-                                <span className="text-gray-300 capitalize min-w-[120px]">Growth Potential:</span>
-                                <span className="text-white font-medium">{selectedAnalysis.salary_analysis.growthPotential}</span>
-                              </div>
-                            )}
-                            
-                            {/* Fallback for old data structure */}
-                            {!selectedAnalysis.salary_analysis.currentLevel && 
-                             !selectedAnalysis.salary_analysis.recommendedSalaryRange && 
-                             !selectedAnalysis.salary_analysis.marketPosition && 
-                             !selectedAnalysis.salary_analysis.growthPotential && (
-                              <div className="text-gray-400 text-sm">
-                                {Object.keys(selectedAnalysis.salary_analysis).length > 0 ? (
-                                  Object.entries(selectedAnalysis.salary_analysis).map(([key, value]) => (
-                                    <div key={key} className="flex items-center gap-3">
-                                      <span className="text-gray-300 capitalize min-w-[120px]">
-                                        {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}:
-                                      </span>
-                                      <span className="text-white font-medium">
-                                        {Array.isArray(value) ? value.join(', ') : String(value || 'N/A')}
-                                      </span>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <span>No salary analysis data available</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No salary analysis data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Career Path */}
-                  <div>
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <Target className="w-5 h-5 mr-2 text-purple-400" />
-                          Career Path
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.career_path ? (
-                          <div className="space-y-4">
-                            {selectedAnalysis.career_path.currentRole && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Current Role</h4>
-                                <p className="text-gray-300">{selectedAnalysis.career_path.currentRole}</p>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.career_path.targetRole && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Target Role</h4>
-                                <p className="text-gray-300">{selectedAnalysis.career_path.targetRole}</p>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.career_path.nextCareerSteps && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Next Career Steps</h4>
-                                <ul className="space-y-2">
-                                  {Array.isArray(selectedAnalysis.career_path.nextCareerSteps) ? 
-                                    selectedAnalysis.career_path.nextCareerSteps.map((step: any, index: number) => (
-                                      <li key={index} className="text-gray-300">
-                                        {typeof step === 'object' && step.title ? (
-                                          <div>
-                                            <span className="text-white font-medium">{step.title}:</span> {step.description}
-                                          </div>
-                                        ) : (
-                                          <span>{String(step)}</span>
-                                        )}
-                                      </li>
-                                    )) : (
-                                      <span className="text-gray-300">No next steps data</span>
-                                    )
-                                  }
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {selectedAnalysis.career_path.timeline && (
-                              <div>
-                                <h4 className="text-white font-medium mb-2">Timeline</h4>
-                                <p className="text-gray-300">{selectedAnalysis.career_path.timeline}</p>
-                              </div>
-                            )}
-                            
-                            {/* Fallback for old data structure */}
-                            {!selectedAnalysis.career_path.currentRole && 
-                             !selectedAnalysis.career_path.targetRole && 
-                             !selectedAnalysis.career_path.nextCareerSteps && 
-                             !selectedAnalysis.career_path.timeline && (
-                              <div className="text-gray-400 text-sm">
-                                {Object.keys(selectedAnalysis.career_path).length > 0 ? (
-                                  Object.entries(selectedAnalysis.career_path).map(([key, value]) => (
-                                    <div key={key}>
-                                      <h4 className="text-white font-medium capitalize mb-2">
-                                        {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}
-                                      </h4>
-                                      <div className="text-gray-300">
-                                        {Array.isArray(value) ? (
-                                          <ul className="list-disc list-inside space-y-1">
-                                            {value.map((item: any, index: number) => (
-                                              <li key={index}>
-                                                {typeof item === 'object' ? JSON.stringify(item) : String(item)}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        ) : (
-                                          <span>{String(value)}</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <span>No career path data available</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No career path data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Section Analysis */}
-                  <div>
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <BarChart3 className="w-5 h-5 mr-2 text-cyan-400" />
-                          Section Analysis
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedAnalysis.section_analysis ? (
-                          <div className="space-y-4">
-                            {Object.entries(selectedAnalysis.section_analysis).map(([section, data]: [string, any]) => (
-                              <div key={section} className="border-b border-white/10 pb-4 last:border-b-0">
-                                <h4 className="text-white font-medium capitalize mb-2">
-                                  {section.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()} Section
-                                </h4>
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                  {data.score && (
-                                    <div>
-                                      <span className="text-gray-400">Score: </span>
-                                      <span className="text-white font-medium">{data.score}</span>
-                                    </div>
-                                  )}
-                                  {data.reasons && data.reasons.length > 0 && (
-                                    <div>
-                                      <span className="text-gray-400">Reasons: </span>
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {Array.isArray(data.reasons) ? data.reasons.map((reason: string, index: number) => (
-                                          <Badge key={index} className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                                            {reason}
-                                          </Badge>
-                                        )) : (
-                                          <span className="text-gray-300 text-sm">{String(data.reasons)}</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {data.issues && data.issues.length > 0 && (
-                                    <div>
-                                      <span className="text-gray-400">Issues: </span>
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {Array.isArray(data.issues) ? data.issues.map((issue: string, index: number) => (
-                                          <Badge key={index} className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
-                                            {issue}
-                                          </Badge>
-                                        )) : (
-                                          <span className="text-gray-300 text-sm">{String(data.issues)}</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {data.improvements && data.improvements.length > 0 && (
-                                    <div className="lg:col-span-3">
-                                      <span className="text-gray-400">Improvements: </span>
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {Array.isArray(data.improvements) ? data.improvements.map((improvement: string, index: number) => (
-                                          <Badge key={index} className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
-                                            {improvement}
-                                          </Badge>
-                                        )) : (
-                                          <span className="text-gray-300 text-sm">{String(data.improvements)}</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Fallback for sections with minimal data */}
-                                  {!data.score && !data.reasons && !data.issues && !data.improvements && (
-                                    <div className="lg:col-span-3">
-                                      <span className="text-gray-400">Data: </span>
-                                      <span className="text-gray-300 text-sm">
-                                        {typeof data === 'object' ? JSON.stringify(data) : String(data)}
-                                      </span>
-                                    </div>
-                                  )}
+                              ) : (
+                                <div className="text-gray-300 text-sm">{String(value)}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedAnalysis.career_path && Object.keys(selectedAnalysis.career_path).length > 0 && (
+                      <div>
+                        <div className="text-gray-400 mb-2">Career Path</div>
+                        <div className="space-y-2">
+                          {Object.entries(selectedAnalysis.career_path).map(([key, value]) => (
+                            <div key={key} className="p-3 bg-white/5 rounded-lg">
+                              <div className="text-white font-medium capitalize mb-1">{key.replace(/_/g, ' ')}</div>
+                              {Array.isArray(value) ? (
+                                <div className="space-y-1">
+                                  {value.map((item, index) => (
+                                    <div key={index} className="text-gray-300 text-sm">• {String(item)}</div>
+                                  ))}
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm">No section analysis data available</div>
-                        )}
-                      </CardContent>
-                    </Card>
+                              ) : (
+                                <div className="text-gray-300 text-sm">{String(value)}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </>
               )}
+                </div>
+              </div>
             </div>
           </div>
         )}

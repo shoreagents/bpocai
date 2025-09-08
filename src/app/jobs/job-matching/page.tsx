@@ -48,11 +48,14 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Brain,
+  Loader2,
   ChevronLeft,
   ChevronRight,
   MapPin,
   Users
 } from 'lucide-react';
+import { PacmanLoader } from 'react-spinners';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
@@ -151,19 +154,19 @@ export default function JobMatchingPage() {
   const [jobs, setJobs] = useState<any[]>([])
   const [matchScores, setMatchScores] = useState<{[key: string]: any}>({})
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
+  const [currentLog, setCurrentLog] = useState('')
   const [showLocationPopup, setShowLocationPopup] = useState(false)
   const [showResumeModal, setShowResumeModal] = useState(false)
   const [hasResume, setHasResume] = useState<boolean | null>(null)
   const [showAIAnalysis, setShowAIAnalysis] = useState(false)
 
-  // Show location popup when page loads
+  // Show location popup after AI analysis is complete
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!isLoadingMatches && user?.id && analysisProgress === 0 && currentLog === '' && Object.keys(matchScores).length > 0) {
       setShowLocationPopup(true)
-    }, 1000) // Show after 1 second
-
-    return () => clearTimeout(timer)
-  }, [])
+    }
+  }, [isLoadingMatches, user?.id, analysisProgress, currentLog])
 
   // Fetch jobs and calculate match scores
   useEffect(() => {
@@ -239,8 +242,19 @@ export default function JobMatchingPage() {
         // Calculate match scores for each job if user is logged in
         if (user?.id) {
           setIsLoadingMatches(true)
+          setAnalysisProgress(0)
+          setCurrentLog('Initializing AI analysis...')
+          
           const scores: {[key: string]: any} = {}
-          for (const job of mapped) {
+          const totalJobs = mapped.length
+          
+          for (let i = 0; i < mapped.length; i++) {
+            const job = mapped[i]
+            const progress = Math.round(((i + 1) / totalJobs) * 100)
+            
+            setCurrentLog(`Analyzing job ${i + 1} of ${totalJobs}: ${job.title}`)
+            setAnalysisProgress(progress)
+            
             try {
               const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.id}`)
               if (matchRes.ok) {
@@ -250,17 +264,31 @@ export default function JobMatchingPage() {
                   reasoning: matchData.reasoning || 'Analysis completed',
                   breakdown: matchData.breakdown || {}
                 }
+                setCurrentLog(`✓ Completed analysis for: ${job.title}`)
               } else {
                 // Fallback to a reasonable score instead of 0
                 scores[job.id] = { score: 75, reasoning: 'Using default score', breakdown: {} }
+                setCurrentLog(`⚠ Using default score for: ${job.title}`)
               }
             } catch (error) {
               console.error('Error fetching match score for job:', job.id, error)
               scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
+              setCurrentLog(`✗ Network error for: ${job.title}`)
             }
+            
+            // Small delay to show progress
+            await new Promise(resolve => setTimeout(resolve, 200))
           }
+          
+          setCurrentLog('Finalizing results...')
+          setAnalysisProgress(100)
           setMatchScores(scores)
-          setIsLoadingMatches(false)
+          
+          setTimeout(() => {
+            setIsLoadingMatches(false)
+            setAnalysisProgress(0)
+            setCurrentLog('')
+          }, 500)
         }
       } catch (e) {
         console.error('Error loading jobs:', e)
@@ -274,8 +302,19 @@ export default function JobMatchingPage() {
     if (user?.id && jobs.length > 0) {
       (async () => {
         setIsLoadingMatches(true)
+        setAnalysisProgress(0)
+        setCurrentLog('Refreshing AI analysis...')
+        
         const scores: {[key: string]: any} = {}
-        for (const job of jobs) {
+        const totalJobs = jobs.length
+        
+        for (let i = 0; i < jobs.length; i++) {
+          const job = jobs[i]
+          const progress = Math.round(((i + 1) / totalJobs) * 100)
+          
+          setCurrentLog(`Re-analyzing job ${i + 1} of ${totalJobs}: ${job.title}`)
+          setAnalysisProgress(progress)
+          
           try {
             const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.id}`)
             if (matchRes.ok) {
@@ -285,16 +324,30 @@ export default function JobMatchingPage() {
                 reasoning: matchData.reasoning,
                 breakdown: matchData.breakdown
               }
+              setCurrentLog(`✓ Updated analysis for: ${job.title}`)
             } else {
               scores[job.id] = { score: 0, reasoning: 'Analysis failed', breakdown: {} }
+              setCurrentLog(`⚠ Analysis failed for: ${job.title}`)
             }
           } catch (error) {
             console.error('Error fetching match score for job:', job.id, error)
             scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
+            setCurrentLog(`✗ Network error for: ${job.title}`)
           }
+          
+          // Small delay to show progress
+          await new Promise(resolve => setTimeout(resolve, 200))
         }
+        
+        setCurrentLog('Finalizing updated results...')
+        setAnalysisProgress(100)
         setMatchScores(scores)
-        setIsLoadingMatches(false)
+        
+        setTimeout(() => {
+          setIsLoadingMatches(false)
+          setAnalysisProgress(0)
+          setCurrentLog('')
+        }, 500)
       })()
     }
   }, [user?.id, jobs])
@@ -906,114 +959,51 @@ export default function JobMatchingPage() {
               transition={{ delay: 0.4 }}
               className="flex items-center justify-between mt-8 py-4"
             >
-              {/* Left side - Navigation */}
+              {/* Left side - Info */}
+              <div className="text-gray-300 text-sm">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredJobs.length)} of {filteredJobs.length} jobs
+              </div>
+
+              {/* Right side - Pagination Controls */}
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
+                  className="bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  Previous
                 </Button>
                 
-                {/* Show first few pages, ellipsis, and last page if needed */}
-                {totalPages <= 7 ? (
-                  // Show all pages if 7 or fewer
-                  Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                {/* Page Numbers */}
+                {Array.from({ length: Math.min(4, totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
                     <Button
                       key={page}
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}
                       className={currentPage === page 
-                        ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white" 
-                        : "border-white/20 text-white hover:bg-white/10"
+                        ? "bg-blue-600 text-white border-blue-600 px-4 py-2" 
+                        : "bg-gray-800/50 border-gray-600 text-white hover:bg-gray-700/50 px-4 py-2"
                       }
                     >
                       {page}
                     </Button>
-                  ))
-                ) : (
-                  // Show condensed version with ellipsis
-                  <>
-                    {[1, 2, 3].map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className={currentPage === page 
-                          ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white" 
-                          : "border-white/20 text-white hover:bg-white/10"
-                        }
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                    
-                    {currentPage > 4 && totalPages > 7 && (
-                      <span className="text-gray-400 px-2">...</span>
-                    )}
-                    
-                    <Button
-                      variant={currentPage === totalPages ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(totalPages)}
-                      className={currentPage === totalPages 
-                        ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white" 
-                        : "border-white/20 text-white hover:bg-white/10"
-                      }
-                    >
-                      {totalPages}
-                    </Button>
-                  </>
-                )}
+                  );
+                })}
                 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
+                  className="bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  Next
                 </Button>
-              </div>
-
-              {/* Right side - Page selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-sm">Page</span>
-                <div className="relative" ref={pageSelectorRef}>
-                  <button
-                    onClick={() => setIsPageSelectorOpen(!isPageSelectorOpen)}
-                    className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm flex items-center gap-2 min-w-[60px] justify-between hover:bg-white/20 transition-colors"
-                  >
-                    <span>{currentPage}</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                  
-                  {isPageSelectorOpen && (
-                    <div className="absolute top-full right-0 mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => {
-                            setCurrentPage(page);
-                            setIsPageSelectorOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors min-w-[60px] ${
-                            currentPage === page ? 'bg-cyan-500/20 text-cyan-400' : 'text-white'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <span className="text-gray-400 text-sm">of {totalPages}</span>
               </div>
             </motion.div>
           )}
@@ -1539,6 +1529,80 @@ export default function JobMatchingPage() {
             onAnimationComplete={() => setShowLocationPopup(false)}
           />
         </motion.div>
+      )}
+
+      {/* AI Analysis Loading Modal */}
+      {isLoadingMatches && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-gray-900 border border-white/20 rounded-2xl p-8 max-w-lg w-full mx-4">
+            <div className="flex flex-col space-y-6">
+              {/* Header */}
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-white mb-2">Analyzing Job Matches...</h3>
+                <p className="text-gray-400 text-sm">This usually takes about 1-2 minutes. We'll keep you updated with each step.</p>
+              </div>
+              
+              {/* Pacman Loader */}
+              <div className="flex justify-center py-4">
+                <PacmanLoader 
+                  color="#fbbf24" 
+                  size={40}
+                  margin={4}
+                  speedMultiplier={1.2}
+                />
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Progress</span>
+                  <span className="text-sm font-medium text-white">{analysisProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${analysisProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              {/* Analysis Steps */}
+              <div className="space-y-2">
+                <span className="text-sm text-gray-400">Analysis Steps</span>
+                <div className="space-y-1 text-xs text-gray-400">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress > 0 ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span>Profile analysis initialized</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress > 25 ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span>Job compatibility scanning</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress > 50 ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span>Skills matching analysis</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress > 75 ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span>Experience evaluation</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${analysisProgress === 100 ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                    <span>Finalizing results</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Current Activity */}
+              <div className="space-y-2">
+                <span className="text-sm text-gray-400">Current Activity</span>
+                <div className="bg-gray-800 rounded-lg p-3 min-h-[40px] flex items-center">
+                  <span className="text-sm text-gray-300">{currentLog || 'Initializing analysis...'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
