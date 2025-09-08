@@ -97,6 +97,28 @@
   border: 1px solid rgba(75, 85, 99, 0.8);
 }
 
+/* Custom scrollbars for profile completion modal - matching job modal style */
+.profile-modal-scroll {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent !important;
+}
+.profile-modal-scroll::-webkit-scrollbar {
+  width: 10px !important;
+  display: block !important;
+}
+.profile-modal-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.profile-modal-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, rgba(148,163,184,0.6), rgba(99,102,241,0.6)) !important;
+  border-radius: 8px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+}
+.profile-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(148,163,184,0.8), rgba(99,102,241,0.8)) !important;
+}
+
 /* Job Edit Modal - Enhanced UI */
 .job-edit-modal-v2 {
   width: 95vw !important;
