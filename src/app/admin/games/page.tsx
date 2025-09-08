@@ -16,7 +16,8 @@ import {
   PuzzleIcon,
   Keyboard,
   Star,
-  Globe
+  Globe,
+  X
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -163,6 +164,11 @@ export default function GamesPage() {
   const [deleteStatId, setDeleteStatId] = useState<string>('')
   const [deleteStatType, setDeleteStatType] = useState<string>('')
   const [deleteStatName, setDeleteStatName] = useState<string>('')
+
+  // Modal state for game details
+  const [selectedGameStat, setSelectedGameStat] = useState<any | null>(null)
+  const [gameModalOpen, setGameModalOpen] = useState(false)
+  const [gameModalType, setGameModalType] = useState<string>('')
 
   // New: BPOC Cultural results admin view state
   const [bpocResults, setBpocResults] = useState<any[]>([])
@@ -532,6 +538,12 @@ export default function GamesPage() {
     setShowDeleteDialog(true)
   }
 
+  const handleViewGameStat = (stat: any, type: string) => {
+    setSelectedGameStat(stat)
+    setGameModalType(type)
+    setGameModalOpen(true)
+  }
+
   const confirmDeleteStat = async () => {
     if (!deleteStatId || !deleteStatType) return
 
@@ -697,7 +709,7 @@ export default function GamesPage() {
                     </TableHeader>
                     <TableBody>
                       {paginatedTypingHeroStats.map((stat) => (
-                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
+                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5 cursor-pointer" onClick={() => handleViewGameStat(stat, 'typing-hero')}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
@@ -750,7 +762,7 @@ export default function GamesPage() {
                                {stat.created_at ? new Date(stat.created_at).toLocaleDateString() : 'Unknown'}
                              </div>
                            </TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -912,7 +924,7 @@ export default function GamesPage() {
                      </TableHeader>
                     <TableBody>
                       {paginatedUltimateStats.map((stat) => (
-                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
+                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5 cursor-pointer" onClick={() => handleViewGameStat(stat, 'ultimate')}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
@@ -990,7 +1002,7 @@ export default function GamesPage() {
                                {stat.last_taken_at ? new Date(stat.last_taken_at).toLocaleDateString() : 'Never'}
                              </div>
                            </TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -1148,7 +1160,7 @@ export default function GamesPage() {
                     </TableHeader>
                     <TableBody>
                       {paginatedDiscStats.map((stat) => (
-                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5">
+                        <TableRow key={stat.id} className="border-white/10 hover:bg-white/5 cursor-pointer" onClick={() => handleViewGameStat(stat, 'disc-personality')}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
@@ -1215,7 +1227,7 @@ export default function GamesPage() {
                               {stat.last_taken_at ? new Date(stat.last_taken_at).toLocaleDateString() : 'Never'}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -1412,13 +1424,209 @@ export default function GamesPage() {
           </Card>
         )}
 
+        {/* Game Details Modal */}
+        {gameModalOpen && selectedGameStat && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setGameModalOpen(false)}>
+            <div className="bg-gray-900 border border-white/20 rounded-lg p-6 max-w-3xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-white font-semibold">
+                  {gameModalType === 'typing-hero' && 'Typing Hero Details'}
+                  {gameModalType === 'ultimate' && 'BPOC Ultimate Details'}
+                  {gameModalType === 'disc-personality' && 'BPOC DISC Personality Details'}
+                </div>
+                <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white" onClick={() => setGameModalOpen(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="text-sm text-gray-300 space-y-3">
+                <div>
+                  <div className="text-gray-400">User</div>
+                  <div className="text-white">{selectedGameStat.user_name} <span className="text-gray-400">{selectedGameStat.user_email}</span></div>
+                </div>
+
+                {/* Typing Hero Details */}
+                {gameModalType === 'typing-hero' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-gray-400">Sessions</div>
+                      <div className="text-white">{selectedGameStat.completed_sessions}/{selectedGameStat.total_sessions} completed</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Best WPM</div>
+                      <div className="text-white">{selectedGameStat.best_wpm}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Best Accuracy</div>
+                      <div className="text-white">{selectedGameStat.best_accuracy}%</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Recent WPM</div>
+                      <div className="text-white">{selectedGameStat.recent_wpm}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Median WPM</div>
+                      <div className="text-white">{selectedGameStat.median_wpm}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Consistency Index</div>
+                      <div className="text-white">{selectedGameStat.consistency_index}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Percentile</div>
+                      <div className="text-white">{selectedGameStat.percentile}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Last Played</div>
+                      <div className="text-white">{selectedGameStat.last_played_at ? new Date(selectedGameStat.last_played_at).toLocaleDateString() : 'Never'}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ultimate Details */}
+                {gameModalType === 'ultimate' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-gray-400">Sessions</div>
+                      <div className="text-white">{selectedGameStat.total_sessions}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Smart</div>
+                      <div className="text-white">{selectedGameStat.smart}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Motivated</div>
+                      <div className="text-white">{selectedGameStat.motivated}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Integrity</div>
+                      <div className="text-white">{selectedGameStat.integrity}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Business</div>
+                      <div className="text-white">{selectedGameStat.business}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Platinum Choices</div>
+                      <div className="text-white">{selectedGameStat.platinum_choices}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Gold Choices</div>
+                      <div className="text-white">{selectedGameStat.gold_choices}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Bronze Choices</div>
+                      <div className="text-white">{selectedGameStat.bronze_choices}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Nightmare Choices</div>
+                      <div className="text-white">{selectedGameStat.nightmare_choices}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Last Tier</div>
+                      <div className="text-white">{selectedGameStat.last_tier || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Recommendation</div>
+                      <div className="text-white">{selectedGameStat.last_recommendation || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Client Value</div>
+                      <div className="text-white">{selectedGameStat.last_client_value || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Last Taken</div>
+                      <div className="text-white">{selectedGameStat.last_taken_at ? new Date(selectedGameStat.last_taken_at).toLocaleDateString() : 'Never'}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* DISC Personality Details */}
+                {gameModalType === 'disc-personality' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-gray-400">D - Dominance</div>
+                      <div className="text-white">{selectedGameStat.d}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">I - Influence</div>
+                      <div className="text-white">{selectedGameStat.i}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">S - Steadiness</div>
+                      <div className="text-white">{selectedGameStat.s}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">C - Conscientiousness</div>
+                      <div className="text-white">{selectedGameStat.c}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Primary Style</div>
+                      <div className="text-white">{selectedGameStat.primary_style}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Secondary Style</div>
+                      <div className="text-white">{selectedGameStat.secondary_style}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Consistency Index</div>
+                      <div className="text-white">{selectedGameStat.consistency_index}%</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400">Last Taken</div>
+                      <div className="text-white">{selectedGameStat.last_taken_at ? new Date(selectedGameStat.last_taken_at).toLocaleDateString() : 'Never'}</div>
+                    </div>
+                    {selectedGameStat.strengths && selectedGameStat.strengths.length > 0 && (
+                      <div className="col-span-2">
+                        <div className="text-gray-400">Strengths</div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedGameStat.strengths.map((strength: string, index: number) => (
+                            <Badge key={index} className="bg-green-500/20 text-green-400 border-green-500/30">
+                              {strength}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedGameStat.blind_spots && selectedGameStat.blind_spots.length > 0 && (
+                      <div className="col-span-2">
+                        <div className="text-gray-400">Blind Spots</div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedGameStat.blind_spots.map((spot: string, index: number) => (
+                            <Badge key={index} className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                              {spot}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedGameStat.preferred_env && selectedGameStat.preferred_env.length > 0 && (
+                      <div className="col-span-2">
+                        <div className="text-gray-400">Preferred Environment</div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedGameStat.preferred_env.map((env: string, index: number) => (
+                            <Badge key={index} className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                              {env}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* BPOC Cultural Result Modal */}
         {bpocSelected && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setBpocSelected(null)}>
             <div className="bg-gray-900 border border-white/20 rounded-lg p-6 max-w-3xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-3">
                 <div className="text-white font-semibold">BPOC Cultural Result</div>
-                <Button variant="ghost" className="border border-white/20" onClick={() => setBpocSelected(null)}>Close</Button>
+                <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white" onClick={() => setBpocSelected(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
               <div className="text-sm text-gray-300 space-y-3">
                 <div>
@@ -1461,7 +1669,6 @@ export default function GamesPage() {
                     ))}
                   </div>
                 </div>
-                <div className="text-xs text-gray-500">Result ID: {bpocSelected.id} • Session: {bpocSelected.session_id || '—'} • Model: {bpocSelected.model_provider} {bpocSelected.model_version}</div>
               </div>
             </div>
           </div>
