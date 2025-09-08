@@ -270,6 +270,7 @@ import {
 
 
 } from 'lucide-react';
+import { formatNumber, generateInitials } from '@/lib/utils';
 
 
 
@@ -509,9 +510,7 @@ export default function SavedResumePage() {
 
 
   const params = useParams();
-
-
-
+  const router = useRouter();
   const slug = params.slug as string;
 
 
@@ -764,11 +763,19 @@ export default function SavedResumePage() {
   const [activeSection, setActiveSection] = useState<string>(initialMode);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isGameResultsDropdownOpen, setIsGameResultsDropdownOpen] = useState<boolean>(false);
-  const router = useRouter();
+  const [profile, setProfile] = useState<any | null>(null);
 
+  // Redirect resume mode to separate resume page
+  useEffect(() => {
+    if (!isProfileMode) {
+      router.replace(`/resume/${slug}`);
+    }
+  }, [isProfileMode, router, slug]);
 
-
-
+  // Don't render anything if we're redirecting
+  if (!isProfileMode) {
+    return null;
+  }
 
 
 
@@ -1643,6 +1650,23 @@ export default function SavedResumePage() {
 
 
 
+
+  // Listen for profile position changes and refresh work status data
+  useEffect(() => {
+    const handleProfilePositionChange = (event: CustomEvent) => {
+      const { position, userId } = event.detail;
+      if (userId === resume?.userId) {
+        console.log('🔄 Profile position changed, updating work status current_position:', position);
+        setCurrentPosition(position);
+      }
+    };
+
+    window.addEventListener('profilePositionChanged', handleProfilePositionChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('profilePositionChanged', handleProfilePositionChange as EventListener);
+    };
+  }, [resume?.userId]);
 
   const exportToPDF = async () => {
 
@@ -2603,6 +2627,13 @@ export default function SavedResumePage() {
 
       // Update local state immediately after successful save
       setExpectedSalary(formattedExpectedSalary || '')
+      
+      // Notify profile component that work status position has changed
+      if (currentPosition !== undefined) {
+        window.dispatchEvent(new CustomEvent('workStatusPositionChanged', { 
+          detail: { position: currentPosition, userId: resume.userId } 
+        }));
+      }
       
       // Optional: Show success message briefly
       // alert('Work status saved successfully!')
@@ -3608,7 +3639,7 @@ export default function SavedResumePage() {
                             { id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', description: 'Employment status' },
                             { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', description: 'Resume insights' },
                             { id: 'career-games', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', description: 'Game results', hasDropdown: true },
-                          ].filter((item) => !isProfileMode || item.id !== 'resume')).map((item) => {
+                          ]).map((item) => {
 
                       const Icon = item.icon;
 
@@ -4227,6 +4258,7 @@ export default function SavedResumePage() {
 
 
                   {/* Work Status Section */}
+
 
 
 

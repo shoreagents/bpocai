@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
           resumeId: savedResume.id,
           resumeSlug: savedResume.resume_slug,
           resumeTitle: savedResume.resume_title,
-          resumeUrl: `/${savedResume.resume_slug}`
+          resumeUrl: `/resume/${savedResume.resume_slug}`
         })
       } else {
         return NextResponse.json({

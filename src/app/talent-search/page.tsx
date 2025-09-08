@@ -99,7 +99,7 @@ export default function TalentSearchPage() {
   }
 
   const handleViewResume = (resumeSlug: string) => {
-    router.push(`/${resumeSlug}`)
+    router.push(`/resume/${resumeSlug}`)
   }
 
   return (
