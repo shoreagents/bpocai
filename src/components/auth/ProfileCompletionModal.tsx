@@ -115,6 +115,7 @@ export default function ProfileCompletionModal({
   const [age, setAge] = useState<number | null>(null)
   const locationInputRef = useRef<HTMLInputElement | null>(null)
   const placesAutocompleteRef = useRef<any>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Initialize Google Places Autocomplete when modal opens and step 1 is visible
   useEffect(() => {
@@ -273,9 +274,7 @@ export default function ProfileCompletionModal({
          if (!formData.currentEmployer.trim()) {
            newErrors.currentEmployer = 'Current employer is required'
          }
-         if (!formData.currentPosition.trim()) {
-           newErrors.currentPosition = 'Current position is required'
-         }
+        // Removed currentPosition validation - it will use position from Step 1
          if (!formData.currentSalary.trim()) {
            newErrors.currentSalary = 'Current salary is required'
          }
@@ -312,6 +311,16 @@ export default function ProfileCompletionModal({
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1)
       setErrors({})
+      
+      // Scroll to top of the content area when transitioning to next step
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
+        }
+      }, 100) // Small delay to ensure the new step content is rendered
     }
   }
 
@@ -319,6 +328,16 @@ export default function ProfileCompletionModal({
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
       setErrors({})
+      
+      // Scroll to top of the content area when transitioning to previous step
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
+        }
+      }, 100) // Small delay to ensure the new step content is rendered
     }
   }
 
@@ -372,7 +391,7 @@ export default function ProfileCompletionModal({
                const workStatusData = {
           userId: user?.id,
           currentEmployer: formData.currentEmployer,
-          currentPosition: formData.currentPosition,
+          currentPosition: formData.position,  // Use position from Step 1
           currentSalary: formData.currentSalary,
           noticePeriod: formData.noticePeriod ? parseInt(formData.noticePeriod) : null,
           expectedSalary: formData.expectedSalary,
@@ -529,7 +548,7 @@ export default function ProfileCompletionModal({
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white block">
-                  Job Position <span className="text-red-400">*</span>
+                  Job Title <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -649,14 +668,14 @@ export default function ProfileCompletionModal({
 
                              <div className="space-y-2">
                  <label className="text-sm font-medium text-white block">
-                   Current Position <span className="text-red-400">*</span>
+                   Job Title <span className="text-red-400">*</span>
                  </label>
                                    <Input
                     type="text"
                     placeholder="e.g., Senior Developer"
-                    value={formData.currentPosition}
-                    onChange={(e) => handleInputChange('currentPosition', e.target.value)}
-                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                    value={formData.position}  // Use position from Step 1
+                    disabled={true}  // Disable the input
+                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none opacity-60 cursor-not-allowed"
                   />
                  {errors.currentPosition && <p className="text-red-400 text-xs">{errors.currentPosition}</p>}
                </div>
@@ -780,7 +799,7 @@ export default function ProfileCompletionModal({
                   <span className="text-white ml-2">{formData.phone || 'Not specified'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Position:</span>
+                  <span className="text-gray-400">Job Title:</span>
                   <span className="text-white ml-2">{formData.position || 'Not specified'}</span>
                 </div>
                 <div>
@@ -813,8 +832,8 @@ export default function ProfileCompletionModal({
                   <span className="text-white ml-2">{formData.currentEmployer || 'Not specified'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Current Position:</span>
-                  <span className="text-white ml-2">{formData.currentPosition || 'Not specified'}</span>
+                  <span className="text-gray-400">Job Title:</span>
+                  <span className="text-white ml-2">{formData.position || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Current Salary:</span>
@@ -898,7 +917,7 @@ export default function ProfileCompletionModal({
         </div>
 
         {/* Step Content */}
-        <div className="flex-1 min-h-0 flex flex-col px-6 overflow-y-auto">
+        <div ref={scrollContainerRef} className="flex-1 min-h-0 flex flex-col px-6 overflow-y-auto profile-modal-scroll">
           {/* Step Description */}
           <div className="text-center mb-6 flex-shrink-0">
             <h3 className="text-lg font-semibold text-white mb-2">
