@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
@@ -46,6 +47,7 @@ import {
   Mail,
   Copy,
   ChevronDown,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
   MapPin,
@@ -1021,13 +1023,25 @@ export default function JobMatchingPage() {
           {/* Job Details Modal */}
           <Dialog open={!!selectedJob && !!selectedJobData} onOpenChange={() => setSelectedJob(null)}>
             <DialogContent 
-              className="bg-gray-900/95 backdrop-blur-md border-white/10 rounded-2xl max-w-7xl w-full max-h-[85vh] p-0 overflow-hidden"
-              showCloseButton={false}
+              className="bg-gray-900/95 backdrop-blur-md border-white/10 rounded-2xl !max-w-[1000px] w-full max-h-[85vh] p-0 overflow-hidden"
+              showCloseButton={true}
             >
+              <VisuallyHidden>
+                <DialogTitle>Job Details - {selectedJobData?.title} at {selectedJobData?.company}</DialogTitle>
+              </VisuallyHidden>
               {selectedJobData && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 h-[85vh]">
+                <>
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setSelectedJob(null)}
+                    className="absolute top-4 right-4 z-10 w-8 h-8 bg-gray-800/80 hover:bg-gray-700/80 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition-all duration-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 h-[85vh]">
                   {/* Selected Job Card - Left Side */}
-                  <ScrollArea className="p-6 border-r border-white/10">
+                  <ScrollArea className="p-6 border-r border-white/10 job-modal-scroll">
                     <div>
                       {/* Company and Save */}
                       <div className="flex items-center justify-between mb-6">
@@ -1135,7 +1149,7 @@ export default function JobMatchingPage() {
 
                           {/* Collapsible Content */}
                           {showAIAnalysis && (
-                            <div className="p-4">
+                            <div className="p-4 max-h-96 overflow-y-auto job-modal-scroll">
                             {matchScores[selectedJobData.id].error ? (
                               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
                                 <div className="flex items-start gap-3">
@@ -1270,7 +1284,7 @@ export default function JobMatchingPage() {
 
                                               {/* Apply Button */}
                         <Button 
-                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 text-base py-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 focus:border-0 focus:ring-0 text-base py-3 disabled:opacity-60 disabled:cursor-not-allowed"
                           disabled={Boolean(
                             !!appliedMap[selectedJobData.id] || 
                             (user?.id && matchScores[selectedJobData.id]?.score !== undefined && matchScores[selectedJobData.id].score < 65)
@@ -1319,7 +1333,7 @@ export default function JobMatchingPage() {
                   </ScrollArea>
 
                   {/* Job Details - Right Side */}
-                  <ScrollArea className="p-4">
+                  <div className="p-4 job-modal-scroll overflow-y-auto h-full">
                     <div className="space-y-4 pb-4">
                       {/* Job Description */}
                       <div className="bg-white/5 rounded-lg p-4 border border-white/10">
@@ -1399,8 +1413,9 @@ export default function JobMatchingPage() {
                           </ul>
                       </div>
                     </div>
-                  </ScrollArea>
+                  </div>
                 </div>
+                </>
               )}
             </DialogContent>
           </Dialog>
