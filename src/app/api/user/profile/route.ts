@@ -236,6 +236,20 @@ export async function PUT(request: NextRequest) {
       avatar_url: updatedUser.avatar_url
     })
 
+    // Sync position changes to user_work_status table
+    if (updateData.position !== undefined) {
+      try {
+        console.log('🔄 Syncing position to work status table:', updateData.position)
+        await pool.query(
+          `UPDATE user_work_status SET current_position = $1, updated_at = NOW() WHERE user_id = $2`,
+          [position, userId]
+        )
+        console.log('✅ Position synced to work status table')
+      } catch (error) {
+        console.log('⚠️ Failed to sync position to work status (non-fatal):', error instanceof Error ? error.message : String(error))
+      }
+    }
+
 
     // Also update Supabase auth user metadata so future syncs won't revert names
     try {

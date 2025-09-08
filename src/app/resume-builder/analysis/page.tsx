@@ -65,7 +65,7 @@ export default function AnalysisPage() {
       const text = await res.text();
       let data: any = null; try { data = JSON.parse(text); } catch {}
       if (res.ok && data?.success && data?.hasSavedResume && data?.resumeSlug) {
-        router.push(`/${data.resumeSlug}`);
+        router.push(`/resume/${data.resumeSlug}`);
       } else {
         toast.info('No saved resume found. Save your resume to profile first.');
         router.push('/resume-builder/build');

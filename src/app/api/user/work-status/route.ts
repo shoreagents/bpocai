@@ -136,6 +136,21 @@ export async function PUT(request: NextRequest) {
           typeof (completedData || completed_data) === 'boolean' ? (completedData || completed_data) : null,
         ]
       )
+      
+      // Sync current_position changes to users table
+      if (currentPosition !== undefined) {
+        try {
+          console.log('🔄 Syncing current_position to users table:', currentPosition)
+          await pool.query(
+            `UPDATE users SET position = $1, updated_at = NOW() WHERE id = $2`,
+            [currentPosition, userId]
+          )
+          console.log('✅ Current position synced to users table')
+        } catch (error) {
+          console.log('⚠️ Failed to sync current_position to users (non-fatal):', error instanceof Error ? error.message : String(error))
+        }
+      }
+      
       return NextResponse.json({ saved: true, workStatus: updateRes.rows[0] })
     }
 
@@ -159,6 +174,21 @@ export async function PUT(request: NextRequest) {
         typeof (completedData || completed_data) === 'boolean' ? (completedData || completed_data) : null,
       ]
     )
+    
+    // Sync current_position changes to users table for new records too
+    if (currentPosition !== undefined) {
+      try {
+        console.log('🔄 Syncing current_position to users table (new record):', currentPosition)
+        await pool.query(
+          `UPDATE users SET position = $1, updated_at = NOW() WHERE id = $2`,
+          [currentPosition, userId]
+        )
+        console.log('✅ Current position synced to users table (new record)')
+      } catch (error) {
+        console.log('⚠️ Failed to sync current_position to users (non-fatal):', error instanceof Error ? error.message : String(error))
+      }
+    }
+    
     return NextResponse.json({ saved: true, workStatus: insertRes.rows[0] })
   } catch (error) {
     console.error('Error saving work status:', error)

@@ -19,6 +19,7 @@ import {
   Heart,
   FileText
 } from 'lucide-react';
+import PlacesAutocomplete from '@/components/ui/places-autocomplete';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -74,7 +75,7 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         if (response.ok) {
           const data = await response.json();
           if (data.resumeSlug) {
-            router.push(`/${data.resumeSlug}`);
+            router.push(`/resume/${data.resumeSlug}`);
           } else {
             console.log('No resume found for this user');
           }
@@ -147,6 +148,24 @@ export default function ProfileCard({ userId, showEditButton = true, className =
 
     fetchUserProfile();
   }, [targetUserId, user?.id, showEditButton])
+
+  // Listen for work status position changes and refresh profile data
+  useEffect(() => {
+    const handleWorkStatusPositionChange = (event: CustomEvent) => {
+      const { position, userId } = event.detail;
+      if (userId === targetUserId) {
+        console.log('🔄 Work status position changed, updating profile position:', position);
+        setUserProfile(prev => prev ? { ...prev, position } : prev);
+        setProfileData(prev => ({ ...prev, jobTitle: position }));
+      }
+    };
+
+    window.addEventListener('workStatusPositionChanged', handleWorkStatusPositionChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('workStatusPositionChanged', handleWorkStatusPositionChange as EventListener);
+    };
+  }, [targetUserId]);
 
   // Fetch professional summary from saved resume data
   useEffect(() => {
@@ -297,6 +316,18 @@ export default function ProfileCard({ userId, showEditButton = true, className =
     birthday: ''
   });
 
+  // Location place details for Google Maps integration
+  const [locationDetails, setLocationDetails] = useState({
+    place_id: '',
+    lat: null as number | null,
+    lng: null as number | null,
+    city: '',
+    province: '',
+    country: '',
+    barangay: '',
+    region: ''
+  });
+
   // Update profile data when Railway data loads
   useEffect(() => {
     if (userProfile) {
@@ -360,7 +391,16 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         position: profileData.jobTitle,
         gender: profileData.gender || null,
         gender_custom: profileData.gender === 'others' ? (profileData.genderCustom || null) : null,
-        birthday: profileData.birthday || null
+        birthday: profileData.birthday || null,
+        // Include location details for Google Maps integration
+        location_place_id: locationDetails.place_id || null,
+        location_lat: locationDetails.lat,
+        location_lng: locationDetails.lng,
+        location_city: locationDetails.city || null,
+        location_province: locationDetails.province || null,
+        location_country: locationDetails.country || null,
+        location_barangay: locationDetails.barangay || null,
+        location_region: locationDetails.region || null
       };
       const token = await getSessionToken();
       const res = await fetch('/api/user/profile', {
@@ -389,6 +429,14 @@ export default function ProfileCard({ userId, showEditButton = true, className =
         updated_at: new Date().toISOString()
       } : prev);
       setIsEditing(false);
+
+      // Notify parent component that profile data has changed
+      // This will trigger work status refresh if position changed
+      if (payload.position !== undefined) {
+        window.dispatchEvent(new CustomEvent('profilePositionChanged', { 
+          detail: { position: payload.position, userId: user.id } 
+        }));
+      }
 
       // If user slug or resume slug changed due to name change, navigate
       try {
@@ -776,15 +824,30 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                     <div className="w-8 h-8 rounded-md bg-pink-500/20 flex items-center justify-center">
                       <MapPin className="w-4 h-4 text-pink-300" />
                     </div>
-                    <div>
+                    <div className="w-full">
                       <div className="text-xs uppercase text-gray-400">Location</div>
                       {isEditing ? (
-                        <Input
-                          value={profileData.location}
-                          onChange={(e) => handleInputChange('location', e.target.value)}
-                          placeholder="Location"
-                          className="mt-1 bg-black/40 text-white border-white/20"
-                        />
+                        <div className="relative mt-1">
+                          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+                          <PlacesAutocomplete
+                            value={profileData.location}
+                            placeholder="Type city, province, municipality, or barangay"
+                            onChange={(val) => handleInputChange('location', val)}
+                            onSelect={(place) => {
+                              handleInputChange('location', place.description);
+                              setLocationDetails({
+                                place_id: place.place_id,
+                                lat: place.lat,
+                                lng: place.lng,
+                                city: place.city || '',
+                                province: place.province || '',
+                                country: place.country || '',
+                                barangay: place.barangay || '',
+                                region: place.region || ''
+                              });
+                            }}
+                          />
+                        </div>
                       ) : (
                         <div className="text-gray-100">{userProfile?.location || '—'}</div>
                       )}

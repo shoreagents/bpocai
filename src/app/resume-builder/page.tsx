@@ -485,15 +485,23 @@ export default function ResumeBuilderPage() {
 
       <Header />
       {/* Progress Modal */}
-      <Dialog open={showProgressModal} onOpenChange={setShowProgressModal}>
+      <Dialog open={showProgressModal} onOpenChange={(open) => {
+        // Only allow closing if processing is complete
+        if (!open && (isAnalyzingWithClaude || processedResumes.length === 0)) {
+          return; // Prevent closing during processing
+        }
+        setShowProgressModal(open);
+      }}>
         <DialogContent 
           showCloseButton={false}
           className="max-w-md w-full"
           onInteractOutside={(e) => {
-            if (processedResumes.length > 0 && !isAnalyzingWithClaude) e.preventDefault()
+            // Prevent closing during processing
+            e.preventDefault();
           }}
           onEscapeKeyDown={(e) => {
-            if (processedResumes.length > 0 && !isAnalyzingWithClaude) e.preventDefault()
+            // Prevent closing during processing
+            e.preventDefault();
           }}
         >
           <DialogHeader>
