@@ -48,6 +48,9 @@ export default function ResumeBuilderPage() {
   // Progress modal UX
   const [modalStep, setModalStep] = useState<number>(0);
   const [latestActivity, setLatestActivity] = useState<string>('');
+  
+  // Loading state for checking saved resumes
+  const [isCheckingSavedResume, setIsCheckingSavedResume] = useState(true);
 
   // Trigger header SignUp dialog via URL param when not logged in
   const openSignup = () => {
@@ -71,13 +74,19 @@ export default function ResumeBuilderPage() {
     const checkSavedResume = async () => {
       try {
         const token = await getSessionToken();
-        if (!token) return; // not logged in; allow builder
+        if (!token) {
+          setIsCheckingSavedResume(false);
+          return; // not logged in; allow builder
+        }
 
         const res = await fetch('/api/user/saved-resumes', {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          setIsCheckingSavedResume(false);
+          return;
+        }
         const data = await res.json();
         if (data?.success && data?.hasSavedResume && data?.resumeSlug) {
           router.replace(`/${data.resumeSlug}`);
@@ -115,6 +124,8 @@ export default function ResumeBuilderPage() {
         }
       } catch (e) {
         // Fail open: do nothing
+      } finally {
+        setIsCheckingSavedResume(false);
       }
     };
     checkSavedResume();
@@ -474,6 +485,42 @@ export default function ResumeBuilderPage() {
     }
   }, [isAnalyzingWithClaude]);
 
+  // Show loading screen while checking for saved resumes
+  if (isCheckingSavedResume) {
+    return (
+      <div className="min-h-screen cyber-grid overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+        </div>
+
+        <Header />
+        
+        {/* Loading Screen for Checking Saved Resumes */}
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="glass-card border-white/10 p-8 rounded-xl max-w-md mx-4 text-center">
+            <div className="flex justify-center mb-6">
+              <PacmanLoader 
+                color="#06b6d4" 
+                size={40}
+                margin={4}
+                speedMultiplier={1.2}
+              />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Checking if resume exists
+            </h3>
+            <p className="text-gray-300 text-sm">
+              We're checking if you have any saved resumes before showing the builder.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
       {/* Background Effects */}
@@ -484,8 +531,11 @@ export default function ResumeBuilderPage() {
       </div>
 
       <Header />
-      {/* Progress Modal */}
-      <Dialog open={showProgressModal} onOpenChange={(open) => {
+      
+      {/* Main Content - Only show when not checking saved resumes */}
+      <>
+          {/* Progress Modal */}
+          <Dialog open={showProgressModal} onOpenChange={(open) => {
         // Only allow closing if processing is complete
         if (!open && (isAnalyzingWithClaude || processedResumes.length === 0)) {
           return; // Prevent closing during processing
@@ -1047,6 +1097,7 @@ export default function ResumeBuilderPage() {
           </div>
         </div>
       </div>
+      </>
     </div>
   );
 } 
