@@ -1985,11 +1985,13 @@ size="sm"
  </div>
  </div>
 
+
                     {/* Ultimate Game Stats */}
                     <div>
                         <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                           <div className="p-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg border-2 border-purple-400">
                             <Gamepad2 className="w-5 h-5 text-white" />
+
                           </div>
                           BPOC Ultimate
                         </h3>
