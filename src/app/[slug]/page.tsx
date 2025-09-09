@@ -35,7 +35,8 @@ import {
   TrendingUp,
   Lightbulb,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Share
   } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -363,13 +364,20 @@ useEffect(() => {
 }
  
         // Check if current user is the owner
- try {
- const { data: authData } = await supabase.auth.getUser();
- const currentUserId = authData?.user?.id;
-          setIsOwner(!!currentUserId && String(currentUserId) === String(user.id || ''));
-} catch {
- setIsOwner(false);
-}
+        // If public=true query parameter is present, always show public view
+        const isPublicView = searchParams.get('public') === 'true';
+        
+        if (isPublicView) {
+          setIsOwner(false);
+        } else {
+          try {
+            const { data: authData } = await supabase.auth.getUser();
+            const currentUserId = authData?.user?.id;
+            setIsOwner(!!currentUserId && String(currentUserId) === String(user.id || ''));
+          } catch {
+            setIsOwner(false);
+          }
+        }
         
  setError(null);
 } catch (e) {
@@ -440,26 +448,74 @@ return (
                 <div className="absolute top-8 right-8 w-16 h-16 bg-purple-400/20 rounded-full blur-xl"></div>
                 <div className="absolute bottom-4 left-1/3 w-12 h-12 bg-pink-400/20 rounded-full blur-xl"></div>
 </div>
-              {/* Action Icons */}
-              <div className="absolute top-6 right-6 flex items-center gap-4 z-10">
-                <div className="flex flex-col items-center gap-1">
-                  <button className="p-3 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 hover:scale-110">
-                    <Heart className="w-5 h-5 text-red-400" />
-                  </button>
-                  <span className="text-xs text-red-400 font-medium">127</span>
-</div>
-                <div className="flex flex-col items-center gap-1">
-                  <button className="p-3 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:scale-110">
-                    <Eye className="w-5 h-5 text-blue-400" />
-                  </button>
-                  <span className="text-xs text-blue-400 font-medium">2.4k</span>
- </div>
-</div>
+              {/* Action Icons and Buttons */}
+              <div className="absolute top-6 right-6 flex items-center gap-4 z-50">
+                {/* Action Buttons - Left of Icons */}
+                <div className="flex flex-col gap-3 relative z-50">
+                  {/* View Resume Button - Only show for non-owners */}
+                  {!isOwner && (
+                    <Button 
+                      onClick={() => {
+                        // Remove the ID suffix (e.g., -ccf9) from the slug
+                        const namePart = slug.split('-').slice(0, -1).join('-');
+                        router.push(`/resume/${namePart}-resume`);
+                      }}
+                      className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 hover:from-cyan-500/30 hover:to-purple-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:scale-105 relative z-50 cursor-pointer"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      View Resume
+                    </Button>
+                  )}
+
+                  {/* Share Button - Only show for owners */}
+                  {isOwner && (
+                    <Button 
+                      onClick={() => {
+                        // Create a clean public-only version of the profile URL with ?public=true
+                        const currentUrl = new URL(window.location.href);
+                        const baseUrl = currentUrl.origin;
+                        const currentPath = currentUrl.pathname;
+                        
+                        // Create a clean public URL by adding ?public=true query parameter
+                        const publicProfileUrl = `${baseUrl}${currentPath}?public=true`;
+                        
+                        navigator.clipboard.writeText(publicProfileUrl).then(() => {
+                          alert('Public profile link copied to clipboard!');
+                        }).catch(() => {
+                          alert('Failed to copy link. Please copy manually: ' + publicProfileUrl);
+                        });
+                      }}
+                      className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-400/30 text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 hover:border-emerald-400/50 transition-all duration-300 hover:scale-105 relative z-50 cursor-pointer"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <Share className="w-4 h-4 mr-2" />
+                      Share Profile
+                    </Button>
+                  )}
+                </div>
+
+                {/* Heart and Eye Icons */}
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-1">
+                    <button className="p-3 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 hover:scale-110">
+                      <Heart className="w-5 h-5 text-red-400" />
+                    </button>
+                    <span className="text-xs text-red-400 font-medium">127</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <button className="p-3 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:scale-110">
+                      <Eye className="w-5 h-5 text-blue-400" />
+                    </button>
+                    <span className="text-xs text-blue-400 font-medium">2.4k</span>
+                  </div>
+                </div>
+              </div>
 
               <div className="relative z-10 p-8">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
                   {/* Avatar Section */}
-                  <div className="relative">
+ <div className="relative">
                     {/* Glowing Ring */}
                     <div className={`absolute -inset-2 rounded-full opacity-75 blur-sm ${
                       overallScore > 0 
@@ -491,12 +547,12 @@ return (
                           src={userProfile.avatar_url} 
                           alt={userProfile.full_name}
                           className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
+ />
+ ) : (
                         userProfile.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'
-                      )}
- </div>
- </div>
+ )}
+</div>
+</div>
 
                   {/* Profile Info */}
                   <div className="flex-1 space-y-4">
@@ -509,7 +565,7 @@ return (
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 backdrop-blur-sm">
                           <CheckCircle className="w-5 h-5 text-blue-400" />
                           <span className="text-sm font-bold text-blue-400">Verified</span>
-                        </div>
+</div>
 </div>
 
                       <p className="text-2xl text-cyan-300 font-medium">
@@ -522,36 +578,20 @@ return (
                       <div className="flex items-center gap-3 text-lg text-gray-300">
                         <div className="p-2 rounded-full bg-cyan-500/10 border border-cyan-500/20">
                           <MapPin className="w-5 h-5 text-cyan-400" />
-                        </div>
+</div>
                         <span>{userProfile.location || "No location data found"}</span>
-                      </div>
+</div>
 
                       {overallScore > 0 && (
                         <div className={`px-4 py-2 rounded-full border-2 ${rank.bgColor} ${rank.borderColor} backdrop-blur-sm`}>
                           <div className={`text-sm font-bold ${rank.color} flex items-center gap-2`}>
                             <Star className="w-4 h-4" />
                             {rank.rank} RANK
-                          </div>
-                        </div>
-                      )}
-                    </div>
+</div>
+ </div>
+ )}
+ </div>
 
-                    {/* View Resume Button - Only show for non-owners */}
-                    {!isOwner && (
-                      <div className="flex justify-start">
-                        <Button
-                          onClick={() => {
-                            // Remove the ID suffix (e.g., -ccf9) from the slug
-                            const namePart = slug.split('-').slice(0, -1).join('-');
-                            router.push(`/resume/${namePart}-resume`);
-                          }}
-                          className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 hover:from-cyan-500/30 hover:to-purple-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:scale-105"
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          View Resume
-                        </Button>
-                      </div>
-                    )}
 
                     {/* Bio */}
                     <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
@@ -576,7 +616,7 @@ return (
                   { id: 'game-results', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', activeBgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-400' },
                 ].map((item) => {
  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
+ const isActive = activeSection === item.id;
 
 return (
                     <div key={item.id} className="relative">
@@ -600,7 +640,7 @@ return (
 
             {/* Tab Content */}
             <div className="p-8">
-<motion.div
+ <motion.div
 key={activeSection}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -616,12 +656,12 @@ transition={{ duration: 0.3 }}
                           <h3 className="text-2xl font-bold flex items-center gap-3">
                             <div className="p-2 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg">
                               <User className="w-6 h-6 text-white" />
-                            </div>
+ </div>
                             <span className="bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">
                               Personal Information
                             </span>
                           </h3>
-                          {isOwner && (
+{isOwner && (
                             <div className="flex items-center gap-2">
                               {!isEditingPersonalInfo ? (
 <Button 
@@ -643,7 +683,7 @@ size="sm"
                                   >
                                     <Save className="w-4 h-4 mr-2" />
                                     {isSaving ? 'Saving...' : 'Save'}
-                                  </Button>
+</Button>
 <Button
                                     onClick={cancelEditingPersonalInfo}
                                     variant="outline"
@@ -657,7 +697,7 @@ size="sm"
 )}
 </div>
                           )}
- </div>
+</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                           {/* Gender - Always visible */}
                           <div className="group bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-300 hover:scale-105">
@@ -679,42 +719,22 @@ size="sm"
                                   <option value="other">Other</option>
                                 </select>
                                 {editedPersonalInfo.gender === 'other' && (
-                                  <input
-                                    type="text"
+<input 
+type="text" 
                                     value={editedPersonalInfo.gender_custom}
                                     onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, gender_custom: e.target.value }))}
                                     className="w-full bg-gray-700/50 text-white text-base font-medium border-2 border-pink-400/50 rounded-lg px-3 py-2 outline-none focus:border-pink-400 focus:bg-gray-700/70 transition-all duration-200"
                                     placeholder="Please specify your gender"
                                   />
                                 )}
-                              </div>
+</div>
                             ) : (
                               <p className="text-white text-lg font-semibold capitalize">
                                 {userProfile.gender_custom || userProfile.gender || "No gender data found"}
                               </p>
                             )}
-                          </div>
+ </div>
 
-                          {/* Birthday - Always visible */}
-                          <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-indigo-300 mb-2 block">Birthday</label>
-                            {isEditingPersonalInfo ? (
-                              <input
-                                type="date"
-                                value={editedPersonalInfo.birthday}
-                                onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, birthday: e.target.value }))}
-                                className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-indigo-400/50 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 focus:bg-gray-700/70 transition-all duration-200"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.birthday ? new Date(userProfile.birthday).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                }) : "No birthday data found"}
-                              </p>
-                            )}
-                          </div>
 
                           {/* Age - Always visible */}
                           <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
@@ -724,7 +744,7 @@ size="sm"
                                 Math.floor((new Date().getTime() - new Date(userProfile.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) + " years old" 
                                 : "No age data found"}
                             </p>
-                          </div>
+ </div>
 
                           {/* Member Since - Always visible */}
                           <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
@@ -736,10 +756,10 @@ size="sm"
                                 day: 'numeric'
                               })}
                             </p>
-                          </div>
+ </div>
 
                           {/* Owner-only fields */}
-                          {isOwner && (
+{isOwner && (
                             <>
                               <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30 hover:border-cyan-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-cyan-300 mb-2 block">First Name</label>
@@ -756,12 +776,12 @@ size="sm"
                                     {userProfile.first_name || "No first name data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
                               <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-purple-300 mb-2 block">Last Name</label>
                                 {isEditingPersonalInfo ? (
-                                  <input
-                                    type="text"
+<input 
+type="text" 
                                     value={editedPersonalInfo.last_name}
                                     onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, last_name: e.target.value }))}
                                     className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-purple-400/50 rounded-lg px-3 py-2 outline-none focus:border-purple-400 focus:bg-gray-700/70 transition-all duration-200"
@@ -772,12 +792,12 @@ size="sm"
                                     {userProfile.last_name || "No last name data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
                               <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-green-300 mb-2 block">Location</label>
                                 {isEditingPersonalInfo ? (
-                                  <input
-                                    type="text"
+<input 
+type="text" 
                                     value={editedPersonalInfo.location}
                                     onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, location: e.target.value }))}
                                     className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-green-400/50 rounded-lg px-3 py-2 outline-none focus:border-green-400 focus:bg-gray-700/70 transition-all duration-200"
@@ -788,12 +808,12 @@ size="sm"
                                     {userProfile.location || "No location data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
                               <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-blue-300 mb-2 block">Job Title</label>
                                 {isEditingPersonalInfo ? (
-                                  <input
-                                    type="text"
+<input 
+type="text" 
                                     value={editedPersonalInfo.position}
                                     onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, position: e.target.value }))}
                                     className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-blue-400/50 rounded-lg px-3 py-2 outline-none focus:border-blue-400 focus:bg-gray-700/70 transition-all duration-200"
@@ -804,21 +824,40 @@ size="sm"
                                     {userProfile.position || "No job title data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
+                              <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-indigo-300 mb-2 block">Birthday</label>
+                                {isEditingPersonalInfo ? (
+<input 
+                                    type="date"
+                                    value={editedPersonalInfo.birthday}
+                                    onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, birthday: e.target.value }))}
+                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-indigo-400/50 rounded-lg px-3 py-2 outline-none focus:border-indigo-400 focus:bg-gray-700/70 transition-all duration-200"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.birthday ? new Date(userProfile.birthday).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    }) : "No birthday data found"}
+                                  </p>
+                                )}
+</div>
                             </>
-                          )}
-                        </div>
+)}
+</div>
 </div>
 </div>
 
                     {/* Resume Score Section */}
- <div className="relative">
+<div className="relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-red-500/10 rounded-2xl blur-xl"></div>
                       <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-purple-500/20 backdrop-blur-sm">
                         <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg">
                             <BarChart3 className="w-6 h-6 text-white" />
- </div>
+</div>
                           <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
                             Resume Score
                           </span>
@@ -841,7 +880,7 @@ size="sm"
                                 ></div>
  </div>
  </div>
-</div>
+ </div>
                         ) : (
                           <div className="text-center py-8">
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -995,7 +1034,7 @@ size="sm"
                             <p className="text-white text-lg font-semibold">
                               {userProfile.position || "No job title data found"}
                             </p>
-                          </div>
+ </div>
 
                           {/* Mood at Current Employer - Always visible */}
                           <div className="group bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-300 hover:scale-105">
@@ -1018,7 +1057,7 @@ size="sm"
                                 {userProfile.current_mood || "No mood data found"}
                               </p>
                             )}
-                          </div>
+</div>
 
                           {/* Work Status - Always visible */}
                           <div className="group bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-xl p-4 border border-emerald-400/30 hover:border-emerald-400/60 transition-all duration-300 hover:scale-105">
@@ -1043,7 +1082,7 @@ size="sm"
                                 {userProfile.work_status ? userProfile.work_status.replace(/-/g, ' ') : "No work status data found"}
                               </p>
                             )}
-                          </div>
+</div>
 
                           {/* Preferred Shift - Always visible */}
                           <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
@@ -1066,7 +1105,7 @@ size="sm"
                                 {userProfile.preferred_shift ? userProfile.preferred_shift.replace(/-/g, ' ') : "No shift preference data found"}
                               </p>
                             )}
-                          </div>
+</div>
 
                           {/* Expected Salary Range - Always visible */}
                           <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
@@ -1101,8 +1140,8 @@ size="sm"
                                     className="flex-1 bg-gray-700/50 border-2 border-violet-400/50 rounded-lg px-2 py-1.5 text-white text-sm font-semibold focus:border-violet-400 focus:bg-gray-700/70 focus:outline-none"
                                     placeholder="Max"
                                   />
-                                </div>
-                              </div>
+</div>
+</div>
                             ) : (
                               <p className="text-white text-lg font-semibold">
                                 {userProfile.expected_salary ? (
@@ -1114,7 +1153,7 @@ size="sm"
                                 ) : "No expected salary data found"}
                               </p>
                             )}
-                          </div>
+</div>
 
                           {/* Preferred Work Setup - Always visible */}
                           <div className="group bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-xl p-4 border border-amber-400/30 hover:border-amber-400/60 transition-all duration-300 hover:scale-105">
@@ -1136,7 +1175,7 @@ size="sm"
                                 {userProfile.work_setup ? userProfile.work_setup.replace(/-/g, ' ') : "No work setup data found"}
                               </p>
                             )}
-                          </div>
+</div>
 
                           {/* Owner-only fields */}
                           {isOwner && (
@@ -1156,7 +1195,7 @@ size="sm"
                                     {userProfile.current_employer || "No employer data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
                               <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-blue-300 mb-2 block">Current Salary (in pesos)</label>
                                 {isEditingWorkStatus ? (
@@ -1178,7 +1217,7 @@ size="sm"
                                     ) : "No current salary data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
                               <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-indigo-300 mb-2 block">Notice Period (in days)</label>
                                 {isEditingWorkStatus ? (
@@ -1194,10 +1233,10 @@ size="sm"
                                     {userProfile.notice_period_days ? `${userProfile.notice_period_days} days` : "No notice period data found"}
                                   </p>
                                 )}
-                              </div>
+</div>
                             </>
-                          )}
-                        </div>
+)}
+</div>
 </div>
 </div>
 </div>
@@ -1279,8 +1318,8 @@ size="sm"
                                     style={{ width: `${userProfile.skills_alignment_score || 0}%` }}
                                   ></div>
 </div>
-</div>
-</div>
+ </div>
+ </div>
  </div>
  </div>
  </div>
@@ -1293,7 +1332,7 @@ size="sm"
                         <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
                             <FileText className="w-6 h-6 text-white" />
- </div>
+</div>
                           <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
                             AI-Improved Professional Summary
                           </span>
@@ -1301,7 +1340,7 @@ size="sm"
                         {userProfile.improved_summary ? (
                           <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-400/30">
                             <p className="text-gray-200 leading-relaxed text-lg">{userProfile.improved_summary}</p>
- </div>
+</div>
                         ) : (
                           <div className="text-center py-8">
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1335,7 +1374,7 @@ size="sm"
                         {userProfile.strengths_analysis ? (
                           <div className="text-gray-200 leading-relaxed text-base">
                             {typeof userProfile.strengths_analysis === 'object' && userProfile.strengths_analysis !== null ? (
-<div className="space-y-4">
+                              <div className="space-y-4">
                                 {Object.entries(userProfile.strengths_analysis).map(([key, value]) => (
                                   <div key={key} className="border-l-4 border-emerald-400 pl-4 bg-emerald-500/5 rounded-r-lg p-3">
                                     <h4 className="font-semibold text-emerald-300 capitalize mb-2">
@@ -1366,7 +1405,7 @@ size="sm"
                                               )}
                                             </li>
                                           ))}
-</ul>
+                                        </ul>
                                       ) : typeof value === 'object' ? (
 <div className="space-y-2">
                                           {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
@@ -1384,14 +1423,14 @@ size="sm"
 </div>
                                       ) : (
                                         <p>{String(value || '')}</p>
-)}
+                                      )}
 </div>
 </div>
 ))}
 </div>
                             ) : (
                               <p>{userProfile.strengths_analysis}</p>
- )}
+                            )}
 </div>
                         ) : (
                           <div className="text-center py-8">
@@ -1405,352 +1444,362 @@ size="sm"
 </div>
 </div>
 
-                    {/* Improvements */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-blue-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-white" />
+                    {/* Improvements - Owner Only */}
+                    {isOwner && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-blue-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-lg">
+                              <TrendingUp className="w-6 h-6 text-white" />
 </div>
-                          <span className="bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text text-transparent">
-                            Improvement Suggestions
-                          </span>
-                        </h3>
-                        {userProfile.improvements && userProfile.improvements.length > 0 ? (
+                            <span className="bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text text-transparent">
+                              Improvement Suggestions
+                            </span>
+                          </h3>
+                          {userProfile.improvements && userProfile.improvements.length > 0 ? (
+                            <div className="space-y-4">
+                              {userProfile.improvements.map((improvement, index) => (
+                                <div key={index} className="group bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex-shrink-0 mt-1 animate-pulse"></div>
+                                    <span className="text-white font-semibold text-lg">{improvement}</span>
+</div>
+</div>
+                              ))}
+</div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <TrendingUp className="w-8 h-8 text-gray-500" />
+</div>
+                              <p className="text-gray-400 text-lg">No improvement suggestions found</p>
+                            </div>
+                          )}
+</div>
+</div>
+                    )}
+
+                    {/* Recommendations - Owner Only */}
+                    {isOwner && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-yellow-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg">
+                              <Lightbulb className="w-6 h-6 text-white" />
+</div>
+                            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                              Actionable Recommendations
+                            </span>
+                          </h3>
+                          {userProfile.recommendations && userProfile.recommendations.length > 0 ? (
+                            <div className="space-y-4">
+                              {userProfile.recommendations.map((recommendation, index) => (
+                                <div key={index} className="group bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex-shrink-0 mt-1 animate-pulse"></div>
+                                    <span className="text-white font-semibold text-lg">{recommendation}</span>
+</div>
+</div>
+                              ))}
+</div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Lightbulb className="w-8 h-8 text-gray-500" />
+</div>
+                              <p className="text-gray-400 text-lg">No recommendations found</p>
+</div>
+                          )}
+</div>
+</div>
+                    )}
+
+                    {/* Salary Analysis - Owner Only */}
+                    {isOwner && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
+                              <DollarSign className="w-6 h-6 text-white" />
+</div>
+                            <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
+                              Salary Analysis
+                            </span>
+                          </h3>
+                          <div 
+                            className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-6 border border-green-400/30 max-h-96 overflow-y-auto"
+                            style={{
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#4ade80 #22c55e20'
+                            }}
+                          >
+                          {userProfile.salary_analysis ? (
+                            <div className="text-gray-200 leading-relaxed text-base">
+                              {typeof userProfile.salary_analysis === 'object' && userProfile.salary_analysis !== null ? (
+                                <div className="space-y-4">
+                                  {Object.entries(userProfile.salary_analysis).map(([key, value]) => (
+                                    <div key={key} className="border-l-4 border-green-400 pl-4 bg-green-500/5 rounded-r-lg p-3">
+                                      <h4 className="font-semibold text-green-300 capitalize mb-2">
+                                        {key.replace(/_/g, ' ')}
+                                      </h4>
+                                      <div className="text-gray-300">
+                                        {Array.isArray(value) ? (
+                                          <ul className="list-disc list-inside space-y-1">
+                                            {value.map((item, index) => (
+                                              <li key={index}>
+                                                {typeof item === 'object' ? (
+                                                  <div className="ml-4 space-y-1">
+                                                    {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
+                                                      <div key={itemKey}>
+                                                        <span className="font-medium text-emerald-200">
+                                                          {itemKey.replace(/_/g, ' ')}:
+                                                        </span>
+                                                        <span className="ml-2">
+                                                          {Array.isArray(itemValue) ? itemValue.join(', ') : 
+                                                           typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
+                                                           String(itemValue || '')}
+                                                        </span>
+</div>
+                                                    )) : null}
+</div>
+                                                ) : (
+                                                  item
+                                                )}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : typeof value === 'object' ? (
+                                          <div className="space-y-2">
+                                            {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
+                                              <div key={subKey}>
+                                                <span className="font-medium text-emerald-200">
+                                                  {subKey.replace(/_/g, ' ')}:
+                                                </span>
+                                                <span className="ml-2">
+                                                  {Array.isArray(subValue) ? subValue.join(', ') : 
+                                                   typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
+                                                   String(subValue || '')}
+                                                </span>
+</div>
+                                            )) : null}
+</div>
+                                        ) : (
+                                          <p>{String(value || '')}</p>
+                                        )}
+</div>
+                                    </div>
+))}
+</div>
+                              ) : (
+                                <p>{userProfile.salary_analysis}</p>
+                              )}
+</div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <DollarSign className="w-8 h-8 text-gray-500" />
+</div>
+                              <p className="text-gray-400 text-lg">No salary analysis data found</p>
+</div>
+                          )}
+</div>
+</div>
+</div>
+                    )}
+
+                    {/* Career Path - Owner Only */}
+                    {isOwner && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-red-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-purple-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg">
+                              <TrendingUp className="w-6 h-6 text-white" />
+</div>
+                            <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+                              Career Path Analysis
+                            </span>
+                          </h3>
+                          <div 
+                            className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-400/30 max-h-96 overflow-y-auto"
+                            style={{
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#a855f7 #8b5cf620'
+                            }}
+                          >
+                          {userProfile.career_path ? (
+                            <div className="text-gray-200 leading-relaxed text-base">
+                              {typeof userProfile.career_path === 'object' && userProfile.career_path !== null ? (
+                                <div className="space-y-4">
+                                  {Object.entries(userProfile.career_path).map(([key, value]) => (
+                                    <div key={key} className="border-l-4 border-purple-400 pl-4 bg-purple-500/5 rounded-r-lg p-3">
+                                      <h4 className="font-semibold text-purple-300 capitalize mb-2">
+                                        {key.replace(/_/g, ' ')}
+                                      </h4>
+                                      <div className="text-gray-300">
+                                        {Array.isArray(value) ? (
+                                          <ul className="list-disc list-inside space-y-1">
+                                            {value.map((item, index) => (
+                                              <li key={index}>
+                                                {typeof item === 'object' ? (
+                                                  <div className="ml-4 space-y-1">
+                                                    {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
+                                                      <div key={itemKey}>
+                                                        <span className="font-medium text-emerald-200">
+                                                          {itemKey.replace(/_/g, ' ')}:
+                                                        </span>
+                                                        <span className="ml-2">
+                                                          {Array.isArray(itemValue) ? itemValue.join(', ') : 
+                                                           typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
+                                                           String(itemValue || '')}
+                                                        </span>
+</div>
+                                                    )) : null}
+</div>
+                                                ) : (
+                                                  item
+                                                )}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : typeof value === 'object' ? (
+                                          <div className="space-y-2">
+                                            {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
+                                              <div key={subKey}>
+                                                <span className="font-medium text-emerald-200">
+                                                  {subKey.replace(/_/g, ' ')}:
+                                                </span>
+                                                <span className="ml-2">
+                                                  {Array.isArray(subValue) ? subValue.join(', ') : 
+                                                   typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
+                                                   String(subValue || '')}
+                                                </span>
+</div>
+                                            )) : null}
+</div>
+                                        ) : (
+                                          <p>{String(value || '')}</p>
+                                        )}
+</div>
+</div>
+                                  ))}
+</div>
+                              ) : (
+                                <p>{userProfile.career_path}</p>
+                              )}
+</div>
+                          ) : (
+<div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <TrendingUp className="w-8 h-8 text-gray-500" />
+ </div>
+                              <p className="text-gray-400 text-lg">No career path data found</p>
+                            </div>
+                          )}
+ </div>
+ </div>
+ </div>
+                    )}
+
+                    {/* Section Analysis - Owner Only */}
+                    {isOwner && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-indigo-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
+                              <FileText className="w-6 h-6 text-white" />
+ </div>
+                            <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                              Section-by-Section Analysis
+                            </span>
+                          </h3>
+                          <div 
+                            className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-400/30 max-h-96 overflow-y-auto"
+                            style={{
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#6366f1 #4f46e520'
+                            }}
+                          >
+                          {userProfile.section_analysis ? (
+                            <div className="text-gray-200 leading-relaxed text-base">
+                              {typeof userProfile.section_analysis === 'object' && userProfile.section_analysis !== null ? (
 <div className="space-y-4">
-                            {userProfile.improvements.map((improvement, index) => (
-                              <div key={index} className="group bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex-shrink-0 mt-1 animate-pulse"></div>
-                                  <span className="text-white font-semibold text-lg">{improvement}</span>
-</div>
-</div>
-))}
-</div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <TrendingUp className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No improvement suggestions found</p>
-</div>
-                        )}
-</div>
-</div>
-
-                    {/* Recommendations */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-yellow-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg">
-                            <Lightbulb className="w-6 h-6 text-white" />
-</div>
-                          <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                            Actionable Recommendations
-                          </span>
-                        </h3>
-                        {userProfile.recommendations && userProfile.recommendations.length > 0 ? (
-                          <div className="space-y-4">
-                            {userProfile.recommendations.map((recommendation, index) => (
-                              <div key={index} className="group bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex-shrink-0 mt-1 animate-pulse"></div>
-                                  <span className="text-white font-semibold text-lg">{recommendation}</span>
-</div>
-</div>
-))}
-</div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Lightbulb className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No recommendations found</p>
-</div>
-                        )}
-</div>
-</div>
-
-                    {/* Salary Analysis */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
-                            <DollarSign className="w-6 h-6 text-white" />
-</div>
-                          <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
-                            Salary Analysis
-                          </span>
-                        </h3>
-                        <div 
-                          className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-6 border border-green-400/30 max-h-96 overflow-y-auto"
-                          style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: '#4ade80 #22c55e20'
-                          }}
-                        >
-                        {userProfile.salary_analysis ? (
-                          <div className="text-gray-200 leading-relaxed text-base">
-                            {typeof userProfile.salary_analysis === 'object' && userProfile.salary_analysis !== null ? (
-                              <div className="space-y-4">
-                                {Object.entries(userProfile.salary_analysis).map(([key, value]) => (
-                                  <div key={key} className="border-l-4 border-green-400 pl-4 bg-green-500/5 rounded-r-lg p-3">
-                                    <h4 className="font-semibold text-green-300 capitalize mb-2">
-                                      {key.replace(/_/g, ' ')}
-                                    </h4>
-                                    <div className="text-gray-300">
-                                      {Array.isArray(value) ? (
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {value.map((item, index) => (
-                                            <li key={index}>
-                                              {typeof item === 'object' ? (
-                                                <div className="ml-4 space-y-1">
-                                                  {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
-                                                    <div key={itemKey}>
-                                                      <span className="font-medium text-emerald-200">
-                                                        {itemKey.replace(/_/g, ' ')}:
-                                                      </span>
-                                                      <span className="ml-2">
-                                                        {Array.isArray(itemValue) ? itemValue.join(', ') : 
-                                                         typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
-                                                         String(itemValue || '')}
-                                                      </span>
-</div>
-                                                  )) : null}
-</div>
-                                              ) : (
-                                                item
-                                              )}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : typeof value === 'object' ? (
-<div className="space-y-2">
-                                          {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
-                                            <div key={subKey}>
-                                              <span className="font-medium text-emerald-200">
-                                                {subKey.replace(/_/g, ' ')}:
-                                              </span>
-                                              <span className="ml-2">
-                                                {Array.isArray(subValue) ? subValue.join(', ') : 
-                                                 typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
-                                                 String(subValue || '')}
-                                              </span>
-</div>
-                                          )) : null}
-</div>
-                                      ) : (
-                                        <p>{String(value || '')}</p>
-                                      )}
-</div>
-</div>
-))}
-</div>
-                            ) : (
-                              <p>{userProfile.salary_analysis}</p>
-                            )}
-</div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <DollarSign className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No salary analysis data found</p>
-</div>
-                        )}
-</div>
-</div>
-</div>
-
-                    {/* Career Path */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-red-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-purple-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-white" />
-</div>
-                          <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
-                            Career Path Analysis
-                          </span>
-                        </h3>
-                        <div 
-                          className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-400/30 max-h-96 overflow-y-auto"
-                          style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: '#a855f7 #8b5cf620'
-                          }}
-                        >
-                        {userProfile.career_path ? (
-                          <div className="text-gray-200 leading-relaxed text-base">
-                            {typeof userProfile.career_path === 'object' && userProfile.career_path !== null ? (
-<div className="space-y-4">
-                                {Object.entries(userProfile.career_path).map(([key, value]) => (
-                                  <div key={key} className="border-l-4 border-purple-400 pl-4 bg-purple-500/5 rounded-r-lg p-3">
-                                    <h4 className="font-semibold text-purple-300 capitalize mb-2">
-                                      {key.replace(/_/g, ' ')}
-                                    </h4>
-                                    <div className="text-gray-300">
-                                      {Array.isArray(value) ? (
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {value.map((item, index) => (
-                                            <li key={index}>
-                                              {typeof item === 'object' ? (
-                                                <div className="ml-4 space-y-1">
-                                                  {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
-                                                    <div key={itemKey}>
-                                                      <span className="font-medium text-emerald-200">
-                                                        {itemKey.replace(/_/g, ' ')}:
-                                                      </span>
-                                                      <span className="ml-2">
-                                                        {Array.isArray(itemValue) ? itemValue.join(', ') : 
-                                                         typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
-                                                         String(itemValue || '')}
-                                                      </span>
-</div>
-                                                  )) : null}
-</div>
-                                              ) : (
-                                                item
-                                              )}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : typeof value === 'object' ? (
-                                        <div className="space-y-2">
-                                          {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
-                                            <div key={subKey}>
-                                              <span className="font-medium text-emerald-200">
-                                                {subKey.replace(/_/g, ' ')}:
-                                              </span>
-                                              <span className="ml-2">
-                                                {Array.isArray(subValue) ? subValue.join(', ') : 
-                                                 typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
-                                                 String(subValue || '')}
-                                              </span>
-</div>
-                                          )) : null}
-</div>
-                                      ) : (
-                                        <p>{String(value || '')}</p>
-                                      )}
-</div>
-</div>
-))}
-</div>
-                            ) : (
-                              <p>{userProfile.career_path}</p>
-                            )}
-</div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <TrendingUp className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No career path data found</p>
-</div>
-                        )}
-</div>
+                                  {Object.entries(userProfile.section_analysis).map(([key, value]) => (
+                                    <div key={key} className="border-l-4 border-indigo-400 pl-4 bg-indigo-500/5 rounded-r-lg p-3">
+                                      <h4 className="font-semibold text-indigo-300 capitalize mb-2">
+                                        {key.replace(/_/g, ' ')}
+                                      </h4>
+                                      <div className="text-gray-300">
+                                        {Array.isArray(value) ? (
+                                          <ul className="list-disc list-inside space-y-1">
+                                            {value.map((item, index) => (
+                                              <li key={index}>
+                                                {typeof item === 'object' ? (
+                                                  <div className="ml-4 space-y-1">
+                                                    {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
+                                                      <div key={itemKey}>
+                                                        <span className="font-medium text-emerald-200">
+                                                          {itemKey.replace(/_/g, ' ')}:
+                                                        </span>
+                                                        <span className="ml-2">
+                                                          {Array.isArray(itemValue) ? itemValue.join(', ') : 
+                                                           typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
+                                                           String(itemValue || '')}
+                                                        </span>
+ </div>
+                                                    )) : null}
+ </div>
+                                                ) : (
+                                                  item
+                                                )}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : typeof value === 'object' ? (
+ <div className="space-y-2">
+                                            {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
+                                              <div key={subKey}>
+                                                <span className="font-medium text-emerald-200">
+                                                  {subKey.replace(/_/g, ' ')}:
+                                                </span>
+                                                <span className="ml-2">
+                                                  {Array.isArray(subValue) ? subValue.join(', ') : 
+                                                   typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
+                                                   String(subValue || '')}
+                                                </span>
+ </div>
+                                            )) : null}
+ </div>
+                                        ) : (
+                                          <p>{String(value || '')}</p>
+                                        )}
  </div>
  </div>
-
-                    {/* Section Analysis */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-indigo-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
-                            <FileText className="w-6 h-6 text-white" />
+                                  ))}
  </div>
-                          <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                            Section-by-Section Analysis
-                          </span>
-                        </h3>
-                        <div 
-                          className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-400/30 max-h-96 overflow-y-auto"
-                          style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: '#6366f1 #4f46e520'
-                          }}
-                        >
-                        {userProfile.section_analysis ? (
-                          <div className="text-gray-200 leading-relaxed text-base">
-                            {typeof userProfile.section_analysis === 'object' && userProfile.section_analysis !== null ? (
-<div className="space-y-4">
-                                {Object.entries(userProfile.section_analysis).map(([key, value]) => (
-                                  <div key={key} className="border-l-4 border-indigo-400 pl-4 bg-indigo-500/5 rounded-r-lg p-3">
-                                    <h4 className="font-semibold text-indigo-300 capitalize mb-2">
-                                      {key.replace(/_/g, ' ')}
-                                    </h4>
-                                    <div className="text-gray-300">
-                                      {Array.isArray(value) ? (
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {value.map((item, index) => (
-                                            <li key={index}>
-                                              {typeof item === 'object' ? (
-                                                <div className="ml-4 space-y-1">
-                                                  {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
-                                                    <div key={itemKey}>
-                                                      <span className="font-medium text-emerald-200">
-                                                        {itemKey.replace(/_/g, ' ')}:
-                                                      </span>
-                                                      <span className="ml-2">
-                                                        {Array.isArray(itemValue) ? itemValue.join(', ') : 
-                                                         typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
-                                                         String(itemValue || '')}
-                                                      </span>
- </div>
-                                                  )) : null}
- </div>
-                                              ) : (
-                                                item
-                                              )}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : typeof value === 'object' ? (
-                                        <div className="space-y-2">
-                                          {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
-                                            <div key={subKey}>
-                                              <span className="font-medium text-emerald-200">
-                                                {subKey.replace(/_/g, ' ')}:
-                                              </span>
-                                              <span className="ml-2">
-                                                {Array.isArray(subValue) ? subValue.join(', ') : 
-                                                 typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
-                                                 String(subValue || '')}
-                                              </span>
- </div>
-                                          )) : null}
- </div>
-                                      ) : (
-                                        <p>{String(value || '')}</p>
-                                      )}
- </div>
- </div>
-                                ))}
- </div>
-                            ) : (
-                              <p>{userProfile.section_analysis}</p>
+                              ) : (
+                                <p>{userProfile.section_analysis}</p>
  )}
  </div>
 ) : (
 <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <FileText className="w-8 h-8 text-gray-500" />
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FileText className="w-8 h-8 text-gray-500" />
  </div>
-                            <p className="text-gray-400 text-lg">No section analysis data found</p>
+                              <p className="text-gray-400 text-lg">No section analysis data found</p>
  </div>
-                        )}
+                          )}
  </div>
  </div>
  </div>
+                    )}
 
  </div>
-                )}
+ )}
 
                 {activeSection === 'game-results' && (
                   <div className="space-y-8">
@@ -1775,19 +1824,25 @@ size="sm"
                                 <p className="text-white text-lg font-semibold">
                                   {userProfile.game_stats.bpoc_cultural_stats.current_tier || "No tier data"}
                                 </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-yellow-300 mb-2 block">Total Sessions</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.bpoc_cultural_stats.total_sessions || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-yellow-300 mb-2 block">Completed Sessions</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.bpoc_cultural_stats.completed_sessions || 0}
-                                </p>
-                              </div>
+ </div>
+
+                              {/* Session data - Owner only */}
+                              {isOwner && (
+                                <>
+                                  <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
+                                    <label className="text-sm font-medium text-yellow-300 mb-2 block">Total Sessions</label>
+                                    <p className="text-white text-lg font-semibold">
+                                      {userProfile.game_stats.bpoc_cultural_stats.total_sessions || 0}
+                                    </p>
+ </div>
+                                  <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
+                                    <label className="text-sm font-medium text-yellow-300 mb-2 block">Completed Sessions</label>
+                                    <p className="text-white text-lg font-semibold">
+                                      {userProfile.game_stats.bpoc_cultural_stats.completed_sessions || 0}
+                                    </p>
+ </div>
+                                </>
+                              )}
 </div>
 
                             {/* Hire Recommendation and Writing Score */}
@@ -1802,20 +1857,20 @@ size="sm"
                                         userProfile.game_stats.bpoc_cultural_results.hire_recommendation.replace(/_/g, ' ') : 
                                         "No recommendation data"}
                                     </p>
-                                  </div>
+</div>
                                   <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
                                     <label className="text-sm font-medium text-yellow-300 mb-2 block">Writing Score</label>
                                     <p className="text-white text-lg font-semibold">
                                       {userProfile.game_stats.bpoc_cultural_results.writing?.score || "No score data"}
                                     </p>
-                                  </div>
+</div>
                                   {userProfile.game_stats.bpoc_cultural_results.writing?.style && (
                                     <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
                                       <label className="text-sm font-medium text-yellow-300 mb-2 block">Writing Style</label>
                                       <p className="text-white mt-1 text-sm font-medium">
                                         {userProfile.game_stats.bpoc_cultural_results.writing.style}
                                       </p>
-                                    </div>
+</div>
                                   )}
                                   {userProfile.game_stats.bpoc_cultural_results.writing?.tone && (
                                     <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
@@ -1823,7 +1878,7 @@ size="sm"
                                       <p className="text-white mt-1 text-sm font-medium">
                                         {userProfile.game_stats.bpoc_cultural_results.writing.tone}
                                       </p>
-                                    </div>
+</div>
                                   )}
  </div>
  </div>
@@ -1899,14 +1954,17 @@ size="sm"
                                   {userProfile.game_stats.disc_personality_stats.consistency_index || "No data"}
                                 </p>
  </div>
-                              <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-blue-300 mb-2 block">Last Taken</label>
-                                <p className="text-white mt-1 text-sm font-medium">
-                                  {userProfile.game_stats.disc_personality_stats.last_taken_at ? 
-                                    new Date(userProfile.game_stats.disc_personality_stats.last_taken_at).toLocaleDateString() : 
-                                    "Never taken"}
-                                </p>
+                              {/* Last Taken - Owner only */}
+                              {isOwner && (
+                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Last Taken</label>
+                                  <p className="text-white mt-1 text-sm font-medium">
+                                    {userProfile.game_stats.disc_personality_stats.last_taken_at ? 
+                                      new Date(userProfile.game_stats.disc_personality_stats.last_taken_at).toLocaleDateString() : 
+                                      "Never taken"}
+                                  </p>
  </div>
+ )}
  </div>
  </div>
                         ) : (
@@ -1914,149 +1972,169 @@ size="sm"
                         )}
  </div>
  </div>
+ </div>
 
                     {/* Typing Hero Game Stats */}
-                    <div>
-                        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                          <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg border-2 border-green-400">
-                            <Gamepad2 className="w-5 h-5 text-white" />
-                          </div>
-                          Typing Hero Game
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
+                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                          <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
+                            <Gamepad2 className="w-6 h-6 text-white" />
+ </div>
+                          <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
+                            Typing Hero Game
+                          </span>
                         </h3>
-                      <div className="bg-gray-800/30 rounded-lg p-6 border border-gray-700">
-                        {userProfile.game_stats?.typing_hero_stats ? (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Best WPM</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.best_wpm || 0} WPM
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Best Accuracy</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.best_accuracy ? `${userProfile.game_stats.typing_hero_stats.best_accuracy}%` : "0%"}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Median WPM</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.median_wpm || 0} WPM
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Recent WPM</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.recent_wpm || 0} WPM
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Highest Difficulty</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.highest_difficulty || "No data"}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Consistency Index</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.consistency_index || "No data"}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Total Sessions</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.typing_hero_stats.total_sessions || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-green-300 mb-2 block">Last Played</label>
-                                <p className="text-white mt-1 text-sm font-medium">
-                                  {userProfile.game_stats.typing_hero_stats.last_played_at ? 
-                                    new Date(userProfile.game_stats.typing_hero_stats.last_played_at).toLocaleDateString() : 
-                                    "Never played"}
-                                </p>
-                              </div>
+                        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-6 border border-green-400/30">
+                          {userProfile.game_stats?.typing_hero_stats ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-green-300 mb-2 block">Best WPM</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.typing_hero_stats.best_wpm || 0} WPM
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-green-300 mb-2 block">Best Accuracy</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.typing_hero_stats.best_accuracy ? `${userProfile.game_stats.typing_hero_stats.best_accuracy}%` : "0%"}
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-green-300 mb-2 block">Median WPM</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.typing_hero_stats.median_wpm || 0} WPM
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-green-300 mb-2 block">Recent WPM</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.typing_hero_stats.recent_wpm || 0} WPM
+                                  </p>
+ </div>
+                                {/* Session data - Owner only */}
+                                {isOwner && (
+                                  <>
+                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                      <label className="text-sm font-medium text-green-300 mb-2 block">Highest Difficulty</label>
+                                      <p className="text-white text-lg font-semibold">
+                                        {userProfile.game_stats.typing_hero_stats.highest_difficulty || "No data"}
+                                      </p>
+ </div>
+                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                      <label className="text-sm font-medium text-green-300 mb-2 block">Consistency Index</label>
+                                      <p className="text-white text-lg font-semibold">
+                                        {userProfile.game_stats.typing_hero_stats.consistency_index || "No data"}
+                                      </p>
+ </div>
+                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                      <label className="text-sm font-medium text-green-300 mb-2 block">Total Sessions</label>
+                                      <p className="text-white text-lg font-semibold">
+                                        {userProfile.game_stats.typing_hero_stats.total_sessions || 0}
+                                      </p>
+ </div>
+                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                      <label className="text-sm font-medium text-green-300 mb-2 block">Last Played</label>
+                                      <p className="text-white mt-1 text-sm font-medium">
+                                        {userProfile.game_stats.typing_hero_stats.last_played_at ? 
+                                          new Date(userProfile.game_stats.typing_hero_stats.last_played_at).toLocaleDateString() : 
+                                          "Never played"}
+                                      </p>
+ </div>
+                                  </>
+                                )}
  </div>
  </div>
-                        ) : (
-                          <p className="text-gray-400 italic text-base">No Typing Hero game data found</p>
-                        )}
+                          ) : (
+                            <p className="text-gray-400 italic text-base">No Typing Hero game data found</p>
+                          )}
+ </div>
  </div>
  </div>
 
 
                     {/* Ultimate Game Stats */}
-                    <div>
-                        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                          <div className="p-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg border-2 border-purple-400">
-                            <Gamepad2 className="w-5 h-5 text-white" />
 
-                          </div>
-                          BPOC Ultimate
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-rose-500/10 rounded-2xl blur-xl"></div>
+                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-purple-500/20 backdrop-blur-sm">
+                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                          <div className="p-2 bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg">
+                            <Gamepad2 className="w-6 h-6 text-white" />
+</div>
+                          <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+                            BPOC Ultimate
+ </span>
+
                         </h3>
-                      <div className="bg-gray-800/30 rounded-lg p-6 border border-gray-700">
-                        {userProfile.game_stats?.ultimate_stats ? (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Smart Score</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.smart || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Motivated Score</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.motivated || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Integrity Score</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.integrity || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Business Score</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.business || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Platinum Choices</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.platinum_choices || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Gold Choices</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.gold_choices || 0}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Last Tier</label>
-                                <p className="text-white text-lg font-semibold">
-                                  {userProfile.game_stats.ultimate_stats.last_tier || "No tier data"}
-                                </p>
-                              </div>
-                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-purple-300 mb-2 block">Last Taken</label>
-                                <p className="text-white mt-1 text-sm font-medium">
-                                  {userProfile.game_stats.ultimate_stats.last_taken_at ? 
-                                    new Date(userProfile.game_stats.ultimate_stats.last_taken_at).toLocaleDateString() : 
-                                    "Never taken"}
-                                </p>
-                              </div>
- </div>
- </div>
-                        ) : (
-                          <p className="text-gray-400 italic text-base">No Ultimate game data found</p>
-                        )}
+                        <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-400/30">
+                          {userProfile.game_stats?.ultimate_stats ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Smart Score</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.smart || 0}
+                                  </p>
 </div>
-</div>
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Motivated Score</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.motivated || 0}
+                                  </p>
  </div>
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Integrity Score</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.integrity || 0}
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Business Score</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.business || 0}
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Platinum Choices</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.platinum_choices || 0}
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Gold Choices</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.gold_choices || 0}
+                                  </p>
+ </div>
+                                <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-purple-300 mb-2 block">Last Tier</label>
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.game_stats.ultimate_stats.last_tier || "No tier data"}
+                                  </p>
+ </div>
+                                {/* Last Taken - Owner only */}
+                                {isOwner && (
+                                  <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                    <label className="text-sm font-medium text-purple-300 mb-2 block">Last Taken</label>
+                                    <p className="text-white mt-1 text-sm font-medium">
+                                      {userProfile.game_stats.ultimate_stats.last_taken_at ? 
+                                        new Date(userProfile.game_stats.ultimate_stats.last_taken_at).toLocaleDateString() : 
+                                        "Never taken"}
+                                    </p>
+ </div>
+                                )}
+ </div>
+ </div>
+                          ) : (
+                            <p className="text-gray-400 italic text-base">No Ultimate game data found</p>
+                          )}
+ </div>
+ </div>
+ </div>
+
  </div>
  )}
 
