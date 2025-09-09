@@ -2483,39 +2483,18 @@ export default function SavedResumePage() {
 
 
   const editResume = async () => {
-
-
-
-
     console.log('Edit Resume clicked!', { resume: resume?.data });
 
-
-
     try {
-      // Prefer existing generated resume from database
-      try {
-        const sessionToken = await getSessionToken();
-        if (sessionToken) {
-          const res = await fetch('/api/user/generated-resume', {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${sessionToken}` },
-            cache: 'no-store'
-          });
-          const text = await res.text();
-          let json: any = null; try { json = JSON.parse(text); } catch {}
-          if (res.ok && json?.found && json?.generatedResumeData) {
-            localStorage.setItem('resumeData', JSON.stringify(json.generatedResumeData));
-            console.log('Loaded existing generated resume from database');
-            window.location.href = '/resume-builder/build';
-            return;
-          }
-        }
-      } catch {}
-
-      // Fallback to current resume content
-      if (resume?.data) {
+      // Use existing generated resume data from database instead of regenerating
+      if (resume?.data?.content) {
+        // Set a flag to indicate we're editing an existing resume
+        localStorage.setItem('editingExistingResume', 'true');
         localStorage.setItem('resumeData', JSON.stringify(resume.data.content));
-        console.log('Resume data saved to localStorage');
+        console.log('Existing resume data loaded for editing');
+      } else {
+        console.error('No resume data found to edit');
+        return;
       }
       console.log('Redirecting to resume builder...');
       window.location.href = '/resume-builder/build';
@@ -6301,7 +6280,8 @@ export default function SavedResumePage() {
 
 
 
-                {headerInfo.email && (
+                {/* Email hidden for confidentiality */}
+                {/* {headerInfo.email && (
 
 
 
@@ -6331,13 +6311,14 @@ export default function SavedResumePage() {
 
 
 
-                )}
+                )} */}
 
 
 
 
 
-                {headerInfo.phone && (
+                {/* Phone hidden for confidentiality */}
+                {/* {headerInfo.phone && (
 
 
 
@@ -6367,7 +6348,7 @@ export default function SavedResumePage() {
 
 
 
-                )}
+                )} */}
 
 
 

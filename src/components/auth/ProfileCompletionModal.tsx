@@ -206,6 +206,113 @@ export default function ProfileCompletionModal({
     }
   }, [formData.birthday])
 
+  // Handle work status changes and disable/enable fields accordingly
+  useEffect(() => {
+    if (!formData.workStatus) return
+
+    const newFormData = { ...formData }
+
+    switch (formData.workStatus) {
+      case 'employed':
+      case 'part-time':
+        // Enable all fields - no changes needed
+        break
+      
+      case 'unemployed-looking-for-work':
+      case 'student':
+        // Disable and clear: Current Employer, Current Salary, Notice Period
+        newFormData.currentEmployer = ''
+        newFormData.currentSalary = ''
+        newFormData.noticePeriod = ''
+        break
+      
+      case 'freelancer':
+        // Set Notice Period to 0 if no input
+        if (!newFormData.noticePeriod) {
+          newFormData.noticePeriod = '0'
+        }
+        break
+    }
+
+    // Only update if there are changes
+    if (JSON.stringify(newFormData) !== JSON.stringify(formData)) {
+      setFormData(newFormData)
+    }
+  }, [formData.workStatus])
+
+  // Helper functions to determine field states
+  const isFieldDisabled = (field: string) => {
+    switch (formData.workStatus) {
+      case 'unemployed-looking-for-work':
+      case 'student':
+        return ['currentEmployer', 'currentSalary', 'noticePeriod'].includes(field)
+      default:
+        return false
+    }
+  }
+
+  const getFieldClassName = (field: string) => {
+    const baseClass = "h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+    return isFieldDisabled(field) 
+      ? `${baseClass} opacity-60 cursor-not-allowed` 
+      : baseClass
+  }
+
+  const getFieldPlaceholder = (field: string) => {
+    switch (field) {
+      case 'currentEmployer':
+        switch (formData.workStatus) {
+          case 'employed':
+            return 'e.g., ABC Company or "Prefer not to disclose"'
+          case 'part-time':
+            return 'e.g., XYZ Restaurant or "Prefer not to disclose"'
+          case 'freelancer':
+            return 'e.g., Self-employed / Freelance or "Prefer not to disclose"'
+          case 'unemployed-looking-for-work':
+            return 'Not applicable - currently unemployed'
+          case 'student':
+            return 'Not applicable - currently studying'
+          default:
+            return 'e.g., ABC Company or "Prefer not to disclose"'
+        }
+      
+      case 'currentSalary':
+        switch (formData.workStatus) {
+          case 'employed':
+            return 'e.g., ₱50,000 or "Prefer not to disclose"'
+          case 'part-time':
+            return 'e.g., ₱15,000 or "Prefer not to disclose"'
+          case 'freelancer':
+            return 'e.g., ₱30,000 (monthly average) or "Prefer not to disclose"'
+          case 'unemployed-looking-for-work':
+            return 'Not applicable - currently unemployed'
+          case 'student':
+            return 'Not applicable - currently studying'
+          default:
+            return 'e.g., ₱50,000 or "Prefer not to disclose"'
+        }
+      
+      case 'noticePeriod':
+        switch (formData.workStatus) {
+          case 'employed':
+            return 'e.g., 30 days'
+          case 'part-time':
+            return 'e.g., 15 days'
+          case 'freelancer':
+            return 'e.g., 0 days (immediate availability)'
+          case 'unemployed-looking-for-work':
+            return 'Not applicable - currently unemployed'
+          case 'student':
+            return 'Not applicable - currently studying'
+          default:
+            return 'e.g., 30 days'
+        }
+      
+      default:
+        return ''
+    }
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
@@ -271,11 +378,13 @@ export default function ProfileCompletionModal({
          if (!formData.currentMood.trim()) {
            newErrors.currentMood = 'Current mood is required'
          }
-         if (!formData.currentEmployer.trim()) {
+         
+         // Only validate fields that are not disabled based on work status
+         if (!isFieldDisabled('currentEmployer') && !formData.currentEmployer.trim()) {
            newErrors.currentEmployer = 'Current employer is required'
          }
         // Removed currentPosition validation - it will use position from Step 1
-         if (!formData.currentSalary.trim()) {
+         if (!isFieldDisabled('currentSalary') && !formData.currentSalary.trim()) {
            newErrors.currentSalary = 'Current salary is required'
          }
                             if (!formData.expectedSalaryMin.trim() || !formData.expectedSalaryMax.trim()) {
@@ -286,7 +395,7 @@ export default function ProfileCompletionModal({
            const maxSalary = formData.expectedSalaryMax.trim()
            formData.expectedSalary = `${minSalary} - ${maxSalary}`
          }
-         if (!formData.noticePeriod.trim()) {
+         if (!isFieldDisabled('noticePeriod') && !formData.noticePeriod.trim()) {
            newErrors.noticePeriod = 'Notice period is required'
          }
          if (!formData.preferredShift.trim()) {
@@ -435,12 +544,7 @@ export default function ProfileCompletionModal({
       { value: 'unemployed-looking-for-work', label: 'Unemployed Looking for Work', icon: '🔍' },
       { value: 'freelancer', label: 'Freelancer', icon: '🆓' },
       { value: 'part-time', label: 'Part-time', icon: '⏰' },
-      { value: 'on-leave', label: 'On Leave', icon: '🏖️' },
-      { value: 'retired', label: 'Retired', icon: '🎯' },
       { value: 'student', label: 'Student', icon: '🎓' },
-      { value: 'career-break', label: 'Career Break', icon: '⏸️' },
-      { value: 'transitioning', label: 'Transitioning', icon: '🔄' },
-      { value: 'remote-worker', label: 'Remote Worker', icon: '🏠' },
     ]
 
      const MOOD_OPTIONS = [
@@ -654,14 +758,15 @@ export default function ProfileCompletionModal({
 
                              <div className="space-y-2">
                  <label className="text-sm font-medium text-white block">
-                   Current Employer <span className="text-red-400">*</span>
+                   Current Employer {!isFieldDisabled('currentEmployer') && <span className="text-red-400">*</span>}
                  </label>
                                    <Input
                     type="text"
-                    placeholder="e.g., ABC Company"
+                    placeholder={getFieldPlaceholder('currentEmployer')}
                     value={formData.currentEmployer}
                     onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
-                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                    disabled={isFieldDisabled('currentEmployer')}
+                    className={getFieldClassName('currentEmployer')}
                   />
                  {errors.currentEmployer && <p className="text-red-400 text-xs">{errors.currentEmployer}</p>}
                </div>
@@ -682,14 +787,15 @@ export default function ProfileCompletionModal({
 
                              <div className="space-y-2">
                  <label className="text-sm font-medium text-white block">
-                   Current Salary <span className="text-red-400">*</span>
+                   Current Salary {!isFieldDisabled('currentSalary') && <span className="text-red-400">*</span>}
                  </label>
                                    <Input
                     type="text"
-                    placeholder="e.g., ₱50,000"
+                    placeholder={getFieldPlaceholder('currentSalary')}
                     value={formData.currentSalary}
                     onChange={(e) => handleInputChange('currentSalary', e.target.value)}
-                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                    disabled={isFieldDisabled('currentSalary')}
+                    className={getFieldClassName('currentSalary')}
                   />
                  {errors.currentSalary && <p className="text-red-400 text-xs">{errors.currentSalary}</p>}
                </div>
@@ -724,14 +830,15 @@ export default function ProfileCompletionModal({
 
                              <div className="space-y-2">
                  <label className="text-sm font-medium text-white block">
-                   Notice Period (Days) <span className="text-red-400">*</span>
+                   Notice Period (Days) {!isFieldDisabled('noticePeriod') && <span className="text-red-400">*</span>}
                  </label>
                                    <Input
                     type="number"
-                    placeholder="e.g., 30"
+                    placeholder={getFieldPlaceholder('noticePeriod')}
                     value={formData.noticePeriod}
                     onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
-                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                    disabled={isFieldDisabled('noticePeriod')}
+                    className={getFieldClassName('noticePeriod')}
                   />
                  {errors.noticePeriod && <p className="text-red-400 text-xs">{errors.noticePeriod}</p>}
                </div>

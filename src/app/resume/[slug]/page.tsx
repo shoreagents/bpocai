@@ -427,10 +427,15 @@ export default function ResumeSlugPage() {
     console.log('Edit Resume clicked!', { resume: resume?.data });
 
     try {
-      // Prefer existing generated resume from database
+      // Use existing generated resume data from database instead of regenerating
       if (resume?.data?.content) {
+        // Set a flag to indicate we're editing an existing resume
+        localStorage.setItem('editingExistingResume', 'true');
         localStorage.setItem('resumeData', JSON.stringify(resume.data.content));
-        console.log('Resume data saved to localStorage');
+        console.log('Existing resume data loaded for editing');
+      } else {
+        console.error('No resume data found to edit');
+        return;
       }
       console.log('Redirecting to resume builder...');
       window.location.href = '/resume-builder/build';
@@ -786,7 +791,8 @@ export default function ResumeSlugPage() {
                        {resume.data.content?.bestJobTitle || resume.data.headerInfo?.title || resume.user.position || 'Professional'}
                      </p>
                     <div className="flex flex-wrap justify-center gap-3 sm:gap-4 text-sm text-gray-600">
-                      {(resume.data.headerInfo?.email || resume.data.content?.email) && (
+                      {/* Email and phone hidden for confidentiality */}
+                      {/* {(resume.data.headerInfo?.email || resume.data.content?.email) && (
                         <div className="flex items-center gap-1 hover:text-purple-600 transition-colors">
                           <Mail className="h-4 w-4" />
                           <span className="break-all">{resume.data.headerInfo?.email || resume.data.content?.email}</span>
@@ -797,7 +803,7 @@ export default function ResumeSlugPage() {
                           <Phone className="h-4 w-4" />
                           <span className="break-all">{resume.data.headerInfo?.phone || resume.data.content?.phone}</span>
                         </div>
-                      )}
+                      )} */}
                       {(resume.data.headerInfo?.location || resume.data.content?.location) && (
                         <div className="flex items-center gap-1 hover:text-green-600 transition-colors">
                           <MapPin className="h-4 w-4" />
