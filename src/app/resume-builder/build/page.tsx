@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -179,14 +180,28 @@ export default function ResumeBuilderPage() {
   const [savedResumeUrl, setSavedResumeUrl] = useState<string>('');
   const [hasSavedResume, setHasSavedResume] = useState(false);
   const [isDeletingSaved, setIsDeletingSaved] = useState(false);
+  const [showProfileTooltip, setShowProfileTooltip] = useState(true);
 
   useEffect(() => {
     // Get resume data from localStorage
     const resumeData = localStorage.getItem('resumeData');
+    const isEditingExisting = localStorage.getItem('editingExistingResume') === 'true';
+    
     if (resumeData) {
       const parsedData = JSON.parse(resumeData);
       setOriginalResumeData(parsedData);
-      generateImprovedResume(parsedData);
+      
+      if (isEditingExisting) {
+        // When editing existing resume, use the data directly without API call
+        console.log('Editing existing resume - using data directly');
+        setImprovedResume(parsedData);
+        setIsLoading(false);
+        // Clear the editing flag
+        localStorage.removeItem('editingExistingResume');
+      } else {
+        // Only call API for new resume generation
+        generateImprovedResume(parsedData);
+      }
     } else {
       // No resume data available locally, still attempt to fetch extracted fallback from server
       setError('No resume data found. Please upload a resume first.');
@@ -271,6 +286,15 @@ export default function ResumeBuilderPage() {
       } catch {}
     })();
   }, [user?.id]);
+
+  // Hide profile tooltip after 10 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowProfileTooltip(false);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (improvedResume) {
@@ -1917,19 +1941,29 @@ export default function ResumeBuilderPage() {
                           })
                         }}
                       >
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{getHeaderInfo().name}</h1>
-                        <p className="text-gray-600">
-                          <span>{getHeaderInfo().title}</span>
-                          {' '}
-                          •{' '}
-                          <span>{getHeaderInfo().location}</span>
-                        </p>
-                        <p className="text-gray-600">
+                        <Tooltip open={showProfileTooltip}>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <h1 className="text-3xl font-bold text-gray-900 mb-2">{getHeaderInfo().name}</h1>
+                              <p className="text-gray-600">
+                                <span>{getHeaderInfo().title}</span>
+                                {' '}
+                                •{' '}
+                                <span>{getHeaderInfo().location}</span>
+                              </p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Name, job title, and location can be changed via profile link</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {/* Email and phone hidden for confidentiality */}
+                        {/* <p className="text-gray-600">
                           <span>{getHeaderInfo().email}</span>
                           {' '}
                           •{' '}
                           <span>{getHeaderInfo().phone}</span>
-                        </p>
+                        </p> */}
                       </div>
 
                       {/* Sections */}

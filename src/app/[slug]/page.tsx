@@ -2054,7 +2054,9 @@ type="text"
  </div>
  </div>
 
+
                     {/* Ultimate Game Stats */}
+
                     <div className="relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-rose-500/10 rounded-2xl blur-xl"></div>
                       <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-purple-500/20 backdrop-blur-sm">
@@ -2065,6 +2067,7 @@ type="text"
                           <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
                             BPOC Ultimate
  </span>
+
                         </h3>
                         <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-400/30">
                           {userProfile.game_stats?.ultimate_stats ? (
