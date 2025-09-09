@@ -659,70 +659,7 @@ size="sm"
                           )}
  </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30 hover:border-cyan-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-cyan-300 mb-2 block">First Name</label>
-                            {isEditingPersonalInfo ? (
-                              <input
-                                type="text"
-                                value={editedPersonalInfo.first_name}
-                                onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, first_name: e.target.value }))}
-                                className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-cyan-400/50 rounded-lg px-3 py-2 outline-none focus:border-cyan-400 focus:bg-gray-700/70 transition-all duration-200"
-                                placeholder="Enter first name"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.first_name || "No first name data found"}
-                              </p>
-                            )}
- </div>
-                          <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-purple-300 mb-2 block">Last Name</label>
-                            {isEditingPersonalInfo ? (
-                              <input
-                                type="text"
-                                value={editedPersonalInfo.last_name}
-                                onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, last_name: e.target.value }))}
-                                className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-purple-400/50 rounded-lg px-3 py-2 outline-none focus:border-purple-400 focus:bg-gray-700/70 transition-all duration-200"
-                                placeholder="Enter last name"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.last_name || "No last name data found"}
-                              </p>
-                            )}
-</div>
-                          <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-green-300 mb-2 block">Location</label>
-                            {isEditingPersonalInfo ? (
-<input 
-type="text" 
-                                value={editedPersonalInfo.location}
-                                onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, location: e.target.value }))}
-                                className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-green-400/50 rounded-lg px-3 py-2 outline-none focus:border-green-400 focus:bg-gray-700/70 transition-all duration-200"
-                                placeholder="Enter location"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.location || "No location data found"}
-                              </p>
-                            )}
-</div>
-                          <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-blue-300 mb-2 block">Job Title</label>
-                            {isEditingPersonalInfo ? (
-<input 
-type="text" 
-                                value={editedPersonalInfo.position}
-                                onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, position: e.target.value }))}
-                                className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-blue-400/50 rounded-lg px-3 py-2 outline-none focus:border-blue-400 focus:bg-gray-700/70 transition-all duration-200"
-placeholder="Enter job title" 
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.position || "No job title data found"}
-                              </p>
-                            )}
-</div>
+                          {/* Gender - Always visible */}
                           <div className="group bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-pink-300 mb-2 block">Gender</label>
                             {isEditingPersonalInfo ? (
@@ -742,25 +679,27 @@ placeholder="Enter job title"
                                   <option value="other">Other</option>
                                 </select>
                                 {editedPersonalInfo.gender === 'other' && (
-<input 
-type="text" 
+                                  <input
+                                    type="text"
                                     value={editedPersonalInfo.gender_custom}
                                     onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, gender_custom: e.target.value }))}
                                     className="w-full bg-gray-700/50 text-white text-base font-medium border-2 border-pink-400/50 rounded-lg px-3 py-2 outline-none focus:border-pink-400 focus:bg-gray-700/70 transition-all duration-200"
                                     placeholder="Please specify your gender"
                                   />
                                 )}
-</div>
+                              </div>
                             ) : (
                               <p className="text-white text-lg font-semibold capitalize">
                                 {userProfile.gender_custom || userProfile.gender || "No gender data found"}
                               </p>
                             )}
-</div>
+                          </div>
+
+                          {/* Birthday - Always visible */}
                           <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-indigo-300 mb-2 block">Birthday</label>
                             {isEditingPersonalInfo ? (
-<input 
+                              <input
                                 type="date"
                                 value={editedPersonalInfo.birthday}
                                 onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, birthday: e.target.value }))}
@@ -775,7 +714,9 @@ type="text"
                                 }) : "No birthday data found"}
                               </p>
                             )}
-</div>
+                          </div>
+
+                          {/* Age - Always visible */}
                           <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-teal-300 mb-2 block">Age</label>
                             <p className="text-white text-lg font-semibold">
@@ -783,7 +724,9 @@ type="text"
                                 Math.floor((new Date().getTime() - new Date(userProfile.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) + " years old" 
                                 : "No age data found"}
                             </p>
-</div>
+                          </div>
+
+                          {/* Member Since - Always visible */}
                           <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-violet-300 mb-2 block">Member Since</label>
                             <p className="text-white text-lg font-semibold">
@@ -793,8 +736,78 @@ type="text"
                                 day: 'numeric'
                               })}
                             </p>
-</div>
-</div>
+                          </div>
+
+                          {/* Owner-only fields */}
+                          {isOwner && (
+                            <>
+                              <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30 hover:border-cyan-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-cyan-300 mb-2 block">First Name</label>
+                                {isEditingPersonalInfo ? (
+                                  <input
+                                    type="text"
+                                    value={editedPersonalInfo.first_name}
+                                    onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, first_name: e.target.value }))}
+                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-cyan-400/50 rounded-lg px-3 py-2 outline-none focus:border-cyan-400 focus:bg-gray-700/70 transition-all duration-200"
+                                    placeholder="Enter first name"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.first_name || "No first name data found"}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-purple-300 mb-2 block">Last Name</label>
+                                {isEditingPersonalInfo ? (
+                                  <input
+                                    type="text"
+                                    value={editedPersonalInfo.last_name}
+                                    onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, last_name: e.target.value }))}
+                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-purple-400/50 rounded-lg px-3 py-2 outline-none focus:border-purple-400 focus:bg-gray-700/70 transition-all duration-200"
+                                    placeholder="Enter last name"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.last_name || "No last name data found"}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-green-300 mb-2 block">Location</label>
+                                {isEditingPersonalInfo ? (
+                                  <input
+                                    type="text"
+                                    value={editedPersonalInfo.location}
+                                    onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, location: e.target.value }))}
+                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-green-400/50 rounded-lg px-3 py-2 outline-none focus:border-green-400 focus:bg-gray-700/70 transition-all duration-200"
+                                    placeholder="Enter location"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.location || "No location data found"}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-blue-300 mb-2 block">Job Title</label>
+                                {isEditingPersonalInfo ? (
+                                  <input
+                                    type="text"
+                                    value={editedPersonalInfo.position}
+                                    onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, position: e.target.value }))}
+                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-blue-400/50 rounded-lg px-3 py-2 outline-none focus:border-blue-400 focus:bg-gray-700/70 transition-all duration-200"
+                                    placeholder="Enter job title"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.position || "No job title data found"}
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
 </div>
 </div>
 
@@ -976,66 +989,15 @@ type="text"
                           )}
  </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-blue-300 mb-2 block">Current Employer</label>
-                            {isEditingWorkStatus ? (
-                              <input
-                                type="text"
-                                value={editedWorkStatus.current_employer}
-                                onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_employer: e.target.value }))}
-                                className="w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
-                                placeholder="Enter current employer"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.current_employer || "No employer data found"}
-                              </p>
-                            )}
- </div>
+                          {/* Job Title - Always visible */}
                           <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-purple-300 mb-2 block">Job Title</label>
                             <p className="text-white text-lg font-semibold">
                               {userProfile.position || "No job title data found"}
                             </p>
-</div>
-                          <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-blue-300 mb-2 block">Current Salary (in pesos)</label>
-                            {isEditingWorkStatus ? (
-                              <input
-                                type="text"
-                                value={editedWorkStatus.current_salary}
-                                onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_salary: e.target.value }))}
-                                className="w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
-                                placeholder="e.g., 25000 or P20000-P25000"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.current_salary ? (
-                                  typeof userProfile.current_salary === 'string' && (userProfile.current_salary.includes('-') || userProfile.current_salary.includes('P'))
-                                    ? userProfile.current_salary.replace(/P+/g, '₱').split('-').map((part: string) => 
-                                        part.replace(/(\d+)/g, (match: string) => parseInt(match).toLocaleString())
-                                      ).join('-')
-                                    : `₱${Number(userProfile.current_salary).toLocaleString()}`
-                                ) : "No current salary data found"}
-                              </p>
-                            )}
-</div>
-                          <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-indigo-300 mb-2 block">Notice Period (in days)</label>
-                            {isEditingWorkStatus ? (
-                              <input
-                                type="number"
-                                value={editedWorkStatus.notice_period_days}
-                                onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, notice_period_days: e.target.value }))}
-                                className="w-full bg-gray-700/50 border-2 border-indigo-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-indigo-400 focus:bg-gray-700/70 focus:outline-none"
-                                placeholder="Enter notice period in days"
-                              />
-                            ) : (
-                              <p className="text-white text-lg font-semibold">
-                                {userProfile.notice_period_days ? `${userProfile.notice_period_days} days` : "No notice period data found"}
-                              </p>
-                            )}
-</div>
+                          </div>
+
+                          {/* Mood at Current Employer - Always visible */}
                           <div className="group bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-pink-300 mb-2 block">Mood at Current Employer</label>
                             {isEditingWorkStatus ? (
@@ -1056,7 +1018,9 @@ type="text"
                                 {userProfile.current_mood || "No mood data found"}
                               </p>
                             )}
-</div>
+                          </div>
+
+                          {/* Work Status - Always visible */}
                           <div className="group bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-xl p-4 border border-emerald-400/30 hover:border-emerald-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-emerald-300 mb-2 block">Work Status</label>
                             {isEditingWorkStatus ? (
@@ -1079,7 +1043,9 @@ type="text"
                                 {userProfile.work_status ? userProfile.work_status.replace(/-/g, ' ') : "No work status data found"}
                               </p>
                             )}
-</div>
+                          </div>
+
+                          {/* Preferred Shift - Always visible */}
                           <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-teal-300 mb-2 block">Preferred Shift</label>
                             {isEditingWorkStatus ? (
@@ -1100,7 +1066,9 @@ type="text"
                                 {userProfile.preferred_shift ? userProfile.preferred_shift.replace(/-/g, ' ') : "No shift preference data found"}
                               </p>
                             )}
-</div>
+                          </div>
+
+                          {/* Expected Salary Range - Always visible */}
                           <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
                             <label className="text-sm font-medium text-violet-300 mb-2 block">Expected Salary Range (in pesos)</label>
                             {isEditingWorkStatus ? (
@@ -1133,8 +1101,8 @@ type="text"
                                     className="flex-1 bg-gray-700/50 border-2 border-violet-400/50 rounded-lg px-2 py-1.5 text-white text-sm font-semibold focus:border-violet-400 focus:bg-gray-700/70 focus:outline-none"
                                     placeholder="Max"
                                   />
-</div>
-</div>
+                                </div>
+                              </div>
                             ) : (
                               <p className="text-white text-lg font-semibold">
                                 {userProfile.expected_salary ? (
@@ -1146,9 +1114,11 @@ type="text"
                                 ) : "No expected salary data found"}
                               </p>
                             )}
-</div>
+                          </div>
+
+                          {/* Preferred Work Setup - Always visible */}
                           <div className="group bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-xl p-4 border border-amber-400/30 hover:border-amber-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-amber-300 mb-2 block">Work Setup</label>
+                            <label className="text-sm font-medium text-amber-300 mb-2 block">Preferred Work Setup</label>
                             {isEditingWorkStatus ? (
                               <select
                                 value={editedWorkStatus.work_setup}
@@ -1166,8 +1136,68 @@ type="text"
                                 {userProfile.work_setup ? userProfile.work_setup.replace(/-/g, ' ') : "No work setup data found"}
                               </p>
                             )}
-</div>
-</div>
+                          </div>
+
+                          {/* Owner-only fields */}
+                          {isOwner && (
+                            <>
+                              <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-blue-300 mb-2 block">Current Employer</label>
+                                {isEditingWorkStatus ? (
+                                  <input
+                                    type="text"
+                                    value={editedWorkStatus.current_employer}
+                                    onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_employer: e.target.value }))}
+                                    className="w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
+                                    placeholder="Enter current employer"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.current_employer || "No employer data found"}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-blue-300 mb-2 block">Current Salary (in pesos)</label>
+                                {isEditingWorkStatus ? (
+                                  <input
+                                    type="text"
+                                    value={editedWorkStatus.current_salary}
+                                    onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_salary: e.target.value }))}
+                                    className="w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
+                                    placeholder="e.g., 25000 or P20000-P25000"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.current_salary ? (
+                                      typeof userProfile.current_salary === 'string' && (userProfile.current_salary.includes('-') || userProfile.current_salary.includes('P'))
+                                        ? userProfile.current_salary.replace(/P+/g, '₱').split('-').map((part: string) => 
+                                            part.replace(/(\d+)/g, (match: string) => parseInt(match).toLocaleString())
+                                          ).join('-')
+                                        : `₱${Number(userProfile.current_salary).toLocaleString()}`
+                                    ) : "No current salary data found"}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
+                                <label className="text-sm font-medium text-indigo-300 mb-2 block">Notice Period (in days)</label>
+                                {isEditingWorkStatus ? (
+                                  <input
+                                    type="number"
+                                    value={editedWorkStatus.notice_period_days}
+                                    onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, notice_period_days: e.target.value }))}
+                                    className="w-full bg-gray-700/50 border-2 border-indigo-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-indigo-400 focus:bg-gray-700/70 focus:outline-none"
+                                    placeholder="Enter notice period in days"
+                                  />
+                                ) : (
+                                  <p className="text-white text-lg font-semibold">
+                                    {userProfile.notice_period_days ? `${userProfile.notice_period_days} days` : "No notice period data found"}
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
 </div>
 </div>
 </div>
