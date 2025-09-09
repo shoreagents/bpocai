@@ -1,6 +1,7 @@
 'use client';
 
 import { PacmanLoader } from 'react-spinners';
+import { useState, useEffect } from 'react';
 
 interface LoadingScreenProps {
   title?: string;
@@ -17,6 +18,28 @@ export default function LoadingScreen({
   showProgress = true,
   showStatusIndicators = true
 }: LoadingScreenProps) {
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (showProgress) {
+      const interval = setInterval(() => {
+        setAnimatedProgress(prev => {
+          if (prev >= progressValue) {
+            clearInterval(interval);
+            return progressValue;
+          }
+          return prev + 1;
+        });
+      }, 50);
+
+      return () => clearInterval(interval);
+    }
+  }, [progressValue, showProgress]);
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Futuristic Space Background */}
@@ -27,7 +50,7 @@ export default function LoadingScreen({
         
         {/* Starfield */}
         <div className="absolute inset-0">
-          {[...Array(50)].map((_, i) => (
+          {isClient && [...Array(50)].map((_, i) => (
             <div
               key={i}
               className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
@@ -43,18 +66,18 @@ export default function LoadingScreen({
         </div>
         
         {/* Floating Space Debris */}
-        <div className="absolute top-20 left-10 w-3 h-3 bg-cyan-400/40 rounded-full animate-bounce"></div>
-        <div className="absolute top-40 right-20 w-2 h-2 bg-purple-400/50 rounded-full animate-ping"></div>
-        <div className="absolute top-60 left-1/4 w-2.5 h-2.5 bg-blue-400/40 rounded-full animate-pulse"></div>
-        <div className="absolute top-80 right-1/3 w-1.5 h-1.5 bg-green-400/60 rounded-full animate-bounce"></div>
-        <div className="absolute top-32 left-2/3 w-2 h-2 bg-pink-400/50 rounded-full animate-ping"></div>
-        <div className="absolute top-72 right-1/6 w-1.5 h-1.5 bg-yellow-400/40 rounded-full animate-pulse"></div>
+        <div className="absolute top-20 left-10 w-3 h-3 bg-cyan-400/40 rounded-full animate-bounce" style={{ animationDuration: '3s' }}></div>
+        <div className="absolute top-40 right-20 w-2 h-2 bg-purple-400/50 rounded-full animate-ping" style={{ animationDuration: '4s' }}></div>
+        <div className="absolute top-60 left-1/4 w-2.5 h-2.5 bg-blue-400/40 rounded-full animate-pulse" style={{ animationDuration: '3.5s' }}></div>
+        <div className="absolute top-80 right-1/3 w-1.5 h-1.5 bg-green-400/60 rounded-full animate-bounce" style={{ animationDuration: '2.8s' }}></div>
+        <div className="absolute top-32 left-2/3 w-2 h-2 bg-pink-400/50 rounded-full animate-ping" style={{ animationDuration: '3.2s' }}></div>
+        <div className="absolute top-72 right-1/6 w-1.5 h-1.5 bg-yellow-400/40 rounded-full animate-pulse" style={{ animationDuration: '4.2s' }}></div>
         
         {/* Energy Orbs */}
-        <div className="absolute top-1/4 left-1/6 w-6 h-6 bg-gradient-to-r from-cyan-400/30 to-blue-400/30 rounded-full animate-spin opacity-40"></div>
-        <div className="absolute top-1/3 right-1/4 w-8 h-8 bg-gradient-to-r from-purple-400/25 to-pink-400/25 rounded-full animate-pulse opacity-30"></div>
-        <div className="absolute top-2/3 left-1/3 w-5 h-5 bg-gradient-to-r from-green-400/35 to-cyan-400/35 rounded-full animate-bounce opacity-50"></div>
-        <div className="absolute top-1/2 right-1/6 w-4 h-4 bg-gradient-to-r from-yellow-400/30 to-orange-400/30 rounded-full animate-spin opacity-40" style={{ animationDirection: 'reverse' }}></div>
+        <div className="absolute top-1/4 left-1/6 w-6 h-6 bg-gradient-to-r from-cyan-400/30 to-blue-400/30 rounded-full animate-spin opacity-40" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute top-1/3 right-1/4 w-8 h-8 bg-gradient-to-r from-purple-400/25 to-pink-400/25 rounded-full animate-pulse opacity-30" style={{ animationDuration: '5s' }}></div>
+        <div className="absolute top-2/3 left-1/3 w-5 h-5 bg-gradient-to-r from-green-400/35 to-cyan-400/35 rounded-full animate-bounce opacity-50" style={{ animationDuration: '4s' }}></div>
+        <div className="absolute top-1/2 right-1/6 w-4 h-4 bg-gradient-to-r from-yellow-400/30 to-orange-400/30 rounded-full animate-spin opacity-40" style={{ animationDirection: 'reverse', animationDuration: '6s' }}></div>
         
         {/* Cosmic Grid */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/8 to-transparent"></div>
@@ -63,15 +86,15 @@ export default function LoadingScreen({
         
         {/* Wormhole Effect */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="w-40 h-40 border border-cyan-400/15 rounded-full animate-spin"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-purple-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '4s' }}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-blue-400/15 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-pink-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
+          <div className="w-40 h-40 border border-cyan-400/15 rounded-full animate-spin" style={{ animationDuration: '12s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-purple-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '10s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-blue-400/15 rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-pink-400/15 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '6s' }}></div>
         </div>
         
         {/* Energy Waves */}
-        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent animate-pulse"></div>
-        <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-purple-500/10 via-transparent to-transparent animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent animate-pulse" style={{ animationDuration: '6s' }}></div>
+        <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-purple-500/10 via-transparent to-transparent animate-pulse" style={{ animationDelay: '1s', animationDuration: '5s' }}></div>
       </div>
       
       <div className="pt-16 relative z-10">
@@ -90,10 +113,10 @@ export default function LoadingScreen({
                 </div>
                 
                 {/* Floating energy particles */}
-                <div className="absolute -top-4 -left-4 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
-                <div className="absolute -top-4 -right-4 w-3 h-3 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                <div className="absolute -bottom-4 -left-4 w-3 h-3 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute -bottom-4 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+                <div className="absolute -top-4 -left-4 w-3 h-3 bg-yellow-400 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
+                <div className="absolute -top-4 -right-4 w-3 h-3 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s', animationDuration: '3.5s' }}></div>
+                <div className="absolute -bottom-4 -left-4 w-3 h-3 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
+                <div className="absolute -bottom-4 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-ping" style={{ animationDelay: '1.5s', animationDuration: '3.2s' }}></div>
               </div>
               
               {/* Enhanced Text with Glow Effect */}
@@ -108,22 +131,22 @@ export default function LoadingScreen({
                   <div className="relative">
                     <div className="h-3 bg-white/10 border border-cyan-400/20 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full transition-all duration-300"
-                        style={{ width: `${progressValue}%` }}
+                        className="h-full bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${animatedProgress}%` }}
                       ></div>
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 to-purple-400/20 rounded-full"></div>
                   </div>
-                  <p className="text-sm text-cyan-400 mt-3 font-medium">{Math.round(progressValue)}% Complete</p>
+                  <p className="text-sm text-cyan-400 mt-3 font-medium">{Math.round(animatedProgress)}% Complete</p>
                   
                   {/* Real-time Status Message */}
                   <div className="mt-2">
                     <p className="text-xs text-gray-400">
-                      {progressValue < 15 ? 'Initializing analysis...' :
-                       progressValue < 45 ? 'Processing resume files...' :
-                       progressValue < 75 ? 'AI analyzing content...' :
-                       progressValue < 95 ? 'Generating insights...' :
-                       'Finalizing your report...'}
+                      {animatedProgress < 15 ? 'Connecting to database...' :
+                       animatedProgress < 45 ? 'Loading user data...' :
+                       animatedProgress < 75 ? 'Fetching profile information...' :
+                       animatedProgress < 95 ? 'Loading game results...' :
+                       'Preparing your profile...'}
                     </p>
                   </div>
                 </div>
@@ -133,16 +156,16 @@ export default function LoadingScreen({
               {showStatusIndicators && (
                 <div className="flex justify-center gap-4 mt-6">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${progressValue >= 15 ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                    <span className={`text-xs ${progressValue >= 15 ? 'text-green-400' : 'text-gray-400'}`}>Processing Files</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${animatedProgress >= 15 ? 'bg-green-400' : 'bg-gray-400'}`} style={{ animationDuration: '2s' }}></div>
+                    <span className={`text-xs ${animatedProgress >= 15 ? 'text-green-400' : 'text-gray-400'}`}>User Data</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${progressValue >= 45 ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                    <span className={`text-xs ${progressValue >= 45 ? 'text-green-400' : 'text-gray-400'}`}>AI Analysis</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${animatedProgress >= 45 ? 'bg-green-400' : 'bg-gray-400'}`} style={{ animationDuration: '2s' }}></div>
+                    <span className={`text-xs ${animatedProgress >= 45 ? 'text-green-400' : 'text-gray-400'}`}>Profile Info</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${progressValue >= 75 ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                    <span className={`text-xs ${progressValue >= 75 ? 'text-green-400' : 'text-gray-400'}`}>Generating Report</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${animatedProgress >= 75 ? 'bg-green-400' : 'bg-gray-400'}`} style={{ animationDuration: '2s' }}></div>
+                    <span className={`text-xs ${animatedProgress >= 75 ? 'text-green-400' : 'text-gray-400'}`}>Game Results</span>
                   </div>
                 </div>
               )}
