@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, first_name, last_name, location, position, gender, gender_custom, birthday } = body;
+    const { userId, first_name, last_name, full_name, location, position, gender, gender_custom, birthday, slug } = body;
 
     // Verify user authentication
     const authHeader = request.headers.get('authorization');
@@ -31,24 +31,28 @@ export async function PUT(request: NextRequest) {
       SET 
         first_name = COALESCE($1, first_name),
         last_name = COALESCE($2, last_name),
-        location = COALESCE($3, location),
-        position = COALESCE($4, position),
-        gender = COALESCE($5, gender),
-        gender_custom = COALESCE($6, gender_custom),
-        birthday = COALESCE($7, birthday),
+        full_name = COALESCE($3, full_name),
+        location = COALESCE($4, location),
+        position = COALESCE($5, position),
+        gender = COALESCE($6, gender),
+        gender_custom = COALESCE($7, gender_custom),
+        birthday = COALESCE($8, birthday),
+        slug = COALESCE($9, slug),
         updated_at = NOW()
-      WHERE id = $8
+      WHERE id = $10
       RETURNING *
     `;
 
     const values = [
       first_name || null,
       last_name || null,
+      full_name || null,
       location || null,
       position || null,
       gender || null,
       gender_custom || null,
       birthday || null,
+      slug || null,
       userId
     ];
 

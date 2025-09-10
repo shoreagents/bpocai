@@ -276,8 +276,8 @@ export default function AnalysisPage() {
           if (res.ok) {
             const data = await res.json();
             const hasNewUpload = (uploadedFiles && uploadedFiles.length > 0) || (processedFiles && processedFiles.length > 0);
-            // Prefer existing DB analysis unless force is explicitly requested
-            if (data.found && data.analysis && !force) {
+            // Always prefer existing DB analysis if it exists
+            if (data.found && data.analysis) {
               console.log('✅ Loaded existing analysis from DB');
               setAnalysisResults(data.analysis);
               setIsAnalyzing(false);
@@ -569,7 +569,15 @@ export default function AnalysisPage() {
 
     } catch (error) {
       console.error('AI Analysis error:', error);
-      setAnalysisError(error instanceof Error ? error.message : 'Analysis failed');
+      
+      // Check for Claude API overload error (529)
+      const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+      if (errorMessage.includes('529') && errorMessage.includes('overloaded_error')) {
+        setAnalysisError('AI is currently down. Please try again in a few minutes.');
+      } else {
+        setAnalysisError(errorMessage);
+      }
+      
       setIsAnalyzing(false);
       setAnalysisComplete(true);
     }

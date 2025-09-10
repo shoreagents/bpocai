@@ -46,6 +46,7 @@ import { Separator } from '@/components/ui/separator';
   import LoadingScreen from '@/components/ui/loading-screen';
   import Header from '@/components/layout/Header';
 import { supabase } from '@/lib/supabase';
+import { slugify } from '@/lib/utils';
 
 interface UserProfile {
   id: string;
@@ -142,6 +143,7 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
  return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
 }
 
+
   // Function to start editing personal information
   const startEditingPersonalInfo = () => {
     if (userProfile) {
@@ -182,9 +184,12 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         console.error('No session found');
-        return;
-      }
+ return;
+}
 
+      // Calculate full name from first and last name
+      const fullName = `${editedPersonalInfo.first_name || ''} ${editedPersonalInfo.last_name || ''}`.trim();
+      
       const response = await fetch('/api/user/update-profile', {
         method: 'PUT',
         headers: {
@@ -193,7 +198,8 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
         },
         body: JSON.stringify({
           userId: userProfile.id,
-          ...editedPersonalInfo
+          ...editedPersonalInfo,
+          full_name: fullName
         }),
       });
 
@@ -201,15 +207,71 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
         // Update the local state
         setUserProfile(prev => prev ? {
           ...prev,
-          ...editedPersonalInfo
+          ...editedPersonalInfo,
+          full_name: fullName
         } : null);
-        setIsEditingPersonalInfo(false);
+        
+        // Update user slug and resume slug if first_name or last_name changed
+        if (editedPersonalInfo.first_name || editedPersonalInfo.last_name) {
+          const newUserSlug = slugify(fullName);
+          const newResumeSlug = `${newUserSlug}-resume`;
+          
+          try {
+            // Update user slug in users table
+            const userSlugResponse = await fetch('/api/user/update-profile', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                userId: userProfile.id,
+                slug: newUserSlug
+              }),
+            });
+
+            if (userSlugResponse.ok) {
+              console.log('✅ User slug updated successfully');
+              
+              // Update resume slug and title in saved_resumes table
+              const resumeSlugResponse = await fetch('/api/user/update-resume-slug', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                  userId: userProfile.id,
+                  newSlug: newResumeSlug,
+                  newTitle: `${fullName}'s Resume`
+                }),
+              });
+
+              if (resumeSlugResponse.ok) {
+                console.log('✅ Resume slug and title updated successfully');
+                
+                // Redirect to new profile URL
+                setTimeout(() => {
+                  router.replace(`/${newUserSlug}`);
+                }, 1000);
 } else {
+                console.error('Failed to update resume slug');
+}
+} else {
+              console.error('Failed to update user slug');
+            }
+          } catch (slugError) {
+            console.error('Error updating slugs:', slugError);
+          }
+        }
+        
+        setIsEditingPersonalInfo(false);
+      } else {
         console.error('Failed to save changes');
       }
-    } catch (error) {
+} catch (error) {
       console.error('Error saving changes:', error);
-    } finally {
+} finally {
       setIsSaving(false);
     }
   };
@@ -273,7 +335,7 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         console.error('No session found');
-        return;
+return;
       }
 
       const response = await fetch('/api/user/update-work-status', {
@@ -305,9 +367,9 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
 } else {
         console.error('Failed to save work status changes');
       }
-    } catch (error) {
+} catch (error) {
       console.error('Error saving work status changes:', error);
-    } finally {
+} finally {
       setIsSaving(false);
     }
   };
@@ -337,14 +399,14 @@ useEffect(() => {
  try {
  setLoading(true);
         const res = await fetch(`/api/public/user-by-slug?slug=${encodeURIComponent(slug)}`, { 
-          cache: 'no-store' 
-        });
+ cache: 'no-store'
+});
         
         if (!res.ok) {
           setError('Profile not found');
           setLoading(false);
-          return;
-        }
+ return;
+}
         
  const data = await res.json();
         const user = data.user || {};
@@ -371,20 +433,24 @@ useEffect(() => {
         if (isPublicView) {
           setIsOwner(false);
         } else {
-          try {
-            const { data: authData } = await supabase.auth.getUser();
-            const currentUserId = authData?.user?.id;
+ try {
+ const { data: authData } = await supabase.auth.getUser();
+ const currentUserId = authData?.user?.id;
             setIsOwner(!!currentUserId && String(currentUserId) === String(user.id || ''));
-          } catch {
-            setIsOwner(false);
-          }
+} catch {
+ setIsOwner(false);
+}
         }
         
  setError(null);
+        
 } catch (e) {
  setError('Failed to load profile');
 } finally {
+ // Add a small delay to ensure progress animation completes
+ setTimeout(() => {
  setLoading(false);
+ }, 500);
 }
 };
 
@@ -393,11 +459,11 @@ if (slug) {
 }
 }, [slug]);
 
-  if (loading) {
+if (loading) {
     return <LoadingScreen 
       title="Loading Profile"
       subtitle="Fetching your profile information..."
-      progressValue={75}
+      progressValue={100}
       showProgress={true}
       showStatusIndicators={true}
     />;
@@ -455,18 +521,29 @@ return (
                 <div className="flex flex-col gap-3 relative z-50">
                   {/* View Resume Button - Only show for non-owners */}
                   {!isOwner && (
-                    <Button 
+<Button 
                       onClick={() => {
-                        // Remove the ID suffix (e.g., -ccf9) from the slug
-                        const namePart = slug.split('-').slice(0, -1).join('-');
-                        router.push(`/resume/${namePart}-resume`);
+                        // Check resume_score before navigating
+                        if (userProfile?.resume_score && userProfile.resume_score > 0) {
+                          // Remove the ID suffix (e.g., -ccf9) from the slug
+                          const namePart = slug.split('-').slice(0, -1).join('-');
+                          router.push(`/resume/${namePart}-resume`);
+                        } else {
+                          // Show a toast or alert that resume is not available
+                          console.log('Resume not available for this user');
+                        }
                       }}
-                      className="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 hover:from-cyan-500/30 hover:to-purple-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:scale-105 relative z-50 cursor-pointer"
-                      style={{ pointerEvents: 'auto' }}
+                      className={`${
+                        userProfile?.resume_score && userProfile.resume_score > 0
+                          ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 hover:from-cyan-500/40 hover:to-purple-500/40 hover:border-cyan-400/70 hover:text-cyan-200 hover:scale-105 cursor-pointer" 
+                          : "bg-gradient-to-r from-gray-500/20 to-gray-600/20 border border-gray-400/30 text-gray-400 cursor-not-allowed"
+                      } transition-all duration-300 relative z-50`}
+                      style={{ pointerEvents: (userProfile?.resume_score && userProfile.resume_score > 0) ? 'auto' : 'none' }}
+                      disabled={!(userProfile?.resume_score && userProfile.resume_score > 0)}
                     >
                       <FileText className="w-4 h-4 mr-2" />
-                      View Resume
-                    </Button>
+                      {(userProfile?.resume_score && userProfile.resume_score > 0) ? "View Resume" : "Resume Not Available"}
+</Button>
                   )}
 
                   {/* Share Button - Only show for owners */}
@@ -487,61 +564,63 @@ return (
                           alert('Failed to copy link. Please copy manually: ' + publicProfileUrl);
                         });
                       }}
-                      className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-400/30 text-emerald-300 hover:from-emerald-500/30 hover:to-teal-500/30 hover:border-emerald-400/50 transition-all duration-300 hover:scale-105 relative z-50 cursor-pointer"
+                      className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-400/30 text-emerald-300 hover:from-emerald-500/40 hover:to-teal-500/40 hover:border-emerald-400/70 hover:text-emerald-200 transition-all duration-300 hover:scale-105 relative z-50 cursor-pointer"
                       style={{ pointerEvents: 'auto' }}
                     >
                       <Share className="w-4 h-4 mr-2" />
                       Share Profile
                     </Button>
                   )}
-                </div>
+</div>
 
                 {/* Heart and Eye Icons */}
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col items-center gap-1">
-                    <button className="p-3 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 hover:scale-110">
+                    <div className="p-3 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 hover:scale-110 cursor-default">
                       <Heart className="w-5 h-5 text-red-400" />
-                    </button>
+</div>
                     <span className="text-xs text-red-400 font-medium">127</span>
-                  </div>
+ </div>
                   <div className="flex flex-col items-center gap-1">
-                    <button className="p-3 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:scale-110">
+                    <div className="p-3 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:scale-110 cursor-default">
                       <Eye className="w-5 h-5 text-blue-400" />
-                    </button>
+ </div>
                     <span className="text-xs text-blue-400 font-medium">2.4k</span>
-                  </div>
-                </div>
-              </div>
+</div>
+</div>
+</div>
 
               <div className="relative z-10 p-8">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
                   {/* Avatar Section */}
  <div className="relative">
                     {/* Glowing Ring */}
-                    <div className={`absolute -inset-2 rounded-full opacity-75 blur-sm ${
-                      overallScore > 0 
-                        ? rank.rank === 'GOLD' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' :
-                          rank.rank === 'SILVER' ? 'bg-gradient-to-r from-slate-300 to-slate-500' :
-                          rank.rank === 'BRONZE' ? 'bg-gradient-to-r from-orange-400 to-orange-600' :
-                          'bg-gradient-to-r from-gray-500 to-gray-700'
-                        : 'bg-gradient-to-r from-cyan-400 to-purple-600'
-                    }`}></div>
+                    {overallScore > 0 && (
+                      <div className={`absolute -inset-2 rounded-full opacity-75 blur-sm ${
+                        rank.rank === 'GOLD' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' :
+                        rank.rank === 'SILVER' ? 'bg-gradient-to-r from-slate-300 to-slate-500' :
+                        rank.rank === 'BRONZE' ? 'bg-gradient-to-r from-orange-400 to-orange-600' :
+                        'bg-gradient-to-r from-gray-500 to-gray-700'
+                      }`}></div>
+                    )}
                     
                     {/* Avatar */}
-                    <div className={`relative w-36 h-36 rounded-full flex items-center justify-center text-4xl font-bold shadow-2xl border-4 ${
+                    <div className={`relative w-36 h-36 rounded-full flex items-center justify-center text-4xl font-bold shadow-2xl ${
+                      overallScore > 0 ? 'border-4' : 'border-0'
+                    } ${
                       overallScore > 0 ? 
                         rank.rank === 'GOLD' ? 'border-yellow-500/50' :
                         rank.rank === 'SILVER' ? 'border-slate-400/60' :
                         rank.rank === 'BRONZE' ? 'border-orange-500/50' :
                         'border-gray-500/50'
-                      : 'border-cyan-500/50'
+                      : ''
                     } ${
                       overallScore > 0 
                         ? rank.rank === 'GOLD' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
                           rank.rank === 'SILVER' ? 'bg-gradient-to-br from-slate-400 to-slate-600' :
                           rank.rank === 'BRONZE' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
                           'bg-gradient-to-br from-gray-600 to-gray-700'
-                        : 'bg-gradient-to-br from-cyan-500 to-purple-600'
+                        : 'bg-gradient-to-br from-gray-700 to-gray-800'
                     }`}>
                       {userProfile.avatar_url ? (
                         <img 
@@ -550,10 +629,12 @@ return (
                           className="w-full h-full rounded-full object-cover"
  />
  ) : (
-                        userProfile.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl">
+                          {userProfile.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
+                        </div>
  )}
-</div>
-</div>
+ </div>
+ </div>
 
                   {/* Profile Info */}
                   <div className="flex-1 space-y-4">
@@ -567,12 +648,12 @@ return (
                           <CheckCircle className="w-5 h-5 text-blue-400" />
                           <span className="text-sm font-bold text-blue-400">Verified</span>
 </div>
-</div>
-
+ </div>
+ 
                       <p className="text-2xl text-cyan-300 font-medium">
                         {userProfile.position || "No position data found"}
                       </p>
-</div>
+ </div>
 
                     {/* Location and Rank */}
                     <div className="flex items-center gap-6 flex-wrap">
@@ -583,14 +664,21 @@ return (
                         <span>{userProfile.location || "No location data found"}</span>
 </div>
 
-                      {overallScore > 0 && (
+                      {overallScore > 0 ? (
                         <div className={`px-4 py-2 rounded-full border-2 ${rank.bgColor} ${rank.borderColor} backdrop-blur-sm`}>
                           <div className={`text-sm font-bold ${rank.color} flex items-center gap-2`}>
                             <Star className="w-4 h-4" />
                             {rank.rank} RANK
-</div>
- </div>
- )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-4 py-2 rounded-full border-2 bg-gray-600/20 border-gray-500/30 backdrop-blur-sm">
+                          <div className="text-sm font-bold text-gray-400 flex items-center gap-2">
+                            <Star className="w-4 h-4" />
+                            NO RANK
+                          </div>
+                        </div>
+                      )}
  </div>
 
 
@@ -671,7 +759,7 @@ transition={{ duration: 0.3 }}
                                   onClick={startEditingPersonalInfo}
 variant="outline" 
 size="sm"
-                                  className="bg-cyan-500/10 border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400/50"
+                                  className="bg-cyan-500/10 border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30 hover:border-cyan-400/70 hover:text-cyan-200"
                                 >
                                   <Edit3 className="w-4 h-4 mr-2" />
                                   Edit
@@ -682,7 +770,7 @@ size="sm"
                                     onClick={savePersonalInfo}
                                     disabled={isSaving}
                                     size="sm"
-                                    className="bg-green-500/10 border-green-400/30 text-green-300 hover:bg-green-500/20 hover:border-green-400/50"
+                                    className="bg-green-500/10 border-green-400/30 text-green-300 hover:bg-green-500/30 hover:border-green-400/70 hover:text-green-200"
                                   >
                                     <Save className="w-4 h-4 mr-2" />
                                     {isSaving ? 'Saving...' : 'Save'}
@@ -691,7 +779,7 @@ size="sm"
                                     onClick={cancelEditingPersonalInfo}
                                     variant="outline"
 size="sm"
-                                    className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/20 hover:border-red-400/50"
+                                    className="bg-red-500/10 border-red-400/30 text-red-300 hover:bg-red-500/30 hover:border-red-400/70 hover:text-red-200"
                                   >
                                     <X className="w-4 h-4 mr-2" />
                                     Cancel
@@ -889,9 +977,18 @@ type="text"
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                               <BarChart3 className="w-8 h-8 text-gray-500" />
 </div>
-                            <p className="text-gray-400 text-lg">No resume analysis data found</p>
+                            <p className="text-gray-400 text-lg mb-4">No resume analysis data found</p>
+                            {isOwner && (
+                              <Button
+                                onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+                              </Button>
+                            )}
 </div>
-)}
+                        )}
 </div>
 </div>
 
@@ -905,39 +1002,62 @@ type="text"
 </div>
                           <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
                             Games Completed
-                          </span>
+</span>
 </h3>
                         {userProfile.completed_games !== undefined ? (
-                          <div className="flex items-center gap-6">
- <div className="relative">
-                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-lg opacity-50"></div>
-                              <div className="relative text-6xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                                {userProfile.completed_games}/{userProfile.total_games}
- </div>
- </div>
-                            <div className="flex-1">
-                              <p className="text-white font-semibold text-xl mb-2">Career Games Completed</p>
-                              <p className="text-gray-300 text-base mb-4">
-                                {userProfile.completed_games === userProfile.total_games 
-                                  ? "All games completed! 🎉" 
-                                  : `${(userProfile.total_games || 4) - (userProfile.completed_games || 0)} games remaining`}
-                              </p>
-                              <div className="w-full bg-gray-700 rounded-full h-3">
-                                <div 
-                                  className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-1000 ease-out"
-                                  style={{ width: `${((userProfile.completed_games || 0) / (userProfile.total_games || 4)) * 100}%` }}
-                                ></div>
- </div>
- </div>
+                          <div>
+                            <div className="flex items-center gap-6">
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-lg opacity-50"></div>
+                                <div className="relative text-6xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                                  {userProfile.completed_games}/{userProfile.total_games}
 </div>
+</div>
+                              <div className="flex-1">
+                                <p className="text-white font-semibold text-xl mb-2">Career Games Completed</p>
+                                <p className="text-gray-300 text-base mb-4">
+                                  {userProfile.completed_games === userProfile.total_games 
+                                    ? "All games completed! 🎉" 
+                                    : `${(userProfile.total_games || 4) - (userProfile.completed_games || 0)} games remaining`}
+                                </p>
+                                <div className="w-full bg-gray-700 rounded-full h-3">
+                                  <div 
+                                    className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-1000 ease-out"
+                                    style={{ width: `${((userProfile.completed_games || 0) / (userProfile.total_games || 4)) * 100}%` }}
+                                  ></div>
+</div>
+</div>
+                            </div>
+                            {/* Add CTA button when 0 games completed */}
+                            {userProfile.completed_games === 0 && isOwner && (
+                              <div className="mt-6 text-center">
+                                <Button
+                                  onClick={() => router.push('/career-tools/games')}
+                                  className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 text-yellow-300 hover:from-yellow-500/40 hover:to-orange-500/40 hover:border-yellow-400/70 hover:text-yellow-200 transition-all duration-300 hover:scale-105"
+                                >
+                                  <Gamepad2 className="w-4 h-4 mr-2" />
+                                  Start Playing Career Games
+                                </Button>
+ </div>
+ )}
+ </div>
                         ) : (
                           <div className="text-center py-8">
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                               <Gamepad2 className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No game data found</p>
-</div>
-)}
+ </div>
+                            <p className="text-gray-400 text-lg mb-4">No game data found</p>
+                            {isOwner && (
+                              <Button
+                                onClick={() => router.push('/career-tools/games')}
+                                className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 text-yellow-300 hover:from-yellow-500/30 hover:to-orange-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:scale-105"
+                              >
+                                <Gamepad2 className="w-4 h-4 mr-2" />
+                                Play Career Games
+                              </Button>
+ )}
+ </div>
+                        )}
 </div>
 </div>
 
@@ -948,7 +1068,7 @@ type="text"
                         <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
                             <Star className="w-6 h-6 text-white" />
- </div>
+</div>
                           <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
                             Key Strengths
 </span>
@@ -969,13 +1089,22 @@ type="text"
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                               <Star className="w-8 h-8 text-gray-500" />
 </div>
-                            <p className="text-gray-400 text-lg">No key strengths data found</p>
+                            <p className="text-gray-400 text-lg mb-4">No key strengths data found</p>
+                            {isOwner && (
+                              <Button
+                                onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+                              </Button>
+                            )}
 </div>
-)}
-</div>
-</div>
+                        )}
+ </div>
+ </div>
 
-</div>
+ </div>
  )}
 
                 {activeSection === 'work-status' && (
@@ -1018,7 +1147,7 @@ type="text"
  </Button>
  <Button
                                     onClick={cancelEditingWorkStatus}
-                                    variant="outline"
+ variant="outline"
                                     size="sm"
                                     className="bg-red-500/10 border-red-400/30 text-red-400 hover:bg-red-500/20 hover:border-red-400/50"
                                   >
@@ -1060,7 +1189,7 @@ type="text"
                                 {userProfile.current_mood || "No mood data found"}
                               </p>
                             )}
-</div>
+ </div>
 
                           {/* Work Status - Always visible */}
                           <div className="group bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-xl p-4 border border-emerald-400/30 hover:border-emerald-400/60 transition-all duration-300 hover:scale-105">
@@ -1085,7 +1214,7 @@ type="text"
                                 {userProfile.work_status ? userProfile.work_status.replace(/-/g, ' ') : "No work status data found"}
                               </p>
                             )}
-</div>
+ </div>
 
                           {/* Preferred Shift - Always visible */}
                           <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
@@ -1108,7 +1237,7 @@ type="text"
                                 {userProfile.preferred_shift ? userProfile.preferred_shift.replace(/-/g, ' ') : "No shift preference data found"}
                               </p>
                             )}
-</div>
+ </div>
 
                           {/* Expected Salary Range - Always visible */}
                           <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
@@ -1143,8 +1272,8 @@ type="text"
                                     className="flex-1 bg-gray-700/50 border-2 border-violet-400/50 rounded-lg px-2 py-1.5 text-white text-sm font-semibold focus:border-violet-400 focus:bg-gray-700/70 focus:outline-none"
                                     placeholder="Max"
                                   />
-</div>
-</div>
+ </div>
+ </div>
                             ) : (
                               <p className="text-white text-lg font-semibold">
                                 {userProfile.expected_salary ? (
@@ -1156,7 +1285,7 @@ type="text"
                                 ) : "No expected salary data found"}
                               </p>
                             )}
-</div>
+ </div>
 
                           {/* Preferred Work Setup - Always visible */}
                           <div className="group bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-xl p-4 border border-amber-400/30 hover:border-amber-400/60 transition-all duration-300 hover:scale-105">
@@ -1259,72 +1388,90 @@ type="text"
                             Detailed Analysis Scores
                           </span>
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-blue-300 mb-2 block">ATS Compatibility</label>
-                            <div className="flex items-center gap-3">
-                              <div className="text-3xl font-bold text-blue-400">
-                                {userProfile.ats_compatibility_score || "—"}
+                        {userProfile.ats_compatibility_score || userProfile.content_quality_score || userProfile.professional_presentation_score || userProfile.skills_alignment_score ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                              <label className="text-sm font-medium text-blue-300 mb-2 block">ATS Compatibility</label>
+                              <div className="flex items-center gap-3">
+                                <div className="text-3xl font-bold text-blue-400">
+                                  {userProfile.ats_compatibility_score || "—"}
 </div>
- <div className="flex-1">
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-blue-400 to-cyan-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                                    style={{ width: `${userProfile.ats_compatibility_score || 0}%` }}
-                                  ></div>
-</div>
-</div>
-</div>
-</div>
-                          <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-green-300 mb-2 block">Content Quality</label>
-                            <div className="flex items-center gap-3">
-                              <div className="text-3xl font-bold text-green-400">
-                                {userProfile.content_quality_score || "—"}
-</div>
-                              <div className="flex-1">
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                                    style={{ width: `${userProfile.content_quality_score || 0}%` }}
-                                  ></div>
+                                <div className="flex-1">
+                                  <div className="w-full bg-gray-700 rounded-full h-2">
+                                    <div 
+                                      className="bg-gradient-to-r from-blue-400 to-cyan-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                                      style={{ width: `${userProfile.ats_compatibility_score || 0}%` }}
+                                    ></div>
 </div>
 </div>
 </div>
 </div>
-                          <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-purple-300 mb-2 block">Professional Presentation</label>
-                            <div className="flex items-center gap-3">
-                              <div className="text-3xl font-bold text-purple-400">
-                                {userProfile.professional_presentation_score || "—"}
+                            <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                              <label className="text-sm font-medium text-green-300 mb-2 block">Content Quality</label>
+                              <div className="flex items-center gap-3">
+                                <div className="text-3xl font-bold text-green-400">
+                                  {userProfile.content_quality_score || "—"}
 </div>
-                              <div className="flex-1">
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-purple-400 to-pink-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                                    style={{ width: `${userProfile.professional_presentation_score || 0}%` }}
-                                  ></div>
-</div>
-</div>
+                                <div className="flex-1">
+                                  <div className="w-full bg-gray-700 rounded-full h-2">
+                                    <div 
+                                      className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                                      style={{ width: `${userProfile.content_quality_score || 0}%` }}
+                                    ></div>
 </div>
 </div>
-                          <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                            <label className="text-sm font-medium text-blue-300 mb-2 block">Skills Alignment</label>
-                            <div className="flex items-center gap-3">
-                              <div className="text-3xl font-bold text-yellow-400">
-                                {userProfile.skills_alignment_score || "—"}
 </div>
-                              <div className="flex-1">
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-1000 ease-out"
-                                    style={{ width: `${userProfile.skills_alignment_score || 0}%` }}
-                                  ></div>
 </div>
- </div>
- </div>
- </div>
- </div>
+                            <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
+                              <label className="text-sm font-medium text-purple-300 mb-2 block">Professional Presentation</label>
+                              <div className="flex items-center gap-3">
+                                <div className="text-3xl font-bold text-purple-400">
+                                  {userProfile.professional_presentation_score || "—"}
+</div>
+                                <div className="flex-1">
+                                  <div className="w-full bg-gray-700 rounded-full h-2">
+                                    <div 
+                                      className="bg-gradient-to-r from-purple-400 to-pink-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                                      style={{ width: `${userProfile.professional_presentation_score || 0}%` }}
+                                    ></div>
+</div>
+</div>
+</div>
+</div>
+                            <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                              <label className="text-sm font-medium text-blue-300 mb-2 block">Skills Alignment</label>
+                              <div className="flex items-center gap-3">
+                                <div className="text-3xl font-bold text-yellow-400">
+                                  {userProfile.skills_alignment_score || "—"}
+</div>
+                                <div className="flex-1">
+                                  <div className="w-full bg-gray-700 rounded-full h-2">
+                                    <div 
+                                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                                      style={{ width: `${userProfile.skills_alignment_score || 0}%` }}
+                                    ></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Target className="w-8 h-8 text-gray-500" />
+</div>
+                            <p className="text-gray-400 text-lg mb-4">No analysis scores found</p>
+                            {isOwner && (
+                              <Button
+                                onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+                              </Button>
+                            )}
+</div>
+                        )}
  </div>
  </div>
 
@@ -1335,7 +1482,7 @@ type="text"
                         <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
                             <FileText className="w-6 h-6 text-white" />
-</div>
+ </div>
                           <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
                             AI-Improved Professional Summary
                           </span>
@@ -1343,15 +1490,24 @@ type="text"
                         {userProfile.improved_summary ? (
                           <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-400/30">
                             <p className="text-gray-200 leading-relaxed text-lg">{userProfile.improved_summary}</p>
-</div>
+ </div>
                         ) : (
                           <div className="text-center py-8">
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                               <FileText className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No improved summary data found</p>
-</div>
-)}
+                            </div>
+                            <p className="text-gray-400 text-lg mb-4">No improved summary data found</p>
+                            {isOwner && (
+ <Button 
+ onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+ >
+ <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+ </Button>
+                            )}
+ </div>
+                        )}
 </div>
 </div>
 
@@ -1426,8 +1582,8 @@ type="text"
 </div>
                                       ) : (
                                         <p>{String(value || '')}</p>
-                                      )}
-</div>
+ )}
+ </div>
 </div>
 ))}
 </div>
@@ -1439,8 +1595,17 @@ type="text"
                           <div className="text-center py-8">
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                               <Star className="w-8 h-8 text-gray-500" />
-</div>
-                            <p className="text-gray-400 text-lg">No strengths analysis data found</p>
+                            </div>
+                            <p className="text-gray-400 text-lg mb-4">No strengths analysis data found</p>
+                            {isOwner && (
+ <Button 
+ onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+ >
+ <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+ </Button>
+                            )}
 </div>
                         )}
 </div>
@@ -1469,15 +1634,22 @@ type="text"
                                     <span className="text-white font-semibold text-lg">{improvement}</span>
 </div>
 </div>
-                              ))}
+))}
 </div>
                           ) : (
                             <div className="text-center py-8">
                               <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <TrendingUp className="w-8 h-8 text-gray-500" />
 </div>
-                              <p className="text-gray-400 text-lg">No improvement suggestions found</p>
-                            </div>
+                              <p className="text-gray-400 text-lg mb-4">No improvement suggestions found</p>
+                              <Button
+                                onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+                              </Button>
+</div>
                           )}
 </div>
 </div>
@@ -1505,15 +1677,22 @@ type="text"
                                     <span className="text-white font-semibold text-lg">{recommendation}</span>
 </div>
 </div>
-                              ))}
+))}
 </div>
                           ) : (
                             <div className="text-center py-8">
                               <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Lightbulb className="w-8 h-8 text-gray-500" />
 </div>
-                              <p className="text-gray-400 text-lg">No recommendations found</p>
-</div>
+                              <p className="text-gray-400 text-lg mb-4">No recommendations found</p>
+                              <Button
+                                onClick={() => router.push('/resume-builder')}
+                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Upload Resume for Analysis
+                              </Button>
+                            </div>
                           )}
 </div>
 </div>
@@ -1593,7 +1772,7 @@ type="text"
                                           <p>{String(value || '')}</p>
                                         )}
 </div>
-                                    </div>
+</div>
 ))}
 </div>
                               ) : (
@@ -1605,7 +1784,16 @@ type="text"
                               <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <DollarSign className="w-8 h-8 text-gray-500" />
 </div>
-                              <p className="text-gray-400 text-lg">No salary analysis data found</p>
+                              <p className="text-gray-400 text-lg mb-4">No salary analysis data found</p>
+                              {isOwner && (
+                                <Button
+                                  onClick={() => router.push('/resume-builder')}
+                                  className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Upload Resume for Analysis
+                                </Button>
+                              )}
 </div>
                           )}
 </div>
@@ -1695,16 +1883,25 @@ type="text"
                               )}
 </div>
                           ) : (
-<div className="text-center py-8">
+                            <div className="text-center py-8">
                               <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <TrendingUp className="w-8 h-8 text-gray-500" />
- </div>
-                              <p className="text-gray-400 text-lg">No career path data found</p>
-                            </div>
+</div>
+                              <p className="text-gray-400 text-lg mb-4">No career path data found</p>
+                              {isOwner && (
+                                <Button
+                                  onClick={() => router.push('/resume-builder')}
+                                  className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Upload Resume for Analysis
+                                </Button>
+                              )}
+</div>
                           )}
- </div>
- </div>
- </div>
+</div>
+</div>
+</div>
                     )}
 
                     {/* Section Analysis - Owner Only */}
@@ -1715,7 +1912,7 @@ type="text"
                           <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                             <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
                               <FileText className="w-6 h-6 text-white" />
- </div>
+</div>
                             <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
                               Section-by-Section Analysis
                             </span>
@@ -1753,9 +1950,9 @@ type="text"
                                                            typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
                                                            String(itemValue || '')}
                                                         </span>
- </div>
+</div>
                                                     )) : null}
- </div>
+</div>
                                                 ) : (
                                                   item
                                                 )}
@@ -1774,34 +1971,43 @@ type="text"
                                                    typeof subValue === 'object' && subValue !== null ? JSON.stringify(subValue) : 
                                                    String(subValue || '')}
                                                 </span>
- </div>
+</div>
                                             )) : null}
- </div>
+</div>
                                         ) : (
                                           <p>{String(value || '')}</p>
                                         )}
+</div>
  </div>
- </div>
-                                  ))}
- </div>
+))}
+</div>
                               ) : (
                                 <p>{userProfile.section_analysis}</p>
  )}
- </div>
-) : (
-<div className="text-center py-8">
+</div>
+                          ) : (
+                            <div className="text-center py-8">
                               <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <FileText className="w-8 h-8 text-gray-500" />
- </div>
-                              <p className="text-gray-400 text-lg">No section analysis data found</p>
- </div>
-                          )}
- </div>
- </div>
- </div>
-                    )}
+</div>
+                              <p className="text-gray-400 text-lg mb-4">No section analysis data found</p>
+                              {isOwner && (
+                                <Button
+                                  onClick={() => router.push('/resume-builder')}
+                                  className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Upload Resume for Analysis
+                                </Button>
+                              )}
+</div>
+)}
+</div>
+</div>
+</div>
+)}
 
- </div>
+</div>
  )}
 
                 {activeSection === 'game-results' && (
@@ -1846,7 +2052,7 @@ type="text"
  </div>
                                 </>
                               )}
-</div>
+ </div>
 
                             {/* Hire Recommendation and Writing Score */}
                             {userProfile.game_stats?.bpoc_cultural_results && (
@@ -1860,20 +2066,20 @@ type="text"
                                         userProfile.game_stats.bpoc_cultural_results.hire_recommendation.replace(/_/g, ' ') : 
                                         "No recommendation data"}
                                     </p>
-</div>
+ </div>
                                   <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
                                     <label className="text-sm font-medium text-yellow-300 mb-2 block">Writing Score</label>
                                     <p className="text-white text-lg font-semibold">
                                       {userProfile.game_stats.bpoc_cultural_results.writing?.score || "No score data"}
                                     </p>
-</div>
+ </div>
                                   {userProfile.game_stats.bpoc_cultural_results.writing?.style && (
                                     <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
                                       <label className="text-sm font-medium text-yellow-300 mb-2 block">Writing Style</label>
                                       <p className="text-white mt-1 text-sm font-medium">
                                         {userProfile.game_stats.bpoc_cultural_results.writing.style}
                                       </p>
-</div>
+ </div>
                                   )}
                                   {userProfile.game_stats.bpoc_cultural_results.writing?.tone && (
                                     <div className="group bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105">
@@ -1881,18 +2087,27 @@ type="text"
                                       <p className="text-white mt-1 text-sm font-medium">
                                         {userProfile.game_stats.bpoc_cultural_results.writing.tone}
                                       </p>
-</div>
+ </div>
                                   )}
  </div>
  </div>
  )}
  </div>
-) : (
+                        ) : (
 <div className="text-center py-8">
                             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                               <Gamepad2 className="w-8 h-8 text-gray-500" />
- </div>
-                            <p className="text-gray-400 text-lg">No BPOC Cultural game data found</p>
+                            </div>
+                            <p className="text-gray-400 text-lg mb-4">No BPOC Cultural game data found</p>
+                            {isOwner && (
+ <Button 
+                                onClick={() => router.push('/career-tools/games/bpoc-cultural')}
+                                className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 text-yellow-300 hover:from-yellow-500/30 hover:to-orange-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:scale-105"
+ >
+                                <Gamepad2 className="w-4 h-4 mr-2" />
+                                Play BPOC Cultural Game
+ </Button>
+                            )}
  </div>
                         )}
  </div>
@@ -1913,7 +2128,7 @@ type="text"
                         </h3>
                         <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-xl p-6 border border-blue-400/30">
                         {userProfile.game_stats?.disc_personality_stats ? (
-                          <div className="space-y-4">
+<div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-blue-300 mb-2 block">Dominance (D)</label>
@@ -1970,8 +2185,22 @@ type="text"
  )}
  </div>
  </div>
-                        ) : (
-                          <p className="text-gray-400 italic text-base">No DISC Personality game data found</p>
+) : (
+<div className="text-center py-8">
+                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Gamepad2 className="w-8 h-8 text-gray-500" />
+                            </div>
+                            <p className="text-gray-400 text-lg mb-4">No DISC Personality game data found</p>
+                            {isOwner && (
+ <Button 
+ onClick={() => router.push('/career-tools/games/disc-personality')}
+                                className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 text-blue-300 hover:from-blue-500/40 hover:to-cyan-500/40 hover:border-blue-400/70 hover:text-blue-200 transition-all duration-300 hover:scale-105"
+ >
+                                <Gamepad2 className="w-4 h-4 mr-2" />
+                                Play DISC Personality Game
+ </Button>
+                            )}
+ </div>
                         )}
  </div>
  </div>
@@ -2047,15 +2276,29 @@ type="text"
                                       </p>
  </div>
                                   </>
-                                )}
+ )}
  </div>
  </div>
                           ) : (
-                            <p className="text-gray-400 italic text-base">No Typing Hero game data found</p>
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Gamepad2 className="w-8 h-8 text-gray-500" />
+ </div>
+                              <p className="text-gray-400 text-lg mb-4">No Typing Hero game data found</p>
+                              {isOwner && (
+                                <Button
+                                  onClick={() => router.push('/career-tools/games/typing-hero')}
+                                  className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-300 hover:from-green-500/40 hover:to-emerald-500/40 hover:border-green-400/70 hover:text-green-200 transition-all duration-300 hover:scale-105"
+                                >
+                                  <Gamepad2 className="w-4 h-4 mr-2" />
+                                  Play Typing Hero Game
+                                </Button>
+                              )}
+ </div>
                           )}
- </div>
- </div>
- </div>
+</div>
+</div>
+</div>
 
 
                     {/* Ultimate Game Stats */}
@@ -2087,13 +2330,13 @@ type="text"
                                   <p className="text-white text-lg font-semibold">
                                     {userProfile.game_stats.ultimate_stats.motivated || 0}
                                   </p>
- </div>
+</div>
                                 <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
                                   <label className="text-sm font-medium text-purple-300 mb-2 block">Integrity Score</label>
                                   <p className="text-white text-lg font-semibold">
                                     {userProfile.game_stats.ultimate_stats.integrity || 0}
                                   </p>
- </div>
+</div>
                                 <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
                                   <label className="text-sm font-medium text-purple-300 mb-2 block">Business Score</label>
                                   <p className="text-white text-lg font-semibold">
@@ -2128,17 +2371,31 @@ type="text"
                                         "Never taken"}
                                     </p>
  </div>
-                                )}
+ )}
  </div>
  </div>
-                          ) : (
-                            <p className="text-gray-400 italic text-base">No Ultimate game data found</p>
+) : (
+<div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Gamepad2 className="w-8 h-8 text-gray-500" />
+                              </div>
+                              <p className="text-gray-400 text-lg mb-4">No Ultimate game data found</p>
+                              {isOwner && (
+ <Button 
+                                  onClick={() => router.push('/career-tools/games/ultimate')}
+                                  className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+ >
+                                  <Gamepad2 className="w-4 h-4 mr-2" />
+                                  Play Ultimate Game
+ </Button>
+                              )}
+ </div>
                           )}
  </div>
  </div>
  </div>
 
-                  </div>
+ </div>
                 )}
 
                 {/* Achievements Tab */}
@@ -2151,7 +2408,7 @@ type="text"
                         <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                             <Trophy className="w-6 h-6 text-white" />
-                          </div>
+ </div>
                           <span className="bg-gradient-to-r from-orange-300 to-red-300 bg-clip-text text-transparent">
                             Achievements
                           </span>
@@ -2163,73 +2420,73 @@ type="text"
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                                   <Trophy className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-orange-300">First Game Completed</h4>
-                              </div>
+ </div>
                               <p className="text-gray-300 text-sm">Completed your first career assessment game</p>
                               <div className="mt-3 text-xs text-orange-400 font-medium">Unlocked</div>
-                            </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                                   <Star className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-orange-300">High Performer</h4>
-                              </div>
+ </div>
                               <p className="text-gray-300 text-sm">Achieved a score above 80 in any assessment</p>
                               <div className="mt-3 text-xs text-orange-400 font-medium">Unlocked</div>
-                            </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                                   <Medal className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-orange-300">All Games Master</h4>
-                              </div>
+ </div>
                               <p className="text-gray-300 text-sm">Completed all available career assessment games</p>
                               <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                                   <Target className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-orange-300">Perfect Score</h4>
-                              </div>
+ </div>
                               <p className="text-gray-300 text-sm">Achieved a perfect score in any assessment</p>
                               <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                                   <TrendingUp className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-orange-300">Rising Star</h4>
-                              </div>
+ </div>
                               <p className="text-gray-300 text-sm">Improved your score by 20+ points in any assessment</p>
                               <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
                                   <Heart className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-orange-300">Community Favorite</h4>
-                              </div>
+ </div>
                               <p className="text-gray-300 text-sm">Received 100+ likes on your profile</p>
                               <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
-                          </div>
+ </div>
+ </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+ </div>
+ </div>
+ </div>
+ )}
 
                 {/* Power Stats Tab */}
                 {activeSection === 'power-stats' && (
@@ -2241,10 +2498,10 @@ type="text"
                         <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                             <Zap className="w-6 h-6 text-white" />
-                          </div>
+ </div>
                           <span className="bg-gradient-to-r from-red-300 to-pink-300 bg-clip-text text-transparent">
                             Power Stats
-                          </span>
+ </span>
                         </h3>
                         <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2253,97 +2510,97 @@ type="text"
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                                   <Zap className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-red-300">Speed Demon</h4>
-                              </div>
+ </div>
                               <div className="text-3xl font-bold text-white mb-2">45 WPM</div>
                               <p className="text-gray-300 text-sm">Average typing speed</p>
                               <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
                                 <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                              </div>
-                            </div>
+ </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                                   <Target className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-red-300">Accuracy Master</h4>
-                              </div>
+ </div>
                               <div className="text-3xl font-bold text-white mb-2">94%</div>
                               <p className="text-gray-300 text-sm">Average accuracy rate</p>
                               <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
                                 <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '94%' }}></div>
                               </div>
-                            </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                                   <Star className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-red-300">Problem Solver</h4>
-                              </div>
+ </div>
                               <div className="text-3xl font-bold text-white mb-2">87</div>
                               <p className="text-gray-300 text-sm">Logical reasoning score</p>
                               <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
                                 <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '87%' }}></div>
-                              </div>
-                            </div>
+ </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                                   <Heart className="w-5 h-5 text-white" />
-                                </div>
+</div>
                                 <h4 className="text-lg font-semibold text-red-300">Cultural Fit</h4>
-                              </div>
+</div>
                               <div className="text-3xl font-bold text-white mb-2">92</div>
                               <p className="text-gray-300 text-sm">Cultural assessment score</p>
                               <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
                                 <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-                              </div>
-                            </div>
+ </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                                   <TrendingUp className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-red-300">Growth Mindset</h4>
-                              </div>
+ </div>
                               <div className="text-3xl font-bold text-white mb-2">78</div>
                               <p className="text-gray-300 text-sm">Learning potential score</p>
                               <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
                                 <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '78%' }}></div>
-                              </div>
-                            </div>
+ </div>
+ </div>
 
                             <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
                                   <Medal className="w-5 h-5 text-white" />
-                                </div>
+ </div>
                                 <h4 className="text-lg font-semibold text-red-300">Overall Power</h4>
-                              </div>
+ </div>
                               <div className="text-3xl font-bold text-white mb-2">85</div>
                               <p className="text-gray-300 text-sm">Combined performance score</p>
                               <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
                                 <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
 
-              </motion.div>
+ </motion.div>
             </div>
-          </Card>
-        </motion.div>
-      </div>
-    </div>
-  );
+</Card>
+</motion.div>
+ </div>
+ </div>
+ );
 }

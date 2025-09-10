@@ -44,6 +44,14 @@ export async function GET(
       const testResult = await client.query('SELECT NOW()')
       console.log('✅ Database connection successful:', testResult.rows[0])
 
+      // Test users table structure
+      try {
+        const userTableTest = await client.query('SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \'users\' ORDER BY ordinal_position')
+        console.log('📋 Users table structure:', userTableTest.rows)
+      } catch (error) {
+        console.log('⚠️ Could not fetch users table structure:', error)
+      }
+
       // Get the saved resume with user info
       const resumeResult = await client.query(
         `SELECT 
@@ -62,10 +70,10 @@ export async function GET(
           u.avatar_url,
           u.email,
           u.phone,
-          u.location
-          ,u.position
+          u.location,
+          u.position
          FROM saved_resumes sr
-         JOIN users u ON sr.user_id = u.id
+         LEFT JOIN users u ON sr.user_id = u.id
          WHERE sr.resume_slug = $1`,
         [slug]
       )
@@ -80,6 +88,14 @@ export async function GET(
 
       const resume = resumeResult.rows[0]
       console.log('✅ Resume found:', resume.resume_title)
+      console.log('👤 User info from database:', {
+        full_name: resume.full_name,
+        avatar_url: resume.avatar_url,
+        email: resume.email,
+        phone: resume.phone,
+        location: resume.location,
+        position: resume.position
+      })
 
       // Increment view count
       await client.query(
@@ -102,12 +118,12 @@ export async function GET(
           createdAt: resume.created_at,
           updatedAt: resume.updated_at,
           user: {
-            fullName: resume.full_name,
-            avatarUrl: resume.avatar_url,
-            email: resume.email,
-            phone: resume.phone,
-            location: resume.location,
-            position: resume.position
+            fullName: resume.full_name || 'Unknown User',
+            avatarUrl: resume.avatar_url || null,
+            email: resume.email || '',
+            phone: resume.phone || '',
+            location: resume.location || '',
+            position: resume.position || ''
           }
         }
       })

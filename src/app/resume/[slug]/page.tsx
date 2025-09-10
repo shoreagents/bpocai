@@ -275,6 +275,7 @@ export default function ResumeSlugPage() {
           console.log('Resume object:', data.resume);
           console.log('Resume data:', data.resume.data);
           console.log('Resume template:', data.resume.template);
+          console.log('User info from API:', data.resume.user);
           console.log('========================');
           setResume(data.resume);
           setIsOwner(user?.id === data.resume.userId);
@@ -769,13 +770,13 @@ export default function ResumeSlugPage() {
                        className="text-2xl font-bold mb-2 text-gray-900"
                        style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
                      >
-                       {resume.data.content?.name || resume.data.headerInfo?.name || resume.user.fullName}
+                       {resume.user.fullName || resume.data.content?.name || resume.data.headerInfo?.name || 'Professional'}
                      </h1>
                      <p 
                        className="text-lg font-semibold mb-4 text-gray-800"
                        style={{ color: resume.data.template?.secondaryColor || '#374151' }}
                      >
-                       {resume.data.content?.bestJobTitle || resume.data.headerInfo?.title || resume.user.position || 'Professional'}
+                       {resume.user.position || resume.data.content?.bestJobTitle || resume.data.headerInfo?.title || 'Professional'}
                      </p>
                     <div className="flex flex-wrap justify-center gap-3 sm:gap-4 text-sm text-gray-600">
                       {/* Email and phone hidden for confidentiality */}
@@ -791,10 +792,10 @@ export default function ResumeSlugPage() {
                           <span className="break-all">{resume.data.headerInfo?.phone || resume.data.content?.phone}</span>
                         </div>
                       )} */}
-                      {(resume.data.headerInfo?.location || resume.data.content?.location) && (
+                      {(resume.user.location || resume.data.headerInfo?.location || resume.data.content?.location) && (
                         <div className="flex items-center gap-1 hover:text-green-600 transition-colors">
                           <MapPin className="h-4 w-4" />
-                          <span className="break-all">{resume.data.headerInfo?.location || resume.data.content?.location}</span>
+                          <span className="break-all">{resume.user.location || resume.data.headerInfo?.location || resume.data.content?.location}</span>
                         </div>
                       )}
                     </div>
