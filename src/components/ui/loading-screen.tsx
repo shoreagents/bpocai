@@ -152,23 +152,6 @@ export default function LoadingScreen({
                 </div>
               )}
               
-              {/* Status Indicators */}
-              {showStatusIndicators && (
-                <div className="flex justify-center gap-4 mt-6">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${animatedProgress >= 15 ? 'bg-green-400' : 'bg-gray-400'}`} style={{ animationDuration: '4s' }}></div>
-                    <span className={`text-xs ${animatedProgress >= 15 ? 'text-green-400' : 'text-gray-400'}`}>User Data</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${animatedProgress >= 45 ? 'bg-green-400' : 'bg-gray-400'}`} style={{ animationDuration: '4s' }}></div>
-                    <span className={`text-xs ${animatedProgress >= 45 ? 'text-green-400' : 'text-gray-400'}`}>Profile Info</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${animatedProgress >= 75 ? 'bg-green-400' : 'bg-gray-400'}`} style={{ animationDuration: '4s' }}></div>
-                    <span className={`text-xs ${animatedProgress >= 75 ? 'text-green-400' : 'text-gray-400'}`}>Game Results</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
