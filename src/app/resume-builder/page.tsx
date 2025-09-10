@@ -44,6 +44,7 @@ export default function ResumeBuilderPage() {
   // Individual file progress tracking
   const [fileProgress, setFileProgress] = useState<Record<string, number>>({});
   const [showExtractedModal, setShowExtractedModal] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
   // Progress modal UX
   const [modalStep, setModalStep] = useState<number>(0);
@@ -51,6 +52,52 @@ export default function ResumeBuilderPage() {
   
   // Loading state for checking saved resumes
   const [isCheckingSavedResume, setIsCheckingSavedResume] = useState(true);
+
+  // Check if user has saved resume data and redirect accordingly
+  useEffect(() => {
+    const checkSavedResume = async () => {
+      if (!user?.id) {
+        setIsCheckingSavedResume(false);
+        return;
+      }
+
+      try {
+        const sessionToken = await getSessionToken();
+        if (!sessionToken) {
+          setIsCheckingSavedResume(false);
+          return;
+        }
+
+        const res = await fetch('/api/user/saved-resumes', {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+            'x-user-id': String(user.id)
+          },
+          cache: 'no-store'
+        });
+
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch {}
+
+        if (res.ok && data?.success && data?.hasSavedResume && data?.resumeSlug) {
+          // User has a saved resume, redirect to it
+          console.log('✅ User has saved resume, redirecting to:', data.resumeSlug);
+          router.push(`/resume/${data.resumeSlug}`);
+          return;
+        }
+
+        // No saved resume, allow them to use the resume builder
+        console.log('ℹ️ No saved resume found, allowing resume builder access');
+        setIsCheckingSavedResume(false);
+      } catch (error) {
+        console.error('Error checking saved resume:', error);
+        setIsCheckingSavedResume(false);
+      }
+    };
+
+    checkSavedResume();
+  }, [user?.id, router]);
 
   // Trigger header SignUp dialog via URL param when not logged in
   const openSignup = () => {
@@ -71,65 +118,52 @@ export default function ResumeBuilderPage() {
       }
     } catch {}
 
-    const checkSavedResume = async () => {
+  }, [router]);
+
+  // Check for existing checkpoints in priority order
+  useEffect(() => {
+    const checkAllCheckpoints = async () => {
+      if (!user?.id) return;
+
       try {
-        const token = await getSessionToken();
-        if (!token) {
-          setIsCheckingSavedResume(false);
-          return; // not logged in; allow builder
-        }
+        const sessionToken = await getSessionToken();
+        if (!sessionToken) return;
 
-        const res = await fetch('/api/user/saved-resumes', {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          setIsCheckingSavedResume(false);
-          return;
-        }
-        const data = await res.json();
-        if (data?.success && data?.hasSavedResume && data?.resumeSlug) {
-          router.replace(`/${data.resumeSlug}`);
-          return;
-        }
-
-        // If user already has AI analysis results, go straight to analysis
-        const ar = await fetch(`/api/user/analysis-results`, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
+        // 1. First check for AI analysis results (highest priority)
+        const analysisRes = await fetch('/api/user/analysis-results', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
           cache: 'no-store'
         });
-        if (ar.ok) {
-          const arData = await ar.json();
-          if (arData?.found) {
-            router.replace('/resume-builder/analysis');
-            return;
-          }
+
+        const analysisText = await analysisRes.text();
+        let analysisData: any = null;
+        try { analysisData = JSON.parse(analysisText); } catch {}
+
+        if (analysisRes.ok && analysisData?.success && analysisData?.hasResults) {
+          setShowAnalysisModal(true);
+          return; // Stop here - don't check other checkpoints
         }
 
-        // Checkpoint resume_extracted: if present, show continue prompt later
-        const ex = await fetch('/api/user/extracted-resume', {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
+        // 2. Check for extracted data (only if no analysis results)
+        const extractedRes = await fetch('/api/user/extracted-resume', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
           cache: 'no-store'
         });
-        if (ex.ok) {
-          const exData = await ex.json();
-          if (exData?.hasData) {
-            try { localStorage.setItem('bpoc_has_extracted', '1'); } catch {}
-            // If user also has analysis, we already redirected above.
-            // Otherwise, open the modal to continue to analysis.
-            setShowExtractedModal(true);
-          }
+
+        const extractedText = await extractedRes.text();
+        let extractedData: any = null;
+        try { extractedData = JSON.parse(extractedText); } catch {}
+
+        if (extractedRes.ok && extractedData?.hasData) {
+          setShowExtractedModal(true);
         }
-      } catch (e) {
-        // Fail open: do nothing
-      } finally {
-        setIsCheckingSavedResume(false);
+      } catch (error) {
+        console.error('Error checking checkpoints:', error);
       }
     };
-    checkSavedResume();
-  }, [router]);
+
+    checkAllCheckpoints();
+  }, [user?.id]);
 
   // Handle file drag and drop
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -263,8 +297,38 @@ export default function ResumeBuilderPage() {
   // Process uploaded files to JSON using OpenAI
   const processUploadedFiles = async () => {
     if (!user) { openSignup(); return; }
-    // If we already have checkpoint, route to analysis
-    try { if (localStorage.getItem('bpoc_has_extracted') === '1') { router.push('/resume-builder/analysis'); return; } } catch {}
+    
+    // Check if we already have AI analysis results first (highest priority)
+    try {
+      const sessionToken = await getSessionToken();
+      if (sessionToken) {
+        const analysisRes = await fetch('/api/user/analysis-results', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+          cache: 'no-store'
+        });
+        const analysisText = await analysisRes.text();
+        let analysisData: any = null;
+        try { analysisData = JSON.parse(analysisText); } catch {}
+        if (analysisRes.ok && analysisData?.success && analysisData?.hasResults) { 
+          router.push('/resume-builder/analysis'); 
+          return; 
+        }
+
+        // Check if we already have extracted data in database
+        const extractedRes = await fetch('/api/user/extracted-resume', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+          cache: 'no-store'
+        });
+        const extractedText = await extractedRes.text();
+        let extractedData: any = null;
+        try { extractedData = JSON.parse(extractedText); } catch {}
+        if (extractedRes.ok && extractedData?.hasData) { 
+          router.push('/resume-builder/analysis'); 
+          return; 
+        }
+      }
+    } catch {}
+    
     if (uploadedFiles.length === 0) return;
 
     // Clear previous logs and show processing
@@ -485,41 +549,7 @@ export default function ResumeBuilderPage() {
     }
   }, [isAnalyzingWithClaude]);
 
-  // Show loading screen while checking for saved resumes
-  if (isCheckingSavedResume) {
-    return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
-        </div>
 
-        <Header />
-        
-        {/* Loading Screen for Checking Saved Resumes */}
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="glass-card border-white/10 p-8 rounded-xl max-w-md mx-4 text-center">
-            <div className="flex justify-center mb-6">
-              <PacmanLoader 
-                color="#06b6d4" 
-                size={40}
-                margin={4}
-                speedMultiplier={1.2}
-              />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Checking if resume exists
-            </h3>
-            <p className="text-gray-300 text-sm">
-              We're checking if you have any saved resumes before showing the builder.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -532,7 +562,7 @@ export default function ResumeBuilderPage() {
 
       <Header />
       
-      {/* Main Content - Only show when not checking saved resumes */}
+      {/* Main Content */}
       <>
           {/* Progress Modal */}
           <Dialog open={showProgressModal} onOpenChange={(open) => {
@@ -654,7 +684,7 @@ export default function ResumeBuilderPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => { setShowExtractedModal(false); router.push('/resume-builder/analysis?force=1') }} className="bg-cyan-600 hover:bg-cyan-700">
+            <Button onClick={() => { setShowExtractedModal(false); router.push('/resume-builder/analysis') }} className="bg-cyan-600 hover:bg-cyan-700">
               Continue to Analysis
             </Button>
             <Button
@@ -666,10 +696,45 @@ export default function ResumeBuilderPage() {
                   if (token) {
                     await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
                     await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/user/extracted-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
                   }
                 } catch {}
-                try { localStorage.removeItem('bpoc_has_extracted') } catch {}
                 setShowExtractedModal(false)
+                toast.success('Progress cleared. You can upload a new resume.')
+              }}
+            >
+              Start Over
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Continue from analysis results checkpoint */}
+      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Continue building your resume?</DialogTitle>
+            <DialogDescription>
+              We found existing AI analysis results. You can continue building your resume with the existing analysis or start over with a new resume.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => { setShowAnalysisModal(false); router.push('/resume-builder/analysis') }} className="bg-cyan-600 hover:bg-cyan-700">
+              Continue Building Resume
+            </Button>
+            <Button
+              variant="outline"
+              className="border-white/20 text-gray-300 hover:bg-white/10"
+              onClick={async () => {
+                try {
+                  const token = await getSessionToken();
+                  if (token) {
+                    await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    await fetch('/api/user/extracted-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                  }
+                } catch {}
+                setShowAnalysisModal(false)
                 toast.success('Progress cleared. You can upload a new resume.')
               }}
             >

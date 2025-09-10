@@ -615,7 +615,7 @@ export default function ResumeBuilderPage() {
       console.log('🔍 DEBUG: No original resume data available');
       return {
         name: (userProfile && (userProfile.full_name || 'Name not found')) || 'Name not found',
-        title: 'Title not found',
+        title: (userProfile && (userProfile.position || 'Title not found')) || 'Title not found',
         location: (userProfile && (userProfile.location || 'Location not found')) || 'Location not found',
         email: (userProfile && (userProfile.email || 'Email not found')) || 'Email not found',
         phone: (userProfile && (userProfile.phone || 'Phone not found')) || 'Phone not found'
@@ -794,7 +794,8 @@ export default function ResumeBuilderPage() {
             (firstProcessedResume ? findField(firstProcessedResume, ['name', 'full_name', 'fullName', 'personal_name', 'candidate_name']) : null) ||
             'Name not found',
       
-      title: (improvedResume && improvedResume.bestJobTitle) ||
+      title: (userProfile && userProfile.position) ||
+             (improvedResume && improvedResume.bestJobTitle) ||
              extractTitleFromJSON(originalResumeData) ||
              (firstProcessedResume ? extractTitleFromJSON(firstProcessedResume) : null) ||
              improvedTitle ||
