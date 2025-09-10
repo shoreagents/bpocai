@@ -243,46 +243,63 @@ export default function JobMatchingPage() {
         if (user?.id) {
           setIsLoadingMatches(true)
           setAnalysisProgress(0)
-          setCurrentLog('Initializing AI analysis...')
+          setCurrentLog('Initializing batch AI analysis...')
           
-          const scores: {[key: string]: any} = {}
-          const totalJobs = mapped.length
-          
-          for (let i = 0; i < mapped.length; i++) {
-            const job = mapped[i]
-            const progress = Math.round(((i + 1) / totalJobs) * 100)
+          try {
+            const jobIds = mapped.map((job: any) => job.id)
+            setCurrentLog(`Analyzing ${jobIds.length} jobs in batch...`)
+            setAnalysisProgress(25)
             
-            setCurrentLog(`Analyzing job ${i + 1} of ${totalJobs}: ${job.title}`)
-            setAnalysisProgress(progress)
-            
-            try {
-              const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.id}`)
-              if (matchRes.ok) {
-                const matchData = await matchRes.json()
-                scores[job.id] = {
-                  score: Math.round(matchData.matchScore ?? 75), // Round to whole number, default to 75% if score is undefined
-                  reasoning: matchData.reasoning || 'Analysis completed',
-                  breakdown: matchData.breakdown || {}
+            const response = await fetch('/api/jobs/batch-match', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                userId: user.id,
+                jobIds: jobIds
+              })
+            })
+
+            if (response.ok) {
+              const data = await response.json()
+              setCurrentLog(`✓ Batch analysis completed: ${data.cached} cached, ${data.analyzed} analyzed`)
+              setAnalysisProgress(75)
+              
+              const scores: {[key: string]: any} = {}
+              
+              // Process results
+              Object.entries(data.results).forEach(([jobId, result]: [string, any]) => {
+                scores[jobId] = {
+                  score: result.score,
+                  reasoning: result.reasoning,
+                  breakdown: result.breakdown,
+                  cached: result.cached
                 }
-                setCurrentLog(`✓ Completed analysis for: ${job.title}`)
-              } else {
-                // Fallback to a reasonable score instead of 0
-                scores[job.id] = { score: 75, reasoning: 'Using default score', breakdown: {} }
-                setCurrentLog(`⚠ Using default score for: ${job.title}`)
-              }
-            } catch (error) {
-              console.error('Error fetching match score for job:', job.id, error)
-              scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
-              setCurrentLog(`✗ Network error for: ${job.title}`)
+              })
+              
+              setMatchScores(scores)
+              setCurrentLog(`✓ All ${jobIds.length} jobs processed successfully`)
+              setAnalysisProgress(100)
+            } else {
+              throw new Error('Failed to analyze jobs')
             }
+          } catch (error) {
+            console.error('Error in batch job matching:', error)
+            setCurrentLog('✗ Error analyzing jobs - using fallback scores')
             
-            // Small delay to show progress
-            await new Promise(resolve => setTimeout(resolve, 200))
+            // Fallback to default scores
+            const scores: {[key: string]: any} = {}
+            mapped.forEach((job: any) => {
+              scores[job.id] = { 
+                score: 75, 
+                reasoning: 'Using default score due to analysis error', 
+                breakdown: {},
+                cached: false
+              }
+            })
+            setMatchScores(scores)
           }
-          
-          setCurrentLog('Finalizing results...')
-          setAnalysisProgress(100)
-          setMatchScores(scores)
           
           setTimeout(() => {
             setIsLoadingMatches(false)

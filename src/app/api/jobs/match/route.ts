@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
       const job = jobResult.rows[0];
 
-      // Check if we already have a recent analysis for this user-job combination
+      // Check if we already have a recent analysis for this user-job combination (24 hours)
       try {
         const existingResult = await client.query(`
           SELECT score, reasoning, breakdown, analyzed_at
