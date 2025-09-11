@@ -34,13 +34,28 @@ export async function POST(request: NextRequest) {
       avatar_url: userData.avatar_url,
       phone: userData.phone,
       bio: userData.bio,
-      position: userData.position
+      position: userData.position,
+      completed_data: userData.completed_data ?? null,
+      birthday: userData.birthday ?? null,
+      gender: userData.gender ?? null
     })
 
     console.log('✅ User sync completed:', result)
     return NextResponse.json(result)
   } catch (error) {
     console.error('❌ Error in user sync API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    console.error('❌ Error details:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      userData: {
+        id: userData?.id,
+        email: userData?.email
+      }
+    })
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: errorMessage 
+    }, { status: 500 })
   }
 } 

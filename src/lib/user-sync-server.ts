@@ -84,6 +84,14 @@ export const syncUserToDatabaseServer = async (userData: UserData) => {
     }
   } catch (error) {
     console.error('❌ Error syncing user to Railway:', error)
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userData: {
+        id: userData.id,
+        email: userData.email
+      }
+    })
     throw error
   } finally {
     client.release()

@@ -44,18 +44,19 @@ export default function PrivacyPolicyPage() {
                   <div className="space-y-3">
                     <div><strong className="text-gray-300">Company:</strong> <span className="text-gray-100">ShoreAgents Inc.</span></div>
                     <div><strong className="text-gray-300">Registration:</strong> <span className="text-gray-100">SEC CS201918140 | TIN 010-425-223-00000</span></div>
-                    <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+61 488 845 828</span></div>
+                    <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+63 917 702 0676</span></div>
                   </div>
                   <div className="space-y-3">
-                    <div><strong className="text-gray-300">Email:</strong> <span className="text-gray-100">privacy@shoreagents.com</span></div>
+                    <div><strong className="text-gray-300">Email:</strong> <span className="text-gray-100">careers@shoreagents.com</span></div>
                     <div><strong className="text-gray-300">Website:</strong> <span className="text-gray-100">https://shoreagents.com</span></div>
+                    <div><strong className="text-gray-300">Careers Website:</strong> <span className="text-gray-100">https://careers.shoreagents.com</span></div>
                     <div><strong className="text-gray-300">Platform:</strong> <span className="text-gray-100">https://bpoc.io</span></div>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-700">
                   <div><strong className="text-gray-300">Address:</strong></div>
                   <div className="text-gray-100 mt-1">
-                    Unit 1F-2, Philexcel Business Center 6, Clark Freeport Zone, Pampanga, Philippines 2023
+                    Business Center 26, Philexcel Business Park, Ma Roxas Highway, Clark Freeport, 2023 Pampanga
                   </div>
                 </div>
               </div>
@@ -206,7 +207,7 @@ export default function PrivacyPolicyPage() {
                              <div className="bg-gray-800/50 border border-gray-700 p-6 rounded-lg">
                  <h4 className="text-lg font-semibold text-gray-200 mb-3">How to Exercise Your Rights</h4>
                  <div className="space-y-2 text-gray-300">
-                   <div><strong>Email:</strong> privacy@shoreagents.com</div>
+                   <div><strong>Email:</strong> it@shoreagents.com</div>
                    <div><strong>Subject Line:</strong> "Privacy Request - [Your Name]"</div>
                    <div><strong>Response Time:</strong> Within 5 business days</div>
                  </div>
@@ -220,29 +221,31 @@ export default function PrivacyPolicyPage() {
                              <div className="grid md:grid-cols-2 gap-6">
                  <div className="space-y-4">
                    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     <h4 className="font-semibold text-gray-200 mb-2">Privacy & Data Protection</h4>
+                     <h4 className="font-semibold text-gray-200 mb-2">IT Support & Data Protection</h4>
                      <div className="space-y-1 text-sm text-gray-300">
-                       <div><strong>Email:</strong> privacy@shoreagents.com</div>
+                       <div><strong>Email:</strong> it@shoreagents.com</div>
                        <div><strong>Attention:</strong> Data Protection Officer (Stephen Philip Atcheler)</div>
                        <div><strong>Response Time:</strong> Within 5 business days</div>
                      </div>
                    </div>
                    
                    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     <h4 className="font-semibold text-gray-200 mb-2">Recruitment Questions</h4>
+                     <h4 className="font-semibold text-gray-200 mb-2">Recruitment Team</h4>
                      <div className="space-y-1 text-sm text-gray-300">
-                       <div><strong>Email:</strong> careers@shoreagents.com</div>
-                       <div><strong>Phone:</strong> +61 488 845 828</div>
-                       <div><strong>Hours:</strong> Monday-Friday, 9 AM - 6 PM (Philippine Time)</div>
+                       <div><strong>Email:</strong> recruitment@shoreagents.com</div>
+                       <div><strong>Phone:</strong> +63 917 702 0676</div>
+                       <div><strong>Hours:</strong> Monday-Friday, 6am to 3pm (Philippine Time)</div>
                      </div>
                    </div>
                  </div>
                  
                  <div className="space-y-4">
                    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     <h4 className="font-semibold text-gray-200 mb-2">Technical Support</h4>
+                     <h4 className="font-semibold text-gray-200 mb-2">Careers Team</h4>
                      <div className="space-y-1 text-sm text-gray-300">
-                       <div><strong>Email:</strong> support@shoreagents.com</div>
+                       <div><strong>Email:</strong> careers@shoreagents.com</div>
+                       <div><strong>Phone:</strong> +63 917 702 0676</div>
+                       <div><strong>Hours:</strong> Monday-Friday, 6am to 3pm (Philippine Time)</div>
                      </div>
                    </div>
                    
@@ -250,8 +253,8 @@ export default function PrivacyPolicyPage() {
                      <h4 className="font-semibold text-gray-200 mb-2">Company Address</h4>
                      <div className="space-y-1 text-sm text-gray-300">
                        <div><strong>ShoreAgents Inc.</strong></div>
-                       <div>Unit 1F-2, Philexcel Business Center 6</div>
-                       <div>Clark Freeport Zone, Pampanga, Philippines 2023</div>
+                       <div>Business Center 26, Philexcel Business Park</div>
+                       <div>Ma Roxas Highway, Clark Freeport, 2023 Pampanga</div>
                      </div>
                    </div>
                  </div>
