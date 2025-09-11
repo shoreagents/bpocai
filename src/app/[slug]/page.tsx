@@ -1104,6 +1104,28 @@ type="text"
  </div>
  </div>
 
+                    {/* BPOC.AI Verification Card */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl blur-xl"></div>
+                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-blue-500/20 backdrop-blur-sm">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-white mb-2">BPOC.IO Verification</h3>
+                            <p className="text-gray-300 text-sm leading-relaxed">
+                              This user has gained a verification badge because they have completed all required activities: <span className="text-cyan-400 font-bold">completed their profile and work status information</span>, <span className="text-green-400 font-bold">uploaded their resume</span>, <span className="text-purple-400 font-bold">had their resume AI-analyzed</span>, <span className="text-blue-400 font-bold">saved their AI-generated resume to their profile</span>, and <span className="text-yellow-400 font-bold">completed all career assessment games</span>. This verification badge demonstrates their commitment to professional development and career excellence.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
  </div>
  )}
 

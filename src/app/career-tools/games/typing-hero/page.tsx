@@ -735,6 +735,44 @@ export default function TypingHeroPage() {
     );
   };
 
+  // Helper function to check if input is definitely incorrect
+  const checkIfDefinitelyIncorrect = (input: string, words: FallingWord[]): boolean => {
+    if (!input.trim()) return false;
+    
+    const normalizedInput = input.toLowerCase().trim();
+    const visibleWords = words.filter(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100);
+    
+    // If no visible words, input can't be correct
+    if (visibleWords.length === 0) return true;
+    
+    // Only check for definite incorrectness if input is at least 5 characters
+    // This prevents clearing while user is still typing
+    if (normalizedInput.length < 5) return false;
+    
+    // Check if input could be a partial match for any visible word
+    for (const word of visibleWords) {
+      const normalizedWord = word.word.toLowerCase();
+      
+      // Direct partial match
+      if (normalizedWord.startsWith(normalizedInput)) return false;
+      
+      // Handle words with spaces - check if input could be part of the word
+      if (normalizedWord.includes(' ')) {
+        const noSpaceWord = normalizedWord.replace(/\s+/g, '');
+        if (noSpaceWord.startsWith(normalizedInput)) return false;
+      }
+      
+      // Handle input with spaces - check if it could match a word without spaces
+      if (normalizedInput.includes(' ')) {
+        const noSpaceInput = normalizedInput.replace(/\s+/g, '');
+        if (normalizedWord.startsWith(noSpaceInput)) return false;
+      }
+    }
+    
+    // If we get here, the input doesn't match any visible word and can't be a partial match
+    return true;
+  };
+
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
@@ -778,10 +816,40 @@ export default function TypingHeroPage() {
         // Simulate a typing error - treat as incorrect
         handleWordType(matchingWord, false);
         setCurrentInput(''); // Clear input after error
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
       } else {
         // No error - proceed normally
         handleWordType(matchingWord, true);
         setCurrentInput(''); // Clear input after successful match
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
+      }
+    } else {
+      // Check if the current input is definitely incorrect (no possible match)
+      // This happens when user types a word that can't possibly match any visible word
+      const isDefinitelyIncorrect = checkIfDefinitelyIncorrect(value, fallingWords);
+      
+      if (isDefinitelyIncorrect) {
+        // Auto-clear incorrect input immediately
+        setCurrentInput('');
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
+        
+        // Create poo effect for incorrect word
+        const randomLane = Math.floor(Math.random() * LANES);
+        createEffect('poo', randomLane);
+        
+        setGameStats(prev => ({
+          ...prev,
+          score: Math.max(0, prev.score - 25),
+          poos: prev.poos + 1,
+          combo: 0,
+          totalWords: prev.totalWords + 1
+        }));
       }
     }
   };
@@ -827,7 +895,11 @@ export default function TypingHeroPage() {
         }));
       }
       
+      // Clear both state and input field for both correct and incorrect words
       setCurrentInput('');
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
     }
   };
 

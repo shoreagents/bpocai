@@ -63,15 +63,16 @@ function TermsAndConditionsContent() {
                     <div><strong className="text-gray-300">Platform:</strong> <span className="text-gray-100">BPOC.IO</span></div>
                     <div><strong className="text-gray-300">Operated By:</strong> <span className="text-gray-100">ShoreAgents Inc.</span></div>
                     <div><strong className="text-gray-300">Registration:</strong> <span className="text-gray-100">SEC CS201918140 | TIN 010-425-223-00000</span></div>
-                    <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+61 488 845 828</span></div>
+                    <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+63 917 702 0676</span></div>
                   </div>
                   <div className="space-y-3">
                     <div><strong className="text-gray-300">Email:</strong> <span className="text-gray-100">careers@shoreagents.com</span></div>
                     <div><strong className="text-gray-300">Website:</strong> <span className="text-gray-100">https://shoreagents.com</span></div>
+                    <div><strong className="text-gray-300">Careers Website:</strong> <span className="text-gray-100">https://careers.shoreagents.com</span></div>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-700">
-                  <div><strong className="text-gray-300">Address:</strong> <span className="text-gray-100">Unit 1F-2, Philexcel Business Center 6, Clark Freeport Zone, Pampanga, Philippines 2023</span></div>
+                  <div><strong className="text-gray-300">Address:</strong> <span className="text-gray-100">Business Center 26, Philexcel Business Park, Ma Roxas Highway, Clark Freeport, 2023 Pampanga</span></div>
                 </div>
               </div>
             </div>
@@ -281,18 +282,26 @@ function TermsAndConditionsContent() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-3">Platform Support</h3>
-                    <div className="space-y-2 text-gray-300">
-                      <div><strong>General Inquiries:</strong> info@shoreagents.com</div>
-                      <div><strong>Careers & Recruitment:</strong> careers@shoreagents.com</div>
-                      <div><strong>Technical Support:</strong> support@shoreagents.com</div>
-                      <div><strong>Privacy & Data:</strong> privacy@shoreagents.com</div>
+                    <div className="space-y-3 text-gray-300">
+                      <div>
+                        <div><strong>Recruitment Team</strong></div>
+                        <div>recruitment@shoreagents.com</div>
+                      </div>
+                      <div>
+                        <div><strong>Careers Team</strong></div>
+                        <div>careers@shoreagents.com</div>
+                      </div>
+                      <div>
+                        <div><strong>IT Support</strong></div>
+                        <div>it@shoreagents.com</div>
+                      </div>
                     </div>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-3">Business Information</h3>
                     <div className="space-y-2 text-gray-300">
-                      <div><strong>Phone:</strong> +61 488 845 828</div>
-                      <div><strong>Business Hours:</strong> Monday-Friday, 9 AM - 6 PM (Philippine Time)</div>
+                      <div><strong>Phone:</strong> +63 917 702 0676</div>
+                      <div><strong>Business Hours:</strong> Monday-Friday, 6am to 3pm (Philippine Time)</div>
                       <div><strong>SEC Registration:</strong> CS201918140</div>
                       <div><strong>TIN:</strong> 010-425-223-00000</div>
                     </div>

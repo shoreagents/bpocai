@@ -207,11 +207,13 @@ export default function HomePage() {
       }
 
       try {
+        console.log('🔄 HomePage: Fetching profile for user:', user.id)
         const response = await fetch(`/api/user/profile?userId=${user.id}`)
         
         if (response.ok) {
           const data = await response.json()
           const profile = data.user
+          console.log('✅ HomePage: Profile loaded successfully:', profile)
           setUserProfile(profile)
           
           // Show modal if completed_data is false
@@ -219,10 +221,69 @@ export default function HomePage() {
             setShowProfileModal(true)
           }
         } else {
-          console.error('Failed to fetch user profile')
+          const errorData = await response.json().catch(() => ({}))
+          console.error('❌ HomePage: Failed to fetch user profile:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData.error || 'Unknown error',
+            details: errorData.details || 'No details available'
+          })
+          
+          // If user not found (404), they might not be synced to Railway yet
+          if (response.status === 404) {
+            console.log('⚠️ HomePage: User not found in Railway database, they may need to be synced')
+            console.log('🔄 HomePage: Attempting to trigger user sync...')
+            
+            // Try to trigger user sync by calling the sync endpoint
+            try {
+              const syncResponse = await fetch('/api/user/sync', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  id: user.id,
+                  email: user.email,
+                  first_name: user.user_metadata?.first_name || '',
+                  last_name: user.user_metadata?.last_name || '',
+                  full_name: user.user_metadata?.full_name || '',
+                  location: user.user_metadata?.location || '',
+                  avatar_url: user.user_metadata?.avatar_url || null,
+                  phone: user.user_metadata?.phone || '',
+                  bio: user.user_metadata?.bio || '',
+                  position: user.user_metadata?.position || ''
+                })
+              })
+              
+              if (syncResponse.ok) {
+                console.log('✅ HomePage: User sync successful, retrying profile fetch...')
+                // Retry fetching the profile after sync
+                const retryResponse = await fetch(`/api/user/profile?userId=${user.id}`)
+                if (retryResponse.ok) {
+                  const retryData = await retryResponse.json()
+                  setUserProfile(retryData.user)
+                  if (retryData.user.completed_data === false) {
+                    setShowProfileModal(true)
+                  }
+                }
+              } else {
+                console.error('❌ HomePage: User sync failed:', syncResponse.status)
+                setUserProfile(null)
+              }
+            } catch (syncError) {
+              console.error('❌ HomePage: Error during user sync:', syncError)
+              setUserProfile(null)
+            }
+          }
         }
       } catch (error) {
-        console.error('Error checking profile completion:', error)
+        console.error('❌ HomePage: Error checking profile completion:', error)
+        console.error('❌ HomePage: Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId: user.id
+        })
+        setUserProfile(null)
       } finally {
         setProfileLoading(false)
       }
