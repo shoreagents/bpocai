@@ -183,29 +183,64 @@ export default function ResumeBuilderPage() {
   const [showProfileTooltip, setShowProfileTooltip] = useState(true);
 
   useEffect(() => {
-    // Get resume data from localStorage
-    const resumeData = localStorage.getItem('resumeData');
-    const isEditingExisting = localStorage.getItem('editingExistingResume') === 'true';
-    
-    if (resumeData) {
-      const parsedData = JSON.parse(resumeData);
-      setOriginalResumeData(parsedData);
-      
-      if (isEditingExisting) {
-        // When editing existing resume, use the data directly without API call
-        console.log('Editing existing resume - using data directly');
-        setImprovedResume(parsedData);
-        setIsLoading(false);
-        // Clear the editing flag
-        localStorage.removeItem('editingExistingResume');
-      } else {
-        // Only call API for new resume generation
-        generateImprovedResume(parsedData);
+    // First check for existing generated resume data from database
+    const checkGeneratedResume = async () => {
+      try {
+        const sessionToken = await getSessionToken();
+        if (!sessionToken || !user?.id) return;
+
+        const res = await fetch('/api/user/resumes-generated', {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+            'x-user-id': String(user.id)
+          },
+          cache: 'no-store'
+        });
+
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch {}
+
+        if (res.ok && data?.success && data?.hasGeneratedResume && data?.generatedResumeData) {
+          console.log('✅ Found existing generated resume data, loading it');
+          setImprovedResume(data.generatedResumeData);
+          setIsLoading(false);
+          return true; // Found generated resume data
+        }
+      } catch (error) {
+        console.error('Error checking generated resume:', error);
       }
-    } else {
-      // No resume data available locally, still attempt to fetch extracted fallback from server
-      setError('No resume data found. Please upload a resume first.');
-    }
+      return false; // No generated resume data found
+    };
+
+    // Check database first, then fallback to localStorage
+    checkGeneratedResume().then((foundGenerated) => {
+      if (!foundGenerated) {
+        // Fallback to localStorage logic
+        const resumeData = localStorage.getItem('resumeData');
+        const isEditingExisting = localStorage.getItem('editingExistingResume') === 'true';
+        
+        if (resumeData) {
+          const parsedData = JSON.parse(resumeData);
+          setOriginalResumeData(parsedData);
+          
+          if (isEditingExisting) {
+            // When editing existing resume, use the data directly without API call
+            console.log('Editing existing resume - using data directly');
+            setImprovedResume(parsedData);
+            setIsLoading(false);
+            // Clear the editing flag
+            localStorage.removeItem('editingExistingResume');
+          } else {
+            // Only call API for new resume generation
+            generateImprovedResume(parsedData);
+          }
+        } else {
+          // No resume data available locally, still attempt to fetch extracted fallback from server
+          setError('No resume data found. Please upload a resume first.');
+        }
+      }
+    });
 
     // Also fetch latest extracted resume as a fallback for header info (email/phone/location)
     (async () => {
@@ -246,7 +281,7 @@ export default function ResumeBuilderPage() {
         }
       } catch {}
     })();
-  }, []);
+  }, [user?.id]);
 
   // Re-check when user becomes available (fixes initial mount with undefined user.id)
   useEffect(() => {
@@ -2047,11 +2082,13 @@ export default function ResumeBuilderPage() {
             </DialogHeader>
             <div className="text-gray-300">
               <ul className="list-disc list-inside mt-2 text-gray-400">
+                <li>Saved Resume Profile</li>
+                <li>All Job Applications</li>
                 <li>AI Analysis Results</li>
                 <li>Generated Resume</li>
                 <li>Extracted Resume Data</li>
               </ul>
-              <span className="font-semibold text-red-400 block mt-2">Any job applications linked to this resume may be affected.</span>
+              <span className="font-semibold text-red-400 block mt-2">This will permanently delete ALL your resume-related data.</span>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeletingSaved(false)} className="border-gray-600 text-gray-300 hover:bg-gray-800">
@@ -2086,10 +2123,35 @@ export default function ResumeBuilderPage() {
                       let djson: any = null; try { djson = JSON.parse(dtext); } catch {}
                       throw new Error((djson && (djson.details || djson.error)) || dtext || 'Delete failed');
                     }
-                    // Also clear analysis, generated, and extracted data
-                    await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
-                    await fetch('/api/save-generated-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
-                    await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
+                    // Also clear all related data
+                    await fetch('/api/user/applications', { 
+                      method: 'DELETE', 
+                      headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'x-user-id': String(user.id)
+                      } 
+                    }).catch(() => {})
+                    await fetch('/api/user/analysis-results', { 
+                      method: 'DELETE', 
+                      headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'x-user-id': String(user.id)
+                      } 
+                    }).catch(() => {})
+                    await fetch('/api/user/resumes-generated', { 
+                      method: 'DELETE', 
+                      headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'x-user-id': String(user.id)
+                      } 
+                    }).catch(() => {})
+                    await fetch('/api/user/extracted-resume', { 
+                      method: 'DELETE', 
+                      headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'x-user-id': String(user.id)
+                      } 
+                    }).catch(() => {})
                     setIsDeletingSaved(false);
                     try { sessionStorage.setItem('resumeDeleted', '1'); } catch {}
                     router.push('/resume-builder');

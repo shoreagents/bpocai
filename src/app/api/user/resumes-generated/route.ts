@@ -20,32 +20,33 @@ export async function GET(request: NextRequest) {
       await client.query('SELECT NOW()')
       console.log('✅ Database connection successful')
 
-      // Check if user has any saved resumes
+      // Check if user has any generated resumes
       const result = await client.query(
-        `SELECT id, resume_slug, resume_title, created_at 
-         FROM saved_resumes 
+        `SELECT id, original_resume_id, generated_resume_data, template_used, generation_metadata, created_at, updated_at
+         FROM resumes_generated 
          WHERE user_id = $1 
-         ORDER BY created_at DESC 
+         ORDER BY updated_at DESC 
          LIMIT 1`,
         [userId]
       )
 
       if (result.rows.length > 0) {
-        const savedResume = result.rows[0]
+        const generatedResume = result.rows[0]
         return NextResponse.json({
           success: true,
-          hasSavedResume: true,
-          id: savedResume.id,
-          resumeId: savedResume.id,
-          resumeSlug: savedResume.resume_slug,
-          resumeTitle: savedResume.resume_title,
-          resumeUrl: `/resume/${savedResume.resume_slug}`
+          hasGeneratedResume: true,
+          id: generatedResume.id,
+          originalResumeId: generatedResume.original_resume_id,
+          generatedResumeData: generatedResume.generated_resume_data,
+          templateUsed: generatedResume.template_used,
+          generationMetadata: generatedResume.generation_metadata,
+          createdAt: generatedResume.created_at,
+          updatedAt: generatedResume.updated_at
         })
       } else {
         return NextResponse.json({
           success: true,
-          hasSavedResume: false,
-          resumeUrl: '/resume-builder'
+          hasGeneratedResume: false
         })
       }
 
@@ -53,9 +54,9 @@ export async function GET(request: NextRequest) {
       client.release()
     }
   } catch (error) {
-    console.error('❌ Error checking saved resumes:', error)
+    console.error('❌ Error checking generated resumes:', error)
     return NextResponse.json(
-      { error: 'Failed to check saved resumes', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to check generated resumes', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -71,15 +72,15 @@ export async function DELETE(request: NextRequest) {
 
     const client = await pool.connect()
     try {
-      await client.query('DELETE FROM saved_resumes WHERE user_id = $1', [userId])
+      await client.query('DELETE FROM resumes_generated WHERE user_id = $1', [userId])
       return NextResponse.json({ success: true })
     } finally {
       client.release()
     }
   } catch (error) {
-    console.error('❌ Error deleting saved resumes:', error)
+    console.error('❌ Error deleting generated resumes:', error)
     return NextResponse.json(
-      { error: 'Failed to delete saved resumes', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to delete generated resumes', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

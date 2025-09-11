@@ -90,7 +90,6 @@ export default function AnalysisPage() {
   const [improvedSummary, setImprovedSummary] = useState<string | null>(null);
   const [isImprovingSummary, setIsImprovingSummary] = useState(false);
   const [serverProfile, setServerProfile] = useState<any | null>(null);
-  const [showExistingAnalysisModal, setShowExistingAnalysisModal] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
@@ -282,7 +281,6 @@ export default function AnalysisPage() {
               setAnalysisResults(data.analysis);
               setIsAnalyzing(false);
               setAnalysisComplete(true);
-              setShowExistingAnalysisModal(true);
               // Populate overview fallbacks from DB snapshots if present
               const prof = data.analysis.candidateProfile;
               const skills = data.analysis.skillsSnapshot;
@@ -798,40 +796,6 @@ export default function AnalysisPage() {
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
       <Header />
-      {/* Existing analysis modal */}
-      <Dialog open={showExistingAnalysisModal} onOpenChange={setShowExistingAnalysisModal}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Existing analysis found</DialogTitle>
-            <DialogDescription>
-              We found data that’s already extracted and analyzed. Continue to build a resume, or start over?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => { setShowExistingAnalysisModal(false); }} className="bg-cyan-600 hover:bg-cyan-700">
-              Continue to Build
-            </Button>
-            <Button
-              variant="outline"
-              className="border-white/20 text-gray-300 hover:bg-white/10"
-              onClick={async () => {
-                try {
-                  const token = await getSessionToken();
-                  if (token) {
-                    await fetch('/api/user/analysis-results', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
-                    await fetch('/api/save-generated-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
-                    await fetch('/api/save-resume', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {})
-                  }
-                } catch {}
-                setShowExistingAnalysisModal(false);
-                window.location.href = '/resume-builder';
-              }}
-            >
-              Start Over
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       
       {/* Background Effects */}
       <div className="absolute inset-0">
