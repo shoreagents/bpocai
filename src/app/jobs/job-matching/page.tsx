@@ -155,18 +155,10 @@ export default function JobMatchingPage() {
   const [matchScores, setMatchScores] = useState<{[key: string]: any}>({})
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [analysisProgress, setAnalysisProgress] = useState(0)
-  const [currentLog, setCurrentLog] = useState('')
-  const [showLocationPopup, setShowLocationPopup] = useState(false)
   const [showResumeModal, setShowResumeModal] = useState(false)
   const [hasResume, setHasResume] = useState<boolean | null>(null)
   const [showAIAnalysis, setShowAIAnalysis] = useState(false)
 
-  // Show location popup after AI analysis is complete
-  useEffect(() => {
-    if (!isLoadingMatches && user?.id && analysisProgress === 0 && currentLog === '' && Object.keys(matchScores).length > 0) {
-      setShowLocationPopup(true)
-    }
-  }, [isLoadingMatches, user?.id, analysisProgress, currentLog])
 
   // Fetch jobs and calculate match scores
   useEffect(() => {
@@ -243,11 +235,9 @@ export default function JobMatchingPage() {
         if (user?.id) {
           setIsLoadingMatches(true)
           setAnalysisProgress(0)
-          setCurrentLog('Initializing batch AI analysis...')
           
           try {
             const jobIds = mapped.map((job: any) => job.id)
-            setCurrentLog(`Analyzing ${jobIds.length} jobs in batch...`)
             setAnalysisProgress(25)
             
             const response = await fetch('/api/jobs/batch-match', {
@@ -263,7 +253,6 @@ export default function JobMatchingPage() {
 
             if (response.ok) {
               const data = await response.json()
-              setCurrentLog(`✓ Batch analysis completed: ${data.cached} cached, ${data.analyzed} analyzed`)
               setAnalysisProgress(75)
               
               const scores: {[key: string]: any} = {}
@@ -279,14 +268,12 @@ export default function JobMatchingPage() {
               })
               
               setMatchScores(scores)
-              setCurrentLog(`✓ All ${jobIds.length} jobs processed successfully`)
               setAnalysisProgress(100)
             } else {
               throw new Error('Failed to analyze jobs')
             }
           } catch (error) {
             console.error('Error in batch job matching:', error)
-            setCurrentLog('✗ Error analyzing jobs - using fallback scores')
             
             // Fallback to default scores
             const scores: {[key: string]: any} = {}
@@ -304,7 +291,6 @@ export default function JobMatchingPage() {
           setTimeout(() => {
             setIsLoadingMatches(false)
             setAnalysisProgress(0)
-            setCurrentLog('')
           }, 500)
         }
       } catch (e) {
@@ -320,7 +306,6 @@ export default function JobMatchingPage() {
       (async () => {
         setIsLoadingMatches(true)
         setAnalysisProgress(0)
-        setCurrentLog('Refreshing AI analysis...')
         
         const scores: {[key: string]: any} = {}
         const totalJobs = jobs.length
@@ -329,7 +314,6 @@ export default function JobMatchingPage() {
           const job = jobs[i]
           const progress = Math.round(((i + 1) / totalJobs) * 100)
           
-          setCurrentLog(`Re-analyzing job ${i + 1} of ${totalJobs}: ${job.title}`)
           setAnalysisProgress(progress)
           
           try {
@@ -341,29 +325,24 @@ export default function JobMatchingPage() {
                 reasoning: matchData.reasoning,
                 breakdown: matchData.breakdown
               }
-              setCurrentLog(`✓ Updated analysis for: ${job.title}`)
             } else {
               scores[job.id] = { score: 0, reasoning: 'Analysis failed', breakdown: {} }
-              setCurrentLog(`⚠ Analysis failed for: ${job.title}`)
             }
           } catch (error) {
             console.error('Error fetching match score for job:', job.id, error)
             scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
-            setCurrentLog(`✗ Network error for: ${job.title}`)
           }
           
           // Small delay to show progress
           await new Promise(resolve => setTimeout(resolve, 200))
         }
         
-        setCurrentLog('Finalizing updated results...')
         setAnalysisProgress(100)
         setMatchScores(scores)
         
         setTimeout(() => {
           setIsLoadingMatches(false)
           setAnalysisProgress(0)
-          setCurrentLog('')
         }, 500)
       })()
     }
@@ -1494,59 +1473,10 @@ export default function JobMatchingPage() {
                  Go Home
                </Button>
              </div>
-             
-             {/* Debug button - remove in production */}
-             <Button 
-               variant="ghost"
-               onClick={() => {
-                 setShowResumeModal(false)
-                 setHasResume(true)
-               }}
-               className="text-xs text-gray-500 hover:text-gray-300"
-             >
-               Debug: Skip Resume Check
-             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Office Location Notice Popup - Top Right */}
-      {showLocationPopup && (
-        <motion.div
-          initial={{ opacity: 0, x: 100, y: -20 }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
-          exit={{ opacity: 0, x: 100, y: -20 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="fixed top-4 right-4 z-50 bg-gray-800/95 border border-blue-500/40 rounded-lg shadow-2xl p-4 max-w-sm"
-        >
-          <button
-            onClick={() => setShowLocationPopup(false)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          
-          <div className="flex items-start gap-3">
-            <Target className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="text-blue-400 font-semibold mb-1">Office Location Notice</h3>
-              <p className="text-gray-300 text-sm">
-                Please note that our office is based in <span className="font-medium text-white">Clark, Pampanga</span>. 
-                All positions may require reporting to this location unless specifically marked as remote work opportunities.
-              </p>
-            </div>
-          </div>
-          
-          {/* Auto-close timer indicator */}
-          <motion.div
-            initial={{ width: "100%" }}
-            animate={{ width: "0%" }}
-            transition={{ duration: 8, ease: "linear" }}
-            className="absolute bottom-0 left-0 h-1 bg-blue-500/30 rounded-b-lg"
-            onAnimationComplete={() => setShowLocationPopup(false)}
-          />
-        </motion.div>
-      )}
 
       {/* AI Analysis Loading Modal */}
       {isLoadingMatches && (
@@ -1610,13 +1540,6 @@ export default function JobMatchingPage() {
                 </div>
               </div>
               
-              {/* Current Activity */}
-              <div className="space-y-2">
-                <span className="text-sm text-gray-400">Current Activity</span>
-                <div className="bg-gray-800 rounded-lg p-3 min-h-[40px] flex items-center">
-                  <span className="text-sm text-gray-300">{currentLog || 'Initializing analysis...'}</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

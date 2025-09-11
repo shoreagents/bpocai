@@ -28,7 +28,6 @@ import {
   Bell,
   Shield,
   Eye,
-  Palette,
   Key,
   Download,
   Trash2,
@@ -125,25 +124,9 @@ export default function SettingsPage() {
       bgColor: 'bg-green-500/10',
       description: 'Coming soon'
     },
-    {
-      id: 'appearance',
-      title: 'Appearance',
-      icon: Palette,
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10',
-      description: 'Coming soon'
-    },
-    {
-      id: 'data',
-      title: 'Data & Storage',
-      icon: Database,
-      color: 'text-red-400',
-      bgColor: 'bg-red-500/10',
-      description: 'Coming soon'
-    }
   ]
 
-  const COMING_SOON_SECTIONS = new Set(['notifications', 'privacy', 'appearance', 'data'])
+  const COMING_SOON_SECTIONS = new Set(['notifications', 'privacy'])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -812,13 +795,6 @@ export default function SettingsPage() {
     <ComingSoon title="Privacy & Security" icon={Shield} bg="bg-gradient-to-br from-green-500 to-emerald-600" />
   )
 
-  const renderAppearanceSettings = () => (
-    <ComingSoon title="Appearance Settings" icon={Palette} bg="bg-gradient-to-br from-purple-500 to-violet-600" />
-  )
-
-  const renderDataSettings = () => (
-    <ComingSoon title="Data & Storage" icon={Database} bg="bg-gradient-to-br from-red-500 to-pink-600" />
-  )
 
   const renderContent = () => {
     switch (activeSection) {
@@ -828,10 +804,6 @@ export default function SettingsPage() {
         return renderNotificationSettings()
       case 'privacy':
         return renderPrivacySettings()
-      case 'appearance':
-        return renderAppearanceSettings()
-      case 'data':
-        return renderDataSettings()
       default:
         return renderProfileSettings()
     }

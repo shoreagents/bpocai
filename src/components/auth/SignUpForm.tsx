@@ -133,9 +133,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
     }
   }
 
-  const handleBackToSignup = () => {
-    setShowTermsContent(false)
-  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -355,29 +352,21 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
             )}
 
             {/* Back Button for Terms */}
-            {showTermsContent && (
-              <div className="flex justify-start">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleBackToSignup}
-                  disabled={!hasScrolledToEnd}
-                  className={`flex items-center gap-2 transition-all duration-200 ${
-                    hasScrolledToEnd 
-                      ? 'text-gray-400 hover:text-white' 
-                      : 'text-gray-600 cursor-not-allowed opacity-50'
-                  }`}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Sign Up
-                </Button>
-              </div>
-            )}
 
             {/* Conditional Content */}
             {showTermsContent ? (
               <>
-                <TermsContent onScrollToEnd={() => setHasScrolledToEnd(true)} />
+                <TermsContent onScrollToEnd={() => {
+                  setHasScrolledToEnd(true)
+                  // Automatically accept terms and close modal when user reaches the end
+                  setAgreedToTerms(true)
+                  setTermsLocked(true)
+                  setShowTermsContent(false)
+                  // Clear any existing terms error
+                  if (errors.terms) {
+                    setErrors(prev => ({ ...prev, terms: '' }))
+                  }
+                }} />
                 {!hasScrolledToEnd && (
                   <div className="text-center py-2">
                     <p className="text-xs text-gray-500 italic">
@@ -729,15 +718,16 @@ function TermsContent({ onScrollToEnd }: { onScrollToEnd: () => void }) {
               <div><strong className="text-gray-300">Platform:</strong> <span className="text-gray-100">BPOC.IO</span></div>
               <div><strong className="text-gray-300">Operated By:</strong> <span className="text-gray-100">ShoreAgents Inc.</span></div>
               <div><strong className="text-gray-300">Registration:</strong> <span className="text-gray-100">SEC CS201918140 | TIN 010-425-223-00000</span></div>
-              <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+61 488 845 828</span></div>
+              <div><strong className="text-gray-300">Phone:</strong> <span className="text-gray-100">+63 917 702 0676</span></div>
             </div>
             <div className="space-y-2 text-gray-300">
               <div><strong className="text-gray-300">Email:</strong> <span className="text-gray-100">careers@shoreagents.com</span></div>
               <div><strong className="text-gray-300">Website:</strong> <span className="text-gray-100">https://shoreagents.com</span></div>
+              <div><strong className="text-gray-300">Careers Website:</strong> <span className="text-gray-100">https://careers.shoreagents.com</span></div>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-gray-700">
-            <div><strong className="text-gray-300">Address:</strong> <span className="text-gray-100">Unit 1F-2, Philexcel Business Center 6, Clark Freeport Zone, Pampanga, Philippines 2023</span></div>
+            <div><strong className="text-gray-300">Address:</strong> <span className="text-gray-100">Business Center 26, Philexcel Business Park, Ma Roxas Highway, Clark Freeport, 2023 Pampanga</span></div>
           </div>
         </div>
       </div>
@@ -947,18 +937,26 @@ function TermsContent({ onScrollToEnd }: { onScrollToEnd: () => void }) {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <h4 className="text-base font-semibold text-white mb-2">Platform Support</h4>
-              <div className="space-y-1 text-gray-300 text-xs">
-                <div><strong>General Inquiries:</strong> info@shoreagents.com</div>
-                <div><strong>Careers & Recruitment:</strong> careers@shoreagents.com</div>
-                <div><strong>Technical Support:</strong> support@shoreagents.com</div>
-                <div><strong>Privacy & Data:</strong> privacy@shoreagents.com</div>
+              <div className="space-y-3 text-gray-300 text-xs">
+                <div>
+                  <div><strong>Recruitment Team</strong></div>
+                  <div>recruitment@shoreagents.com</div>
+                </div>
+                <div>
+                  <div><strong>Careers Team</strong></div>
+                  <div>careers@shoreagents.com</div>
+                </div>
+                <div>
+                  <div><strong>IT Support</strong></div>
+                  <div>it@shoreagents.com</div>
+                </div>
               </div>
             </div>
             <div>
               <h4 className="text-base font-semibold text-white mb-2">Business Information</h4>
               <div className="space-y-1 text-gray-300 text-xs">
-                <div><strong>Phone:</strong> +61 488 845 828</div>
-                <div><strong>Business Hours:</strong> Monday-Friday, 9 AM - 6 PM (Philippine Time)</div>
+                <div><strong>Phone:</strong> +63 917 702 0676</div>
+                <div><strong>Business Hours:</strong> Monday-Friday, 6am to 3pm (Philippine Time)</div>
                 <div><strong>SEC Registration:</strong> CS201918140</div>
                 <div><strong>TIN:</strong> 010-425-223-00000</div>
               </div>
