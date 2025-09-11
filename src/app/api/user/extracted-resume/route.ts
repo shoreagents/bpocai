@@ -33,4 +33,28 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = request.headers.get('x-user-id')
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not provided' }, { status: 400 })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('DELETE FROM resumes_extracted WHERE user_id = $1', [userId])
+      return NextResponse.json({ success: true })
+    } finally {
+      client.release()
+    }
+  } catch (error) {
+    console.error('❌ Error deleting extracted resume:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete extracted resume', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
 

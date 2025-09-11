@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
 
+export async function DELETE(request: NextRequest) {
+  const client = await pool.connect()
+  try {
+    const userId = request.headers.get('x-user-id')
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Delete all applications for this user
+    await client.query('DELETE FROM applications WHERE user_id = $1', [userId])
+    
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed to delete applications' }, { status: 500 })
+  } finally {
+    client.release()
+  }
+}
+
 export async function POST(request: NextRequest) {
   const client = await pool.connect()
   try {
