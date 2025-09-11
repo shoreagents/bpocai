@@ -60,6 +60,7 @@ export default function ResumeBuilderPage() {
     const checkCheckpoints = async () => {
       if (!user?.id) {
         setIsCheckingSavedResume(false);
+        setCheckpointCheckComplete(true);
         return;
       }
 
@@ -67,6 +68,7 @@ export default function ResumeBuilderPage() {
         const sessionToken = await getSessionToken();
         if (!sessionToken) {
           setIsCheckingSavedResume(false);
+          setCheckpointCheckComplete(true);
           return;
         }
 
