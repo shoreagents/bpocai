@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import PlacesAutocomplete from '@/components/ui/places-autocomplete';
 import { 
   User,
   Briefcase,
@@ -57,6 +58,12 @@ interface UserProfile {
   phone?: string;
   location?: string;
   position?: string;
+  location_place_id?: string;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  location_city?: string;
+  location_province?: string;
+  location_country?: string;
   avatar_url?: string;
   bio?: string;
   gender?: string;
@@ -118,7 +125,13 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
     position: '',
     gender: '',
     gender_custom: '',
-    birthday: ''
+    birthday: '',
+    location_place_id: '',
+    location_lat: null,
+    location_lng: null,
+    location_city: '',
+    location_province: '',
+    location_country: ''
   });
   const [isEditingWorkStatus, setIsEditingWorkStatus] = useState<boolean>(false);
   const [editedWorkStatus, setEditedWorkStatus] = useState({
@@ -141,8 +154,114 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
  if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
  if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
  return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
-}
+ }
 
+  // Helper functions for work status field management (matching stepper modal logic)
+  const isFieldDisabled = (field: string) => {
+    switch (editedWorkStatus.work_status) {
+      case 'unemployed-looking-for-work':
+      case 'student':
+        return ['current_employer', 'current_salary', 'notice_period_days'].includes(field)
+      default:
+        return false
+    }
+  }
+
+  const getFieldClassName = (field: string) => {
+    const baseClass = "w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
+    return isFieldDisabled(field) 
+      ? `${baseClass} opacity-60 cursor-not-allowed` 
+      : baseClass
+  }
+
+  const getFieldPlaceholder = (field: string) => {
+    switch (field) {
+      case 'current_employer':
+        switch (editedWorkStatus.work_status) {
+          case 'employed':
+            return 'e.g., ABC Company or "Prefer not to disclose"'
+          case 'part-time':
+            return 'e.g., XYZ Restaurant or "Prefer not to disclose"'
+          case 'freelancer':
+            return 'e.g., Self-employed / Freelance or "Prefer not to disclose"'
+          case 'unemployed-looking-for-work':
+            return 'Not applicable - currently unemployed'
+          case 'student':
+            return 'Not applicable - currently studying'
+          default:
+            return 'e.g., ABC Company or "Prefer not to disclose"'
+        }
+      
+      case 'current_salary':
+        switch (editedWorkStatus.work_status) {
+          case 'employed':
+            return 'e.g., ₱50,000 or "Prefer not to disclose"'
+          case 'part-time':
+            return 'e.g., ₱15,000 or "Prefer not to disclose"'
+          case 'freelancer':
+            return 'e.g., ₱30,000 (monthly average) or "Prefer not to disclose"'
+          case 'unemployed-looking-for-work':
+            return 'Not applicable - currently unemployed'
+          case 'student':
+            return 'Not applicable - currently studying'
+          default:
+            return 'e.g., ₱50,000 or "Prefer not to disclose"'
+        }
+      
+      case 'notice_period_days':
+        switch (editedWorkStatus.work_status) {
+          case 'employed':
+            return 'e.g., 30 days'
+          case 'part-time':
+            return 'e.g., 15 days'
+          case 'freelancer':
+            return 'e.g., 0 days (immediate availability)'
+          case 'unemployed-looking-for-work':
+            return 'Not applicable - currently unemployed'
+          case 'student':
+            return 'Not applicable - currently studying'
+          default:
+            return 'e.g., 30 days'
+        }
+      
+      default:
+        return ''
+    }
+  }
+
+  // Handle work status changes and disable/enable fields accordingly (matching stepper modal logic)
+  useEffect(() => {
+    if (!editedWorkStatus.work_status) return
+
+    const newEditedWorkStatus = { ...editedWorkStatus }
+
+    switch (editedWorkStatus.work_status) {
+      case 'employed':
+      case 'part-time':
+        // Enable all fields - no changes needed
+        break
+      
+      case 'unemployed-looking-for-work':
+      case 'student':
+        // Disable and clear: Current Employer, Current Salary, Notice Period
+        newEditedWorkStatus.current_employer = ''
+        newEditedWorkStatus.current_salary = ''
+        newEditedWorkStatus.notice_period_days = ''
+        break
+      
+      case 'freelancer':
+        // Set Notice Period to 0 if no input
+        if (!newEditedWorkStatus.notice_period_days) {
+          newEditedWorkStatus.notice_period_days = '0'
+        }
+        break
+    }
+
+    // Only update if there are changes
+    if (JSON.stringify(newEditedWorkStatus) !== JSON.stringify(editedWorkStatus)) {
+      setEditedWorkStatus(newEditedWorkStatus)
+    }
+  }, [editedWorkStatus.work_status])
 
   // Function to start editing personal information
   const startEditingPersonalInfo = () => {
@@ -154,7 +273,13 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
         position: userProfile.position || '',
         gender: userProfile.gender || '',
         gender_custom: userProfile.gender_custom || '',
-        birthday: userProfile.birthday || ''
+        birthday: userProfile.birthday || '',
+        location_place_id: userProfile.location_place_id || '',
+        location_lat: userProfile.location_lat || null,
+        location_lng: userProfile.location_lng || null,
+        location_city: userProfile.location_city || '',
+        location_province: userProfile.location_province || '',
+        location_country: userProfile.location_country || ''
       });
       setIsEditingPersonalInfo(true);
     }
@@ -740,7 +865,7 @@ transition={{ duration: 0.3 }}
                 {activeSection === 'overview' && (
                   <div className="space-y-8">
                     {/* Personal Information Section */}
-<div className="relative">
+<div className="relative z-[99999]">
                       <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
                       <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-cyan-500/20 backdrop-blur-sm">
                         <div className="flex items-center justify-between mb-6">
@@ -887,13 +1012,27 @@ type="text"
                               <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-green-300 mb-2 block">Location</label>
                                 {isEditingPersonalInfo ? (
-<input 
-type="text" 
-                                    value={editedPersonalInfo.location}
-                                    onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, location: e.target.value }))}
-                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-green-400/50 rounded-lg px-3 py-2 outline-none focus:border-green-400 focus:bg-gray-700/70 transition-all duration-200"
-                                    placeholder="Enter location"
-                                  />
+                                  <div className="relative z-[9999]">
+                                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-400 pointer-events-none z-10" />
+                                    <PlacesAutocomplete
+                                      value={editedPersonalInfo.location}
+                                      placeholder="Type city, province, municipality, or barangay"
+                                      onChange={(val) => setEditedPersonalInfo(prev => ({ ...prev, location: val }))}
+                                      onSelect={(place) => {
+                                        setEditedPersonalInfo(prev => ({
+                                          ...prev,
+                                          location: place.description,
+                                          location_place_id: place.place_id,
+                                          location_lat: place.lat,
+                                          location_lng: place.lng,
+                                          location_city: place.city,
+                                          location_province: place.province,
+                                          location_country: place.country
+                                        }))
+                                      }}
+                                    />
+                                    <p className="text-xs text-green-400/70 mt-1">Start typing to see location suggestions</p>
+                                  </div>
                                 ) : (
                                   <p className="text-white text-lg font-semibold">
                                     {userProfile.location || "No location data found"}
@@ -1199,12 +1338,11 @@ type="text"
                                 onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_mood: e.target.value }))}
                                 className="w-full bg-gray-700/50 border-2 border-pink-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-pink-400 focus:bg-gray-700/70 focus:outline-none"
                               >
-                                <option value="">Select mood</option>
-                                <option value="very_satisfied">Very Satisfied</option>
-                                <option value="satisfied">Satisfied</option>
-                                <option value="neutral">Neutral</option>
-                                <option value="dissatisfied">Dissatisfied</option>
-                                <option value="very_dissatisfied">Very Dissatisfied</option>
+                                <option value="">How are you feeling?</option>
+                                <option value="happy">😊 Happy</option>
+                                <option value="satisfied">😌 Satisfied</option>
+                                <option value="sad">😔 Sad</option>
+                                <option value="undecided">🤔 Undecided</option>
                               </select>
                             ) : (
                               <p className="text-white text-lg font-semibold">
@@ -1222,14 +1360,12 @@ type="text"
                                 onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, work_status: e.target.value }))}
                                 className="w-full bg-gray-700/50 border-2 border-emerald-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-emerald-400 focus:bg-gray-700/70 focus:outline-none"
                               >
-                                <option value="">Select work status</option>
-                                <option value="actively_looking">Actively Looking</option>
-                                <option value="open_to_opportunities">Open to Opportunities</option>
-                                <option value="not_looking">Not Looking</option>
-                                <option value="employed">Employed</option>
-                                <option value="unemployed">Unemployed</option>
-                                <option value="freelancing">Freelancing</option>
-                                <option value="contract">Contract</option>
+                                <option value="">Select your work status</option>
+                                <option value="employed">💼 Employed</option>
+                                <option value="unemployed-looking-for-work">🔍 Unemployed Looking for Work</option>
+                                <option value="freelancer">🆓 Freelancer</option>
+                                <option value="part-time">⏰ Part-time</option>
+                                <option value="student">🎓 Student</option>
                               </select>
                             ) : (
                               <p className="text-white text-lg font-semibold capitalize">
@@ -1248,10 +1384,8 @@ type="text"
                                 className="w-full bg-gray-700/50 border-2 border-teal-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-teal-400 focus:bg-gray-700/70 focus:outline-none"
                               >
                                 <option value="">Select preferred shift</option>
-                                <option value="day_shift">Day Shift</option>
-                                <option value="night_shift">Night Shift</option>
-                                <option value="graveyard_shift">Graveyard Shift</option>
-                                <option value="flexible">Flexible</option>
+                                <option value="day">Day</option>
+                                <option value="night">Night</option>
                                 <option value="both">Both</option>
                               </select>
                             ) : (
@@ -1318,11 +1452,11 @@ type="text"
                                 onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, work_setup: e.target.value }))}
                                 className="w-full bg-gray-700/50 border-2 border-amber-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-amber-400 focus:bg-gray-700/70 focus:outline-none"
                               >
-                                <option value="">Select work setup</option>
-                                <option value="remote">Remote</option>
-                                <option value="on_site">On Site</option>
-                                <option value="hybrid">Hybrid</option>
-                                <option value="flexible">Flexible</option>
+                                <option value="">Select work setup preference</option>
+                                <option value="Work From Office">Work From Office</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Work From Home">Work From Home</option>
+                                <option value="Any">Any</option>
                               </select>
                             ) : (
                               <p className="text-white text-lg font-semibold capitalize">
@@ -1335,14 +1469,15 @@ type="text"
                           {isOwner && (
                             <>
                               <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-blue-300 mb-2 block">Current Employer</label>
+                                <label className="text-sm font-medium text-blue-300 mb-2 block">Current Employer {!isFieldDisabled('current_employer') && <span className="text-red-400">*</span>}</label>
                                 {isEditingWorkStatus ? (
                                   <input
                                     type="text"
                                     value={editedWorkStatus.current_employer}
                                     onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_employer: e.target.value }))}
-                                    className="w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
-                                    placeholder="Enter current employer"
+                                    className={getFieldClassName('current_employer')}
+                                    placeholder={getFieldPlaceholder('current_employer')}
+                                    disabled={isFieldDisabled('current_employer')}
                                   />
                                 ) : (
                                   <p className="text-white text-lg font-semibold">
@@ -1351,14 +1486,15 @@ type="text"
                                 )}
 </div>
                               <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-blue-300 mb-2 block">Current Salary (in pesos)</label>
+                                <label className="text-sm font-medium text-blue-300 mb-2 block">Current Salary (in pesos) {!isFieldDisabled('current_salary') && <span className="text-red-400">*</span>}</label>
                                 {isEditingWorkStatus ? (
                                   <input
                                     type="text"
                                     value={editedWorkStatus.current_salary}
                                     onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, current_salary: e.target.value }))}
-                                    className="w-full bg-gray-700/50 border-2 border-blue-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-blue-400 focus:bg-gray-700/70 focus:outline-none"
-                                    placeholder="e.g., 25000 or P20000-P25000"
+                                    className={getFieldClassName('current_salary')}
+                                    placeholder={getFieldPlaceholder('current_salary')}
+                                    disabled={isFieldDisabled('current_salary')}
                                   />
                                 ) : (
                                   <p className="text-white text-lg font-semibold">
@@ -1373,14 +1509,15 @@ type="text"
                                 )}
 </div>
                               <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
-                                <label className="text-sm font-medium text-indigo-300 mb-2 block">Notice Period (in days)</label>
+                                <label className="text-sm font-medium text-indigo-300 mb-2 block">Notice Period (in days) {!isFieldDisabled('notice_period_days') && <span className="text-red-400">*</span>}</label>
                                 {isEditingWorkStatus ? (
                                   <input
                                     type="number"
                                     value={editedWorkStatus.notice_period_days}
                                     onChange={(e) => setEditedWorkStatus(prev => ({ ...prev, notice_period_days: e.target.value }))}
-                                    className="w-full bg-gray-700/50 border-2 border-indigo-400/50 rounded-lg px-3 py-2 text-white text-lg font-semibold focus:border-indigo-400 focus:bg-gray-700/70 focus:outline-none"
-                                    placeholder="Enter notice period in days"
+                                    className={getFieldClassName('notice_period_days')}
+                                    placeholder={getFieldPlaceholder('notice_period_days')}
+                                    disabled={isFieldDisabled('notice_period_days')}
                                   />
                                 ) : (
                                   <p className="text-white text-lg font-semibold">

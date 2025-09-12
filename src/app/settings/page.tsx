@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { PacmanLoader } from 'react-spinners'
+import { Loader as GoogleMapsLoader } from '@googlemaps/js-api-loader'
 import Header from '@/components/layout/Header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -77,6 +78,14 @@ interface UserProfile {
   phone?: string
   bio?: string
   position?: string
+  location_place_id?: string
+  location_lat?: number | null
+  location_lng?: number | null
+  location_city?: string
+  location_province?: string
+  location_country?: string
+  location_barangay?: string
+  location_region?: string
 }
 
 export default function SettingsPage() {
@@ -90,6 +99,8 @@ export default function SettingsPage() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const locationInputRef = useRef<HTMLInputElement | null>(null)
+  const placesAutocompleteRef = useRef<any>(null)
   
   const [profileData, setProfileData] = useState<UserProfile>({
     id: '',
@@ -100,7 +111,15 @@ export default function SettingsPage() {
     avatar_url: '',
     phone: '',
     bio: '',
-    position: ''
+    position: '',
+    location_place_id: '',
+    location_lat: null,
+    location_lng: null,
+    location_city: '',
+    location_province: '',
+    location_country: '',
+    location_barangay: '',
+    location_region: ''
   })
 
   const [notifications, setNotifications] = useState({
@@ -178,6 +197,70 @@ export default function SettingsPage() {
       router.push('/')
     }
   }, [user, loading, router])
+
+  // Initialize Google Places Autocomplete for location field
+  useEffect(() => {
+    const initPlaces = async () => {
+      try {
+        if (!locationInputRef.current) return
+        if (placesAutocompleteRef.current) return // already initialized
+
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        if (!apiKey) {
+          console.warn('Google Maps API key missing: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY')
+          return
+        }
+
+        const loader = new GoogleMapsLoader({ apiKey, libraries: ['places'] })
+        const google = await loader.load()
+        if (!locationInputRef.current) return
+
+        const autocomplete = new google.maps.places.Autocomplete(locationInputRef.current, {
+          fields: ['place_id', 'formatted_address', 'address_components', 'geometry'],
+          types: ['(regions)'],
+          componentRestrictions: { country: 'ph' }
+        })
+
+        placesAutocompleteRef.current = autocomplete
+        console.log('✅ Google Places Autocomplete attached to location input')
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace()
+          if (!place || !place.geometry || !place.address_components) return
+
+          const get = (type: string) =>
+            place.address_components?.find((c: any) => c.types.includes(type))?.long_name || ''
+
+          const province = get('administrative_area_level_2') || get('administrative_area_level_1')
+          const city = get('locality') || get('administrative_area_level_3')
+          const country = get('country')
+          const barangay = get('administrative_area_level_3') || get('sublocality')
+          const region = get('administrative_area_level_1')
+
+          console.log('📍 Selected place', { placeId: place.place_id, province, city, country })
+
+          setProfileData(prev => ({
+            ...prev,
+            location: place.formatted_address || '',
+            location_place_id: place.place_id || '',
+            location_lat: place.geometry!.location?.lat() ?? null,
+            location_lng: place.geometry!.location?.lng() ?? null,
+            location_city: city,
+            location_province: province,
+            location_country: country,
+            location_barangay: barangay,
+            location_region: region
+          }))
+        })
+      } catch (error) {
+        console.error('❌ Failed to initialize Google Places Autocomplete:', error)
+      }
+    }
+
+    // Initialize after a short delay to ensure the input is rendered
+    const timer = setTimeout(initPlaces, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Load user profile data
   useEffect(() => {
@@ -719,12 +802,22 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-300 mb-2 block">Location</label>
-                  <Input
-                    value={profileData.location}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                    className="bg-white/5 border-white/10 text-white"
-                    placeholder="Enter your location"
-                  />
+                  <div className="relative">
+                    <Input
+                      ref={locationInputRef}
+                      value={profileData.location}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white pl-10"
+                      placeholder="Enter your location"
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Start typing to see location suggestions</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-300 mb-2 block">Position/Title</label>
