@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { syncUserToDatabaseServer } from '@/lib/user-sync-server'
 
 export async function POST(request: NextRequest) {
+  let userData: any = null
+  
   try {
-    const userData = await request.json()
+    userData = await request.json()
     
     console.log('📥 Received user sync request:', {
       id: userData.id,
@@ -48,10 +50,10 @@ export async function POST(request: NextRequest) {
     console.error('❌ Error details:', {
       message: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
-      userData: {
-        id: userData?.id,
-        email: userData?.email
-      }
+      userData: userData ? {
+        id: userData.id,
+        email: userData.email
+      } : 'No user data received'
     })
     return NextResponse.json({ 
       error: 'Internal server error',

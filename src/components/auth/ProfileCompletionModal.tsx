@@ -149,7 +149,7 @@ export default function ProfileCompletionModal({
           if (!place || !place.geometry || !place.address_components) return
 
           const get = (type: string) =>
-            place.address_components?.find(c => c.types.includes(type))?.long_name || ''
+            place.address_components?.find((c: any) => c.types.includes(type))?.long_name || ''
 
           const province = get('administrative_area_level_2') || get('administrative_area_level_1')
           const city = get('locality') || get('administrative_area_level_3')
@@ -457,12 +457,21 @@ export default function ProfileCompletionModal({
       return
     }
 
+    // Check if user is available
+    if (!user?.id) {
+      console.error('User not available:', { user, userId: user?.id })
+      setErrors({ general: 'User not authenticated. Please refresh the page and try again.' })
+      return
+    }
+
+    console.log('Submitting profile completion for user:', user.id)
+
     setIsLoading(true)
 
     try {
       // Update user profile with the additional information
       const profileUpdateData = {
-        userId: user?.id,
+        userId: user.id,
         gender: formData.gender,
                  gender_custom: formData.gender === 'others' ? formData.genderCustom : null,
         location: formData.location,
@@ -482,6 +491,7 @@ export default function ProfileCompletionModal({
       }
 
       // Update profile in Railway database
+      console.log('Sending profile update:', profileUpdateData)
       const profileResponse = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
@@ -498,7 +508,7 @@ export default function ProfileCompletionModal({
 
              // Update work status in Railway database
                const workStatusData = {
-          userId: user?.id,
+          userId: user.id,
           currentEmployer: formData.currentEmployer,
           currentPosition: formData.position,  // Use position from Step 1
           currentSalary: formData.currentSalary,
@@ -511,6 +521,7 @@ export default function ProfileCompletionModal({
           completed_data: true
         }
 
+      console.log('Sending work status update:', workStatusData)
       const workStatusResponse = await fetch('/api/user/work-status', {
         method: 'PUT',
         headers: {
@@ -532,7 +543,8 @@ export default function ProfileCompletionModal({
       onOpenChange(false)
     } catch (error) {
       console.error('Error updating profile:', error)
-      setErrors({ general: 'Failed to update profile. Please try again.' })
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile. Please try again.'
+      setErrors({ general: errorMessage })
     } finally {
       setIsLoading(false)
     }
