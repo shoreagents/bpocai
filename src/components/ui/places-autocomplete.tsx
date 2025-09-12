@@ -168,7 +168,7 @@ export function PlacesAutocomplete({ value, placeholder, disabled, onChange, onS
         role="combobox"
       />
       {open && (
-        <div className="absolute z-[10000] mt-1 w-full rounded-md border border-white/20 bg-gray-900 text-white shadow-lg">
+        <div className="absolute z-[99999] mt-1 w-full rounded-md border border-white/20 bg-gray-900 text-white shadow-lg">
           {loading && (
             <div className="px-3 py-2 text-sm text-gray-400">Loading…</div>
           )}
