@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Search, RefreshCw, User, Mail, Calendar, MapPin, FileText, Eye, Star, Users, Trophy } from 'lucide-react'
+import { Search, RefreshCw, User, Mail, Calendar, MapPin, Eye, Star, Users, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -32,7 +32,6 @@ export default function TalentSearchPage() {
   const [searchTerm, setSearchTerm] = useState('')
      const [stats, setStats] = useState([
      { label: "Total", count: 0, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
-     { label: "Resume Available", count: 0, color: "bg-gradient-to-br from-yellow-500 to-yellow-600", icon: FileText },
      { label: "Profile Complete", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
    ])
 
@@ -74,12 +73,10 @@ export default function TalentSearchPage() {
         setFilteredCandidates(data.candidates)
         
                  // Update stats
-         const resumeCount = data.candidates.filter((candidate: any) => candidate.resumeAvailable).length
          const profileCount = data.candidates.filter((candidate: any) => candidate.profileComplete).length
          
          setStats([
            { label: "Total", count: data.total, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
-           { label: "Resume Available", count: resumeCount, color: "bg-gradient-to-br from-yellow-500 to-yellow-600", icon: FileText },
            { label: "Profile Complete", count: profileCount, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
          ])
       }
@@ -98,9 +95,6 @@ export default function TalentSearchPage() {
     router.push(`/${slug}`)
   }
 
-  const handleViewResume = (resumeSlug: string) => {
-    router.push(`/resume/${resumeSlug}`)
-  }
 
   return (
     <>
@@ -119,7 +113,7 @@ export default function TalentSearchPage() {
            </div>
 
                      {/* Stats Cards */}
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {stats.map((stat, index) => (
               <Card key={index} className="glass-card border-white/10 hover:border-white/20 transition-all duration-300 group relative overflow-hidden">
                 <CardContent className="p-6 relative z-10">
@@ -246,15 +240,6 @@ export default function TalentSearchPage() {
 
                       {/* Status Badges */}
                       <div className="flex flex-wrap gap-2 mb-4 justify-center">
-                        {candidate.resumeAvailable ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30">
-                            Resume Available
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30">
-                            Resume Unavailable
-                          </span>
-                        )}
                         {candidate.profileComplete ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
                             Profile Complete
@@ -266,32 +251,11 @@ export default function TalentSearchPage() {
                         )}
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        {candidate.resumeAvailable && candidate.resumeSlug ? (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/10"
-                            onClick={() => handleViewResume(candidate.resumeSlug!)}
-                          >
-                            <FileText className="w-4 h-4 mr-1" />
-                            View Resume
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1 text-gray-400 border-gray-500/30 cursor-not-allowed opacity-50"
-                            disabled
-                          >
-                            <FileText className="w-4 h-4 mr-1" />
-                            No Resume
-                          </Button>
-                        )}
+                      {/* Action Button */}
+                      <div className="flex justify-center">
                         <Button 
                           size="sm" 
-                          className="flex-1 bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
+                          className="w-full bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
                           onClick={() => handleViewProfile(candidate.slug)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
