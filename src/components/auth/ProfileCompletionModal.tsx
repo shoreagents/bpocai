@@ -37,6 +37,7 @@ import {
 
 interface ProfileCompletionData {
   // Step 1: Profile Information
+  username: string
   gender: string
   genderCustom: string
   location: string
@@ -91,6 +92,7 @@ export default function ProfileCompletionModal({
   
   const [formData, setFormData] = useState<ProfileCompletionData>({
     // Step 1: Profile Information
+    username: '',
     gender: '',
     genderCustom: '',
     location: '',
@@ -113,6 +115,9 @@ export default function ProfileCompletionModal({
   })
 
   const [age, setAge] = useState<number | null>(null)
+  const [usernameChecking, setUsernameChecking] = useState<boolean>(false)
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+  const [usernameTimeout, setUsernameTimeout] = useState<NodeJS.Timeout | null>(null)
   const locationInputRef = useRef<HTMLInputElement | null>(null)
   const placesAutocompleteRef = useRef<any>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -240,6 +245,15 @@ export default function ProfileCompletionModal({
     }
   }, [formData.workStatus])
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (usernameTimeout) {
+        clearTimeout(usernameTimeout)
+      }
+    }
+  }, [usernameTimeout])
+
   // Helper functions to determine field states
   const isFieldDisabled = (field: string) => {
     switch (formData.workStatus) {
@@ -329,11 +343,59 @@ export default function ProfileCompletionModal({
      }
   }
 
+  // Check username availability
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameAvailable(null)
+      return
+    }
+
+    setUsernameChecking(true)
+    try {
+      const response = await fetch('/api/user/check-username', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, userId: user?.id }),
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        setUsernameAvailable(data.available)
+        if (!data.available) {
+          setErrors(prev => ({ ...prev, username: 'Username is already taken' }))
+        } else {
+          setErrors(prev => ({ ...prev, username: '' }))
+        }
+      } else {
+        setErrors(prev => ({ ...prev, username: data.error || 'Error checking username' }))
+        setUsernameAvailable(false)
+      }
+    } catch (error) {
+      console.error('Error checking username:', error)
+      setErrors(prev => ({ ...prev, username: 'Error checking username availability' }))
+      setUsernameAvailable(false)
+    } finally {
+      setUsernameChecking(false)
+    }
+  }
+
   const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {}
 
     switch (step) {
       case 1: // Profile Information
+        if (!formData.username.trim()) {
+          newErrors.username = 'Username is required'
+        } else if (formData.username.length < 3) {
+          newErrors.username = 'Username must be at least 3 characters'
+        } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
+          newErrors.username = 'Username can only contain letters, numbers, underscores, and hyphens'
+        } else if (usernameAvailable === false) {
+          newErrors.username = 'Username is already taken'
+        }
         if (!formData.gender.trim()) {
           newErrors.gender = 'Gender is required'
                  } else if (formData.gender === 'others' && !formData.genderCustom.trim()) {
@@ -472,6 +534,7 @@ export default function ProfileCompletionModal({
       // Update user profile with the additional information
       const profileUpdateData = {
         userId: user.id,
+        username: formData.username,
         gender: formData.gender,
                  gender_custom: formData.gender === 'others' ? formData.genderCustom : null,
         location: formData.location,
@@ -585,6 +648,55 @@ export default function ProfileCompletionModal({
               return (
                 <div className="space-y-4 pb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Username field */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white block">
+                  Username <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="e.g., john_doe123"
+                    value={formData.username}
+                    onChange={(e) => {
+                      handleInputChange('username', e.target.value)
+                      // Clear previous timeout
+                      if (usernameTimeout) {
+                        clearTimeout(usernameTimeout)
+                      }
+                      // Set new timeout for username checking
+                      const timeoutId = setTimeout(() => {
+                        checkUsernameAvailability(e.target.value)
+                      }, 500)
+                      setUsernameTimeout(timeoutId)
+                    }}
+                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
+                  {usernameChecking && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+                  )}
+                  {usernameAvailable === true && !usernameChecking && (
+                    <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-400" />
+                  )}
+                  {usernameAvailable === false && !usernameChecking && (
+                    <X className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-400" />
+                  )}
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-400">
+                    {formData.username.length}/20 characters (minimum 3 required)
+                  </span>
+                  {usernameAvailable === true && (
+                    <span className="text-green-400">✓ Username available</span>
+                  )}
+                  {usernameAvailable === false && (
+                    <span className="text-red-400">✗ Username taken</span>
+                  )}
+                </div>
+                {errors.username && <p className="text-red-400 text-xs">{errors.username}</p>}
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white block">
                   Gender <span className="text-red-400">*</span>

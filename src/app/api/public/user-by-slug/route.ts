@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     }
 
     const res = await pool.query(
-      `SELECT u.id, u.email, u.first_name, u.last_name, u.full_name, u.location, u.avatar_url, u.phone, u.bio, u.position, u.gender, u.gender_custom, u.birthday, u.created_at, u.updated_at, u.slug, 
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.full_name, u.location, u.avatar_url, u.phone, u.bio, u.position, u.gender, u.gender_custom, u.birthday, u.created_at, u.updated_at, u.slug, u.username,
        aar.overall_score as resume_score, aar.key_strengths, aar.strengths_analysis, aar.ats_compatibility_score, aar.content_quality_score, aar.professional_presentation_score, aar.skills_alignment_score,
        aar.improvements, aar.recommendations, aar.improved_summary, aar.salary_analysis, aar.career_path, aar.section_analysis,
        uws.current_employer, uws.current_position, uws.current_salary, uws.notice_period_days, uws.current_mood, uws.work_status, uws.preferred_shift, uws.expected_salary, uws.work_setup
