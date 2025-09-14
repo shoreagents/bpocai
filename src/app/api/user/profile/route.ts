@@ -118,8 +118,11 @@ export async function PUT(request: NextRequest) {
     if (available.has('location_city')) selectFields.push('location_city')
     if (available.has('location_province')) selectFields.push('location_province')
     if (available.has('location_country')) selectFields.push('location_country')
+    if (available.has('location_barangay')) selectFields.push('location_barangay')
+    if (available.has('location_region')) selectFields.push('location_region')
     if (available.has('gender')) selectFields.push('gender')
     if (available.has('gender_custom')) selectFields.push('gender_custom')
+    if (available.has('username')) selectFields.push('username')
     
     const selectQuery = `SELECT ${selectFields.join(', ')} FROM users WHERE id = $1`
     console.log('🔍 SELECT query:', selectQuery)
@@ -155,6 +158,7 @@ export async function PUT(request: NextRequest) {
 
     const gender = available.has('gender') ? (updateData.gender ?? existing.gender) : null
     const genderCustom = available.has('gender_custom') ? (updateData.gender_custom ?? existing.gender_custom) : null
+    const username = available.has('username') ? (updateData.username ?? existing.username) : null
 
     console.log('🔧 Processed field values:', {
       firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom,
@@ -205,6 +209,7 @@ export async function PUT(request: NextRequest) {
     if (available.has('birthday')) optionalFields.push({ col: 'birthday', val: birthday })
     if (available.has('gender')) optionalFields.push({ col: 'gender', val: gender })
     if (available.has('gender_custom')) optionalFields.push({ col: 'gender_custom', val: genderCustom })
+    if (available.has('username')) optionalFields.push({ col: 'username', val: username })
 
     const allFields = [...baseFields, ...optionalFields]
     const setClauses: string[] = []

@@ -54,6 +54,7 @@ interface UserProfile {
   first_name?: string;
   last_name?: string;
   full_name: string;
+  username?: string;
   email: string;
   phone?: string;
   location?: string;
@@ -774,6 +775,13 @@ return (
                           <span className="text-sm font-bold text-blue-400">Verified</span>
 </div>
  </div>
+ 
+                      {/* Username */}
+                      {userProfile.username && (
+                        <p className="text-xl text-gray-400 font-medium">
+                          @{userProfile.username}
+                        </p>
+                      )}
  
                       <p className="text-2xl text-cyan-300 font-medium">
                         {userProfile.position || "No position data found"}
