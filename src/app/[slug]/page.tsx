@@ -48,6 +48,7 @@ import { Separator } from '@/components/ui/separator';
   import Header from '@/components/layout/Header';
 import { supabase } from '@/lib/supabase';
 import { slugify } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfile {
   id: string;
@@ -111,10 +112,14 @@ const params = useParams();
   const searchParams = useSearchParams();
  const slug = params.slug as string;
 
+  // Get authentication state
+  const { user, loading: authLoading } = useAuth();
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState<string | null>(null);
 const [isOwner, setIsOwner] = useState<boolean>(false);
+const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<string>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
  const [overallScore, setOverallScore] = useState<number>(0);
@@ -263,6 +268,26 @@ const [isOwner, setIsOwner] = useState<boolean>(false);
       setEditedWorkStatus(newEditedWorkStatus)
     }
   }, [editedWorkStatus.work_status])
+
+  // Sign up CTA component for anonymous users
+  const SignUpCTA = ({ title, description, icon: Icon, className = "" }: { title: string; description: string; icon: any; className?: string }) => (
+    <div className={`relative ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl blur-xl"></div>
+      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-8 border border-blue-500/20 backdrop-blur-sm text-center">
+        <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Icon className="w-8 h-8 text-white" />
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-4">{title}</h3>
+        <p className="text-gray-300 text-lg mb-6">{description}</p>
+        <Button
+          onClick={() => router.push('/auth')}
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-300 hover:scale-105"
+        >
+          Sign Up to Access
+        </Button>
+      </div>
+    </div>
+  );
 
   // Function to start editing personal information
   const startEditingPersonalInfo = () => {
@@ -558,13 +583,16 @@ useEffect(() => {
         
         if (isPublicView) {
           setIsOwner(false);
+          setIsAnonymous(true);
         } else {
  try {
  const { data: authData } = await supabase.auth.getUser();
  const currentUserId = authData?.user?.id;
             setIsOwner(!!currentUserId && String(currentUserId) === String(user.id || ''));
+            setIsAnonymous(!currentUserId);
 } catch {
  setIsOwner(false);
+            setIsAnonymous(true);
 }
         }
         
@@ -768,7 +796,7 @@ return (
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 flex-wrap">
                         <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent">
-                          {userProfile.full_name}
+                          {isOwner ? userProfile.full_name : (userProfile.first_name || userProfile.full_name)}
                         </h1>
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 backdrop-blur-sm">
                           <CheckCircle className="w-5 h-5 text-blue-400" />
@@ -833,7 +861,7 @@ return (
               <nav className="flex space-x-0">
                 {[
                   { id: 'overview', label: 'Overview', icon: User, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', activeBgColor: 'bg-cyan-500/20', borderColor: 'border-cyan-400' },
-                  { id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', activeBgColor: 'bg-green-500/20', borderColor: 'border-green-400' },
+                  ...(isAnonymous ? [] : [{ id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', activeBgColor: 'bg-green-500/20', borderColor: 'border-green-400' }]),
                   { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', activeBgColor: 'bg-purple-500/20', borderColor: 'border-purple-400' },
                   { id: 'game-results', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', activeBgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-400' },
                   { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-orange-400', bgColor: 'bg-orange-500/10', activeBgColor: 'bg-orange-500/20', borderColor: 'border-orange-400' },
@@ -1208,48 +1236,59 @@ type="text"
 </div>
 </div>
 
-                    {/* Key Strengths Section */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
-                            <Star className="w-6 h-6 text-white" />
+                    {/* Sign-up CTA for anonymous users */}
+                    {isAnonymous && (
+                      <SignUpCTA
+                        title="Create Your Own Analysis"
+                        description="Sign up to upload your resume and get detailed AI analysis scores, personalized insights, and career recommendations tailored just for you."
+                        icon={BarChart3}
+                      />
+                    )}
+
+                    {/* Key Strengths Section - Hidden for anonymous users */}
+                    {!isAnonymous && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
+                              <Star className="w-6 h-6 text-white" />
 </div>
-                          <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
-                            Key Strengths
-</span>
+                            <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
+                              Key Strengths
+                            </span>
 </h3>
-                        {userProfile.key_strengths && userProfile.key_strengths.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {userProfile.key_strengths.map((strength, index) => (
-                              <div key={index} className="group bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex-shrink-0 animate-pulse"></div>
-                                  <span className="text-white font-semibold text-lg">{strength}</span>
+                          {userProfile.key_strengths && userProfile.key_strengths.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {userProfile.key_strengths.map((strength, index) => (
+                                <div key={index} className="group bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex-shrink-0 animate-pulse"></div>
+                                    <span className="text-white font-semibold text-lg">{strength}</span>
 </div>
 </div>
-                            ))}
+                              ))}
 </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Star className="w-8 h-8 text-gray-500" />
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Star className="w-8 h-8 text-gray-500" />
 </div>
-                            <p className="text-gray-400 text-lg mb-4">No key strengths data found</p>
-                            {isOwner && (
-                              <Button
-                                onClick={() => router.push('/resume-builder')}
-                                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
-                              >
-                                <FileText className="w-4 h-4 mr-2" />
-                                Upload Resume for Analysis
-                              </Button>
-                            )}
+                              <p className="text-gray-400 text-lg mb-4">No key strengths data found</p>
+                              {isOwner && (
+                                <Button
+                                  onClick={() => router.push('/resume-builder')}
+                                  className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Upload Resume for Analysis
+                                </Button>
+                              )}
 </div>
-                        )}
+                          )}
  </div>
  </div>
+                    )}
 
                     {/* BPOC.AI Verification Card */}
                     <div className="relative">
@@ -1642,29 +1681,30 @@ type="text"
  </div>
  </div>
 
-                    {/* Improved Summary */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-indigo-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
-                            <FileText className="w-6 h-6 text-white" />
+                    {/* Improved Summary - Hidden for anonymous users */}
+                    {!isAnonymous && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-indigo-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-lg">
+                              <FileText className="w-6 h-6 text-white" />
  </div>
-                          <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                            AI-Improved Professional Summary
-                          </span>
-                        </h3>
-                        {userProfile.improved_summary ? (
-                          <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-400/30">
-                            <p className="text-gray-200 leading-relaxed text-lg">{userProfile.improved_summary}</p>
+                            <span className="bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                              AI-Improved Professional Summary
+                            </span>
+                          </h3>
+                          {userProfile.improved_summary ? (
+                            <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-6 border border-indigo-400/30">
+                              <p className="text-gray-200 leading-relaxed text-lg">{userProfile.improved_summary}</p>
  </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <FileText className="w-8 h-8 text-gray-500" />
-                            </div>
-                            <p className="text-gray-400 text-lg mb-4">No improved summary data found</p>
-                            {isOwner && (
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FileText className="w-8 h-8 text-gray-500" />
+                              </div>
+                              <p className="text-gray-400 text-lg mb-4">No improved summary data found</p>
+                              {isOwner && (
  <Button 
  onClick={() => router.push('/resume-builder')}
                                 className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
@@ -1672,67 +1712,69 @@ type="text"
  <FileText className="w-4 h-4 mr-2" />
                                 Upload Resume for Analysis
  </Button>
-                            )}
+                              )}
  </div>
-                        )}
+                          )}
 </div>
 </div>
+                    )}
 
-                    {/* Strengths Analysis */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-emerald-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-emerald-400 to-green-500 rounded-lg">
-                            <Star className="w-6 h-6 text-white" />
+                    {/* Strengths Analysis - Hidden for anonymous users */}
+                    {!isAnonymous && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-emerald-500/20 backdrop-blur-sm">
+                          <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-r from-emerald-400 to-green-500 rounded-lg">
+                              <Star className="w-6 h-6 text-white" />
 </div>
-                          <span className="bg-gradient-to-r from-emerald-300 to-green-300 bg-clip-text text-transparent">
-                            Strengths Analysis
-                          </span>
-                        </h3>
-                        <div 
-                          className="bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-xl p-6 border border-emerald-400/30 max-h-96 overflow-y-auto"
-                          style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: '#4ade80 #22c55e20'
-                          }}
-                        >
-                        {userProfile.strengths_analysis ? (
-                          <div className="text-gray-200 leading-relaxed text-base">
-                            {typeof userProfile.strengths_analysis === 'object' && userProfile.strengths_analysis !== null ? (
-                              <div className="space-y-4">
-                                {Object.entries(userProfile.strengths_analysis).map(([key, value]) => (
-                                  <div key={key} className="border-l-4 border-emerald-400 pl-4 bg-emerald-500/5 rounded-r-lg p-3">
-                                    <h4 className="font-semibold text-emerald-300 capitalize mb-2">
-                                      {key.replace(/_/g, ' ')}
-                                    </h4>
-                                    <div className="text-gray-300">
-                                      {Array.isArray(value) ? (
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {value.map((item, index) => (
-                                            <li key={index}>
-                                              {typeof item === 'object' ? (
-                                                <div className="ml-4 space-y-1">
-                                                  {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
-                                                    <div key={itemKey}>
-                                                      <span className="font-medium text-emerald-200">
-                                                        {itemKey.replace(/_/g, ' ')}:
-                                                      </span>
-                                                      <span className="ml-2">
-                                                        {Array.isArray(itemValue) ? itemValue.join(', ') : 
-                                                         typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
-                                                         String(itemValue || '')}
-                                                      </span>
+                            <span className="bg-gradient-to-r from-emerald-300 to-green-300 bg-clip-text text-transparent">
+                              Strengths Analysis
+                            </span>
+                          </h3>
+                          <div 
+                            className="bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-xl p-6 border border-emerald-400/30 max-h-96 overflow-y-auto"
+                            style={{
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#4ade80 #22c55e20'
+                            }}
+                          >
+                          {userProfile.strengths_analysis ? (
+                            <div className="text-gray-200 leading-relaxed text-base">
+                              {typeof userProfile.strengths_analysis === 'object' && userProfile.strengths_analysis !== null ? (
+                                <div className="space-y-4">
+                                  {Object.entries(userProfile.strengths_analysis).map(([key, value]) => (
+                                    <div key={key} className="border-l-4 border-emerald-400 pl-4 bg-emerald-500/5 rounded-r-lg p-3">
+                                      <h4 className="font-semibold text-emerald-300 capitalize mb-2">
+                                        {key.replace(/_/g, ' ')}
+                                      </h4>
+                                      <div className="text-gray-300">
+                                        {Array.isArray(value) ? (
+                                          <ul className="list-disc list-inside space-y-1">
+                                            {value.map((item, index) => (
+                                              <li key={index}>
+                                                {typeof item === 'object' ? (
+                                                  <div className="ml-4 space-y-1">
+                                                    {typeof item === 'object' && item !== null ? Object.entries(item).map(([itemKey, itemValue]) => (
+                                                      <div key={itemKey}>
+                                                        <span className="font-medium text-emerald-200">
+                                                          {itemKey.replace(/_/g, ' ')}:
+                                                        </span>
+                                                        <span className="ml-2">
+                                                          {Array.isArray(itemValue) ? itemValue.join(', ') : 
+                                                           typeof itemValue === 'object' && itemValue !== null ? JSON.stringify(itemValue) : 
+                                                           String(itemValue || '')}
+                                                        </span>
 </div>
-                                                  )) : null}
+                                                    )) : null}
 </div>
-                                              ) : (
-                                                item
-                                              )}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : typeof value === 'object' ? (
+                                                ) : (
+                                                  item
+                                                )}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : typeof value === 'object' ? (
 <div className="space-y-2">
                                           {typeof value === 'object' && value !== null ? Object.entries(value).map(([subKey, subValue]) => (
                                             <div key={subKey}>
@@ -1747,24 +1789,24 @@ type="text"
 </div>
                                           )) : null}
 </div>
-                                      ) : (
-                                        <p>{String(value || '')}</p>
+                                        ) : (
+                                          <p>{String(value || '')}</p>
  )}
  </div>
 </div>
 ))}
 </div>
-                            ) : (
-                              <p>{userProfile.strengths_analysis}</p>
-                            )}
+                              ) : (
+                                <p>{userProfile.strengths_analysis}</p>
+                              )}
 </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Star className="w-8 h-8 text-gray-500" />
-                            </div>
-                            <p className="text-gray-400 text-lg mb-4">No strengths analysis data found</p>
-                            {isOwner && (
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Star className="w-8 h-8 text-gray-500" />
+                              </div>
+                              <p className="text-gray-400 text-lg mb-4">No strengths analysis data found</p>
+                              {isOwner && (
  <Button 
  onClick={() => router.push('/resume-builder')}
                                 className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-300 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/70 hover:text-purple-200 transition-all duration-300 hover:scale-105"
@@ -1772,12 +1814,13 @@ type="text"
  <FileText className="w-4 h-4 mr-2" />
                                 Upload Resume for Analysis
  </Button>
-                            )}
+                              )}
 </div>
-                        )}
+                          )}
 </div>
 </div>
 </div>
+                    )}
 
                     {/* Improvements - Owner Only */}
                     {isOwner && (
@@ -2562,7 +2605,15 @@ type="text"
  </div>
  </div>
 
- </div>
+                    {/* Sign-up CTA for anonymous users */}
+                    {isAnonymous && (
+                      <SignUpCTA
+                        title="View Game Interpretations"
+                        description="Sign up to view detailed interpretations of game results, unlock personalized insights, and play career assessment games to discover your professional strengths."
+                        icon={Gamepad2}
+                      />
+                    )}
+                  </div>
                 )}
 
                 {/* Achievements Tab */}
@@ -2652,8 +2703,17 @@ type="text"
                         </div>
  </div>
  </div>
- </div>
- )}
+
+                    {/* Sign-up CTA for anonymous users */}
+                    {isAnonymous && (
+                      <SignUpCTA
+                        title="View Other Achievements"
+                        description="Sign up to unlock all achievements, track your professional milestones, and compete with other users on the leaderboard."
+                        icon={Trophy}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* Power Stats Tab */}
                 {activeSection === 'power-stats' && (
@@ -2760,8 +2820,17 @@ type="text"
  </div>
  </div>
  </div>
- </div>
- )}
+
+                    {/* Sign-up CTA for anonymous users */}
+                    {isAnonymous && (
+                      <SignUpCTA
+                        title="View Other Power Stats"
+                        description="Sign up to unlock detailed power statistics, compare your performance with other users, and track your professional growth over time."
+                        icon={Zap}
+                      />
+                    )}
+                  </div>
+                )}
 
  </motion.div>
             </div>
