@@ -160,7 +160,7 @@ const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
  if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
  if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
  return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
- }
+}
 
   // Helper functions for work status field management (matching stepper modal logic)
   const isFieldDisabled = (field: string) => {
@@ -236,7 +236,7 @@ const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   }
 
   // Handle work status changes and disable/enable fields accordingly (matching stepper modal logic)
-  useEffect(() => {
+useEffect(() => {
     if (!editedWorkStatus.work_status) return
 
     const newEditedWorkStatus = { ...editedWorkStatus }
@@ -597,7 +597,7 @@ useEffect(() => {
         }
         
  setError(null);
-        
+
 } catch (e) {
  setError('Failed to load profile');
 } finally {
@@ -821,25 +821,25 @@ return (
                       <div className="flex items-center gap-3 text-lg text-gray-300">
                         <div className="p-2 rounded-full bg-cyan-500/10 border border-cyan-500/20">
                           <MapPin className="w-5 h-5 text-cyan-400" />
-</div>
+ </div>
                         <span>{userProfile.location || "No location data found"}</span>
-</div>
+ </div>
 
                       {overallScore > 0 ? (
                         <div className={`px-4 py-2 rounded-full border-2 ${rank.bgColor} ${rank.borderColor} backdrop-blur-sm`}>
                           <div className={`text-sm font-bold ${rank.color} flex items-center gap-2`}>
                             <Star className="w-4 h-4" />
                             {rank.rank} RANK
-                          </div>
-                        </div>
+ </div>
+ </div>
                       ) : (
                         <div className="px-4 py-2 rounded-full border-2 bg-gray-600/20 border-gray-500/30 backdrop-blur-sm">
                           <div className="text-sm font-bold text-gray-400 flex items-center gap-2">
                             <Star className="w-4 h-4" />
                             NO RANK
-                          </div>
-                        </div>
-                      )}
+ </div>
+ </div>
+ )}
  </div>
 
 
@@ -850,11 +850,11 @@ return (
                       ) : (
                         <p className="text-gray-400 italic">No bio data found</p>
  )}
- </div>
- </div>
- </div>
-              </div>
- </div>
+</div>
+</div>
+</div>
+</div>
+</div>
 
             {/* Tab Navigation */}
             <div className="border-b border-gray-800">
@@ -872,7 +872,7 @@ return (
 
 return (
                     <div key={item.id} className="relative">
- <button
+<button
  onClick={() => setActiveSection(item.id)}
                         className={`flex items-center gap-2 px-6 py-4 text-base font-medium transition-all duration-200 border-b-2 ${
  isActive 
@@ -882,13 +882,13 @@ return (
                       >
                         <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.color}`} />
                         {item.label}
- </button>
+</button>
 
  </div>
  );
 })}
- </nav>
- </div>
+</nav>
+</div>
 
             {/* Tab Content */}
             <div className="p-8">
@@ -996,7 +996,7 @@ type="text"
                                 Math.floor((new Date().getTime() - new Date(userProfile.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) + " years old" 
                                 : "No age data found"}
                             </p>
- </div>
+</div>
 
                           {/* Member Since - Always visible */}
                           <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
@@ -1008,7 +1008,7 @@ type="text"
                                 day: 'numeric'
                               })}
                             </p>
- </div>
+</div>
 
                           {/* Owner-only fields */}
 {isOwner && (
@@ -1016,8 +1016,8 @@ type="text"
                               <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30 hover:border-cyan-400/60 transition-all duration-300 hover:scale-105">
                                 <label className="text-sm font-medium text-cyan-300 mb-2 block">First Name</label>
                                 {isEditingPersonalInfo ? (
-                                  <input
-                                    type="text"
+<input 
+type="text" 
                                     value={editedPersonalInfo.first_name}
                                     onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, first_name: e.target.value }))}
                                     className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-cyan-400/50 rounded-lg px-3 py-2 outline-none focus:border-cyan-400 focus:bg-gray-700/70 transition-all duration-200"
@@ -1068,7 +1068,7 @@ type="text"
                                       }}
                                     />
                                     <p className="text-xs text-green-400/70 mt-1">Start typing to see location suggestions</p>
-                                  </div>
+</div>
                                 ) : (
                                   <p className="text-white text-lg font-semibold">
                                     {userProfile.location || "No location data found"}
@@ -1285,10 +1285,12 @@ type="text"
                                 </Button>
                               )}
 </div>
+
                           )}
  </div>
  </div>
                     )}
+
 
                     {/* BPOC.AI Verification Card */}
                     <div className="relative">
@@ -1300,17 +1302,17 @@ type="text"
                               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
-                            </div>
+</div>
                           </div>
-                          <div className="flex-1">
+ <div className="flex-1">
                             <h3 className="text-xl font-bold text-white mb-2">BPOC.IO Verification</h3>
                             <p className="text-gray-300 text-sm leading-relaxed">
                               This user has gained a verification badge because they have completed all required activities: <span className="text-cyan-400 font-bold">completed their profile and work status information</span>, <span className="text-green-400 font-bold">uploaded their resume</span>, <span className="text-purple-400 font-bold">had their resume AI-analyzed</span>, <span className="text-blue-400 font-bold">saved their AI-generated resume to their profile</span>, and <span className="text-yellow-400 font-bold">completed all career assessment games</span>. This verification badge demonstrates their commitment to professional development and career excellence.
                             </p>
-                          </div>
-                        </div>
+ </div>
+ </div>
                       </div>
-                    </div>
+ </div>
 
  </div>
  )}
