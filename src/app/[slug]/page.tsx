@@ -280,7 +280,12 @@ useEffect(() => {
         <h3 className="text-2xl font-bold text-white mb-4">{title}</h3>
         <p className="text-gray-300 text-lg mb-6">{description}</p>
         <Button
-          onClick={() => router.push('/auth')}
+          onClick={() => {
+            // Trigger sign-up dialog via URL parameter (same as resume-builder)
+            const url = new URL(window.location.href);
+            url.searchParams.set('signup', 'true');
+            router.push(`${url.pathname}?${url.searchParams.toString()}`);
+          }}
           className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-8 py-3 rounded-lg transition-all duration-300 hover:scale-105"
         >
           Sign Up to Access
@@ -362,59 +367,9 @@ useEffect(() => {
           full_name: fullName
         } : null);
         
-        // Update user slug and resume slug if first_name or last_name changed
-        if (editedPersonalInfo.first_name || editedPersonalInfo.last_name) {
-          const newUserSlug = slugify(fullName);
-          const newResumeSlug = `${newUserSlug}-resume`;
-          
-          try {
-            // Update user slug in users table
-            const userSlugResponse = await fetch('/api/user/update-profile', {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({
-                userId: userProfile.id,
-                slug: newUserSlug
-              }),
-            });
-
-            if (userSlugResponse.ok) {
-              console.log('✅ User slug updated successfully');
-              
-              // Update resume slug and title in saved_resumes table
-              const resumeSlugResponse = await fetch('/api/user/update-resume-slug', {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({
-                  userId: userProfile.id,
-                  newSlug: newResumeSlug,
-                  newTitle: `${fullName}'s Resume`
-                }),
-              });
-
-              if (resumeSlugResponse.ok) {
-                console.log('✅ Resume slug and title updated successfully');
-                
-                // Redirect to new profile URL
-                setTimeout(() => {
-                  router.replace(`/${newUserSlug}`);
-                }, 1000);
-} else {
-                console.error('Failed to update resume slug');
-}
-} else {
-              console.error('Failed to update user slug');
-            }
-          } catch (slugError) {
-            console.error('Error updating slugs:', slugError);
-          }
-        }
+        // Note: We no longer update slugs when editing names to preserve username
+        // The username should remain independent of first/last name changes
+        // This prevents the database trigger from incorrectly updating the username
         
         setIsEditingPersonalInfo(false);
       } else {
@@ -861,7 +816,7 @@ return (
               <nav className="flex space-x-0">
                 {[
                   { id: 'overview', label: 'Overview', icon: User, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', activeBgColor: 'bg-cyan-500/20', borderColor: 'border-cyan-400' },
-                  ...(isAnonymous ? [] : [{ id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', activeBgColor: 'bg-green-500/20', borderColor: 'border-green-400' }]),
+                  ...(isOwner ? [{ id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', activeBgColor: 'bg-green-500/20', borderColor: 'border-green-400' }] : []),
                   { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', activeBgColor: 'bg-purple-500/20', borderColor: 'border-purple-400' },
                   { id: 'game-results', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', activeBgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-400' },
                   { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-orange-400', bgColor: 'bg-orange-500/10', activeBgColor: 'bg-orange-500/20', borderColor: 'border-orange-400' },
@@ -1245,8 +1200,8 @@ type="text"
                       />
                     )}
 
-                    {/* Key Strengths Section - Hidden for anonymous users */}
-                    {!isAnonymous && (
+                    {/* Key Strengths Section - Hidden for anonymous users and other users */}
+                    {isOwner && (
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
                         <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
@@ -1683,8 +1638,8 @@ type="text"
  </div>
  </div>
 
-                    {/* Improved Summary - Hidden for anonymous users */}
-                    {!isAnonymous && (
+                    {/* Improved Summary - Hidden for anonymous users and other users */}
+                    {isOwner && (
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
                         <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-indigo-500/20 backdrop-blur-sm">
@@ -1721,8 +1676,8 @@ type="text"
 </div>
                     )}
 
-                    {/* Strengths Analysis - Hidden for anonymous users */}
-                    {!isAnonymous && (
+                    {/* Strengths Analysis - Hidden for anonymous users and other users */}
+                    {isOwner && (
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
                         <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-emerald-500/20 backdrop-blur-sm">
