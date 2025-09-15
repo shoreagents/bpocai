@@ -193,7 +193,7 @@ export default function CandidatesPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button>
+              <Button className="bg-green-600 hover:bg-green-700">
                 <Search className="h-4 w-4 mr-2" />
                 Advanced Search
               </Button>
@@ -262,7 +262,7 @@ export default function CandidatesPage() {
                     placeholder="Search candidates, skills, or job titles..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[3px]"
                   />
                 </div>
               </div>

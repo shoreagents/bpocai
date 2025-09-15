@@ -150,6 +150,7 @@ export default function PostJobPage() {
                     placeholder="e.g. Senior Frontend Developer"
                     value={jobData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
+                    className="focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[3px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -159,6 +160,7 @@ export default function PostJobPage() {
                     placeholder="e.g. Tech Corp"
                     value={jobData.company}
                     onChange={(e) => handleInputChange('company', e.target.value)}
+                    className="focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[3px]"
                   />
                 </div>
               </div>
@@ -171,6 +173,7 @@ export default function PostJobPage() {
                     placeholder="e.g. San Francisco, CA or Remote"
                     value={jobData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
+                    className="focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[3px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -228,6 +231,7 @@ export default function PostJobPage() {
                     placeholder="e.g. 80000"
                     value={jobData.salaryMin}
                     onChange={(e) => handleInputChange('salaryMin', e.target.value)}
+                    className="focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[3px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -238,6 +242,7 @@ export default function PostJobPage() {
                     placeholder="e.g. 120000"
                     value={jobData.salaryMax}
                     onChange={(e) => handleInputChange('salaryMax', e.target.value)}
+                    className="focus-visible:border-green-500 focus-visible:ring-green-500/50 focus-visible:ring-[3px]"
                   />
                 </div>
               </div>
@@ -250,6 +255,7 @@ export default function PostJobPage() {
                   value={jobData.benefits}
                   onChange={(e) => handleInputChange('benefits', e.target.value)}
                   rows={3}
+                  className="focus-visible:ring-green-500 focus-visible:ring-offset-2"
                 />
               </div>
             </CardContent>
@@ -275,6 +281,7 @@ export default function PostJobPage() {
                   value={jobData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={6}
+                  className="focus-visible:ring-green-500 focus-visible:ring-offset-2"
                 />
               </div>
 
@@ -286,6 +293,7 @@ export default function PostJobPage() {
                   value={jobData.requirements}
                   onChange={(e) => handleInputChange('requirements', e.target.value)}
                   rows={6}
+                  className="focus-visible:ring-green-500 focus-visible:ring-offset-2"
                 />
               </div>
             </CardContent>
@@ -308,6 +316,7 @@ export default function PostJobPage() {
                   id="remote"
                   checked={jobData.remote}
                   onCheckedChange={(checked) => handleInputChange('remote', checked as boolean)}
+                  className="border-gray-300 bg-white data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                 />
                 <label htmlFor="remote" className="text-sm font-medium text-gray-700">Remote work allowed</label>
               </div>
@@ -317,6 +326,7 @@ export default function PostJobPage() {
                   id="urgent"
                   checked={jobData.urgent}
                   onCheckedChange={(checked) => handleInputChange('urgent', checked as boolean)}
+                  className="border-gray-300 bg-white data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                 />
                 <label htmlFor="urgent" className="text-sm font-medium text-gray-700">Urgent hiring (highlight this job)</label>
               </div>
@@ -328,7 +338,7 @@ export default function PostJobPage() {
             <Button variant="outline" size="lg">
               Save as Draft
             </Button>
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+            <Button size="lg" className="bg-green-600 hover:bg-green-700">
               <Save className="h-4 w-4 mr-2" />
               Publish Job
             </Button>
@@ -362,7 +372,7 @@ export default function PostJobPage() {
                   type="email"
                   required
                   placeholder="john.smith@company.com"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -376,7 +386,7 @@ export default function PostJobPage() {
                   type="password"
                   required
                   placeholder="Enter your password"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -445,7 +455,7 @@ export default function PostJobPage() {
                     type="text"
                     required
                     placeholder="John"
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                   />
                 </div>
                 <div>
@@ -457,7 +467,7 @@ export default function PostJobPage() {
                     type="text"
                     required
                     placeholder="Smith"
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                   />
                 </div>
               </div>
@@ -472,7 +482,7 @@ export default function PostJobPage() {
                   type="email"
                   required
                   placeholder="john.smith@company.com"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -486,7 +496,7 @@ export default function PostJobPage() {
                   type="text"
                   required
                   placeholder="TechCorp Solutions"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -500,7 +510,7 @@ export default function PostJobPage() {
                   type="text"
                   required
                   placeholder="Senior Talent Acquisition Manager"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -514,7 +524,7 @@ export default function PostJobPage() {
                   type="password"
                   required
                   placeholder="Create a password"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
 
