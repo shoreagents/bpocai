@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -130,6 +131,48 @@ export default function SettingsPage() {
     pushNotifications: true
   })
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+
+  // Privacy settings state
+  const [privacySettings, setPrivacySettings] = useState({
+    // Overview tab
+    firstName: 'public',
+    lastName: 'public',
+    location: 'public',
+    jobTitle: 'public',
+    birthday: 'only-me',
+    age: 'only-me',
+    gender: 'only-me',
+    memberSince: 'public',
+    resumeScore: 'public',
+    gamesCompleted: 'public',
+    keyStrengths: 'public',
+    
+    // Work Status tab
+    workStatus: 'public',
+    expectedSalaryRange: 'only-me',
+    currentEmployer: 'public',
+    noticePeriod: 'only-me',
+    moodAtCurrentEmployer: 'only-me',
+    preferredShift: 'public',
+    preferredWorkSetup: 'public',
+    currentSalary: 'only-me',
+    
+    // AI Analysis tab
+    detailedAnalysisScores: 'public',
+    aiImprovedProfessionalSummary: 'public',
+    strengthsAnalysis: 'public',
+    improvementSuggestions: 'public',
+    actionableRecommendations: 'public',
+    salaryAnalysis: 'only-me',
+    careerPathAnalysis: 'public',
+    sectionBySectionAnalysis: 'public',
+    
+    // Game Results tab
+    bpocCultural: 'public',
+    bpocDisc: 'public',
+    typingHero: 'public',
+    bpocUltimate: 'public'
+  })
 
   const settingsSections = [
     {
@@ -443,6 +486,13 @@ export default function SettingsPage() {
     setNotifications(prev => ({
       ...prev,
       [key]: !prev[key as keyof typeof prev]
+    }))
+  }
+
+  const handlePrivacySettingChange = (key: string, value: string) => {
+    setPrivacySettings(prev => ({
+      ...prev,
+      [key]: value
     }))
   }
 
@@ -932,6 +982,19 @@ export default function SettingsPage() {
 
 
 
+  const renderPrivacyDropdown = (key: string, currentValue: string) => (
+    <Select value={currentValue} onValueChange={(value) => handlePrivacySettingChange(key, value)}>
+      <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="bg-gray-800 border-gray-700">
+        <SelectItem value="only-me" className="text-white hover:bg-gray-700">Only Me</SelectItem>
+        <SelectItem value="public" className="text-white hover:bg-gray-700">Public</SelectItem>
+        <SelectItem value="other-candidates" className="text-white hover:bg-gray-700">Other Candidates</SelectItem>
+      </SelectContent>
+    </Select>
+  )
+
   const renderPrivacySettings = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -948,7 +1011,7 @@ export default function SettingsPage() {
             Profile Visibility Control
           </CardTitle>
           <CardDescription>
-            Control what information is visible on your public profile. Toggle each section to show or hide it from other users.
+            Control what information is visible on your public profile. Choose who can see each section: Only Me, Public, or Other Candidates.
           </CardDescription>
         </CardHeader>
         
@@ -993,10 +1056,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your first name</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('firstName', privacySettings.firstName)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1006,10 +1066,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your last name</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('lastName', privacySettings.lastName)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1019,10 +1076,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current location</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('location', privacySettings.location)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1032,10 +1086,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current job title or position</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('jobTitle', privacySettings.jobTitle)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1045,10 +1096,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your date of birth</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('birthday', privacySettings.birthday)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1058,10 +1106,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current age</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('age', privacySettings.age)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1071,10 +1116,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your gender identity</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('gender', privacySettings.gender)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1084,10 +1126,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">When you joined BPOC</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('memberSince', privacySettings.memberSince)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1097,10 +1136,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your AI-generated resume score</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('resumeScore', privacySettings.resumeScore)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1110,10 +1146,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Number of career games you've completed</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('gamesCompleted', privacySettings.gamesCompleted)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1123,10 +1156,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your AI-identified key strengths</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('keyStrengths', privacySettings.keyStrengths)}
                   </div>
                 </div>
               </div>
@@ -1142,10 +1172,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current job title or position</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('jobTitle', privacySettings.jobTitle)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1155,10 +1182,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current employment status</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('workStatus', privacySettings.workStatus)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1168,10 +1192,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your expected salary range</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('expectedSalaryRange', privacySettings.expectedSalaryRange)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1181,10 +1202,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current company or employer</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('currentEmployer', privacySettings.currentEmployer)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1194,10 +1212,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your required notice period</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('noticePeriod', privacySettings.noticePeriod)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1207,10 +1222,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your satisfaction level at current job</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('moodAtCurrentEmployer', privacySettings.moodAtCurrentEmployer)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1220,10 +1232,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your preferred working hours</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('preferredShift', privacySettings.preferredShift)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1233,10 +1242,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your preferred work environment</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('preferredWorkSetup', privacySettings.preferredWorkSetup)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1246,10 +1252,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Your current salary information</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('currentSalary', privacySettings.currentSalary)}
                   </div>
                 </div>
               </div>
@@ -1265,10 +1268,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Comprehensive scoring breakdown</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('detailedAnalysisScores', privacySettings.detailedAnalysisScores)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1278,10 +1278,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Enhanced professional summary</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('aiImprovedProfessionalSummary', privacySettings.aiImprovedProfessionalSummary)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1291,10 +1288,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">AI-identified key strengths and skills</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('strengthsAnalysis', privacySettings.strengthsAnalysis)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1304,10 +1298,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">AI suggestions for career development</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('improvementSuggestions', privacySettings.improvementSuggestions)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1317,10 +1308,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Specific steps for improvement</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('actionableRecommendations', privacySettings.actionableRecommendations)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1330,10 +1318,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">AI-powered salary insights</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('salaryAnalysis', privacySettings.salaryAnalysis)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1343,10 +1328,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">AI career trajectory insights</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('careerPathAnalysis', privacySettings.careerPathAnalysis)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1356,10 +1338,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Detailed breakdown of each resume section</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('sectionBySectionAnalysis', privacySettings.sectionBySectionAnalysis)}
                   </div>
                 </div>
               </div>
@@ -1375,10 +1354,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Cultural assessment game results</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('bpocCultural', privacySettings.bpocCultural)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1388,10 +1364,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Personality assessment game results</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('bpocDisc', privacySettings.bpocDisc)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1401,10 +1374,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Typing speed and accuracy results</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('typingHero', privacySettings.typingHero)}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
@@ -1414,10 +1384,7 @@ export default function SettingsPage() {
                         <div className="text-gray-400 text-sm">Ultimate career assessment results</div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
+                    {renderPrivacyDropdown('bpocUltimate', privacySettings.bpocUltimate)}
                   </div>
                 </div>
               </div>
