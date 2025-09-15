@@ -535,21 +535,32 @@ export default function Header({}: HeaderProps) {
                 </div>
               </div>
             ) : (
-              <div className="hidden md:flex items-center space-x-3">
+              <div className="hidden md:flex items-center space-x-2 ml-auto">
                 <Button 
                   variant="ghost" 
-                  className="text-white hover:text-cyan-400 hover:bg-white/10 transition-all duration-200"
+                  className="text-white hover:text-cyan-400 hover:bg-white/10 transition-all duration-200 px-3"
                   onClick={handleOpenLogin}
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Sign In
                 </Button>
                 <Button 
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 transition-all duration-200"
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 transition-all duration-200 px-4"
                   onClick={handleOpenSignUp}
                 >
                   Get Started Free
                 </Button>
+                <div className="ml-4">
+                  <Link href="/recruiter">
+                    <Button 
+                      variant="ghost" 
+                      className="text-white hover:text-cyan-400 hover:bg-white/10 transition-all duration-200 px-3"
+                    >
+                      <Briefcase className="w-4 h-4 mr-2" />
+                      Recruiter/Post Job
+                    </Button>
+                  </Link>
+                </div>
               </div>
             )}
 
@@ -748,6 +759,15 @@ export default function Header({}: HeaderProps) {
                         >
                           Get Started Free
                         </Button>
+                        <Link href="/recruiter" className="w-full">
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-white/20 text-white hover:bg-white/10 transition-all duration-200"
+                          >
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            Recruiter/Post Job
+                          </Button>
+                        </Link>
                       </div>
                     )}
 
