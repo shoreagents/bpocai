@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,8 @@ import {
   FileText,
   TrendingUp,
   Calendar,
-  Building2
+  Building2,
+  Trophy
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -33,69 +34,34 @@ export default function CandidatesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const candidates = [
-    {
-      id: 1,
-      name: 'John Doe',
-      title: 'Senior Frontend Developer',
-      location: 'San Francisco, CA',
-      experience: '5 years',
-      skills: ['React', 'TypeScript', 'Node.js'],
-      appliedDate: '2 days ago',
-      status: 'new',
-      rating: 4.8,
-      avatar: 'JD'
-    },
-    {
-      id: 2,
-      name: 'Alice Smith',
-      title: 'UX Designer',
-      location: 'New York, NY',
-      experience: '3 years',
-      skills: ['Figma', 'Sketch', 'Adobe XD'],
-      appliedDate: '1 week ago',
-      status: 'reviewed',
-      rating: 4.6,
-      avatar: 'AS'
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      title: 'Backend Developer',
-      location: 'Austin, TX',
-      experience: '7 years',
-      skills: ['Python', 'Django', 'PostgreSQL'],
-      appliedDate: '3 days ago',
-      status: 'interviewed',
-      rating: 4.9,
-      avatar: 'MJ'
-    },
-    {
-      id: 4,
-      name: 'Sarah Wilson',
-      title: 'Product Manager',
-      location: 'Seattle, WA',
-      experience: '4 years',
-      skills: ['Agile', 'Scrum', 'Analytics'],
-      appliedDate: '5 days ago',
-      status: 'hired',
-      rating: 4.7,
-      avatar: 'SW'
-    },
-    {
-      id: 5,
-      name: 'David Chen',
-      title: 'Full Stack Developer',
-      location: 'Los Angeles, CA',
-      experience: '6 years',
-      skills: ['React', 'Python', 'AWS'],
-      appliedDate: '1 day ago',
-      status: 'new',
-      rating: 4.5,
-      avatar: 'DC'
-    }
-  ];
+  // Fetch real candidates data from database
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/api/recruiter/candidates', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Failed to load candidates');
+        
+        const data = await response.json();
+        if (data.success) {
+          setCandidates(data.candidates);
+        } else {
+          throw new Error(data.error || 'Failed to load candidates');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load candidates');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCandidates();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -117,10 +83,27 @@ export default function CandidatesPage() {
     }
   };
 
+  const getScoreBadge = (score: number) => {
+    if (score >= 80) {
+      return <Badge className="bg-yellow-500 text-white font-semibold">GOLD</Badge>;
+    } else if (score >= 60) {
+      return <Badge className="bg-gray-400 text-white font-semibold">SILVER</Badge>;
+    } else {
+      return <Badge className="bg-amber-600 text-white font-semibold">BRONZE</Badge>;
+    }
+  };
+
+  const getProfileStatusBadge = (isComplete: boolean) => {
+    if (!isComplete) {
+      return <Badge className="bg-orange-500 text-white font-semibold">Profile Not Complete</Badge>;
+    }
+    return null;
+  };
+
   const filteredCandidates = candidates.filter(candidate =>
     candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     candidate.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+    candidate.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -145,8 +128,10 @@ export default function CandidatesPage() {
                 <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
                 <Link href="/recruiter/dashboard" className="text-gray-700 hover:text-emerald-600 font-medium">Dashboard</Link>
                 <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/candidates" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Candidates</Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analytics</Link>
+                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium">Applications</Link>
+                <Link href="/recruiter/candidates" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Applicants</Link>
+                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analysis</Link>
+                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium">Leaderboard</Link>
               </div>
             </div>
 
@@ -188,16 +173,6 @@ export default function CandidatesPage() {
               <h1 className="text-2xl font-bold text-gray-900">Candidate Management</h1>
               <p className="text-gray-600">Review and manage job applications</p>
             </div>
-            <div className="flex space-x-3">
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Search className="h-4 w-4 mr-2" />
-                Advanced Search
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -212,41 +187,49 @@ export default function CandidatesPage() {
               <Users className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">1,234</div>
-              <p className="text-xs text-gray-600">+15% from last month</p>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? '...' : candidates.length.toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-600">Qualified professionals</p>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">New Applications</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900">Profile Complete</CardTitle>
               <FileText className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">45</div>
-              <p className="text-xs text-gray-600">+8 from yesterday</p>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? '...' : candidates.filter(c => c.profileComplete).length}
+              </div>
+              <p className="text-xs text-gray-600">Ready for interviews</p>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Interviewed</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900">High Performers</CardTitle>
               <Calendar className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">23</div>
-              <p className="text-xs text-gray-600">+3 this week</p>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? '...' : candidates.filter(c => c.overallScore >= 80).length}
+              </div>
+              <p className="text-xs text-gray-600">Score 80+</p>
             </CardContent>
           </Card>
           
           <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Hired</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900">Available Now</CardTitle>
               <TrendingUp className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">8</div>
-              <p className="text-xs text-gray-600">+2 this month</p>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? '...' : candidates.length}
+              </div>
+              <p className="text-xs text-gray-600">Ready to start</p>
             </CardContent>
           </Card>
         </div>
@@ -297,69 +280,105 @@ export default function CandidatesPage() {
           </CardContent>
         </Card>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading candidates...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Card className="bg-white border border-red-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="text-center text-red-600">
+                <p className="text-lg font-medium">Error loading candidates</p>
+                <p className="text-sm">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Candidates List */}
-        <div className="space-y-4">
-          {filteredCandidates.map((candidate) => (
-            <Card key={candidate.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-lg">{candidate.avatar}</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{candidate.name}</h3>
-                        <div className="flex items-center space-x-1">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span className="text-sm text-gray-600">{candidate.rating}</span>
+        {!loading && !error && (
+          <div className="space-y-4">
+            {filteredCandidates.length === 0 ? (
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardContent className="p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 mb-2">No candidates found</p>
+                  <p className="text-gray-500 text-sm">
+                    {searchTerm ? 'Try adjusting your search terms' : 'No qualified candidates available yet'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCandidates.map((candidate) => (
+                  <Card key={candidate.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 max-w-sm mx-auto">
+                    <CardContent className="p-6 text-center">
+                      {/* Avatar */}
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
+                        {candidate.avatar && candidate.avatar.startsWith('http') ? (
+                          <img 
+                            src={candidate.avatar} 
+                            alt={candidate.name}
+                            className="w-20 h-20 rounded-full object-cover"
+                          />
+                        ) : (
+                          candidate.avatar
+                        )}
+                      </div>
+
+                      {/* Name and Position */}
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">{candidate.name}</h3>
+                      <p className="text-gray-600 mb-2">{candidate.title}</p>
+                      <p className="text-sm text-gray-500 mb-4">{candidate.email}</p>
+
+                      {/* Score and Badge */}
+                      <div className="flex items-center justify-center gap-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-yellow-400" />
+                          <span className="text-sm font-medium text-gray-700">Score: {candidate.overallScore}</span>
+                        </div>
+                        {getScoreBadge(candidate.overallScore)}
+                      </div>
+
+                      {/* Location and Join Date */}
+                      <div className="flex justify-center items-center gap-6 mb-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-blue-500" />
+                          <span>{candidate.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-purple-500" />
+                          <span>Joined {candidate.joinDate}</span>
                         </div>
                       </div>
-                      <p className="text-gray-600">{candidate.title}</p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {candidate.location}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {candidate.experience}
-                        </span>
-                        <span className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Applied {candidate.appliedDate}
-                        </span>
+
+                      {/* Profile Status Badge */}
+                      <div className="mb-4">
+                        {getProfileStatusBadge(candidate.profileComplete)}
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {candidate.skills.map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Badge className={getStatusColor(candidate.status)}>
-                      {getStatusLabel(candidate.status)}
-                    </Badge>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
+
+                      {/* View Profile Button */}
+                      <Button 
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                        onClick={() => router.push(`/${candidate.slug}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Profile
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Pagination */}
         <div className="flex justify-center items-center space-x-4 mt-8">

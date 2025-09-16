@@ -305,7 +305,7 @@ export default function PrivacyPolicyPage() {
                   <strong>Approved By:</strong> Stephen Philip Atcheler, Data Protection Officer
                 </p>
                 <p>
-                  © 2024 ShoreAgents Inc. All rights reserved.
+                  © 2025 ShoreAgents Inc. All rights reserved.
                 </p>
               </div>
             </div>

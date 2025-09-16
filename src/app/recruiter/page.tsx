@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -188,12 +189,20 @@ export default function RecruiterHomePage() {
                   Jobs
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
                 </Link>
+                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
+                  Applications
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
+                </Link>
                 <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Candidates
+                  Applicants
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
                 </Link>
                 <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Analytics
+                  Analysis
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
+                </Link>
+                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
+                  Leaderboard
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
                 </Link>
               </div>
@@ -241,84 +250,154 @@ export default function RecruiterHomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
           <div className="text-center">
             {/* Main Headline with Animation */}
-            <div className="mb-8">
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="mb-8"
+            >
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-5xl md:text-7xl font-bold mb-6 leading-tight"
+              >
                 <span className="block">Find Your Next</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-300 animate-pulse">
+                <motion.span 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                  className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-300 animate-pulse"
+                >
                   Perfect Hire
-                </span>
-              </h1>
+                </motion.span>
+              </motion.h1>
               
               {/* Compelling Subtitle for Recruiters */}
-              <div className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto">
-                <p className="mb-6 text-2xl md:text-3xl font-semibold text-white">
-                  Stop wasting time on unqualified candidates
-                </p>
-                <p className="mb-6 text-lg">
-                  Access <span className="font-bold text-emerald-400">15,000+ pre-vetted BPO professionals</span> ready to start immediately
-                </p>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto"
+              >
+                <motion.p 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.8 }}
+                  className="mb-6 text-2xl md:text-3xl font-semibold text-white"
+                >
+                  Connect with verified BPO talent instantly
+                </motion.p>
+                <motion.p 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 1.0 }}
+                  className="mb-6 text-lg"
+                >
+                  Access <span className="font-bold text-emerald-400">15,000+ pre-screened BPO professionals</span> with verified skills and experience
+                </motion.p>
                 
                 {/* Stats Display */}
-                <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-8 max-w-6xl mx-auto">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 1.2 }}
+                  className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-8 max-w-6xl mx-auto"
+                >
                   {/* Active Candidates */}
-                  <div className="flex items-center gap-3 text-center sm:text-left">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 1.4 }}
+                    className="flex items-center gap-3 text-center sm:text-left"
+                  >
                     <Users className="h-6 w-6 text-emerald-400" />
                     <div>
                       <div className="text-2xl font-bold text-white mb-1">15,000+</div>
                       <div className="text-xs text-emerald-300 font-medium">Active Candidates</div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Success Rate */}
-                  <div className="flex items-center gap-3 text-center sm:text-left">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 1.6 }}
+                    className="flex items-center gap-3 text-center sm:text-left"
+                  >
                     <TrendingUp className="h-6 w-6 text-cyan-400" />
                     <div>
                       <div className="text-2xl font-bold text-white mb-1">85%</div>
                       <div className="text-xs text-cyan-300 font-medium">Success Rate</div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Average Time */}
-                  <div className="flex items-center gap-3 text-center sm:text-left">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 1.8 }}
+                    className="flex items-center gap-3 text-center sm:text-left"
+                  >
                     <Clock className="h-6 w-6 text-purple-400" />
                     <div>
                       <div className="text-2xl font-bold text-white mb-1">7 Days</div>
                       <div className="text-xs text-purple-300 font-medium">Average Time</div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Cost Savings */}
-                  <div className="flex items-center gap-3 text-center sm:text-left">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 2.0 }}
+                    className="flex items-center gap-3 text-center sm:text-left"
+                  >
                     <DollarSign className="h-6 w-6 text-orange-400" />
                     <div>
                       <div className="text-2xl font-bold text-white mb-1">60%</div>
                       <div className="text-xs text-orange-300 font-medium">Cost Savings</div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
 
 
             {/* CTA Buttons with Enhanced Styling */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-2xl shadow-emerald-500/25 text-lg px-10 py-4 rounded-full font-semibold transform hover:scale-105 transition-all duration-300"
-                onClick={() => router.push('/recruiter/candidates')}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 2.2 }}
+              className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16"
+            >
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                🎯 Start Hiring Now
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-transparent text-lg px-10 py-4 rounded-full font-semibold backdrop-blur-sm transition-all duration-300"
-                onClick={() => router.push('/recruiter/candidates')}
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-2xl shadow-emerald-500/25 text-lg px-10 py-4 rounded-full font-semibold transform hover:scale-105 transition-all duration-300"
+                  onClick={() => router.push('/recruiter/candidates')}
+                >
+                  🎯 Start Hiring Now
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                👀 View Candidate Pool
-              </Button>
-            </div>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-transparent text-lg px-10 py-4 rounded-full font-semibold backdrop-blur-sm transition-all duration-300"
+                  onClick={() => router.push('/recruiter/candidates')}
+                >
+                  👀 View Candidate Pool
+                </Button>
+              </motion.div>
+            </motion.div>
 
             {/* Trust Indicators */}
             <div className="pt-8 border-t border-white/20">
@@ -353,26 +432,43 @@ export default function RecruiterHomePage() {
       {/* Features Section */}
       <section className="py-20 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Why Choose BPOC Recruiter?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               We've built the most advanced BPO recruitment platform to help you find the perfect candidates faster and more efficiently.
             </p>
-          </div>
+          </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                    <feature.icon className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -5 }}
+              >
+                <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6 text-center">
+                    <motion.div 
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center"
+                    >
+                      <feature.icon className="h-8 w-8 text-white" />
+                    </motion.div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -381,48 +477,80 @@ export default function RecruiterHomePage() {
       {/* How It Works Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               How It Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Get started in minutes and find your perfect candidates with our streamlined process
             </p>
-          </div>
+          </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Step 1 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-center"
+            >
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6"
+              >
                 <span className="text-2xl font-bold text-white">1</span>
-              </div>
+              </motion.div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Post Your Job</h3>
               <p className="text-gray-600">
                 Create a detailed job posting with requirements, skills, and preferences. Our AI will help optimize your listing.
               </p>
-            </div>
+            </motion.div>
 
             {/* Step 2 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-center"
+            >
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"
+              >
                 <span className="text-2xl font-bold text-white">2</span>
-              </div>
+              </motion.div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">AI Matching</h3>
               <p className="text-gray-600">
                 Our advanced AI analyzes your requirements and matches you with the most qualified candidates from our database.
               </p>
-            </div>
+            </motion.div>
 
             {/* Step 3 */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="text-center"
+            >
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6"
+              >
                 <span className="text-2xl font-bold text-white">3</span>
-              </div>
+              </motion.div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Interview & Hire</h3>
               <p className="text-gray-600">
                 Review matched candidates, conduct interviews, and make your hire. We handle all the paperwork and onboarding.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -430,32 +558,46 @@ export default function RecruiterHomePage() {
       {/* Testimonials Section */}
       <section className="py-20 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               What Our Clients Say
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Join hundreds of companies who trust BPOC.IO for their recruitment needs
             </p>
-          </div>
+          </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
-                  <div className="border-t pt-4">
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
-                    <p className="text-sm text-emerald-600">{testimonial.company}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -5 }}
+              >
+                <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center mb-4">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                    <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
+                    <div className="border-t pt-4">
+                      <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                      <p className="text-sm text-gray-600">{testimonial.role}</p>
+                      <p className="text-sm text-emerald-600">{testimonial.company}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -464,131 +606,160 @@ export default function RecruiterHomePage() {
       {/* Pricing Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Simple, Transparent Pricing
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Choose the plan that fits your recruitment needs. No hidden fees, no surprises.
             </p>
-          </div>
+          </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {/* Starter Plan */}
-            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl font-bold text-gray-900">Starter</CardTitle>
-                <CardDescription className="text-gray-600">Perfect for small teams</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">₱2,500</span>
-                  <span className="text-gray-600">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Up to 5 job postings</span>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              whileHover={{ y: -5 }}
+            >
+              <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardHeader className="text-center pb-8">
+                  <CardTitle className="text-2xl font-bold text-gray-900">Starter</CardTitle>
+                  <CardDescription className="text-gray-600">Perfect for small teams</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-gray-900">₱2,500</span>
+                    <span className="text-gray-600">/month</span>
                   </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">100 candidate profiles</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Up to 5 job postings</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">100 candidate profiles</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Basic analytics</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Email support</span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Basic analytics</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Email support</span>
-                  </div>
-                </div>
-                <Button className="w-full mt-6" variant="outline">
-                  Get Started
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button className="w-full mt-6" variant="outline">
+                    Get Started
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Professional Plan */}
-            <Card className="bg-white border-2 border-emerald-500 shadow-lg hover:shadow-xl transition-all duration-300 relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-emerald-500 text-white px-4 py-1">Most Popular</Badge>
-              </div>
-              <CardHeader className="text-center pb-8 pt-6">
-                <CardTitle className="text-2xl font-bold text-gray-900">Professional</CardTitle>
-                <CardDescription className="text-gray-600">Ideal for growing companies</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">₱7,500</span>
-                  <span className="text-gray-600">/month</span>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+            >
+              <Card className="bg-white border-2 border-emerald-500 shadow-lg hover:shadow-xl transition-all duration-300 relative">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-emerald-500 text-white px-4 py-1">Most Popular</Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Unlimited job postings</span>
+                <CardHeader className="text-center pb-8 pt-6">
+                  <CardTitle className="text-2xl font-bold text-gray-900">Professional</CardTitle>
+                  <CardDescription className="text-gray-600">Ideal for growing companies</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-gray-900">₱7,500</span>
+                    <span className="text-gray-600">/month</span>
                   </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">500 candidate profiles</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Unlimited job postings</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">500 candidate profiles</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Advanced analytics</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Priority support</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">AI-powered matching</span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Advanced analytics</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Priority support</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">AI-powered matching</span>
-                  </div>
-                </div>
-                <Button className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700">
-                  Get Started
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700">
+                    Get Started
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Enterprise Plan */}
-            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="text-center pb-8">
-                <CardTitle className="text-2xl font-bold text-gray-900">Enterprise</CardTitle>
-                <CardDescription className="text-gray-600">For large organizations</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">₱15,000</span>
-                  <span className="text-gray-600">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Unlimited everything</span>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              whileHover={{ y: -5 }}
+            >
+              <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardHeader className="text-center pb-8">
+                  <CardTitle className="text-2xl font-bold text-gray-900">Enterprise</CardTitle>
+                  <CardDescription className="text-gray-600">For large organizations</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-gray-900">₱15,000</span>
+                    <span className="text-gray-600">/month</span>
                   </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Custom integrations</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Unlimited everything</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Custom integrations</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Dedicated account manager</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">24/7 phone support</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                      <span className="text-gray-700">Custom reporting</span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Dedicated account manager</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">24/7 phone support</span>
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span className="text-gray-700">Custom reporting</span>
-                  </div>
-                </div>
-                <Button className="w-full mt-6" variant="outline">
-                  Contact Sales
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button className="w-full mt-6" variant="outline">
+                    Contact Sales
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           {/* Additional Info */}
@@ -620,28 +791,50 @@ export default function RecruiterHomePage() {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-br from-emerald-50 via-cyan-50 to-blue-50 text-gray-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
-            Ready to Transform Your Hiring Process?
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Join thousands of recruiters who have found their perfect candidates on BPOC.IO
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white border-0 shadow-lg shadow-emerald-500/25 text-lg px-8 py-4 rounded-full"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900">
+              Ready to Transform Your Hiring Process?
+            </h2>
+            <p className="text-xl text-gray-600 mb-8">
+              Join thousands of recruiters who have found their perfect candidates on BPOC.IO
+            </p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              Get Started Today
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white bg-white text-lg px-8 py-4 rounded-full shadow-sm"
-            >
-              Schedule a Demo
-            </Button>
-          </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white border-0 shadow-lg shadow-emerald-500/25 text-lg px-8 py-4 rounded-full"
+                >
+                  Get Started Today
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white bg-white text-lg px-8 py-4 rounded-full shadow-sm"
+                >
+                  Schedule a Demo
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
