@@ -135,8 +135,9 @@ export default function SettingsPage() {
   // Privacy settings state
   const [privacySettings, setPrivacySettings] = useState({
     // Overview tab
+    username: 'public',
     firstName: 'public',
-    lastName: 'public',
+    lastName: 'only-me',
     location: 'public',
     jobTitle: 'public',
     birthday: 'only-me',
@@ -990,7 +991,6 @@ export default function SettingsPage() {
       <SelectContent className="bg-gray-800 border-gray-700">
         <SelectItem value="only-me" className="text-white hover:bg-gray-700">Only Me</SelectItem>
         <SelectItem value="public" className="text-white hover:bg-gray-700">Public</SelectItem>
-        <SelectItem value="other-candidates" className="text-white hover:bg-gray-700">Other Candidates</SelectItem>
       </SelectContent>
     </Select>
   )
@@ -1052,6 +1052,19 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                     <div className="flex items-center gap-3">
                       <div>
+                        <div className="text-white font-medium">Username</div>
+                        <div className="text-gray-400 text-sm">Your unique username (always public)</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span className="text-green-400 text-sm font-medium">Public</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div>
                         <div className="text-white font-medium">First Name</div>
                         <div className="text-gray-400 text-sm">Your first name</div>
                       </div>
@@ -1059,15 +1072,18 @@ export default function SettingsPage() {
                     {renderPrivacyDropdown('firstName', privacySettings.firstName)}
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Last Name</div>
-                        <div className="text-gray-400 text-sm">Your last name</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('lastName', privacySettings.lastName)}
-                  </div>
+                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                     <div className="flex items-center gap-3">
+                       <div>
+                         <div className="text-white font-medium">Last Name</div>
+                         <div className="text-gray-400 text-sm">Your last name (always private)</div>
+                       </div>
+                     </div>
+                     <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-lg">
+                       <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                       <span className="text-red-400 text-sm font-medium">Only Me</span>
+                     </div>
+                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                     <div className="flex items-center gap-3">

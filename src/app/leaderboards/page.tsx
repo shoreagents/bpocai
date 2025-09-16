@@ -66,7 +66,7 @@ function getPeriodLabel(p: string) {
 type Category = 'overall' | 'game' | 'applicants' | 'engagement'
 type Period = 'weekly' | 'monthly' | 'all'
 
-interface UserInfo { full_name: string | null; avatar_url: string | null }
+interface UserInfo { full_name: string | null; avatar_url: string | null; slug: string | null }
 
 interface GameResult { rank: number; userId: string; bestScore: number; plays: number; lastPlayed: string; user: UserInfo | null }
 interface SimpleResult { rank: number; userId: string; score: number; user: UserInfo | null }
@@ -317,8 +317,11 @@ export default function LeaderboardsPage() {
 						row.rank === 3 ? 'text-orange-300' :
 						'text-cyan-300'
 					}`}>
-						{row.user?.full_name || row.userId}
+						{row.user?.full_name ? row.user.full_name.split(' ')[0] : row.userId}
 					</button>
+					{row.user?.slug && (
+						<div className="text-xs text-gray-400 truncate">@{row.user.slug}</div>
+					)}
 					{getSpecialBadge(row.rank)}
 				</div>
 			</div>
@@ -349,10 +352,13 @@ export default function LeaderboardsPage() {
 										onClick={(e) => { e.stopPropagation(); if (!userResumeSlug) { e.preventDefault() } }}
 										className={`hover:underline ${userResumeSlug ? 'text-cyan-300' : 'text-white/80 cursor-not-allowed'}`}
 									>
-										{name}
+										{row.user?.full_name ? row.user.full_name.split(' ')[0] : row.userId}
 									</a>
 									{rank <= 3 && <Badge className="bg-cyan-500/20 border-cyan-400/30 text-cyan-300">Top {rank}</Badge>}
 								</div>
+								{row.user?.slug && (
+									<div className="text-xs text-gray-400 truncate">@{row.user.slug}</div>
+								)}
 								<div className="text-xs text-gray-400 truncate">
 									{category === 'game' && `Best: ${row.bestScore} • Plays: ${row.plays}`}
 									{category === 'applicants' && `Score: ${row.score}`}
@@ -482,7 +488,10 @@ export default function LeaderboardsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="text-gray-800 font-bold text-sm text-center truncate w-full">{filteredResults[1]?.user?.full_name || filteredResults[1]?.userId}</div>
+                    <div className="text-gray-800 font-bold text-sm text-center truncate w-full">{filteredResults[1]?.user?.full_name ? filteredResults[1].user.full_name.split(' ')[0] : filteredResults[1]?.userId}</div>
+                    {filteredResults[1]?.user?.slug && (
+                      <div className="text-gray-600 text-xs text-center truncate w-full">@{filteredResults[1].user.slug}</div>
+                    )}
                   </div>
                   <div className="bg-gray-500 text-white text-center py-2 rounded-b-lg font-bold">
                     🥈 2nd Place
@@ -520,7 +529,10 @@ export default function LeaderboardsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="text-yellow-900 font-bold text-sm text-center truncate w-full">{filteredResults[0]?.user?.full_name || filteredResults[0]?.userId}</div>
+                    <div className="text-yellow-900 font-bold text-sm text-center truncate w-full">{filteredResults[0]?.user?.full_name ? filteredResults[0].user.full_name.split(' ')[0] : filteredResults[0]?.userId}</div>
+                    {filteredResults[0]?.user?.slug && (
+                      <div className="text-yellow-700 text-xs text-center truncate w-full">@{filteredResults[0].user.slug}</div>
+                    )}
                   </div>
                   <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-yellow-900 text-center py-2 rounded-b-lg font-bold">
                     🥇 Champion
@@ -544,7 +556,10 @@ export default function LeaderboardsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="text-orange-900 font-bold text-sm text-center truncate w-full">{filteredResults[2]?.user?.full_name || filteredResults[2]?.userId}</div>
+                    <div className="text-orange-900 font-bold text-sm text-center truncate w-full">{filteredResults[2]?.user?.full_name ? filteredResults[2].user.full_name.split(' ')[0] : filteredResults[2]?.userId}</div>
+                    {filteredResults[2]?.user?.slug && (
+                      <div className="text-orange-700 text-xs text-center truncate w-full">@{filteredResults[2].user.slug}</div>
+                    )}
                   </div>
                   <div className="bg-orange-600 text-orange-100 text-center py-2 rounded-b-lg font-bold">
                     🥉 3rd Place
@@ -884,8 +899,11 @@ export default function LeaderboardsPage() {
                     className="text-cyan-300 hover:underline truncate"
                     title="Open resume"
                     >
-                    {selectedUser.user?.full_name || selectedUser.userId}
+                    {selectedUser.user?.full_name ? selectedUser.user.full_name.split(' ')[0] : selectedUser.userId}
                     </button>
+                    {selectedUser.user?.slug && (
+                      <div className="text-gray-400 text-xs truncate">@{selectedUser.user.slug}</div>
+                    )}
                   <Badge className="bg-amber-500/20 border-amber-500/30 text-amber-300">Hire‑ready</Badge>
                       </div>
                     )}

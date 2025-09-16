@@ -746,17 +746,8 @@ export default function ProfileCard({ userId, showEditButton = true, className =
                     </>
                   )}
                   
-                  {/* View Resume Button - Only for other users' profiles */}
-                  {user?.id !== targetUserId && (
-                    <Button 
-                      onClick={handleViewResume} 
-                      variant="outline"
-                      className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      View Resume
-                    </Button>
-                  )}
+                  {/* View Resume Button - Hidden for all users viewing other profiles */}
+                  {/* Removed - no longer showing View Resume button for other users */}
                 </div>
               </div>
 

@@ -15,6 +15,8 @@ export async function PUT(request: NextRequest) {
       work_status, 
       preferred_shift, 
       expected_salary, 
+      expected_salary_min,
+      expected_salary_max,
       work_setup 
     } = body;
 
@@ -48,9 +50,11 @@ export async function PUT(request: NextRequest) {
         work_status = COALESCE($6, work_status),
         preferred_shift = COALESCE($7, preferred_shift),
         expected_salary = COALESCE($8, expected_salary),
-        work_setup = COALESCE($9, work_setup),
+        minimum_salary_range = COALESCE($9, minimum_salary_range),
+        maximum_salary_range = COALESCE($10, maximum_salary_range),
+        work_setup = COALESCE($11, work_setup),
         updated_at = NOW()
-      WHERE user_id = $10
+      WHERE user_id = $12
       RETURNING *
     `;
 
@@ -63,6 +67,8 @@ export async function PUT(request: NextRequest) {
       work_status || null,
       preferred_shift || null,
       expected_salary || null,
+      expected_salary_min || null,
+      expected_salary_max || null,
       work_setup || null,
       userId
     ];

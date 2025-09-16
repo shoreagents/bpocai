@@ -195,14 +195,10 @@ export default function TalentSearchPage() {
                     </div>
 
                     <CardContent className="p-6 -mt-8 relative z-10">
-                      {/* Name, Position, and Email */}
+                      {/* First Name and Username */}
                       <div className="text-center mb-4">
-                        <h3 className="text-xl font-bold text-white mb-1">{candidate.name}</h3>
-                        <p className="text-gray-300 mb-2">{candidate.position}</p>
-                        <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
-                          <Mail className="w-4 h-4" />
-                          <span>{candidate.email}</span>
-                        </div>
+                        <h3 className="text-xl font-bold text-white mb-1">{candidate.name.split(' ')[0]}</h3>
+                        <p className="text-gray-300 mb-2">@{candidate.slug}</p>
                       </div>
 
                       {/* Overall Score and Rank Badges */}

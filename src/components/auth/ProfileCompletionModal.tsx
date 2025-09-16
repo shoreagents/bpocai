@@ -62,6 +62,8 @@ interface ProfileCompletionData {
   expectedSalary: string
   expectedSalaryMin: string
   expectedSalaryMax: string
+  minimumSalaryRange: string
+  maximumSalaryRange: string
   currentMood: string
   workStatus: string
   preferredShift: string
@@ -108,6 +110,8 @@ export default function ProfileCompletionModal({
     expectedSalary: '',
     expectedSalaryMin: '',
     expectedSalaryMax: '',
+    minimumSalaryRange: '',
+    maximumSalaryRange: '',
     currentMood: '',
     workStatus: '',
     preferredShift: '',
@@ -456,6 +460,9 @@ export default function ProfileCompletionModal({
            const minSalary = formData.expectedSalaryMin.trim()
            const maxSalary = formData.expectedSalaryMax.trim()
            formData.expectedSalary = `${minSalary} - ${maxSalary}`
+           // Also store in the new range fields
+           formData.minimumSalaryRange = minSalary
+           formData.maximumSalaryRange = maxSalary
          }
          if (!isFieldDisabled('noticePeriod') && !formData.noticePeriod.trim()) {
            newErrors.noticePeriod = 'Notice period is required'
@@ -577,6 +584,8 @@ export default function ProfileCompletionModal({
           currentSalary: formData.currentSalary,
           noticePeriod: formData.noticePeriod ? parseInt(formData.noticePeriod) : null,
           expectedSalary: formData.expectedSalary,
+          minimumSalaryRange: formData.minimumSalaryRange,
+          maximumSalaryRange: formData.maximumSalaryRange,
           currentMood: formData.currentMood,
           workStatus: formData.workStatus,
           preferredShift: formData.preferredShift,

@@ -38,7 +38,8 @@ import {
   ArrowUp,
   ArrowDown,
   Share,
-  Zap
+  Zap,
+  Camera
   } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +50,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/lib/supabase';
 import { slugify } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { uploadProfilePhoto, optimizeImage } from '@/lib/storage';
 
 interface UserProfile {
   id: string;
@@ -86,6 +88,8 @@ interface UserProfile {
   work_status?: string;
   preferred_shift?: string;
   expected_salary?: string;
+  minimum_salary_range?: number;
+  maximum_salary_range?: number;
   work_setup?: string;
   ats_compatibility_score?: number;
   content_quality_score?: number;
@@ -153,6 +157,10 @@ const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
     work_setup: ''
   });
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
+  const [editedBio, setEditedBio] = useState<string>('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
+  const [photoError, setPhotoError] = useState<string>('');
 
  // Function to determine rank based on overall score
  const getRank = (score: number) => {
@@ -389,7 +397,12 @@ useEffect(() => {
       let expectedSalaryMin = '';
       let expectedSalaryMax = '';
       
-      if (userProfile.expected_salary) {
+      // First try to get from the new structured fields
+      if (userProfile.minimum_salary_range && userProfile.maximum_salary_range) {
+        expectedSalaryMin = String(userProfile.minimum_salary_range);
+        expectedSalaryMax = String(userProfile.maximum_salary_range);
+      } else if (userProfile.expected_salary) {
+        // Fallback to parsing the concatenated string
         const salaryStr = String(userProfile.expected_salary);
         if (salaryStr.includes('-')) {
           const parts = salaryStr.replace(/P+/g, '').split('-');
@@ -452,7 +465,9 @@ return;
         },
         body: JSON.stringify({
           userId: userProfile.id,
-          ...editedWorkStatus
+          ...editedWorkStatus,
+          expected_salary_min: editedWorkStatus.expected_salary_min,
+          expected_salary_max: editedWorkStatus.expected_salary_max
         }),
       });
 
@@ -467,6 +482,8 @@ return;
           work_status: editedWorkStatus.work_status,
           preferred_shift: editedWorkStatus.preferred_shift,
           expected_salary: editedWorkStatus.expected_salary,
+          minimum_salary_range: editedWorkStatus.expected_salary_min ? parseFloat(editedWorkStatus.expected_salary_min) : undefined,
+          maximum_salary_range: editedWorkStatus.expected_salary_max ? parseFloat(editedWorkStatus.expected_salary_max) : undefined,
           work_setup: editedWorkStatus.work_setup
         } : null);
         setIsEditingWorkStatus(false);
@@ -477,6 +494,128 @@ return;
       console.error('Error saving work status changes:', error);
 } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Function to start editing bio
+  const startEditingBio = () => {
+    setEditedBio(userProfile?.bio || '');
+    setIsEditingBio(true);
+  };
+
+  // Function to cancel bio editing
+  const cancelEditingBio = () => {
+    setEditedBio('');
+    setIsEditingBio(false);
+  };
+
+  // Function to save bio changes
+  const saveBio = async () => {
+    if (!userProfile) return;
+    
+    setIsSaving(true);
+    try {
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No session found');
+        return;
+      }
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId: userProfile.id,
+          bio: editedBio
+        }),
+      });
+
+      if (response.ok) {
+        // Update the local state
+        setUserProfile(prev => prev ? {
+          ...prev,
+          bio: editedBio
+        } : null);
+        
+        setIsEditingBio(false);
+      } else {
+        console.error('Failed to save bio changes');
+      }
+    } catch (error) {
+      console.error('Error saving bio changes:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Function to handle profile picture upload
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !userProfile) return
+    
+    try {
+      setIsUploadingPhoto(true)
+      setPhotoError('')
+      
+      console.log('📸 Starting photo upload...')
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Please select an image file')
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File size must be less than 5MB')
+      }
+      
+      // Optimize image
+      const optimizedFile = await optimizeImage(file)
+      console.log('✅ Image optimized')
+      
+      // Upload to Supabase
+      const { fileName, publicUrl } = await uploadProfilePhoto(optimizedFile, userProfile.id)
+      console.log('✅ Photo uploaded to Supabase:', publicUrl)
+      
+      // Update Railway database
+      console.log('🔄 Updating Railway with avatar_url:', publicUrl)
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userProfile.id,
+          avatar_url: publicUrl
+        })
+      })
+      
+      if (response.ok) {
+        // Update local state
+        setUserProfile(prev => prev ? {
+          ...prev,
+          avatar_url: publicUrl
+        } : null)
+        
+        console.log('✅ Profile photo updated successfully')
+        
+        // Trigger header update
+        window.dispatchEvent(new CustomEvent('profileUpdated'))
+      } else {
+        const errorData = await response.text()
+        console.error('❌ Failed to update profile photo in Railway:', response.status, errorData)
+        throw new Error('Failed to update profile photo')
+      }
+      
+    } catch (error) {
+      console.error('❌ Photo upload failed:', error)
+      setPhotoError(error instanceof Error ? error.message : 'Photo upload failed')
+    } finally {
+      setIsUploadingPhoto(false)
+      // Reset the input
+      event.target.value = ''
     }
   };
 
@@ -628,32 +767,8 @@ return (
               <div className="absolute top-6 right-6 flex items-center gap-4 z-50">
                 {/* Action Buttons - Left of Icons */}
                 <div className="flex flex-col gap-3 relative z-50">
-                  {/* View Resume Button - Only show for non-owners */}
-                  {!isOwner && (
-<Button 
-                      onClick={() => {
-                        // Check resume_score before navigating
-                        if (userProfile?.resume_score && userProfile.resume_score > 0) {
-                          // Remove the ID suffix (e.g., -ccf9) from the slug
-                          const namePart = slug.split('-').slice(0, -1).join('-');
-                          router.push(`/resume/${namePart}-resume`);
-                        } else {
-                          // Show a toast or alert that resume is not available
-                          console.log('Resume not available for this user');
-                        }
-                      }}
-                      className={`${
-                        userProfile?.resume_score && userProfile.resume_score > 0
-                          ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 hover:from-cyan-500/40 hover:to-purple-500/40 hover:border-cyan-400/70 hover:text-cyan-200 hover:scale-105 cursor-pointer" 
-                          : "bg-gradient-to-r from-gray-500/20 to-gray-600/20 border border-gray-400/30 text-gray-400 cursor-not-allowed"
-                      } transition-all duration-300 relative z-50`}
-                      style={{ pointerEvents: (userProfile?.resume_score && userProfile.resume_score > 0) ? 'auto' : 'none' }}
-                      disabled={!(userProfile?.resume_score && userProfile.resume_score > 0)}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      {(userProfile?.resume_score && userProfile.resume_score > 0) ? "View Resume" : "Resume Not Available"}
-</Button>
-                  )}
+                  {/* View Resume Button - Hidden for all users viewing other profiles */}
+                  {/* Removed - no longer showing View Resume button for other users */}
 
                   {/* Share Button - Only show for owners */}
                   {isOwner && (
@@ -682,27 +797,22 @@ return (
                   )}
 </div>
 
-                {/* Heart and Eye Icons */}
+                {/* Eye Icon Only - Views count */}
                 <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="p-3 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-300 hover:scale-110 cursor-default">
-                      <Heart className="w-5 h-5 text-red-400" />
-</div>
-                    <span className="text-xs text-red-400 font-medium">127</span>
- </div>
+                  {/* Eye Icon - Always show (views count) */}
                   <div className="flex flex-col items-center gap-1">
                     <div className="p-3 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:scale-110 cursor-default">
                       <Eye className="w-5 h-5 text-blue-400" />
- </div>
+                    </div>
                     <span className="text-xs text-blue-400 font-medium">2.4k</span>
-</div>
-</div>
+                  </div>
+                </div>
 </div>
 
               <div className="relative z-10 p-8">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
                   {/* Avatar Section */}
- <div className="relative">
+                  <div className="relative">
                     {/* Glowing Ring */}
                     {overallScore > 0 && (
                       <div className={`absolute -inset-2 rounded-full opacity-75 blur-sm ${
@@ -736,14 +846,46 @@ return (
                           src={userProfile.avatar_url} 
                           alt={userProfile.full_name}
                           className="w-full h-full rounded-full object-cover"
- />
- ) : (
+                        />
+                      ) : (
                         <div className="w-full h-full rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl">
                           {userProfile.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
                         </div>
- )}
- </div>
- </div>
+                      )}
+                    </div>
+                    
+                    {/* Edit Photo Button - Only for profile owners */}
+                    {isOwner && (
+                      <div className="absolute bottom-0 right-0">
+                        <label htmlFor="photo-upload" className="cursor-pointer">
+                          <div className="w-10 h-10 bg-cyan-600 hover:bg-cyan-700 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200 border-2 border-white/20">
+                            {isUploadingPhoto ? (
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Camera className="w-5 h-5 text-white" />
+                            )}
+                          </div>
+                        </label>
+                        <input
+                          id="photo-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                          disabled={isUploadingPhoto}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Photo Error Message */}
+                    {photoError && (
+                      <div className="absolute -bottom-8 left-0 right-0 text-center">
+                        <p className="text-red-400 text-xs bg-red-500/10 px-2 py-1 rounded">
+                          {photoError}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Profile Info */}
                   <div className="flex-1 space-y-4">
@@ -800,12 +942,59 @@ return (
 
                     {/* Bio */}
                     <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                      {userProfile.bio ? (
-                        <p className="text-gray-200 leading-relaxed text-lg">{userProfile.bio}</p>
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold text-white">Bio</h3>
+                        {isOwner && (
+                          <button
+                            onClick={startEditingBio}
+                            className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                      
+                      {isEditingBio ? (
+                        <div className="space-y-4">
+                          <textarea
+                            value={editedBio}
+                            onChange={(e) => setEditedBio(e.target.value)}
+                            placeholder="Tell us about yourself..."
+                            className="w-full h-32 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
+                            maxLength={500}
+                          />
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-400">
+                              {editedBio.length}/500 characters
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={cancelEditingBio}
+                                className="px-4 py-2 text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                                disabled={isSaving}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={saveBio}
+                                disabled={isSaving}
+                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isSaving ? 'Saving...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       ) : (
-                        <p className="text-gray-400 italic">No bio data found</p>
- )}
-</div>
+                        <div>
+                          {userProfile.bio ? (
+                            <p className="text-gray-200 leading-relaxed text-lg">{userProfile.bio}</p>
+                          ) : (
+                            <p className="text-gray-400 italic">No bio data found</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
 </div>
 </div>
 </div>
