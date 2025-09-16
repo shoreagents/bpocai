@@ -118,8 +118,10 @@ export default function AnalyticsPage() {
                 <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
                 <Link href="/recruiter/dashboard" className="text-gray-700 hover:text-emerald-600 font-medium">Dashboard</Link>
                 <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Candidates</Link>
-                <Link href="/recruiter/analytics" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Analytics</Link>
+                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium">Applications</Link>
+                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Applicants</Link>
+                <Link href="/recruiter/analytics" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Analysis</Link>
+                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium">Leaderboard</Link>
               </div>
             </div>
 

@@ -12,7 +12,7 @@ export default function NotFound() {
         </p>
         <div className="pt-4">
           <Button asChild>
-            <Link href="/">
+            <Link href="/recruiter">
               Return Home
             </Link>
           </Button>
