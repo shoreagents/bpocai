@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
+      `SELECT user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, minimum_salary_range, maximum_salary_range, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
        FROM user_work_status WHERE user_id = $1`,
       [userId]
     )
@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
       currentSalary: row.current_salary,
       noticePeriod: row.notice_period_days,
       expectedSalary: row.expected_salary,
+      minimumSalaryRange: row.minimum_salary_range,
+      maximumSalaryRange: row.maximum_salary_range,
       currentMood: row.current_mood,
       workStatus: row.work_status,
       preferredShift: row.preferred_shift,
@@ -56,6 +58,8 @@ export async function PUT(request: NextRequest) {
       currentSalary,
       noticePeriod,
       expectedSalary,
+      minimumSalaryRange,
+      maximumSalaryRange,
       currentMood,
       workStatus,
       preferredShift,
@@ -114,11 +118,13 @@ export async function PUT(request: NextRequest) {
              current_salary = $4,
              notice_period_days = $5,
              expected_salary = $6,
-             current_mood = $7,
-             work_status = $8,
-             preferred_shift = $9,
-             work_setup = $10,
-                           completed_data = $11,
+             minimum_salary_range = $7,
+             maximum_salary_range = $8,
+             current_mood = $9,
+             work_status = $10,
+             preferred_shift = $11,
+             work_setup = $12,
+                           completed_data = $13,
              updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
@@ -129,6 +135,8 @@ export async function PUT(request: NextRequest) {
           currentSalary ?? null,
           typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null),
           expectedSalary ?? null,
+          minimumSalaryRange ?? null,
+          maximumSalaryRange ?? null,
           sanitizedMood,
           sanitizedStatus,
           preferredShift ?? null,
@@ -156,9 +164,9 @@ export async function PUT(request: NextRequest) {
 
     const insertRes = await pool.query(
       `INSERT INTO user_work_status (
-         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
+         user_id, current_employer, current_position, current_salary, notice_period_days, expected_salary, minimum_salary_range, maximum_salary_range, current_mood, work_status, preferred_shift, work_setup, completed_data, created_at, updated_at
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()
        ) RETURNING *`,
       [
         userId,
@@ -167,6 +175,8 @@ export async function PUT(request: NextRequest) {
         currentSalary ?? null,
         typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null),
         expectedSalary ?? null,
+        minimumSalaryRange ?? null,
+        maximumSalaryRange ?? null,
         sanitizedMood,
         sanitizedStatus,
         preferredShift ?? null,

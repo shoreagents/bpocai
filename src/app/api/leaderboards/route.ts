@@ -148,13 +148,13 @@ async function getGameLeaderboard(
 
 	// Fetch user display info
 	const ids = page.map(r => r.userId)
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (ids.length > 0) {
 		const ures = await pool.query(
-			`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`,
+			`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`,
 			[ids]
 		)
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 
 	let me: any = null
@@ -219,10 +219,10 @@ async function getApplicantLeaderboard(limit: number, offset: number, userIdForM
 
 	// Fetch user info
 	const ids = page.map(r => r.userId)
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (ids.length > 0) {
-		const ures = await pool.query(`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`, [ids])
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		const ures = await pool.query(`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`, [ids])
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 
 	let me: any = null
@@ -299,11 +299,11 @@ async function getEngagementLeaderboard(limit: number, offset: number, userIdFor
 	const page = totals.slice(offset, offset + limit)
 
 	// User info
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (page.length > 0) {
 		const ids = page.map(r => r.userId)
-		const ures = await pool.query(`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`, [ids])
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		const ures = await pool.query(`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`, [ids])
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 
 	let me: any = null
@@ -346,10 +346,10 @@ async function getGameLeaderboardFromTables(
 	)
 
 	const ids = res.rows.map((r: any) => r.user_id)
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (ids.length > 0) {
-		const ures = await pool.query(`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`, [ids])
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		const ures = await pool.query(`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`, [ids])
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 
 	let me: any = null
@@ -393,10 +393,10 @@ async function getApplicantLeaderboardFromTables(limit: number, offset: number, 
 	)
 	const countRes = await pool.query(`SELECT COUNT(*) AS c FROM leaderboard_applicant_scores WHERE period = 'all'`)
 	const ids = res.rows.map((r: any) => r.user_id)
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (ids.length > 0) {
-		const ures = await pool.query(`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`, [ids])
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		const ures = await pool.query(`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`, [ids])
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 	let me: any = null
 	if (userIdForMe) {
@@ -422,10 +422,10 @@ async function getEngagementLeaderboardFromTables(limit: number, offset: number,
 	)
 	const countRes = await pool.query(`SELECT COUNT(*) AS c FROM leaderboard_engagement_scores WHERE period = 'all'`)
 	const ids = res.rows.map((r: any) => r.user_id)
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (ids.length > 0) {
-		const ures = await pool.query(`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`, [ids])
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		const ures = await pool.query(`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`, [ids])
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 	let me: any = null
 	if (userIdForMe) {
@@ -454,10 +454,10 @@ async function getOverallLeaderboardFromTables(limit: number, offset: number, us
 	)
 	const countRes = await pool.query(`SELECT COUNT(*) AS c FROM leaderboard_overall_scores`)
 	const ids = res.rows.map((r: any) => r.user_id)
-	let users: Record<string, { full_name: string | null; avatar_url: string | null }> = {}
+	let users: Record<string, { full_name: string | null; avatar_url: string | null; slug: string | null }> = {}
 	if (ids.length > 0) {
-		const ures = await pool.query(`SELECT id, full_name, avatar_url FROM users WHERE id = ANY($1)`, [ids])
-		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url }]))
+		const ures = await pool.query(`SELECT id, full_name, avatar_url, slug FROM users WHERE id = ANY($1)`, [ids])
+		users = Object.fromEntries(ures.rows.map((u: any) => [u.id, { full_name: u.full_name, avatar_url: u.avatar_url, slug: u.slug }]))
 	}
 	let me: any = null
 	if (userIdForMe) {
