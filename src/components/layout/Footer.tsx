@@ -93,7 +93,8 @@ export default function Footer() {
                                                                                                                                                                <div className="space-y-3">
                         {[
                           { href: "/resume-builder", text: "Resume Builder" },
-                          { href: "/career-tools/games", text: "Career Games" }
+                          { href: "/career-tools/games", text: "Career Games" },
+                          { href: "/talent-search", text: "Talent Search" }
                         ].map((link, index) => (
                        <motion.div
                          key={link.href}

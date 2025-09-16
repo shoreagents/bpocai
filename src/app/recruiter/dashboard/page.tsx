@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +19,87 @@ export default function RecruiterDashboardPage() {
   const router = useRouter();
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  
+  // Dashboard data states
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [totalApplicants, setTotalApplicants] = useState<number>(0);
+  const [activeJobs, setActiveJobs] = useState<number>(0);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [applicationTrends, setApplicationTrends] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch total users
+        try {
+          const usersResponse = await fetch('/api/admin/total-users');
+          if (usersResponse.ok) {
+            const usersData = await usersResponse.json();
+            setTotalUsers(usersData.total_users);
+          }
+        } catch (error) {
+          console.error('Error fetching total users:', error);
+        }
+        
+        // Fetch total applicants
+        try {
+          const applicantsResponse = await fetch('/api/admin/total-applicants');
+          if (applicantsResponse.ok) {
+            const applicantsData = await applicantsResponse.json();
+            setTotalApplicants(applicantsData.total_applicants);
+          }
+        } catch (error) {
+          console.error('Error fetching total applicants:', error);
+        }
+
+        // Fetch active jobs
+        try {
+          const jobsResponse = await fetch('/api/admin/active-jobs');
+          if (jobsResponse.ok) {
+            const jobsData = await jobsResponse.json();
+            setActiveJobs(jobsData.active_jobs);
+          }
+        } catch (error) {
+          console.error('Error fetching active jobs:', error);
+        }
+
+        // Fetch recent activity
+        try {
+          const activityResponse = await fetch('/api/admin/recent-activity');
+          if (activityResponse.ok) {
+            const activityData = await activityResponse.json();
+            setRecentActivity(activityData.recent_activity || []);
+          }
+        } catch (error) {
+          console.error('Error fetching recent activity:', error);
+        }
+
+        // Fetch application trends
+        try {
+          const trendsResponse = await fetch('/api/admin/application-trends?range=7d');
+          if (trendsResponse.ok) {
+            const trendsData = await trendsResponse.json();
+            setApplicationTrends(trendsData.application_trends || []);
+          }
+        } catch (error) {
+          console.error('Error fetching application trends:', error);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Recruiter Navbar */}
       <nav className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,8 +120,10 @@ export default function RecruiterDashboardPage() {
                 <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
                 <Link href="/recruiter/dashboard" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Dashboard</Link>
                 <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Candidates</Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analytics</Link>
+                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium">Applications</Link>
+                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Applicants</Link>
+                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analysis</Link>
+                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium">Leaderboard</Link>
               </div>
             </div>
 
@@ -79,218 +159,215 @@ export default function RecruiterDashboardPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Recruiter Dashboard</h1>
-          <p className="text-gray-600">Manage your job postings and find the best candidates</p>
+        <div className="mb-12">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
+                Recruiter Dashboard
+              </h1>
+              <p className="text-lg text-gray-600">Manage your job postings and find the best candidates</p>
+            </div>
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Last updated</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {new Date().toLocaleDateString()}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Building2 className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Active Jobs</CardTitle>
-              <FileText className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">12</div>
-              <p className="text-xs text-gray-600">+2 from last month</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600 mb-1">Total Users</p>
+                  <div className="text-3xl font-bold text-blue-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-blue-300 animate-pulse rounded"></span>
+                    ) : (
+                      totalUsers.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-sm text-blue-700 mt-2">Registered candidates</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Total Applications</CardTitle>
-              <Users className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">1,234</div>
-              <p className="text-xs text-gray-600">+15% from last month</p>
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-emerald-600 mb-1">Total Applications</p>
+                  <div className="text-3xl font-bold text-emerald-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-emerald-300 animate-pulse rounded"></span>
+                    ) : (
+                      totalApplicants.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-sm text-emerald-700 mt-2">Job applications received</p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Hired Candidates</CardTitle>
-              <TrendingUp className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">8</div>
-              <p className="text-xs text-gray-600">+3 from last month</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">Success Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">67%</div>
-              <p className="text-xs text-gray-600">+5% from last month</p>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-600 mb-1">Active Jobs</p>
+                  <div className="text-3xl font-bold text-purple-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-purple-300 animate-pulse rounded"></span>
+                    ) : (
+                      activeJobs.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-sm text-purple-700 mt-2">Currently open positions</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Dashboard Content */}
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Dashboard Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {/* Applications Chart */}
-              <Card className="bg-white border border-gray-200 shadow-sm lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">Applications Overview</CardTitle>
-                  <CardDescription className="text-gray-600">Application trends over the last 30 days</CardDescription>
+              <Card className="bg-white border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900">Applications Overview</CardTitle>
+                      <CardDescription className="text-gray-600 mt-1">Application trends over the last 7 days</CardDescription>
+                    </div>
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-80 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg border-2 border-dashed border-blue-200">
-                    <div className="text-center">
-                      <TrendingUp className="h-16 w-16 mx-auto mb-4 text-blue-500" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">Application Trends</h3>
-                      <p className="text-sm text-gray-600">Interactive chart showing daily applications</p>
-                      <div className="mt-4 flex justify-center space-x-4 text-sm">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                          <span className="text-gray-600">Applications</span>
+                  <div className="h-96 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100 rounded-xl border border-emerald-200">
+                    {loading ? (
+                      <div className="text-center">
+                        <div className="h-16 w-16 bg-gray-300 rounded animate-pulse mx-auto mb-4"></div>
+                        <div className="h-6 bg-gray-300 rounded animate-pulse w-48 mx-auto mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-64 mx-auto"></div>
+                      </div>
+                    ) : applicationTrends.length > 0 ? (
+                      <div className="w-full h-full p-6">
+                        <div className="mb-6">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">Application Trends (Last 7 Days)</h3>
+                          <p className="text-sm text-gray-600">Daily application counts</p>
                         </div>
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                          <span className="text-gray-600">Hires</span>
+                        <div className="grid grid-cols-7 gap-4 h-56">
+                          {applicationTrends.map((trend, index) => (
+                            <div key={index} className="flex flex-col justify-end group">
+                              <div 
+                                className="bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-lg shadow-lg hover:shadow-xl transition-all duration-300 group-hover:from-emerald-700 group-hover:to-emerald-500"
+                                style={{ 
+                                  height: `${Math.max(20, (trend.count / Math.max(...applicationTrends.map(t => t.count), 1)) * 100)}%` 
+                                }}
+                              ></div>
+                              <div className="text-xs text-gray-700 mt-3 text-center font-medium">
+                                {trend.displayDate}
+                              </div>
+                              <div className="text-xs text-emerald-600 text-center font-semibold">
+                                {trend.count}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-center">
+                        <TrendingUp className="h-16 w-16 mx-auto mb-4 text-blue-500" />
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">Application Trends</h3>
+                        <p className="text-sm text-gray-600">No application data available</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Quick Stats */}
-              <Card className="bg-white border border-gray-200 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">This Week</CardTitle>
-                  <CardDescription className="text-gray-600">Key performance indicators</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-3xl font-bold text-green-600">+23</div>
-                    <div className="text-sm text-green-700">New Applications</div>
-                    <div className="text-xs text-green-600 mt-1">↗ 15% from last week</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-3xl font-bold text-blue-600">8</div>
-                    <div className="text-sm text-blue-700">Interviews Scheduled</div>
-                    <div className="text-xs text-blue-600 mt-1">↗ 3 this week</div>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="text-3xl font-bold text-purple-600">3</div>
-                    <div className="text-sm text-purple-700">New Hires</div>
-                    <div className="text-xs text-purple-600 mt-1">↗ 1 this week</div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Bottom Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Performing Jobs */}
-              <Card className="bg-white border border-gray-200 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">Top Performing Jobs</CardTitle>
-                  <CardDescription className="text-gray-600">Jobs with highest application rates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Senior Frontend Developer</h4>
-                          <p className="text-sm text-gray-600">Tech Corp • Remote</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">45</div>
-                        <div className="text-xs text-gray-600">applications</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Users className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">UX Designer</h4>
-                          <p className="text-sm text-gray-600">Design Studio • NYC</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">23</div>
-                        <div className="text-xs text-gray-600">applications</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <Building2 className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Product Manager</h4>
-                          <p className="text-sm text-gray-600">Startup Inc • SF</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">18</div>
-                        <div className="text-xs text-gray-600">applications</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 gap-6">
 
               {/* Recent Activity */}
-              <Card className="bg-white border border-gray-200 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">Recent Activity</CardTitle>
-                  <CardDescription className="text-gray-600">Latest updates and notifications</CardDescription>
+              <Card className="bg-white border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900">Recent Activity</CardTitle>
+                      <CardDescription className="text-gray-600 mt-1">Latest updates and notifications</CardDescription>
+                    </div>
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Users className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">New application received</p>
-                        <p className="text-xs text-gray-600">John Doe applied for Senior Frontend Developer</p>
-                        <p className="text-xs text-gray-600 mt-1">2 minutes ago</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Calendar className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">Interview scheduled</p>
-                        <p className="text-xs text-gray-600">Alice Smith - UX Designer position</p>
-                        <p className="text-xs text-gray-600 mt-1">1 hour ago</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">Job published</p>
-                        <p className="text-xs text-gray-600">Backend Developer position is now live</p>
-                        <p className="text-xs text-gray-600 mt-1">3 hours ago</p>
-                      </div>
-                    </div>
+                  <div 
+                    className="max-h-80 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                  >
+                      {loading ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                              <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
+                              <div className="flex-1">
+                                <div className="h-4 bg-gray-300 rounded animate-pulse mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : recentActivity.length > 0 ? (
+                        recentActivity.map((activity, index) => (
+                          <div key={index} className="flex items-start space-x-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50">
+                            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                              <span className="text-white text-sm font-bold">
+                                {activity.user_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'U'}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-gray-900">{activity.user_name || 'Unknown User'}</p>
+                              <p className="text-sm text-gray-700 mt-1">{activity.action}</p>
+                              <p className="text-xs text-gray-500 mt-2 flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {activity.activity_time ? new Date(activity.activity_time).toLocaleString() : 'Unknown time'}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                          <p>No recent activity</p>
+                          <p className="text-sm">Activity will appear here as users interact with the platform</p>
+                        </div>
+                      )}
                   </div>
                 </CardContent>
               </Card>
