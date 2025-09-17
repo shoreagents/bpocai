@@ -14,6 +14,14 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -54,15 +62,12 @@ import {
   XCircle,
   Camera,
   Upload,
-  Briefcase,
   Building,
   TrendingUp,
   Clock,
   DollarSign,
-  Brain,
   Target,
   BarChart3,
-  Trophy,
   Medal,
   Users,
   Calendar
@@ -131,6 +136,7 @@ export default function SettingsPage() {
     pushNotifications: true
   })
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   // Privacy settings state
   const [privacySettings, setPrivacySettings] = useState({
@@ -139,40 +145,14 @@ export default function SettingsPage() {
     firstName: 'public',
     lastName: 'only-me',
     location: 'public',
-    jobTitle: 'public',
+    jobTitle: 'public', // Uneditable - Default Public
     birthday: 'only-me',
     age: 'only-me',
     gender: 'only-me',
     memberSince: 'public',
-    resumeScore: 'public',
-    gamesCompleted: 'public',
-    keyStrengths: 'public',
-    
-    // Work Status tab
-    workStatus: 'public',
-    expectedSalaryRange: 'only-me',
-    currentEmployer: 'public',
-    noticePeriod: 'only-me',
-    moodAtCurrentEmployer: 'only-me',
-    preferredShift: 'public',
-    preferredWorkSetup: 'public',
-    currentSalary: 'only-me',
-    
-    // AI Analysis tab
-    detailedAnalysisScores: 'public',
-    aiImprovedProfessionalSummary: 'public',
-    strengthsAnalysis: 'public',
-    improvementSuggestions: 'public',
-    actionableRecommendations: 'public',
-    salaryAnalysis: 'only-me',
-    careerPathAnalysis: 'public',
-    sectionBySectionAnalysis: 'public',
-    
-    // Game Results tab
-    bpocCultural: 'public',
-    bpocDisc: 'public',
-    typingHero: 'public',
-    bpocUltimate: 'public'
+    resumeScore: 'public', // Uneditable - Default Public
+    gamesCompleted: 'public', // Uneditable - Default Public
+    keyStrengths: 'only-me' // Uneditable - Default Private
   })
 
   const settingsSections = [
@@ -211,27 +191,6 @@ export default function SettingsPage() {
       icon: User,
       color: 'text-cyan-400',
       bgColor: 'bg-cyan-500/10'
-    },
-    {
-      id: 'work-status',
-      title: 'Work Status',
-      icon: Briefcase,
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10'
-    },
-    {
-      id: 'ai-analysis',
-      title: 'AI Analysis',
-      icon: Brain,
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10'
-    },
-    {
-      id: 'game-results',
-      title: 'Game Results',
-      icon: Trophy,
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10'
     }
   ]
 
@@ -396,6 +355,40 @@ export default function SettingsPage() {
     loadUserProfile()
   }, [user, updateProfile])
 
+  // Load privacy settings from database
+  useEffect(() => {
+    const loadPrivacySettings = async () => {
+      if (!user) return
+
+      try {
+        const response = await fetch(`/api/privacy-settings?userId=${user.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setPrivacySettings({
+              username: data.data.username || 'public',
+              firstName: data.data.first_name || 'public',
+              lastName: data.data.last_name || 'only-me',
+              location: data.data.location || 'public',
+              jobTitle: data.data.job_title || 'public',
+              birthday: data.data.birthday || 'only-me',
+              age: data.data.age || 'only-me',
+              gender: data.data.gender || 'only-me',
+              memberSince: data.data.member_since || 'public',
+              resumeScore: data.data.resume_score || 'public',
+              gamesCompleted: data.data.games_completed || 'public',
+              keyStrengths: data.data.key_strengths || 'only-me'
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error loading privacy settings:', error)
+      }
+    }
+
+    loadPrivacySettings()
+  }, [user])
+
   const handleSaveProfile = async () => {
     if (!user) return
 
@@ -479,6 +472,66 @@ export default function SettingsPage() {
       console.error('❌ Error saving profile:', error)
       setSaveStatus('error')
       setErrorMessage(error instanceof Error ? error.message : 'Failed to save profile')
+      setTimeout(() => setSaveStatus('idle'), 5000)
+    }
+  }
+
+  const handleSavePrivacySettings = async () => {
+    if (!user) return
+
+    try {
+      setSaveStatus('saving')
+      setErrorMessage('')
+
+      console.log('💾 Starting privacy settings save process...')
+      console.log('📋 Privacy settings to save:', privacySettings)
+
+      const response = await fetch('/api/privacy-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          username: privacySettings.username,
+          first_name: privacySettings.firstName,
+          last_name: privacySettings.lastName,
+          location: privacySettings.location,
+          job_title: privacySettings.jobTitle,
+          birthday: privacySettings.birthday,
+          age: privacySettings.age,
+          gender: privacySettings.gender,
+          member_since: privacySettings.memberSince,
+          resume_score: privacySettings.resumeScore,
+          games_completed: privacySettings.gamesCompleted,
+          key_strengths: privacySettings.keyStrengths
+        }),
+      })
+
+      if (response.ok) {
+        console.log('✅ Privacy settings saved successfully')
+        setSaveStatus('success')
+        setErrorMessage('')
+        
+        // Show success modal
+        setShowSuccessModal(true)
+        
+        // Auto-hide success modal after 3 seconds
+        setTimeout(() => {
+          setShowSuccessModal(false)
+          setSaveStatus('idle')
+        }, 3000)
+      } else {
+        const errorData = await response.json()
+        console.error('❌ Privacy settings save failed:', errorData)
+        setSaveStatus('error')
+        setErrorMessage(`Failed to save privacy settings: ${errorData.error}`)
+      }
+
+    } catch (error) {
+      console.error('❌ Error saving privacy settings:', error)
+      setSaveStatus('error')
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to save privacy settings')
       setTimeout(() => setSaveStatus('idle'), 5000)
     }
   }
@@ -995,6 +1048,31 @@ export default function SettingsPage() {
     </Select>
   )
 
+  const renderUneditablePrivacyField = (key: string, value: string, label: string, description: string) => (
+    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+      <div className="flex items-center gap-3">
+        <div>
+          <div className="text-white font-medium">{label}</div>
+          <div className="text-gray-400 text-sm">{description}</div>
+        </div>
+      </div>
+      <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${
+        value === 'public' 
+          ? 'bg-green-500/20 border-green-500/30' 
+          : 'bg-red-500/20 border-red-500/30'
+      }`}>
+        <div className={`w-2 h-2 rounded-full ${
+          value === 'public' ? 'bg-green-400' : 'bg-red-400'
+        }`}></div>
+        <span className={`text-sm font-medium ${
+          value === 'public' ? 'text-green-400' : 'text-red-400'
+        }`}>
+          {value === 'public' ? 'Public' : 'Only Me'}
+        </span>
+      </div>
+    </div>
+  )
+
   const renderPrivacySettings = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -1048,363 +1126,124 @@ export default function SettingsPage() {
           >
             {activePrivacyTab === 'overview' && (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Username</div>
-                        <div className="text-gray-400 text-sm">Your unique username (always public)</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column - Fields with Toggles */}
+                  <div className="space-y-3">
+                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      Editable Settings
+                    </h3>
+                    
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">First Name</div>
+                          <div className="text-gray-400 text-sm">Your first name</div>
+                        </div>
+
                       </div>
+                      {renderPrivacyDropdown('firstName', privacySettings.firstName)}
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-green-400 text-sm font-medium">Public</span>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Location</div>
+                          <div className="text-gray-400 text-sm">Your current location</div>
+                        </div>
+                      </div>
+                      {renderPrivacyDropdown('location', privacySettings.location)}
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Birthday</div>
+                          <div className="text-gray-400 text-sm">Your date of birth</div>
+                        </div>
+                      </div>
+                      {renderPrivacyDropdown('birthday', privacySettings.birthday)}
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Age</div>
+                          <div className="text-gray-400 text-sm">Your current age</div>
+                        </div>
+                      </div>
+                      {renderPrivacyDropdown('age', privacySettings.age)}
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Gender</div>
+                          <div className="text-gray-400 text-sm">Your gender identity</div>
+                        </div>
+                      </div>
+                      {renderPrivacyDropdown('gender', privacySettings.gender)}
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Member Since</div>
+                          <div className="text-gray-400 text-sm">When you joined BPOC</div>
+                        </div>
+                      </div>
+                      {renderPrivacyDropdown('memberSince', privacySettings.memberSince)}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">First Name</div>
-                        <div className="text-gray-400 text-sm">Your first name</div>
+                  {/* Right Column - Uneditable Fields */}
+                  <div className="space-y-3">
+                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      System Settings
+                    </h3>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Last Name</div>
+                          <div className="text-gray-400 text-sm">Your last name (always private)</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-lg">
+                        <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                        <span className="text-red-400 text-sm font-medium">Only Me</span>
                       </div>
                     </div>
-                    {renderPrivacyDropdown('firstName', privacySettings.firstName)}
-                  </div>
 
-                   <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                     <div className="flex items-center gap-3">
-                       <div>
-                         <div className="text-white font-medium">Last Name</div>
-                         <div className="text-gray-400 text-sm">Your last name (always private)</div>
-                       </div>
-                     </div>
-                     <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-lg">
-                       <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                       <span className="text-red-400 text-sm font-medium">Only Me</span>
-                     </div>
-                   </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Location</div>
-                        <div className="text-gray-400 text-sm">Your current location</div>
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-white font-medium">Username</div>
+                          <div className="text-gray-400 text-sm">Your unique username (always public)</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span className="text-green-400 text-sm font-medium">Public</span>
                       </div>
                     </div>
-                    {renderPrivacyDropdown('location', privacySettings.location)}
-                  </div>
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Job Title</div>
-                        <div className="text-gray-400 text-sm">Your current job title or position</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('jobTitle', privacySettings.jobTitle)}
-                  </div>
+                    {renderUneditablePrivacyField('jobTitle', privacySettings.jobTitle, 'Job Title', 'Your current job title or position')}
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Birthday</div>
-                        <div className="text-gray-400 text-sm">Your date of birth</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('birthday', privacySettings.birthday)}
-                  </div>
+                    {renderUneditablePrivacyField('resumeScore', privacySettings.resumeScore, 'Resume Score', 'Your AI-generated resume score')}
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Age</div>
-                        <div className="text-gray-400 text-sm">Your current age</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('age', privacySettings.age)}
-                  </div>
+                    {renderUneditablePrivacyField('gamesCompleted', privacySettings.gamesCompleted, 'Games Completed', 'Number of career games you\'ve completed')}
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Gender</div>
-                        <div className="text-gray-400 text-sm">Your gender identity</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('gender', privacySettings.gender)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Member Since</div>
-                        <div className="text-gray-400 text-sm">When you joined BPOC</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('memberSince', privacySettings.memberSince)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Resume Score</div>
-                        <div className="text-gray-400 text-sm">Your AI-generated resume score</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('resumeScore', privacySettings.resumeScore)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Games Completed</div>
-                        <div className="text-gray-400 text-sm">Number of career games you've completed</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('gamesCompleted', privacySettings.gamesCompleted)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Key Strengths</div>
-                        <div className="text-gray-400 text-sm">Your AI-identified key strengths</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('keyStrengths', privacySettings.keyStrengths)}
+                    {renderUneditablePrivacyField('keyStrengths', privacySettings.keyStrengths, 'Key Strengths', 'Your AI-identified key strengths')}
                   </div>
                 </div>
               </div>
             )}
 
-            {activePrivacyTab === 'work-status' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Job Title</div>
-                        <div className="text-gray-400 text-sm">Your current job title or position</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('jobTitle', privacySettings.jobTitle)}
-                  </div>
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Work Status</div>
-                        <div className="text-gray-400 text-sm">Your current employment status</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('workStatus', privacySettings.workStatus)}
-                  </div>
 
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Expected Salary Range</div>
-                        <div className="text-gray-400 text-sm">Your expected salary range</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('expectedSalaryRange', privacySettings.expectedSalaryRange)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Current Employer</div>
-                        <div className="text-gray-400 text-sm">Your current company or employer</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('currentEmployer', privacySettings.currentEmployer)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Notice Period</div>
-                        <div className="text-gray-400 text-sm">Your required notice period</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('noticePeriod', privacySettings.noticePeriod)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Mood at Current Employer</div>
-                        <div className="text-gray-400 text-sm">Your satisfaction level at current job</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('moodAtCurrentEmployer', privacySettings.moodAtCurrentEmployer)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Preferred Shift</div>
-                        <div className="text-gray-400 text-sm">Your preferred working hours</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('preferredShift', privacySettings.preferredShift)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Preferred Work Setup</div>
-                        <div className="text-gray-400 text-sm">Your preferred work environment</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('preferredWorkSetup', privacySettings.preferredWorkSetup)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Current Salary</div>
-                        <div className="text-gray-400 text-sm">Your current salary information</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('currentSalary', privacySettings.currentSalary)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activePrivacyTab === 'ai-analysis' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Detailed Analysis Scores</div>
-                        <div className="text-gray-400 text-sm">Comprehensive scoring breakdown</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('detailedAnalysisScores', privacySettings.detailedAnalysisScores)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">AI-Improved Professional Summary</div>
-                        <div className="text-gray-400 text-sm">Enhanced professional summary</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('aiImprovedProfessionalSummary', privacySettings.aiImprovedProfessionalSummary)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Strengths Analysis</div>
-                        <div className="text-gray-400 text-sm">AI-identified key strengths and skills</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('strengthsAnalysis', privacySettings.strengthsAnalysis)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Improvement Suggestions</div>
-                        <div className="text-gray-400 text-sm">AI suggestions for career development</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('improvementSuggestions', privacySettings.improvementSuggestions)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Actionable Recommendations</div>
-                        <div className="text-gray-400 text-sm">Specific steps for improvement</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('actionableRecommendations', privacySettings.actionableRecommendations)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Salary Analysis</div>
-                        <div className="text-gray-400 text-sm">AI-powered salary insights</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('salaryAnalysis', privacySettings.salaryAnalysis)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Career Path Analysis</div>
-                        <div className="text-gray-400 text-sm">AI career trajectory insights</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('careerPathAnalysis', privacySettings.careerPathAnalysis)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Section-by-Section Analysis</div>
-                        <div className="text-gray-400 text-sm">Detailed breakdown of each resume section</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('sectionBySectionAnalysis', privacySettings.sectionBySectionAnalysis)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activePrivacyTab === 'game-results' && (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">BPOC Cultural</div>
-                        <div className="text-gray-400 text-sm">Cultural assessment game results</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('bpocCultural', privacySettings.bpocCultural)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">BPOC DISC</div>
-                        <div className="text-gray-400 text-sm">Personality assessment game results</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('bpocDisc', privacySettings.bpocDisc)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">Typing Hero</div>
-                        <div className="text-gray-400 text-sm">Typing speed and accuracy results</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('typingHero', privacySettings.typingHero)}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-white font-medium">BPOC Ultimate</div>
-                        <div className="text-gray-400 text-sm">Ultimate career assessment results</div>
-                      </div>
-                    </div>
-                    {renderPrivacyDropdown('bpocUltimate', privacySettings.bpocUltimate)}
-                  </div>
-                </div>
-              </div>
-            )}
           </motion.div>
 
           {/* Save Settings Button - At Bottom */}
@@ -1416,9 +1255,15 @@ export default function SettingsPage() {
               </div>
               <Button
                 className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                onClick={activeSection === 'privacy' ? handleSavePrivacySettings : handleSaveProfile}
+                disabled={saveStatus === 'saving'}
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save Settings
+                {saveStatus === 'saving' ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}
               </Button>
             </div>
           </div>
@@ -1666,6 +1511,33 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md bg-gray-900 border-gray-700">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-400" />
+              </div>
+              <DialogTitle className="text-white text-xl font-semibold">
+                Privacy Settings Saved!
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-300 text-base">
+              Your privacy preferences have been successfully updated and are now active on your profile.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button 
+              onClick={() => setShowSuccessModal(false)}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+            >
+              Got it!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
