@@ -1126,6 +1126,7 @@ export default function SettingsPage() {
           >
             {activePrivacyTab === 'overview' && (
               <div className="space-y-4">
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column - Fields with Toggles */}
                   <div className="space-y-3">
@@ -1140,6 +1141,7 @@ export default function SettingsPage() {
                           <div className="text-white font-medium">First Name</div>
                           <div className="text-gray-400 text-sm">Your first name</div>
                         </div>
+
                       </div>
                       {renderPrivacyDropdown('firstName', privacySettings.firstName)}
                     </div>
