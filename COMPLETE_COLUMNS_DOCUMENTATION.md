@@ -25,7 +25,6 @@ This document provides a comprehensive list of ALL available columns in the BPOC
 | `gender` | TEXT | ✅ | Gender (male/female/others) |
 | `gender_custom` | TEXT | ✅ | Custom gender identity |
 | `admin_level` | VARCHAR | 🔒 | Admin permission level |
-| `is_admin` | BOOLEAN | 🔒 | Admin status |
 | `completed_data` | BOOLEAN | ✅ | Profile completion status |
 | `birthday` | DATE | ✅ | Date of birth |
 | `slug` | TEXT | ✅ | Public profile slug |
@@ -177,7 +176,7 @@ This document provides a comprehensive list of ALL available columns in the BPOC
 ### **🔒 PRIVATE** (Requires `includePrivate=true`)
 - Contact information (`email`, `phone`)
 - Financial data (`current_salary`, `expected_salary`)
-- Internal system data (`admin_level`, `is_admin`)
+- Internal system data (`admin_level`)
 - Full resume content (`resume_data`)
 - Analysis metadata (`analysis_metadata`, `files_analyzed`)
 - Internal references (`*_user_id` fields)

@@ -253,7 +253,7 @@ privacySettings = {
 const privateFields = [
   'email', 'phone', 'current_salary',
   'analysis_metadata', 'files_analyzed', 'original_resume_id',
-  'admin_level', 'is_admin', 'work_status_user_id', 'analysis_user_id'
+  'admin_level', 'work_status_user_id', 'analysis_user_id'
 ];
 ```
 

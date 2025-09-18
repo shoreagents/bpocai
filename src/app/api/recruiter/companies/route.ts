@@ -3,14 +3,8 @@ import pool from '@/lib/database'
 
 // Company name mapping for frontend display
 const getDisplayCompanyName = (dbCompanyName: string): string => {
-  const companyMappings: { [key: string]: string } = {
-    'UrbanX Pty Ltd': 'ShoreAgents',
-    'ShoreAgentss': 'ShoreAgents',
-    'ShoreAgents Inc.': 'ShoreAgents',
-    // Add more mappings as needed
-  }
-  
-  return companyMappings[dbCompanyName] || dbCompanyName
+  // Always return ShoreAgents for frontend display
+  return 'ShoreAgents'
 }
 
 export async function GET(request: NextRequest) {

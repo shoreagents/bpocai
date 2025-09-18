@@ -3,18 +3,28 @@ import pool from '@/lib/database'
 
 // Company name mapping for frontend display
 const getDisplayCompanyName = (dbCompanyName: string): string => {
-  const companyMappings: { [key: string]: string } = {
-    'UrbanX Pty Ltd': 'ShoreAgents',
-    'ShoreAgentss': 'ShoreAgents',
-    'ShoreAgents Inc.': 'ShoreAgents',
-    // Add more mappings as needed
-  }
-  
-  return companyMappings[dbCompanyName] || dbCompanyName
+  // Always return ShoreAgents for frontend display
+  return 'ShoreAgents'
 }
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if user is authenticated and is a recruiter
+    const userId = request.headers.get('x-user-id')
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify user is a recruiter
+    const recruiterCheck = await pool.query(
+      'SELECT admin_level FROM users WHERE id = $1',
+      [userId]
+    )
+    
+    if (recruiterCheck.rows[0]?.admin_level !== 'recruiter') {
+      return NextResponse.json({ error: 'Recruiter access required' }, { status: 403 })
+    }
+
     // Fetch both job_requests and processed_job_requests
     const result = await pool.query(`
       SELECT 
@@ -36,7 +46,7 @@ export async function GET(request: NextRequest) {
       ORDER BY created_at DESC
     `)
 
-    const jobs = result.rows.map((row: any, index: number) => ({
+    let jobs = result.rows.map((row: any, index: number) => ({
       id: `${row.source_table}_${row.id}_${index}`, // Create unique ID by combining source table, original ID, and index
       originalId: String(row.id), // Keep original ID for reference
       title: row.job_title || row.title || 'Untitled Role',
@@ -52,6 +62,102 @@ export async function GET(request: NextRequest) {
       source_table: row.source_table
     }))
 
+    // If no jobs found, return sample data for demonstration
+    if (jobs.length === 0) {
+      jobs = [
+        {
+          id: 'sample_1',
+          originalId: '1',
+          title: 'Bookkeeper',
+          description: 'We are seeking a detail-oriented Bookkeeper to join our real estate company to maintain accurate financial records and manage day-to-day accounting operations.',
+          industry: 'Real Estate',
+          department: 'Finance',
+          experienceLevel: 'Mid Level',
+          salaryMin: 25000,
+          salaryMax: 35000,
+          status: 'processed',
+          company: 'ShoreAgents',
+          created_at: new Date().toISOString(),
+          source_table: 'job_requests'
+        },
+        {
+          id: 'sample_2',
+          originalId: '2',
+          title: 'Bookkeeper',
+          description: 'We are seeking a detail-oriented Bookkeeper to join our real estate company to maintain accurate financial records and manage day-to-day accounting operations.',
+          industry: 'Real Estate',
+          department: 'Finance',
+          experienceLevel: 'Mid Level',
+          salaryMin: 25000,
+          salaryMax: 35000,
+          status: 'active',
+          company: 'ShoreAgents',
+          created_at: new Date().toISOString(),
+          source_table: 'job_requests'
+        },
+        {
+          id: 'sample_3',
+          originalId: '3',
+          title: 'Bookkeeper',
+          description: 'We are seeking a detail-oriented Bookkeeper to join our real estate company to maintain accurate financial records and manage day-to-day accounting operations.',
+          industry: 'Real Estate',
+          department: 'Finance',
+          experienceLevel: 'Mid Level',
+          salaryMin: 25000,
+          salaryMax: 35000,
+          status: 'processed',
+          company: 'ShoreAgents',
+          created_at: new Date().toISOString(),
+          source_table: 'job_requests'
+        },
+        {
+          id: 'sample_4',
+          originalId: '4',
+          title: 'Bookkeeper',
+          description: 'We are seeking a detail-oriented Bookkeeper to join our real estate company to maintain accurate financial records and manage day-to-day accounting operations.',
+          industry: 'Real Estate',
+          department: 'Finance',
+          experienceLevel: 'Mid Level',
+          salaryMin: 25000,
+          salaryMax: 35000,
+          status: 'processed',
+          company: 'ShoreAgents',
+          created_at: new Date().toISOString(),
+          source_table: 'job_requests'
+        },
+        {
+          id: 'sample_5',
+          originalId: '5',
+          title: 'Senior Web Developer',
+          description: 'We are looking for an experienced Senior Web Developer to lead our development team and build scalable web applications using modern technologies.',
+          industry: 'Technology',
+          department: 'Engineering',
+          experienceLevel: 'Senior Level',
+          salaryMin: 60000,
+          salaryMax: 80000,
+          status: 'inactive',
+          company: 'ShoreAgents',
+          created_at: new Date().toISOString(),
+          source_table: 'processed_job_requests'
+        },
+        {
+          id: 'sample_6',
+          originalId: '6',
+          title: 'Real Estate Virtual Assistant',
+          description: 'We are seeking a dedicated Real Estate Virtual Assistant to support our real estate operations and provide administrative assistance to our agents.',
+          industry: 'Real Estate',
+          department: 'Administration',
+          experienceLevel: 'Entry Level',
+          salaryMin: 20000,
+          salaryMax: 30000,
+          status: 'active',
+          company: 'ShoreAgents',
+          created_at: new Date().toISOString(),
+          source_table: 'job_requests'
+        }
+      ]
+    }
+
     return NextResponse.json({ jobs })
   } catch (error) {
     console.error('Error fetching jobs:', error)
@@ -61,6 +167,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if user is authenticated and is a recruiter
+    const userId = request.headers.get('x-user-id')
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify user is a recruiter
+    const recruiterCheck = await pool.query(
+      'SELECT admin_level FROM users WHERE id = $1',
+      [userId]
+    )
+    
+    if (recruiterCheck.rows[0]?.admin_level !== 'recruiter') {
+      return NextResponse.json({ error: 'Recruiter access required' }, { status: 403 })
+    }
+
     const body = await request.json()
     
     // Insert into job_requests table

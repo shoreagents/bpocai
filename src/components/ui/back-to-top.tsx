@@ -36,7 +36,7 @@ export default function BackToTopButton() {
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.2 }}
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full border-2 border-white/20 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/30 transition-colors flex items-center justify-center shadow-lg"
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full border-2 border-gray-300 bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:border-gray-400 transition-colors flex items-center justify-center shadow-lg hover:shadow-xl"
           title="Back to top"
         >
           <ArrowUp className="w-6 h-6" />

@@ -11,8 +11,8 @@ export async function GET(
 
     // Ensure caller is admin (non-dev only)
     if (process.env.NODE_ENV !== 'development') {
-      const adminCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId])
-      if (!adminCheck.rows[0]?.is_admin) {
+      const adminCheck = await pool.query('SELECT admin_level FROM users WHERE id = $1', [userId])
+      if (adminCheck.rows[0]?.admin_level !== 'admin') {
         return NextResponse.json({ error: 'Admin only' }, { status: 403 })
       }
     }

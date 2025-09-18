@@ -62,7 +62,6 @@ interface User {
   bio?: string
   position?: string
   admin_level?: string
-  is_admin?: boolean
   gender?: string
   birthday?: string
   completed_data?: boolean

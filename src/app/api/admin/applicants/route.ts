@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
     const userId = request.headers.get('x-user-id')
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     
-    const adminCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId])
-    if (!adminCheck.rows[0]?.is_admin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+    const adminCheck = await pool.query('SELECT admin_level FROM users WHERE id = $1', [userId])
+    if (adminCheck.rows[0]?.admin_level !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
     const jobId = Number((request.nextUrl.searchParams.get('jobId') || '').trim())
     if (!jobId || Number.isNaN(jobId)) return NextResponse.json({ error: 'jobId required' }, { status: 400 })
@@ -131,8 +131,8 @@ export async function PATCH(request: NextRequest) {
     const userId = request.headers.get('x-user-id')
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     
-    const adminCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId])
-    if (!adminCheck.rows[0]?.is_admin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+    const adminCheck = await pool.query('SELECT admin_level FROM users WHERE id = $1', [userId])
+    if (adminCheck.rows[0]?.admin_level !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
     const body = await request.json()
     const { applicationId, status } = body
@@ -232,8 +232,8 @@ export async function DELETE(request: NextRequest) {
     const userId = request.headers.get('x-user-id')
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     
-    const adminCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId])
-    if (!adminCheck.rows[0]?.is_admin) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+    const adminCheck = await pool.query('SELECT admin_level FROM users WHERE id = $1', [userId])
+    if (adminCheck.rows[0]?.admin_level !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
     const body = await request.json()
     const { applicationId } = body

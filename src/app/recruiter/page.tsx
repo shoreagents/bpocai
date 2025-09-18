@@ -29,6 +29,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
 
 export default function RecruiterHomePage() {
   const router = useRouter();
@@ -378,7 +379,7 @@ export default function RecruiterHomePage() {
                 <Button 
                   size="lg" 
                   className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-2xl shadow-emerald-500/25 text-lg px-10 py-4 rounded-full font-semibold transform hover:scale-105 transition-all duration-300"
-                  onClick={() => router.push('/recruiter/candidates')}
+                  onClick={() => router.push('/recruiter/applications')}
                 >
                   🎯 Start Hiring Now
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -447,29 +448,49 @@ export default function RecruiterHomePage() {
           </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-              >
-                <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                  <CardContent className="p-6 text-center">
-                    <motion.div 
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center"
-                    >
-                      <feature.icon className="h-8 w-8 text-white" />
-                    </motion.div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                    <p className="text-gray-600">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            {features.map((feature, index) => {
+              // Create color variations for feature cards
+              const colorVariations = [
+                'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200',
+                'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:from-emerald-100 hover:to-emerald-200',
+                'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200',
+                'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200'
+              ];
+              
+              const iconColors = [
+                'bg-gradient-to-br from-blue-500 to-blue-600',
+                'bg-gradient-to-br from-emerald-500 to-emerald-600',
+                'bg-gradient-to-br from-purple-500 to-purple-600',
+                'bg-gradient-to-br from-orange-500 to-orange-600'
+              ];
+              
+              const cardColor = colorVariations[index % colorVariations.length];
+              const iconColor = iconColors[index % iconColors.length];
+              
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                >
+                  <Card className={`${cardColor} shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full flex flex-col`}>
+                    <CardContent className="p-6 text-center flex flex-col h-full">
+                      <motion.div 
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        className={`w-16 h-16 mx-auto mb-4 rounded-full ${iconColor} flex items-center justify-center flex-shrink-0`}
+                      >
+                        <feature.icon className="h-8 w-8 text-white" />
+                      </motion.div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3 flex-shrink-0">{feature.title}</h3>
+                      <p className="text-gray-600 flex-grow">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -498,18 +519,22 @@ export default function RecruiterHomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-center"
+              whileHover={{ y: -5 }}
             >
-              <motion.div 
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6"
-              >
-                <span className="text-2xl font-bold text-white">1</span>
-              </motion.div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Post Your Job</h3>
-              <p className="text-gray-600">
-                Create a detailed job posting with requirements, skills, and preferences. Our AI will help optimize your listing.
-              </p>
+              <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
+                <CardContent className="p-6 text-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                  >
+                    <span className="text-2xl font-bold text-white">1</span>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Post Your Job</h3>
+                  <p className="text-gray-600">
+                    Create a detailed job posting with requirements, skills, and preferences. Our AI will help optimize your listing.
+                  </p>
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Step 2 */}
@@ -518,18 +543,22 @@ export default function RecruiterHomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-center"
+              whileHover={{ y: -5 }}
             >
-              <motion.div 
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"
-              >
-                <span className="text-2xl font-bold text-white">2</span>
-              </motion.div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI Matching</h3>
-              <p className="text-gray-600">
-                Our advanced AI analyzes your requirements and matches you with the most qualified candidates from our database.
-              </p>
+              <Card className="bg-gradient-to-br from-cyan-50 to-blue-100 border border-cyan-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
+                <CardContent className="p-6 text-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                  >
+                    <span className="text-2xl font-bold text-white">2</span>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">AI Matching</h3>
+                  <p className="text-gray-600">
+                    Our advanced AI analyzes your requirements and matches you with the most qualified candidates from our database.
+                  </p>
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Step 3 */}
@@ -538,18 +567,22 @@ export default function RecruiterHomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
-              className="text-center"
+              whileHover={{ y: -5 }}
             >
-              <motion.div 
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6"
-              >
-                <span className="text-2xl font-bold text-white">3</span>
-              </motion.div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Interview & Hire</h3>
-              <p className="text-gray-600">
-                Review matched candidates, conduct interviews, and make your hire. We handle all the paperwork and onboarding.
-              </p>
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-100 border border-purple-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
+                <CardContent className="p-6 text-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6"
+                  >
+                    <span className="text-2xl font-bold text-white">3</span>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Interview & Hire</h3>
+                  <p className="text-gray-600">
+                    Review matched candidates, conduct interviews, and make your hire. We handle all the paperwork and onboarding.
+                  </p>
+                </CardContent>
+              </Card>
             </motion.div>
           </div>
         </div>
@@ -573,32 +606,43 @@ export default function RecruiterHomePage() {
           </motion.div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-              >
-                <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-center mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                      ))}
-                    </div>
-                    <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
-                    <div className="border-t pt-4">
-                      <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                      <p className="text-sm text-gray-600">{testimonial.role}</p>
-                      <p className="text-sm text-emerald-600">{testimonial.company}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            {testimonials.map((testimonial, index) => {
+              // Create color variations for testimonial cards
+              const colorVariations = [
+                'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200',
+                'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:from-emerald-100 hover:to-emerald-200',
+                'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200'
+              ];
+              
+              const cardColor = colorVariations[index % colorVariations.length];
+              
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                >
+                  <Card className={`${cardColor} shadow-sm hover:shadow-lg transition-all duration-300 h-full`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center mb-4">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                        ))}
+                      </div>
+                      <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
+                      <div className="border-t pt-4">
+                        <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                        <p className="text-sm text-gray-600">{testimonial.role}</p>
+                        <p className="text-sm text-emerald-600">{testimonial.company}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -629,7 +673,7 @@ export default function RecruiterHomePage() {
               transition={{ delay: 0.1 }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
                 <CardHeader className="text-center pb-8">
                   <CardTitle className="text-2xl font-bold text-gray-900">Starter</CardTitle>
                   <CardDescription className="text-gray-600">Perfect for small teams</CardDescription>
@@ -657,7 +701,7 @@ export default function RecruiterHomePage() {
                       <span className="text-gray-700">Email support</span>
                     </div>
                   </div>
-                  <Button className="w-full mt-6" variant="outline">
+                  <Button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white">
                     Get Started
                   </Button>
                 </CardContent>
@@ -672,7 +716,7 @@ export default function RecruiterHomePage() {
               transition={{ delay: 0.2 }}
               whileHover={{ y: -5, scale: 1.02 }}
             >
-              <Card className="bg-white border-2 border-emerald-500 shadow-lg hover:shadow-xl transition-all duration-300 relative">
+              <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-500 shadow-lg hover:shadow-xl transition-all duration-300 relative h-full">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-emerald-500 text-white px-4 py-1">Most Popular</Badge>
                 </div>
@@ -722,7 +766,7 @@ export default function RecruiterHomePage() {
               transition={{ delay: 0.3 }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
                 <CardHeader className="text-center pb-8">
                   <CardTitle className="text-2xl font-bold text-gray-900">Enterprise</CardTitle>
                   <CardDescription className="text-gray-600">For large organizations</CardDescription>
@@ -754,8 +798,8 @@ export default function RecruiterHomePage() {
                       <span className="text-gray-700">Custom reporting</span>
                     </div>
                   </div>
-                  <Button className="w-full mt-6" variant="outline">
-                    Contact Sales
+                  <Button className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white">
+                    Get Started
                   </Button>
                 </CardContent>
               </Card>
@@ -920,143 +964,15 @@ export default function RecruiterHomePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Sign Up Modal */}
-      <Dialog open={showSignUpModal} onOpenChange={setShowSignUpModal}>
-        <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-gray-900">
-              <Building2 className="h-5 w-5 text-emerald-600" />
-              Create Recruiter Account
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              Join our platform and start finding the best talent
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Sign Up Form */}
-            <form className="space-y-4">
-              {/* Name Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="signupFirstName" className="block text-sm font-medium text-gray-900 mb-1">
-                    First Name
-                  </label>
-                  <input
-                    id="signupFirstName"
-                    type="text"
-                    required
-                    placeholder="John"
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="signupLastName" className="block text-sm font-medium text-gray-900 mb-1">
-                    Last Name
-                  </label>
-                  <input
-                    id="signupLastName"
-                    type="text"
-                    required
-                    placeholder="Smith"
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-              </div>
-
-              {/* Email Field */}
-              <div>
-                <label htmlFor="signupEmail" className="block text-sm font-medium text-gray-900 mb-1">
-                  Email Address
-                </label>
-                <input
-                  id="signupEmail"
-                  type="email"
-                  required
-                  placeholder="john.smith@company.com"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                />
-              </div>
-
-              {/* Company Field */}
-              <div>
-                <label htmlFor="signupCompany" className="block text-sm font-medium text-gray-900 mb-1">
-                  Company
-                </label>
-                <input
-                  id="signupCompany"
-                  type="text"
-                  required
-                  placeholder="TechCorp Solutions"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                />
-              </div>
-
-              {/* Position Field */}
-              <div>
-                <label htmlFor="signupPosition" className="block text-sm font-medium text-gray-900 mb-1">
-                  Position/Title
-                </label>
-                <input
-                  id="signupPosition"
-                  type="text"
-                  required
-                  placeholder="Senior Talent Acquisition Manager"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                />
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label htmlFor="signupPassword" className="block text-sm font-medium text-gray-900 mb-1">
-                  Password
-                </label>
-                <input
-                  id="signupPassword"
-                  type="password"
-                  required
-                  placeholder="Create a password"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                />
-              </div>
-
-              {/* Sign In Link */}
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                  onClick={() => {
-                    setShowSignUpModal(false);
-                    setShowSignInModal(true);
-                  }}
-                >
-                  Already have an account? Sign in
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <DialogFooter className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowSignUpModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="bg-emerald-600 hover:bg-emerald-700 flex-1"
-              onClick={() => {
-                setShowSignUpModal(false);
-                // Mock successful signup - redirect to recruiter dashboard
-                router.push('/recruiter/dashboard');
-              }}
-            >
-              Create Account
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Recruiter Sign Up Form */}
+      <RecruiterSignUpForm 
+        open={showSignUpModal} 
+        onOpenChange={setShowSignUpModal}
+        onSwitchToLogin={() => {
+          setShowSignUpModal(false);
+          setShowSignInModal(true);
+        }}
+      />
 
       {/* Recruiter Footer */}
       <footer className="bg-gradient-to-r from-slate-900 via-gray-900 to-slate-800 text-white">
@@ -1077,27 +993,21 @@ export default function RecruiterHomePage() {
               </p>
             </div>
 
-            {/* Quick Links */}
+            {/* For Recruiters */}
             <div>
               <h3 className="text-lg font-semibold mb-6 text-emerald-400">For Recruiters</h3>
-              <ul className="space-y-3">
-                <li><Link href="/recruiter/dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Dashboard</Link></li>
-                <li><Link href="/recruiter/post-job" className="text-gray-300 hover:text-emerald-400 transition-colors">Post a Job</Link></li>
-                <li><Link href="/recruiter/candidates" className="text-gray-300 hover:text-emerald-400 transition-colors">Browse Candidates</Link></li>
-                <li><Link href="/recruiter/analytics" className="text-gray-300 hover:text-emerald-400 transition-colors">Analytics</Link></li>
-              </ul>
-            </div>
-
-            {/* Support */}
-            <div>
-              <h3 className="text-lg font-semibold mb-6 text-emerald-400">Support</h3>
-              <ul className="space-y-3">
-                <li><Link href="/recruiter/help" className="text-gray-300 hover:text-emerald-400 transition-colors">Help Center</Link></li>
-                <li><Link href="/recruiter/contact" className="text-gray-300 hover:text-emerald-400 transition-colors">Contact Us</Link></li>
-                <li><Link href="/recruiter/faq" className="text-gray-300 hover:text-emerald-400 transition-colors">FAQ</Link></li>
-                <li><Link href="/recruiter/tutorials" className="text-gray-300 hover:text-emerald-400 transition-colors">Tutorials</Link></li>
-                <li><Link href="/recruiter/api" className="text-gray-300 hover:text-emerald-400 transition-colors">API Docs</Link></li>
-              </ul>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                <ul className="space-y-3">
+                  <li><Link href="/recruiter/dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Dashboard</Link></li>
+                  <li><Link href="/recruiter/post-job" className="text-gray-300 hover:text-emerald-400 transition-colors">Post a Job</Link></li>
+                  <li><Link href="/recruiter/applications" className="text-gray-300 hover:text-emerald-400 transition-colors">Applications</Link></li>
+                </ul>
+                <ul className="space-y-3">
+                  <li><Link href="/recruiter/candidates" className="text-gray-300 hover:text-emerald-400 transition-colors">Browse Candidates</Link></li>
+                  <li><Link href="/recruiter/analytics" className="text-gray-300 hover:text-emerald-400 transition-colors">Analytics</Link></li>
+                  <li><Link href="/recruiter/leaderboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Leaderboard</Link></li>
+                </ul>
+              </div>
             </div>
           </div>
 

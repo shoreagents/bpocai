@@ -110,6 +110,15 @@ CREATE TYPE public."work_status_enum" AS ENUM (
 	'transitioning',
 	'remote-worker');
 
+-- DROP TYPE public."work_status_enum_new";
+
+CREATE TYPE public."work_status_enum_new" AS ENUM (
+	'employed',
+	'unemployed-looking-for-work',
+	'freelancer',
+	'part-time',
+	'student');
+
 -- DROP SEQUENCE public.job_request_comments_id_seq;
 
 CREATE SEQUENCE public.job_request_comments_id_seq
@@ -122,6 +131,15 @@ CREATE SEQUENCE public.job_request_comments_id_seq
 -- DROP SEQUENCE public.job_requests_id_seq;
 
 CREATE SEQUENCE public.job_requests_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.privacy_settings_id_seq;
+
+CREATE SEQUENCE public.privacy_settings_id_seq
 	INCREMENT BY 1
 	MINVALUE 1
 	MAXVALUE 2147483647
@@ -170,6 +188,63 @@ update
     public.members for each row execute function update_updated_at_column();
 
 
+-- public.user_recruiter definition
+
+-- Drop table
+
+-- DROP TABLE public.user_recruiter;
+
+CREATE TABLE public.user_recruiter (
+	id uuid NOT NULL,
+	email text NOT NULL,
+	first_name text NOT NULL,
+	last_name text NOT NULL,
+	full_name text NOT NULL,
+	"location" text NOT NULL,
+	avatar_url text NULL,
+	created_at timestamp DEFAULT now() NULL,
+	updated_at timestamp DEFAULT now() NULL,
+	phone text NULL,
+	bio text NULL,
+	"position" text NULL,
+	completed_data bool DEFAULT false NOT NULL,
+	birthday date NULL,
+	slug text NULL,
+	gender text NULL,
+	gender_custom text NULL,
+	location_place_id text NULL,
+	location_lat float8 NULL,
+	location_lng float8 NULL,
+	location_city text NULL,
+	location_province text NULL,
+	location_country text NULL,
+	location_barangay text NULL,
+	location_region text NULL,
+	username text NULL,
+	company text NULL,
+	CONSTRAINT user_recruiter_email_key UNIQUE (email),
+	CONSTRAINT user_recruiter_gender_check CHECK (((gender IS NULL) OR (lower(gender) = ANY (ARRAY['male'::text, 'female'::text, 'others'::text])))),
+	CONSTRAINT user_recruiter_pkey PRIMARY KEY (id),
+	CONSTRAINT user_recruiter_username_key UNIQUE (username)
+);
+CREATE INDEX idx_user_recruiter_company ON public.user_recruiter USING btree (company);
+CREATE INDEX idx_user_recruiter_gender_custom ON public.user_recruiter USING btree (gender_custom) WHERE (gender_custom IS NOT NULL);
+CREATE UNIQUE INDEX user_recruiter_slug_key ON public.user_recruiter USING btree (slug);
+
+-- Table Triggers
+
+create trigger update_user_recruiter_updated_at before
+update
+    on
+    public.user_recruiter for each row execute function update_updated_at_column();
+create trigger user_recruiter_set_slug before
+insert
+    or
+update
+    of username on
+    public.user_recruiter for each row execute function users_set_slug_trigger();
+
+
 -- public.users definition
 
 -- Drop table
@@ -204,10 +279,13 @@ CREATE TABLE public.users (
 	location_country text NULL,
 	location_barangay text NULL,
 	location_region text NULL,
+	is_recruiter bool DEFAULT false NULL,
+	username text NULL,
 	CONSTRAINT users_admin_level_check CHECK (((admin_level)::text = ANY ((ARRAY['user'::character varying, 'admin'::character varying])::text[]))),
 	CONSTRAINT users_email_key UNIQUE (email),
 	CONSTRAINT users_gender_check CHECK (((gender IS NULL) OR (lower(gender) = ANY (ARRAY['male'::text, 'female'::text, 'others'::text])))),
-	CONSTRAINT users_pkey PRIMARY KEY (id)
+	CONSTRAINT users_pkey PRIMARY KEY (id),
+	CONSTRAINT users_username_key UNIQUE (username)
 );
 CREATE INDEX idx_users_gender_custom ON public.users USING btree (gender_custom) WHERE (gender_custom IS NOT NULL);
 CREATE UNIQUE INDEX users_slug_key ON public.users USING btree (slug);
@@ -222,8 +300,7 @@ create trigger users_set_slug before
 insert
     or
 update
-    of first_name,
-    last_name on
+    of username on
     public.users for each row execute function users_set_slug_trigger();
 
 
@@ -532,6 +609,55 @@ CREATE TABLE public.leaderboard_overall_scores (
 	CONSTRAINT leaderboard_overall_scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_lbs_overall_order ON public.leaderboard_overall_scores USING btree (overall_score DESC);
+
+
+-- public.privacy_settings definition
+
+-- Drop table
+
+-- DROP TABLE public.privacy_settings;
+
+CREATE TABLE public.privacy_settings (
+	id serial4 NOT NULL,
+	user_id uuid NOT NULL,
+	username varchar(20) DEFAULT 'public'::character varying NULL,
+	first_name varchar(20) DEFAULT 'public'::character varying NULL,
+	last_name varchar(20) DEFAULT 'only-me'::character varying NULL,
+	"location" varchar(20) DEFAULT 'public'::character varying NULL,
+	job_title varchar(20) DEFAULT 'public'::character varying NULL,
+	birthday varchar(20) DEFAULT 'only-me'::character varying NULL,
+	age varchar(20) DEFAULT 'only-me'::character varying NULL,
+	gender varchar(20) DEFAULT 'only-me'::character varying NULL,
+	member_since varchar(20) DEFAULT 'public'::character varying NULL,
+	resume_score varchar(20) DEFAULT 'public'::character varying NULL,
+	games_completed varchar(20) DEFAULT 'public'::character varying NULL,
+	key_strengths varchar(20) DEFAULT 'only-me'::character varying NULL,
+	created_at timestamptz DEFAULT now() NULL,
+	updated_at timestamptz DEFAULT now() NULL,
+	CONSTRAINT privacy_settings_age_check CHECK (((age)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_birthday_check CHECK (((birthday)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_first_name_check CHECK (((first_name)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_games_completed_check CHECK (((games_completed)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_gender_check CHECK (((gender)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_job_title_check CHECK (((job_title)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_key_strengths_check CHECK (((key_strengths)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_last_name_check CHECK (((last_name)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_location_check CHECK (((location)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_member_since_check CHECK (((member_since)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_pkey PRIMARY KEY (id),
+	CONSTRAINT privacy_settings_resume_score_check CHECK (((resume_score)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_user_id_key UNIQUE (user_id),
+	CONSTRAINT privacy_settings_username_check CHECK (((username)::text = ANY ((ARRAY['public'::character varying, 'only-me'::character varying])::text[]))),
+	CONSTRAINT privacy_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_privacy_settings_user_id ON public.privacy_settings USING btree (user_id);
+
+-- Table Triggers
+
+create trigger trigger_update_privacy_settings_updated_at before
+update
+    on
+    public.privacy_settings for each row execute function update_privacy_settings_updated_at();
 
 
 -- public.processed_job_requests definition
@@ -866,11 +992,20 @@ CREATE TABLE public.user_work_status (
 	expected_salary text NULL,
 	work_setup public."work_setup_enum" NULL,
 	completed_data bool DEFAULT false NULL,
+	work_status_new public."work_status_enum_new" NULL,
+	minimum_salary_range numeric(12, 2) NULL, -- Minimum salary range for expected salary
+	maximum_salary_range numeric(12, 2) NULL, -- Maximum salary range for expected salary
 	CONSTRAINT user_work_status_pkey PRIMARY KEY (id),
+	CONSTRAINT user_work_status_salary_range_check CHECK (((minimum_salary_range IS NULL) OR (maximum_salary_range IS NULL) OR (minimum_salary_range <= maximum_salary_range))),
 	CONSTRAINT user_work_status_user_uidx UNIQUE (user_id),
 	CONSTRAINT user_work_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 CREATE INDEX user_work_status_user_idx ON public.user_work_status USING btree (user_id);
+
+-- Column comments
+
+COMMENT ON COLUMN public.user_work_status.minimum_salary_range IS 'Minimum salary range for expected salary';
+COMMENT ON COLUMN public.user_work_status.maximum_salary_range IS 'Maximum salary range for expected salary';
 
 -- Table Triggers
 
@@ -1123,6 +1258,83 @@ AS SELECT DISTINCT ON (user_id) user_id,
   ORDER BY user_id, started_at DESC;
 
 
+-- public.v_user_complete_data source
+
+CREATE OR REPLACE VIEW public.v_user_complete_data
+AS SELECT u.id AS user_id,
+    u.email,
+    u.first_name,
+    u.last_name,
+    u.full_name,
+    u.location,
+    u.avatar_url,
+    u.phone,
+    u.bio,
+    u."position",
+    u.gender,
+    u.gender_custom,
+    u.admin_level,
+    u.is_admin,
+    u.completed_data,
+    u.birthday,
+    u.slug,
+    u.location_place_id,
+    u.location_lat,
+    u.location_lng,
+    u.location_city,
+    u.location_province,
+    u.location_country,
+    u.location_barangay,
+    u.location_region,
+    u.created_at AS user_created_at,
+    u.updated_at AS user_updated_at,
+    uws.id AS work_status_id,
+    uws.user_id AS work_status_user_id,
+    uws.current_employer,
+    uws.current_position,
+    uws.current_salary,
+    uws.notice_period_days,
+    uws.current_mood,
+    uws.work_status,
+    uws.preferred_shift,
+    uws.expected_salary,
+    uws.work_setup,
+    uws.completed_data AS work_status_completed,
+    uws.created_at AS work_status_created_at,
+    uws.updated_at AS work_status_updated_at,
+    aar.id AS analysis_id,
+    aar.user_id AS analysis_user_id,
+    aar.session_id,
+    aar.original_resume_id,
+    aar.overall_score,
+    aar.ats_compatibility_score,
+    aar.content_quality_score,
+    aar.professional_presentation_score,
+    aar.skills_alignment_score,
+    aar.key_strengths,
+    aar.strengths_analysis,
+    aar.improvements,
+    aar.recommendations,
+    aar.improved_summary,
+    aar.salary_analysis,
+    aar.career_path,
+    aar.section_analysis,
+    aar.analysis_metadata,
+    aar.portfolio_links,
+    aar.files_analyzed,
+    aar.candidate_profile,
+    aar.skills_snapshot,
+    aar.experience_snapshot,
+    aar.education_snapshot,
+    aar.created_at AS analysis_created_at,
+    aar.updated_at AS analysis_updated_at
+   FROM users u
+     LEFT JOIN user_work_status uws ON u.id = uws.user_id
+     LEFT JOIN ai_analysis_results aar ON u.id = aar.user_id;
+
+COMMENT ON VIEW public.v_user_complete_data IS 'Simplified user data view combining users, work status, and AI analysis results for public API consumption';
+
+
 
 -- DROP FUNCTION public.applications__inc_job_applicants();
 
@@ -1156,6 +1368,24 @@ CREATE OR REPLACE FUNCTION public.armor(bytea, text[], text[])
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pg_armor$function$
+;
+
+-- DROP FUNCTION public.compute_user_slug(text, uuid);
+
+CREATE OR REPLACE FUNCTION public.compute_user_slug(p_username text, p_id uuid)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  -- If username is provided, use it directly (already unique)
+  -- If no username, fallback to a simple user-{last4} format
+  SELECT CASE 
+    WHEN p_username IS NOT NULL AND trim(p_username) != '' THEN 
+      public.slugify_text(p_username)
+    ELSE 
+      concat('user-', right(translate(p_id::text, '-', ''), 4))
+  END;
+$function$
 ;
 
 -- DROP FUNCTION public.compute_user_slug(text, text, uuid);
@@ -1348,9 +1578,9 @@ CREATE OR REPLACE FUNCTION public.pgp_key_id(bytea)
 AS '$libdir/pgcrypto', $function$pgp_key_id_w$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text);
+-- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text)
  RETURNS text
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1366,9 +1596,9 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea)
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea, text);
+-- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text)
  RETURNS text
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1384,15 +1614,6 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea);
-
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea)
- RETURNS bytea
- LANGUAGE c
- IMMUTABLE PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
-;
-
 -- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text);
 
 CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text)
@@ -1402,13 +1623,13 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt(text, bytea);
+-- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea)
  RETURNS bytea
  LANGUAGE c
- PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
+ IMMUTABLE PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
 ;
 
 -- DROP FUNCTION public.pgp_pub_encrypt(text, bytea, text);
@@ -1420,13 +1641,13 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text);
+-- DROP FUNCTION public.pgp_pub_encrypt(text, bytea);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$
+AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
 ;
 
 -- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea);
@@ -1438,18 +1659,27 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea)
 AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_decrypt(bytea, text);
+-- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt(bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text)
+ RETURNS bytea
+ LANGUAGE c
+ PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$
+;
+
+-- DROP FUNCTION public.pgp_sym_decrypt(bytea, text, text);
+
+CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt(bytea, text, text)
  RETURNS text
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_decrypt(bytea, text, text);
+-- DROP FUNCTION public.pgp_sym_decrypt(bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt(bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt(bytea, text)
  RETURNS text
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1474,15 +1704,6 @@ CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_encrypt(text, text);
-
-CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt(text, text)
- RETURNS bytea
- LANGUAGE c
- PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$
-;
-
 -- DROP FUNCTION public.pgp_sym_encrypt(text, text, text);
 
 CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt(text, text, text)
@@ -1492,18 +1713,27 @@ CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt(text, text, text)
 AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text);
+-- DROP FUNCTION public.pgp_sym_encrypt(text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt(text, text)
+ RETURNS bytea
+ LANGUAGE c
+ PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$
+;
+
+-- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text);
+
+CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text);
+-- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
@@ -1534,6 +1764,19 @@ END;
 $function$
 ;
 
+-- DROP FUNCTION public.update_privacy_settings_updated_at();
+
+CREATE OR REPLACE FUNCTION public.update_privacy_settings_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$function$
+;
+
 -- DROP FUNCTION public.update_updated_at_column();
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -1554,8 +1797,9 @@ CREATE OR REPLACE FUNCTION public.users_set_slug_trigger()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-  IF NEW.slug IS NULL OR TG_OP = 'INSERT' OR NEW.first_name IS DISTINCT FROM OLD.first_name OR NEW.last_name IS DISTINCT FROM OLD.last_name THEN
-    NEW.slug := public.compute_user_slug(NEW.first_name, NEW.last_name, NEW.id);
+  -- Update slug when username changes, or when slug is null, or on insert
+  IF NEW.slug IS NULL OR TG_OP = 'INSERT' OR NEW.username IS DISTINCT FROM OLD.username THEN
+    NEW.slug := public.compute_user_slug(NEW.username, NEW.id);
   END IF;
   RETURN NEW;
 END;

@@ -75,7 +75,6 @@ interface AdminLayoutProps {
     id: string
     email: string
     full_name: string
-    is_admin: boolean
     admin_level: 'user' | 'admin'
   } | null
 }

@@ -29,8 +29,8 @@ export interface Database {
           phone: string | null
           bio: string | null
           position: string | null
+          company: string | null
           admin_level: string
-          is_admin: boolean
           created_at: string
           updated_at: string
           completed_data: boolean
@@ -56,8 +56,8 @@ export interface Database {
           phone?: string | null
           bio?: string | null
           position?: string | null
+          company?: string | null
           admin_level?: string
-          is_admin?: boolean
           created_at?: string
           updated_at?: string
           completed_data?: boolean
@@ -83,8 +83,8 @@ export interface Database {
           phone?: string | null
           bio?: string | null
           position?: string | null
+          company?: string | null
           admin_level?: string
-          is_admin?: boolean
           created_at?: string
           updated_at?: string
           completed_data?: boolean
