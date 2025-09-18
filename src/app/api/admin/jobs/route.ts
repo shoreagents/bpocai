@@ -129,8 +129,8 @@ export async function POST(request: NextRequest) {
     // In development, allow all authenticated users to use this endpoint
     if (process.env.NODE_ENV !== 'development') {
       // Ensure the caller is an admin in non-dev environments
-      const adminCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId])
-      if (!adminCheck.rows[0]?.is_admin) {
+      const adminCheck = await pool.query('SELECT admin_level FROM users WHERE id = $1', [userId])
+      if (adminCheck.rows[0]?.admin_level !== 'admin') {
         return NextResponse.json({ error: 'Admin only' }, { status: 403 })
       }
     }

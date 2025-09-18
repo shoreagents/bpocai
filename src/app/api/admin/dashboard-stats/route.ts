@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Check if user is admin
     const adminQuery = `
       SELECT id FROM users 
-      WHERE id = $1 AND is_admin = true
+      WHERE id = $1 AND admin_level = 'admin'
     `
     const adminResult = await pool.query(adminQuery, [userId])
     

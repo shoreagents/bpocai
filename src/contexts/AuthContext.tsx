@@ -137,12 +137,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
     if (data.user) {
       console.log('✅ Sign up successful for:', data.user.email)
-      // Immediately sync the user since they're created
-      try {
-        await syncUserToDatabase(data.user)
-        console.log('✅ Immediate sync after signup successful')
-      } catch (syncError) {
-        console.error('❌ Immediate sync after signup failed:', syncError)
+      console.log('📋 User metadata:', data.user.user_metadata)
+      
+      // Only sync immediately if it's not a recruiter signup
+      // Recruiter signups are handled by the RecruiterSignUpForm
+      if (data.user.user_metadata?.admin_level !== 'recruiter') {
+        try {
+          await syncUserToDatabase(data.user)
+          console.log('✅ Immediate sync after signup successful')
+        } catch (syncError) {
+          console.error('❌ Immediate sync after signup failed:', syncError)
+        }
+      } else {
+        console.log('⏭️ Skipping immediate sync for recruiter - handled by signup form')
       }
     }
     return { data, error }

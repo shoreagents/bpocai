@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ import {
   Star,
   TrendingUp,
   Users,
-  Building2,
   Calendar,
   MapPin,
   Clock,
@@ -28,119 +27,57 @@ import {
   CheckCircle,
   ArrowUp,
   ArrowDown,
-  Minus
+  Minus,
+  Building2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
+import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
+import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 
 export default function LeaderboardPage() {
   const router = useRouter();
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+
+  // Modal handler functions
+  const handleSwitchToSignUp = () => {
+    setShowSignInModal(false);
+    setShowSignUpModal(true);
+  };
+
+  const handleSwitchToSignIn = () => {
+    setShowSignUpModal(false);
+    setShowSignInModal(true);
+  };
   const [timeFilter, setTimeFilter] = useState('month');
   const [categoryFilter, setCategoryFilter] = useState('overall');
+  const [topPerformers, setTopPerformers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const topPerformers = [
-    {
-      rank: 1,
-      name: 'Sarah Johnson',
-      company: 'TechCorp Solutions',
-      avatar: '/api/placeholder/60/60',
-      score: 98.5,
-      change: '+2.3',
-      changeType: 'up',
-      position: 'Senior Customer Service Rep',
-      location: 'Manila, Philippines',
-      stats: {
-        applications: 156,
-        interviews: 23,
-        hires: 8,
-        rating: 4.9,
-        responseTime: '2.1 hours'
-      },
-      badges: ['Top Performer', 'Fast Responder', 'Quality Champion'],
-      tier: 'diamond'
-    },
-    {
-      rank: 2,
-      name: 'Michael Chen',
-      company: 'CloudTech Inc',
-      avatar: '/api/placeholder/60/60',
-      score: 96.8,
-      change: '+1.8',
-      changeType: 'up',
-      position: 'Technical Support Specialist',
-      location: 'Cebu, Philippines',
-      stats: {
-        applications: 142,
-        interviews: 19,
-        hires: 6,
-        rating: 4.8,
-        responseTime: '1.8 hours'
-      },
-      badges: ['Technical Expert', 'Problem Solver', 'Team Player'],
-      tier: 'diamond'
-    },
-    {
-      rank: 3,
-      name: 'Maria Rodriguez',
-      company: 'GrowthCorp',
-      avatar: '/api/placeholder/60/60',
-      score: 94.2,
-      change: '+3.1',
-      changeType: 'up',
-      position: 'Sales Representative',
-      location: 'Davao, Philippines',
-      stats: {
-        applications: 128,
-        interviews: 21,
-        hires: 7,
-        rating: 4.7,
-        responseTime: '2.5 hours'
-      },
-      badges: ['Sales Leader', 'Client Favorite', 'Goal Crusher'],
-      tier: 'gold'
-    },
-    {
-      rank: 4,
-      name: 'David Kim',
-      company: 'SocialMedia Pro',
-      avatar: '/api/placeholder/60/60',
-      score: 91.7,
-      change: '-0.5',
-      changeType: 'down',
-      position: 'Content Moderator',
-      location: 'Quezon City, Philippines',
-      stats: {
-        applications: 115,
-        interviews: 16,
-        hires: 5,
-        rating: 4.6,
-        responseTime: '3.2 hours'
-      },
-      badges: ['Content Expert', 'Detail Oriented', 'Reliable'],
-      tier: 'gold'
-    },
-    {
-      rank: 5,
-      name: 'Lisa Wang',
-      company: 'Executive Solutions',
-      avatar: '/api/placeholder/60/60',
-      score: 89.3,
-      change: '+1.2',
-      changeType: 'up',
-      position: 'Virtual Assistant',
-      location: 'Makati, Philippines',
-      stats: {
-        applications: 98,
-        interviews: 14,
-        hires: 4,
-        rating: 4.5,
-        responseTime: '2.8 hours'
-      },
-      badges: ['Organized', 'Efficient', 'Multi-tasker'],
-      tier: 'silver'
-    }
-  ];
+  // Fetch leaderboard data from API
+  useEffect(() => {
+    const fetchLeaderboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/leaderboards?category=applicants&source=tables&limit=10');
+        if (response.ok) {
+          const data = await response.json();
+          setTopPerformers(data.results || []);
+        } else {
+          console.error('Failed to fetch leaderboard data');
+          setTopPerformers([]);
+        }
+      } catch (error) {
+        console.error('Error fetching leaderboard data:', error);
+        setTopPerformers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboardData();
+  }, []);
 
   const companyLeaders = [
     {
@@ -273,61 +210,11 @@ export default function LeaderboardPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Recruiter Navbar */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Navigation */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  BPOC Recruiter
-                </span>
-              </div>
-              
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-                <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
-                <Link href="/recruiter/dashboard" className="text-gray-700 hover:text-emerald-600 font-medium">Dashboard</Link>
-                <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium">Applications</Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Applicants</Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analysis</Link>
-                <Link href="/recruiter/leaderboard" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Leaderboard</Link>
-              </div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 px-4 py-2 font-medium transition-all duration-200 rounded-full"
-                onClick={() => setShowSignInModal(true)}
-              >
-                Sign In
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white px-4 py-2 font-medium transition-all duration-200 shadow-sm rounded-full"
-                onClick={() => setShowSignUpModal(true)}
-              >
-                Sign Up
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                onClick={() => router.push('/recruiter/post-job')}
-              >
-                🎯 Post Job
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <RecruiterNavbar 
+        currentPage="leaderboard" 
+        onSignInClick={() => setShowSignInModal(true)}
+        onSignUpClick={() => setShowSignUpModal(true)}
+      />
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
@@ -393,28 +280,28 @@ export default function LeaderboardPage() {
                       {getRankIcon(performer.rank)}
                     </div>
                     <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
-                      {performer.name.split(' ').map(n => n[0]).join('')}
+                      {performer.user?.full_name ? (
+                        performer.user.full_name.split(' ')[0].charAt(0).toUpperCase()
+                      ) : (
+                        performer.user?.email?.charAt(0).toUpperCase() || 'A'
+                      )}
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">{performer.name}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{performer.position}</p>
-                    <p className="text-sm text-gray-500 mb-3">{performer.company}</p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      {performer.user?.full_name ? 
+                        performer.user.full_name.split(' ')[0] : 
+                        performer.user?.email || 'Unknown User'
+                      }
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {performer.user?.slug ? `@${performer.user.slug}` : 'No profile'}
+                    </p>
+                    <p className="text-sm text-gray-500 mb-3">Score: {performer.score}</p>
                     <div className="flex items-center justify-center space-x-2 mb-3">
                       <span className="text-2xl font-bold text-gray-900">{performer.score}</span>
-                      <div className="flex items-center space-x-1">
-                        {getChangeIcon(performer.changeType)}
-                        <span className={`text-sm ${
-                          performer.changeType === 'up' ? 'text-green-600' : 
-                          performer.changeType === 'down' ? 'text-red-600' : 
-                          'text-gray-600'
-                        }`}>
-                          {performer.change}
-                        </span>
-                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        Rank #{performer.rank}
+                      </Badge>
                     </div>
-                    <Badge className={`${getTierColor(performer.tier)} flex items-center space-x-1 w-fit mx-auto`}>
-                      {getTierIcon(performer.tier)}
-                      <span className="capitalize">{performer.tier}</span>
-                    </Badge>
                   </CardContent>
                 </Card>
               ))}
@@ -431,62 +318,61 @@ export default function LeaderboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {topPerformers.map((performer) => (
-                    <div key={performer.rank} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center justify-center w-8">
-                        {getRankIcon(performer.rank)}
-                      </div>
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
-                        {performer.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="font-semibold text-gray-900">{performer.name}</h4>
-                          <Badge className={`${getTierColor(performer.tier)} flex items-center space-x-1`}>
-                            {getTierIcon(performer.tier)}
-                            <span className="capitalize text-xs">{performer.tier}</span>
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{performer.position} • {performer.company}</p>
-                        <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
-                          <div className="flex items-center space-x-1">
-                            <Users className="h-3 w-3" />
-                            <span>{performer.stats.applications} apps</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <CheckCircle className="h-3 w-3" />
-                            <span>{performer.stats.hires} hires</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Star className="h-3 w-3" />
-                            <span>{performer.stats.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-xl font-bold text-gray-900">{performer.score}</span>
-                          <div className="flex items-center space-x-1">
-                            {getChangeIcon(performer.changeType)}
-                            <span className={`text-sm ${
-                              performer.changeType === 'up' ? 'text-green-600' : 
-                              performer.changeType === 'down' ? 'text-red-600' : 
-                              'text-gray-600'
-                            }`}>
-                              {performer.change}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {performer.badges.slice(0, 2).map((badge, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {badge}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
+                  {loading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                     </div>
-                  ))}
+                  ) : topPerformers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
+                      <p className="text-gray-600">No leaderboard data found.</p>
+                    </div>
+                  ) : (
+                    topPerformers.map((performer) => (
+                      <div key={performer.rank} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center justify-center w-8">
+                          {getRankIcon(performer.rank)}
+                        </div>
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {performer.user?.full_name ? (
+                            performer.user.full_name.split(' ')[0].charAt(0).toUpperCase()
+                          ) : (
+                            performer.user?.email?.charAt(0).toUpperCase() || 'A'
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-semibold text-gray-900">
+                              {performer.user?.full_name ? 
+                                performer.user.full_name.split(' ')[0] : 
+                                performer.user?.email || 'Unknown User'
+                              }
+                            </h4>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {performer.user?.slug ? `@${performer.user.slug}` : 'No profile'}
+                          </p>
+                          <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                            <div className="flex items-center space-x-1">
+                              <Trophy className="h-3 w-3" />
+                              <span>Score: {performer.score}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-xl font-bold text-gray-900">{performer.score}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            <Badge variant="secondary" className="text-xs">
+                              Rank #{performer.rank}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -511,7 +397,7 @@ export default function LeaderboardPage() {
                       {getRankIcon(company.rank)}
                     </div>
                     <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
-                      {company.company.split(' ').map(n => n[0]).join('')}
+                      {company.company ? company.company.split(' ').map(n => n[0]).join('') : 'C'}
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">{company.company}</h3>
                     <p className="text-sm text-gray-600 mb-2">{company.location}</p>
@@ -536,10 +422,6 @@ export default function LeaderboardPage() {
                         </Badge>
                       ))}
                     </div>
-                    <Badge className={`${getTierColor('diamond')} flex items-center space-x-1 w-fit mx-auto`}>
-                      <Gem className="h-4 w-4" />
-                      <span>Enterprise</span>
-                    </Badge>
                   </CardContent>
                 </Card>
               ))}
@@ -562,7 +444,7 @@ export default function LeaderboardPage() {
                         {getRankIcon(company.rank)}
                       </div>
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                        {company.company.split(' ').map(n => n[0]).join('')}
+                        {company.company ? company.company.split(' ').map(n => n[0]).join('') : 'C'}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
@@ -655,68 +537,18 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Sign In Modal */}
-      <Dialog open={showSignInModal} onOpenChange={setShowSignInModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sign In</DialogTitle>
-            <DialogDescription>
-              Enter your credentials to access your recruiter account
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <input type="email" placeholder="Enter your email" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Password</label>
-              <input type="password" placeholder="Enter your password" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSignInModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setShowSignInModal(false)}>
-              Sign In
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      <RecruiterSignInModal 
+        open={showSignInModal} 
+        onOpenChange={setShowSignInModal}
+        onSwitchToSignUp={handleSwitchToSignUp}
+      />
+      
       {/* Sign Up Modal */}
-      <Dialog open={showSignUpModal} onOpenChange={setShowSignUpModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sign Up</DialogTitle>
-            <DialogDescription>
-              Create your recruiter account to get started
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Company Name</label>
-              <input placeholder="Enter your company name" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <input type="email" placeholder="Enter your email" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Password</label>
-              <input type="password" placeholder="Create a password" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSignUpModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setShowSignUpModal(false)}>
-              Sign Up
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RecruiterSignUpForm
+        open={showSignUpModal}
+        onOpenChange={setShowSignUpModal}
+        onSwitchToLogin={handleSwitchToSignIn}
+      />
     </div>
   );
 }

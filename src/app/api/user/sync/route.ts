@@ -37,9 +37,11 @@ export async function POST(request: NextRequest) {
       phone: userData.phone,
       bio: userData.bio,
       position: userData.position,
+      company: userData.company,
       completed_data: userData.completed_data ?? null,
       birthday: userData.birthday ?? null,
-      gender: userData.gender ?? null
+      gender: userData.gender ?? null,
+      admin_level: userData.admin_level || 'user'
     })
 
     console.log('✅ User sync completed:', result)

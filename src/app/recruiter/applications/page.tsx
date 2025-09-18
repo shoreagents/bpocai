@@ -21,7 +21,6 @@ import {
   Calendar, 
   User,
   FileText,
-  Building2,
   CheckCircle,
   XCircle,
   Clock3,
@@ -34,15 +33,30 @@ import {
   DollarSign,
   Edit3,
   Save,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
+import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
+import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 
 export default function ApplicantsPage() {
   const router = useRouter();
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
+
+  // Modal handler functions
+  const handleSwitchToSignUp = () => {
+    setShowSignInModal(false);
+    setShowSignUpModal(true);
+  };
+
+  const handleSwitchToSignIn = () => {
+    setShowSignUpModal(false);
+    setShowSignInModal(true);
+  };
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -204,7 +218,7 @@ export default function ApplicantsPage() {
       const data = await response.json();
       const realApplicants = (data.applications || []).map((app: any) => ({
         id: app.id,
-        candidateName: app.user?.full_name || app.user?.email || 'Applicant',
+        candidateName: app.user?.full_name?.split(' ')[0] || app.user?.email || 'Applicant',
         appliedDate: new Date(app.created_at).toISOString().split('T')[0],
         status: app.status || 'submitted',
         experience: 'Not specified', // This would need to be fetched from user profile
@@ -355,62 +369,12 @@ export default function ApplicantsPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Recruiter Navbar */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Navigation */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  BPOC Recruiter
-                </span>
-              </div>
-              
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-                <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
-                <Link href="/recruiter/dashboard" className="text-gray-700 hover:text-emerald-600 font-medium">Dashboard</Link>
-                <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/applications" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Applicants</Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Applicants</Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analysis</Link>
-                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium">Leaderboard</Link>
-              </div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 px-4 py-2 font-medium transition-all duration-200 rounded-full"
-                onClick={() => setShowSignInModal(true)}
-              >
-                Sign In
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white px-4 py-2 font-medium transition-all duration-200 shadow-sm rounded-full"
-                onClick={() => setShowSignUpModal(true)}
-              >
-                Sign Up
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                onClick={() => router.push('/recruiter/post-job')}
-              >
-                🎯 Post Job
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      <RecruiterNavbar 
+        currentPage="applications" 
+        onSignInClick={() => setShowSignInModal(true)}
+        onSignUpClick={() => setShowSignUpModal(true)}
+      />
+      
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -418,8 +382,8 @@ export default function ApplicantsPage() {
             <div>
               {viewMode === 'jobs' ? (
                 <>
-                  <h1 className="text-2xl font-bold text-gray-900">Job Applicants</h1>
-                  <p className="mt-1 text-sm text-gray-600">Select a job to view its applicants</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Job Applications</h1>
+                  <p className="mt-1 text-sm text-gray-600">Select a job to view its applications</p>
                 </>
               ) : (
                 <div className="flex items-center space-x-4">
@@ -430,24 +394,14 @@ export default function ApplicantsPage() {
                     className="flex items-center space-x-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Applicants</span>
+                    <span>Back to Applications</span>
                   </Button>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">{selectedJob?.title}</h1>
-                    <p className="mt-1 text-sm text-gray-600">{selectedJob?.company} • {selectedJob?.applicationsCount} applicants</p>
+                    <p className="mt-1 text-sm text-gray-600">{selectedJob?.company} • {selectedJob?.applicationsCount} applications</p>
                   </div>
                 </div>
               )}
-            </div>
-            <div className="mt-4 sm:mt-0 flex space-x-3">
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                <Filter className="h-4 w-4 mr-2" />
-                Advanced Filter
-              </Button>
             </div>
           </div>
         </div>
@@ -455,25 +409,90 @@ export default function ApplicantsPage() {
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card key={index} className="bg-white border border-gray-200 shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600 mb-1">Total Applications</p>
+                  <div className="text-3xl font-bold text-blue-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-blue-300 animate-pulse rounded"></span>
+                    ) : (
+                      totalApplicants.toLocaleString()
+                    )}
                   </div>
-                  <div className={`flex items-center text-sm ${
-                    stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    <TrendingUp className="h-4 w-4 mr-1" />
-                    {stat.change}
-                  </div>
+                  <p className="text-sm text-blue-700 mt-2">Job applications received</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-yellow-600 mb-1">Pending Review</p>
+                  <div className="text-3xl font-bold text-yellow-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-yellow-300 animate-pulse rounded"></span>
+                    ) : (
+                      pendingApplicants.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-sm text-yellow-700 mt-2">Awaiting review</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-600 mb-1">Interviewed</p>
+                  <div className="text-3xl font-bold text-purple-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-purple-300 animate-pulse rounded"></span>
+                    ) : (
+                      interviewedApplicants.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-sm text-purple-700 mt-2">Interviewed candidates</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <MessageCircle className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-emerald-600 mb-1">Hired This Month</p>
+                  <div className="text-3xl font-bold text-emerald-900">
+                    {loading ? (
+                      <span className="inline-block w-12 h-8 bg-emerald-300 animate-pulse rounded"></span>
+                    ) : (
+                      hiredApplicants.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-sm text-emerald-700 mt-2">Successfully hired</p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters and Search */}
@@ -483,7 +502,7 @@ export default function ApplicantsPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-600 h-4 w-4" />
                 <Input
-                  placeholder="Search applicants..."
+                  placeholder="Search applications..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 !bg-white border-2 border-emerald-200 text-gray-900 placeholder-black focus:border-emerald-500 focus:ring-emerald-500/50 focus:ring-[3px] focus-visible:border-emerald-500 focus-visible:ring-emerald-500/50 focus-visible:ring-[3px] shadow-md hover:border-emerald-300 transition-colors"
@@ -521,16 +540,28 @@ export default function ApplicantsPage() {
         {viewMode === 'jobs' ? (
           /* Jobs List */
           <div className="space-y-4">
-            {filteredJobs.map((job) => (
-              <Card key={job.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleJobClick(job)}>
+            {filteredJobs.map((job, index) => {
+              // Create color variations for job cards
+              const colorVariations = [
+                'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200',
+                'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:from-emerald-100 hover:to-emerald-200',
+                'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200',
+                'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200',
+                'bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 hover:from-pink-100 hover:to-pink-200',
+                'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200 hover:from-cyan-100 hover:to-cyan-200',
+                'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 hover:from-indigo-100 hover:to-indigo-200',
+                'bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 hover:from-teal-100 hover:to-teal-200'
+              ];
+              
+              const cardColor = colorVariations[index % colorVariations.length];
+              
+              return (
+                <Card key={job.id} className={`${cardColor} shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1`} onClick={() => handleJobClick(job)}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-                        <Badge variant="outline" className="text-xs border-gray-300 text-gray-700">
-                          {job.type}
-                        </Badge>
                         <Badge className="bg-green-100 text-green-800 text-xs border-green-200">
                           {job.status}
                         </Badge>
@@ -561,21 +592,37 @@ export default function ApplicantsPage() {
                     </div>
                     <div className="text-right ml-6">
                       <div className="text-2xl font-bold text-emerald-600 mb-1">{job.applicationsCount}</div>
-                      <div className="text-sm text-gray-600 mb-3">Applicants</div>
+                      <div className="text-sm text-gray-600 mb-3">Applications</div>
                       <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                        View Applicants
+                        View Applications
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* Applicants List */
           <div className="space-y-4">
-            {filteredApplicants.map((application) => (
-              <Card key={application.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            {filteredApplicants.map((application, index) => {
+              // Create color variations for applicant cards
+              const colorVariations = [
+                'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200',
+                'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:from-emerald-100 hover:to-emerald-200',
+                'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200',
+                'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200',
+                'bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 hover:from-pink-100 hover:to-pink-200',
+                'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200 hover:from-cyan-100 hover:to-cyan-200',
+                'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 hover:from-indigo-100 hover:to-indigo-200',
+                'bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 hover:from-teal-100 hover:to-teal-200'
+              ];
+              
+              const cardColor = colorVariations[index % colorVariations.length];
+              
+              return (
+                <Card key={application.id} className={`${cardColor} shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
@@ -727,7 +774,8 @@ export default function ApplicantsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -737,7 +785,7 @@ export default function ApplicantsPage() {
             <CardContent className="p-12 text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {viewMode === 'jobs' ? 'No jobs found' : 'No applicants found'}
+                {viewMode === 'jobs' ? 'No jobs found' : 'No applications found'}
               </h3>
               <p className="text-gray-600">
                 {viewMode === 'jobs' ? 'Try adjusting your search criteria.' : 'Try adjusting your search criteria or filters.'}
@@ -872,68 +920,18 @@ export default function ApplicantsPage() {
       </Dialog>
 
       {/* Sign In Modal */}
-      <Dialog open={showSignInModal} onOpenChange={setShowSignInModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sign In</DialogTitle>
-            <DialogDescription>
-              Enter your credentials to access your recruiter account
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <Input type="email" placeholder="Enter your email" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Password</label>
-              <Input type="password" placeholder="Enter your password" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSignInModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setShowSignInModal(false)}>
-              Sign In
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      <RecruiterSignInModal 
+        open={showSignInModal} 
+        onOpenChange={setShowSignInModal}
+        onSwitchToSignUp={handleSwitchToSignUp}
+      />
+      
       {/* Sign Up Modal */}
-      <Dialog open={showSignUpModal} onOpenChange={setShowSignUpModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sign Up</DialogTitle>
-            <DialogDescription>
-              Create your recruiter account to get started
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Company Name</label>
-              <Input placeholder="Enter your company name" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <Input type="email" placeholder="Enter your email" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Password</label>
-              <Input type="password" placeholder="Create a password" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSignUpModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setShowSignUpModal(false)}>
-              Sign Up
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RecruiterSignUpForm
+        open={showSignUpModal}
+        onOpenChange={setShowSignUpModal}
+        onSwitchToLogin={handleSwitchToSignIn}
+      />
     </div>
   );
 }

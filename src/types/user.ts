@@ -15,7 +15,6 @@ export interface UserProfile {
   slug?: string
   created_at: string
   updated_at: string
-  is_admin?: boolean
   admin_level?: 'user' | 'admin'
 }
 
@@ -41,7 +40,6 @@ export interface AdminUser {
   id: string
   email: string
   full_name: string
-  is_admin: boolean
   admin_level: 'user' | 'admin'
   avatar_url?: string
 }
