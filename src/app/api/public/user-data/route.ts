@@ -91,7 +91,8 @@ export async function GET(request: NextRequest) {
             const privateFields = [
               'email', 'phone', 'current_salary',
               'analysis_metadata', 'files_analyzed', 'original_resume_id',
-              'admin_level', 'work_status_user_id', 'analysis_user_id'
+              'admin_level', 'work_status_user_id', 'analysis_user_id',
+              'candidate_profile' // Hide sensitive AI analysis profile data
             ];
             return !privateFields.includes(field);
           }
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
           analysis_id, session_id, overall_score, ats_compatibility_score, content_quality_score, 
           professional_presentation_score, skills_alignment_score, key_strengths, 
           strengths_analysis, improvements, recommendations, improved_summary, 
-          salary_analysis, career_path, section_analysis, candidate_profile, 
+          salary_analysis, career_path, section_analysis, 
           skills_snapshot, experience_snapshot, education_snapshot, portfolio_links,
           analysis_created_at, analysis_updated_at
         `;
