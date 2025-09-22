@@ -43,15 +43,13 @@ export default function CareerGamesPage() {
         const res = await fetch(`/api/leaderboards/user/${user.id}`)
         if (!res.ok) throw new Error(`Failed to load leaderboard user data: ${res.status}`)
         const data = await res.json()
-        // Compute gamesCompleted from engagement items where game completed points > 0 for four games
+        // Compute gamesCompleted from engagement items where game completed points > 0 for visible games only
         const engagementItems: Array<{ label: string; points: number }> = data?.engagement?.items || []
-        const gameLabels = new Set([
+        const visibleGameLabels = new Set([
           'Typing Hero Completed',
-          'BPOC Cultural Completed',
-          'Ultimate Completed',
           'DISC Personality Completed'
         ])
-        const gamesCompleted = engagementItems.filter(i => gameLabels.has(i.label) && (i.points || 0) > 0).length
+        const gamesCompleted = engagementItems.filter(i => visibleGameLabels.has(i.label) && (i.points || 0) > 0).length
         // Total sessions from leaderboard games plays
         const gamesArr: Array<{ plays?: number }> = data?.games || []
         const totalSessions = gamesArr.reduce((sum, g) => sum + (Number(g.plays || 0)), 0)
@@ -68,7 +66,8 @@ export default function CareerGamesPage() {
     }
   }, [user?.id])
 
-  const games = [
+  // All games (including hidden ones for future use)
+  const allGames = [
     {
         id: 'typing-hero',
         title: 'Typing Hero',
@@ -131,6 +130,10 @@ export default function CareerGamesPage() {
     },
 
   ];
+
+  // Filter out hidden games (BPOC Ultimate and BPOC Cultural)
+  const hiddenGameIds = ['ultimate', 'bpoc-cultural'];
+  const games = allGames.filter(game => !hiddenGameIds.includes(game.id));
 
   const handleStartGame = (gameId: string) => {
     setSelectedGame(gameId);
@@ -298,7 +301,7 @@ export default function CareerGamesPage() {
                         <tr className="border-b border-white/10">
                           <td className="py-3 text-gray-300">Games Completed</td>
                           <td className="py-3 text-right text-white font-medium">
-                            {!user ? 'Please log in' : progress ? `${progress.completed} / 4` : 'Loading...'}
+                            {!user ? 'Please log in' : progress ? `${progress.completed} / 2` : 'Loading...'}
                           </td>
                         </tr>
                         <tr className="border-b border-white/10">

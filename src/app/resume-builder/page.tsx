@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Upload, X, FileText, Image, AlertCircle, Check, Plus, Sparkles, Brain, Building2, ExternalLink } from 'lucide-react';
+import { Upload, X, FileText, Image, AlertCircle, Check, Plus, Sparkles, Brain, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
 import { toast } from '@/components/ui/toast';
+import Header from '@/components/layout/Header';
 
 export default function ResumeBuilderPage() {
   const router = useRouter();
@@ -47,7 +48,6 @@ export default function ResumeBuilderPage() {
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [showGeneratedModal, setShowGeneratedModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
-  const [showSignInModal, setShowSignInModal] = useState(false);
   // Progress modal UX
   const [modalStep, setModalStep] = useState<number>(0);
   const [latestActivity, setLatestActivity] = useState<string>('');
@@ -546,43 +546,8 @@ export default function ResumeBuilderPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* BPOC Recruiter Navbar */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Navigation */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <Building2 className="h-8 w-8 text-emerald-600" />
-                <span className="text-xl font-bold text-gray-900">BPOC Recruiter</span>
-              </div>
-              
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-                <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
-                <Link href="/recruiter/dashboard" className="text-gray-700 hover:text-emerald-600 font-medium">Dashboard</Link>
-                <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Candidates</Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analytics</Link>
-              </div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-6">
-              <Button variant="outline" size="sm" onClick={() => setShowSignInModal(true)}>
-                Sign In
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => router.push('/recruiter/post-job')}
-              >
-                Post Job
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Default BPOC Header */}
+      <Header />
       
       {/* Checkpoint Loading Screen */}
       {!checkpointCheckComplete && (
@@ -1306,93 +1271,6 @@ export default function ResumeBuilderPage() {
       </>
       )}
 
-      {/* Sign In Modal */}
-      <Dialog open={showSignInModal} onOpenChange={setShowSignInModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-center justify-center">
-              <Building2 className="h-6 w-6 text-emerald-600" />
-              Recruiter Sign In
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              Access your recruiter dashboard and manage your talent pipeline
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Simple Sign In Form */}
-            <form className="space-y-4">
-              {/* Email Field */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  placeholder="john.smith@company.com"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                />
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  placeholder="Enter your password"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                />
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember"
-                    type="checkbox"
-                    className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
-                    Remember me
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                >
-                  Forgot password?
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <DialogFooter className="flex gap-3 pt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowSignInModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="bg-emerald-600 hover:bg-emerald-700 flex-1"
-              onClick={() => {
-                setShowSignInModal(false);
-                // Mock successful login - redirect to recruiter dashboard
-                router.push('/recruiter/dashboard');
-              }}
-            >
-              Sign In
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 
