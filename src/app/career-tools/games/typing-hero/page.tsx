@@ -41,34 +41,62 @@ import {
 } from 'lucide-react';
 
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
-const BPO_VOCABULARY = {
-  easy: {
-    words: ['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project', 'website', 'database', 'network', 'system', 'client', 'customer', 'business', 'company', 'product', 'solution', 'problem', 'request', 'feedback', 'process', 'workflow', 'team work', 'data entry', 'web design', 'user guide', 'help desk', 'call center', 'email support'],
-    timeLimit: 30, // 30 seconds
-    speed: 1.0,
-    spawnRate: 1500 // Consistent spawn rate across all difficulties
-  },
-  medium: {
-    words: ['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project', 'website', 'database', 'network', 'system', 'client', 'customer', 'business', 'company', 'product', 'solution', 'problem', 'request', 'feedback', 'process', 'workflow', 'team work', 'data entry', 'web design', 'user guide', 'help desk', 'call center', 'email support'],
-    timeLimit: 30, // 30 seconds
-    speed: 0.5, // Slow speed
+// NEW: MUCH MORE VARIED AND INTELLIGENT VOCABULARY
+const SMART_VOCABULARY = {
+  // Phase 1: Simple assessment words
+  baseline: {
+    words: ['the', 'and', 'you', 'for', 'are', 'with', 'his', 'they', 'have', 'this', 'will', 'your', 'from', 'can', 'said', 'each', 'which', 'she', 'how', 'their', 'time', 'work', 'help', 'good', 'call', 'make', 'need', 'know', 'find', 'more'],
+    speed: 0.6,
     spawnRate: 2000
   },
-  hard: {
-    words: ['customer', 'service', 'support', 'billing', 'account', 'payment', 'problem', 'solution', 'request', 'feedback', 'process', 'system', 'update', 'manage', 'handle', 'call back', 'send email', 'fix issue', 'new task', 'team lead', 'data sync', 'user info', 'web page', 'file size', 'test mode', 'load time', 'sync data', 'copy text', 'push code', 'link site'],
-    timeLimit: 30, // 30 seconds
-    speed: 1.0,
-    spawnRate: 1500 // Consistent spawn rate across all difficulties
+  
+  // Phase 2: BPO basics
+  bpo_basics: {
+    words: ['assist', 'help', 'support', 'service', 'call', 'chat', 'email', 'ticket', 'issue', 'solve', 'fix', 'answer', 'respond', 'follow', 'update', 'check', 'verify', 'confirm', 'process', 'handle', 'manage', 'review', 'send', 'receive', 'forward', 'escalate', 'close', 'complete', 'track', 'monitor'],
+    speed: 0.8,
+    spawnRate: 1800
   },
-  expert: {
-    words: ['troubleshoot', 'escalation', 'resolution', 'representative', 'professional', 'assistance', 'communication', 'documentation', 'verification', 'authorization', 'schedule meeting', 'update system', 'process payment', 'customer feedback', 'technical support', 'quality assurance', 'data management', 'system integration', 'performance review', 'project timeline', 'client requirements', 'workflow automation', 'security protocols', 'backup procedures', 'error handling', 'user experience', 'database query', 'network config', 'server maintenance', 'code deployment'],
-    timeLimit: 30, // 30 seconds
+  
+  // Phase 3: Professional terms  
+  professional: {
+    words: ['customer', 'client', 'business', 'company', 'project', 'database', 'network', 'system', 'website', 'software', 'application', 'platform', 'interface', 'workflow', 'procedure', 'protocol', 'standard', 'quality', 'performance', 'efficiency', 'productivity', 'solution', 'strategy', 'implementation', 'optimization', 'analysis', 'reporting', 'documentation', 'training', 'development'],
     speed: 1.0,
-    spawnRate: 1500 // Consistent spawn rate across all difficulties
+    spawnRate: 1500
   }
 };
 
-type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'expert';
+const BPO_VOCABULARY = {
+  rookie: {
+    words: ['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project', 'website', 'database', 'network', 'system', 'client', 'customer', 'business', 'company', 'product', 'solution', 'problem', 'request', 'feedback', 'process', 'workflow', 'team work', 'data entry', 'web design', 'user guide', 'help desk', 'call center', 'email support'],
+    speed: 0.5, // Start slow for rookie mode
+    spawnRate: 2000, // Slower spawn rate for rookie mode
+    displayName: '🎸 Rookie',
+    bpm: 90 // Slower tempo for rookie
+  },
+  rockstar: {
+    words: ['assist', 'create', 'design', 'develop', 'manage', 'support', 'service', 'project', 'website', 'database', 'network', 'system', 'client', 'customer', 'business', 'company', 'product', 'solution', 'problem', 'request', 'feedback', 'process', 'workflow', 'team work', 'data entry', 'web design', 'user guide', 'help desk', 'call center', 'email support'],
+    speed: 0.7, // Medium speed
+    spawnRate: 1800, // Medium spawn rate
+    displayName: '🎤 Rockstar',
+    bpm: 110 // Medium tempo for rockstar
+  },
+  virtuoso: {
+    words: ['customer', 'service', 'support', 'billing', 'account', 'payment', 'problem', 'solution', 'request', 'feedback', 'process', 'system', 'update', 'manage', 'handle', 'call back', 'send email', 'fix issue', 'new task', 'team lead', 'data sync', 'user info', 'web page', 'file size', 'test mode', 'load time', 'sync data', 'copy text', 'push code', 'link site'],
+    speed: 0.9, // Faster speed
+    spawnRate: 1600, // Faster spawn rate
+    displayName: '🎼 Virtuoso',
+    bpm: 130 // Faster tempo for virtuoso
+  },
+  legend: {
+    words: ['troubleshoot', 'escalation', 'resolution', 'representative', 'professional', 'assistance', 'communication', 'documentation', 'verification', 'authorization', 'schedule meeting', 'update system', 'process payment', 'customer feedback', 'technical support', 'quality assurance', 'data management', 'system integration', 'performance review', 'project timeline', 'client requirements', 'workflow automation', 'security protocols', 'backup procedures', 'error handling', 'user experience', 'database query', 'network config', 'server maintenance', 'code deployment'],
+    speed: 1.2, // Fastest speed
+    spawnRate: 1400, // Fastest spawn rate
+    displayName: '🏆 Legend',
+    bpm: 150 // Fastest tempo for legend
+  }
+};
+
+type DifficultyLevel = 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
 
 interface FallingWord {
   id: string;
@@ -85,19 +113,20 @@ interface GameStats {
   fires: number;
   poos: number;
   combo: number;
+  longestStreak: number;
   wpm: number;
   accuracy: number;
-  timeLeft: number;
+  elapsedTime: number;
   charactersTyped: number;
   correctWords: number;
   totalWords: number;
 }
 
 interface DifficultyProgress {
-  easy: boolean;
-  medium: boolean;
-  hard: boolean;
-  expert: boolean;
+  rookie: boolean;
+  rockstar: boolean;
+  virtuoso: boolean;
+  legend: boolean;
 }
 
 export default function TypingHeroPage() {
@@ -106,43 +135,127 @@ export default function TypingHeroPage() {
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const musicAudioRef = useRef<HTMLAudioElement>(null); // NEW: Dedicated music audio element
   const audioContextRef = useRef<AudioContext | null>(null);
-  const musicNodesRef = useRef<{
-    oscillators: OscillatorNode[];
-    gainNodes: GainNode[];
-    isPlaying: boolean;
-    currentTrack: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'failure' | null;
-  }>({
-    oscillators: [],
-    gainNodes: [],
-    isPlaying: false,
-    currentTrack: null
-  });
+  
+  // NEW: Music preference state
+  const [musicGender, setMusicGender] = useState<'male' | 'female'>('male'); // Default to male
+  
+  // Custom song paths
+  const CUSTOM_SONGS = {
+    male: '/typing hero songs/male.mp3',
+    female: '/typing hero songs/female.mp3'
+  };
   
   // Game state
-  const [gameState, setGameState] = useState<'menu' | 'ready' | 'playing' | 'paused' | 'failed'>('menu');
-  const [currentDifficulty, setCurrentDifficulty] = useState<DifficultyLevel>('medium');
+  const [gameState, setGameState] = useState<'menu' | 'ready' | 'playing' | 'paused' | 'failed' | 'complete' | 'overwhelmed' | 'recovering'>('menu');
+  const [recoveryCountdown, setRecoveryCountdown] = useState(5);
+  const [recoveryGraceTime, setRecoveryGraceTime] = useState(0); // 30-second grace period after recovery
+  const recoveryGraceRef = useRef(0); // Ref for accessing grace time in timer without causing re-renders
+  const [currentDifficulty, setCurrentDifficulty] = useState<DifficultyLevel>('rockstar');
   const [difficultyProgress, setDifficultyProgress] = useState<DifficultyProgress>({
-    easy: false,
-    medium: false,
-    hard: false,
-    expert: false
+    rookie: false,
+    rockstar: false,
+    virtuoso: false,
+    legend: false
   });
   const [showInputGuide, setShowInputGuide] = useState(false);
   const [isInitialStart, setIsInitialStart] = useState(true);
   
-  const [gameStats, setGameStats] = useState<GameStats>({
+  const [gameStats, setGameStats] = useState({
     score: 0,
     fires: 0,
     poos: 0,
     combo: 0,
+    longestStreak: 0,
     wpm: 0,
     accuracy: 0,
-    timeLeft: 90,
+    elapsedTime: 0,
     charactersTyped: 0,
     correctWords: 0,
-    totalWords: 0
+    totalWords: 0,
+    missedWords: 0,
+    // NEW: Advanced WPM tracking
+    totalKeypresses: 0,
+    burstWPM: 0,
+    sustainedWPM: 0,
+    realtimeWPM: 0
   });
+  
+  // NEW: Hidden metrics collection (invisible to users)
+  const [hiddenMetrics, setHiddenMetrics] = useState({
+    reactionTimes: [],
+    errorPatterns: [],
+    stressIndicators: [],
+    vocabularyPerformance: {},
+    focusMetrics: [],
+    sessionFlow: []
+  });
+  const [lastWordAppearTime, setLastWordAppearTime] = useState<number | null>(null);
+  
+  // NEW: Intelligent Adaptive System
+  const [adaptiveSettings, setAdaptiveSettings] = useState({
+    currentSpeedMultiplier: 0.6, // Start SLOWER for assessment
+    wordComplexityLevel: 1,
+    encouragementLevel: 'assessment',
+    lastPerformanceCheck: Date.now(),
+    assessmentPhase: 'baseline', // baseline → finding_speed → optimal → challenge
+    consecutiveSuccesses: 0,
+    consecutiveFailures: 0,
+    playerSpeedFound: false,
+    optimalSpeed: 1.0,
+    lastAnnouncement: Date.now()
+  });
+
+  // Removed complex WPM tracking - using simple calculation now
+  
+  // NEW: Game announcements
+  const [currentAnnouncement, setCurrentAnnouncement] = useState<string | null>(null);
+  
+  // NEW: Detailed session tracking for AI analysis
+  const [sessionData, setSessionData] = useState({
+    errorPatterns: [] as Array<{
+      word: string;
+      userInput: string;
+      errorType: 'typo' | 'spelling' | 'speed' | 'missed';
+      timestamp: number;
+    }>,
+    typingBehavior: {
+      averageWordLength: 0,
+      fastestWord: '',
+      slowestWord: '',
+      commonMistakes: [] as string[]
+    }
+  });
+  
+  // NEW: AI Assessment state
+  const [aiAssessment, setAiAssessment] = useState<any>(null);
+  const [loadingAssessment, setLoadingAssessment] = useState(false);
+  
+  // NEW: Smart streak tracking
+  const [streakData, setStreakData] = useState({
+    currentStreak: 0,
+    bestStreak: 0,
+    streakType: 'accuracy', // 'accuracy', 'speed', 'combo'
+    achievements: [] as string[]
+  });
+  
+  // NEW: Advanced visual effects system
+  const [particles, setParticles] = useState<Array<{
+    id: string;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    color: string;
+    size: number;
+    life: number;
+    maxLife: number;
+  }>>([]);
+  
+  const [screenShake, setScreenShake] = useState({ x: 0, y: 0, intensity: 0 });
+  const [backgroundPulse, setBackgroundPulse] = useState({ color: 'cyan', intensity: 0 });
+  const [comboVisual, setComboVisual] = useState({ scale: 1, glow: 0 });
   
   // Game objects
   const [fallingWords, setFallingWords] = useState<FallingWord[]>([]);
@@ -158,6 +271,9 @@ export default function TypingHeroPage() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   
+  // Progressive difficulty state
+  const [currentSpawnRate, setCurrentSpawnRate] = useState<number>(1800);
+  
   // Typing animation state for demo
   const [currentTypingIndex, setCurrentTypingIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
@@ -170,6 +286,7 @@ export default function TypingHeroPage() {
   const gameLoopRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const wordSpawnRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const inputTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Game configuration
   const LANES = 5;
@@ -197,68 +314,67 @@ export default function TypingHeroPage() {
     };
   }, []);
 
-  // Stop current music
+  // NEW: Stop current music (simplified for custom songs)
   const stopMusic = useCallback(() => {
-    const nodes = musicNodesRef.current;
-    nodes.oscillators.forEach(osc => {
-      try {
-        osc.stop();
-        osc.disconnect();
-      } catch (error) {
-        // Oscillator already stopped
-      }
-    });
-    nodes.gainNodes.forEach(gain => gain.disconnect());
-    nodes.oscillators = [];
-    nodes.gainNodes = [];
-    nodes.isPlaying = false;
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current.currentTime = 0;
+    }
   }, []);
 
-  // Create electronic music for different game states
-  const playMusic = useCallback((trackType: 'menu' | 'easy' | 'medium' | 'hard' | 'expert' | 'failure') => {
-    if (!audioContextRef.current || isMuted) return;
+  // NEW: Play custom songs based on game state and gender preference
+  const playMusic = useCallback((trackType: 'menu' | 'rookie' | 'rockstar' | 'virtuoso' | 'legend' | 'failure' | 'success') => {
+    if (isMuted || !musicAudioRef.current) return;
     
     // Stop current music
     stopMusic();
     
-    const ctx = audioContextRef.current;
-    const nodes = musicNodesRef.current;
-    nodes.currentTrack = trackType;
-    nodes.isPlaying = true;
+    // Select song based on gender preference  
+    const songPath = CUSTOM_SONGS[musicGender];
+    
+    try {
+      musicAudioRef.current.src = songPath;
+      musicAudioRef.current.volume = 0.6; // Adjust volume as needed
+      musicAudioRef.current.loop = true; // Loop the song
+      
+      // Play the song
+      musicAudioRef.current.play().catch(error => {
+        console.log('Music play failed:', error);
+      });
+      
+      console.log(`🎵 Playing ${musicGender} song for ${trackType}: ${songPath}`);
+    } catch (error) {
+      console.error('Failed to load custom song:', error);
+    }
 
-    // Create master gain
-    const masterGain = ctx.createGain();
-    masterGain.gain.value = 0.1;
-    masterGain.connect(ctx.destination);
-
-    // Music configurations for different tracks
-    const configs = {
+    // OLD MUSIC CODE REMOVED - Using custom songs now
+    /* OLD MUSIC CONFIGURATIONS REMOVED
       menu: {
         bpm: 100,
         bassFreq: 80,
         leadFreqs: [330, 440, 550],
         drumTempo: 0.5
       },
-      easy: {
-        bpm: 110,
+      rookie: {
+        bpm: 90,
         bassFreq: 60,
         leadFreqs: [262, 330, 392], // C, E, G
         drumTempo: 0.4
       },
-      medium: {
-        bpm: 120,
+      rockstar: {
+        bpm: 110,
         bassFreq: 70,
         leadFreqs: [294, 370, 440], // D, F#, A
         drumTempo: 0.35
       },
-      hard: {
-        bpm: 140,
+      virtuoso: {
+        bpm: 130,
         bassFreq: 80,
         leadFreqs: [330, 415, 523], // E, G#, C
         drumTempo: 0.3
       },
-      expert: {
-        bpm: 160,
+      legend: {
+        bpm: 150,
         bassFreq: 90,
         leadFreqs: [349, 440, 554], // F, A, C#
         drumTempo: 0.25
@@ -269,6 +385,12 @@ export default function TypingHeroPage() {
         bassFreq: 40,
         leadFreqs: [147, 175, 208], // Low disappointed chord
         drumTempo: 0.8
+      },
+      success: {
+        bpm: 120,
+        bassFreq: 100,
+        leadFreqs: [523, 659, 784], // High victory chord
+        drumTempo: 0.3
       }
     };
 
@@ -376,11 +498,8 @@ export default function TypingHeroPage() {
       }, config.drumTempo * 1000);
     };
 
-    // Start all patterns
-    createBassPattern();
-    createLeadMelody();
-    createDrumPattern();
-  }, [isMuted, stopMusic]);
+    END OF OLD MUSIC CODE */
+  }, [isMuted, stopMusic, musicGender]);
 
   // Handle music changes based on game state
   useEffect(() => {
@@ -391,11 +510,50 @@ export default function TypingHeroPage() {
     }
   }, [gameState, isMuted, playMusic]);
 
-  // Generate random word for current difficulty
+  // NEW: INTELLIGENT word generation based on assessment phase
   const generateWord = useCallback(() => {
-    const config = getCurrentConfig();
-    return config.words[Math.floor(Math.random() * config.words.length)];
-  }, [currentDifficulty]);
+    // Select vocabulary based on current assessment phase
+    let currentVocab;
+    
+    switch (adaptiveSettings.assessmentPhase) {
+      case 'baseline':
+        currentVocab = SMART_VOCABULARY.baseline;
+        break;
+      case 'finding_speed':
+        currentVocab = SMART_VOCABULARY.bpo_basics;
+        break;
+      case 'optimal':
+      case 'challenge':
+        currentVocab = SMART_VOCABULARY.professional;
+        break;
+      default:
+        currentVocab = getCurrentConfig();
+    }
+    
+    // Smart word selection within the vocabulary
+    const vocabularyPerf = hiddenMetrics.vocabularyPerformance;
+    
+    if (Object.keys(vocabularyPerf).length > 3) {
+      // Find areas where player struggles
+      const strugglingAreas = Object.entries(vocabularyPerf)
+        .filter(([_, score]) => (score as number) < 1)
+        .map(([area, _]) => area);
+      
+      // 70% chance to give struggling words to help improve
+      const rand = Math.random();
+      
+      if (rand < 0.7 && strugglingAreas.length > 0) {
+        const targetArea = strugglingAreas[Math.floor(Math.random() * strugglingAreas.length)];
+        const categoryWords = getCategoryWords(targetArea, currentVocab.words);
+        if (categoryWords.length > 0) {
+          return categoryWords[Math.floor(Math.random() * categoryWords.length)];
+        }
+      }
+    }
+    
+    // Default random selection from current vocabulary
+    return currentVocab.words[Math.floor(Math.random() * currentVocab.words.length)];
+  }, [adaptiveSettings.assessmentPhase, hiddenMetrics.vocabularyPerformance]);
 
   // Check if difficulty is unlocked (all unlocked for testing)
   const isDifficultyUnlocked = (difficulty: DifficultyLevel): boolean => {
@@ -403,14 +561,115 @@ export default function TypingHeroPage() {
     return true;
   };
 
+  // AI-based performance level calculation
+  const getActualPerformanceLevel = (): DifficultyLevel => {
+    if (gameStats.totalWords < 5) {
+      // Not enough data - show selected difficulty
+      return currentDifficulty;
+    }
+
+    const { wpm, accuracy, totalWords, fires, poos } = gameStats;
+    
+    // Calculate performance score (0-100)
+    let performanceScore = 0;
+    
+    // WPM contribution (40% of score)
+    if (wpm >= 40) performanceScore += 40;
+    else if (wpm >= 25) performanceScore += 30;
+    else if (wpm >= 15) performanceScore += 20;
+    else performanceScore += 10;
+    
+    // Accuracy contribution (40% of score)
+    if (accuracy >= 80) performanceScore += 40;
+    else if (accuracy >= 60) performanceScore += 30;
+    else if (accuracy >= 40) performanceScore += 20;
+    else if (accuracy >= 20) performanceScore += 10;
+    else performanceScore += 0;
+    
+    // Fire/Poo ratio contribution (20% of score)
+    const ratio = poos > 0 ? fires / poos : fires > 0 ? 5 : 0;
+    if (ratio >= 2) performanceScore += 20;
+    else if (ratio >= 1) performanceScore += 15;
+    else if (ratio >= 0.5) performanceScore += 10;
+    else performanceScore += 5;
+    
+    // Map performance score to difficulty levels
+    if (performanceScore >= 80) return 'legend';    // 🏆 Legend (80-100)
+    if (performanceScore >= 65) return 'virtuoso';  // 🎼 Virtuoso (65-79)  
+    if (performanceScore >= 45) return 'rockstar';  // 🎤 Rockstar (45-64)
+    return 'rookie';                                 // 🎸 Rookie (0-44)
+  };
+
   // Get difficulty color
   const getDifficultyColor = (difficulty: DifficultyLevel) => {
     switch (difficulty) {
-      case 'easy': return 'text-green-400 border-green-500/30 bg-green-500/20';
-      case 'medium': return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/20';
-      case 'hard': return 'text-orange-400 border-orange-500/30 bg-orange-500/20';
-      case 'expert': return 'text-red-400 border-red-500/30 bg-red-500/20';
+      case 'rookie': return 'text-green-400 border-green-500/30 bg-green-500/20';
+      case 'rockstar': return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/20';
+      case 'virtuoso': return 'text-orange-400 border-orange-500/30 bg-orange-500/20';
+      case 'legend': return 'text-red-400 border-red-500/30 bg-red-500/20';
       default: return 'text-gray-400 border-gray-500/30 bg-gray-500/20';
+    }
+  };
+
+  // Removed complex WPM calculation - using simple method now
+
+  // Removed complex WPM tracking functions
+  
+  // NEW: AI Assessment function
+  const getAIAssessment = async (finalStats?: any) => {
+    setLoadingAssessment(true);
+    try {
+      // Use provided stats or current gameStats
+      const stats = finalStats || gameStats;
+      const sessionErrors = sessionData.errorPatterns;
+      
+      console.log('📊 AI Assessment Data:', { stats, sessionErrors }); // Debug log
+      
+      const assessmentData = {
+        wpm: stats.wpm,
+        accuracy: stats.accuracy,
+        totalWords: stats.totalWords,
+        correctWords: stats.correctWords,
+        missedWords: stats.missedWords,
+        fires: stats.fires,
+        poos: stats.poos,
+        elapsedTime: stats.elapsedTime,
+        charactersTyped: stats.charactersTyped,
+        errorPatterns: sessionErrors,
+        difficultyLevel: currentDifficulty,
+        streakData: streakData
+      };
+      
+      const response = await fetch('/api/games/typing-hero/ai-assessment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(assessmentData)
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setAiAssessment(result.assessment);
+      }
+    } catch (error) {
+      console.error('Failed to get AI assessment:', error);
+      // Fallback assessment
+      setAiAssessment({
+        overallAssessment: `Great session! You achieved ${gameStats.wpm} WPM with ${gameStats.accuracy}% accuracy.`,
+        performanceLevel: gameStats.wpm >= 60 ? "Advanced" : gameStats.wpm >= 40 ? "Intermediate" : "Developing",
+        strengths: ["Session completion", "Persistence"],
+        improvementAreas: ["Consistency"],
+        personalizedTips: [{
+          category: "General",
+          tip: "Keep practicing regularly for steady improvement",
+          explanation: "Consistent practice builds muscle memory"
+        }],
+        encouragement: "Keep up the excellent work!",
+        nextSessionGoal: "Focus on maintaining accuracy while increasing speed"
+      });
+    } finally {
+      setLoadingAssessment(false);
     }
   };
 
@@ -420,21 +679,48 @@ export default function TypingHeroPage() {
     
     const config = getCurrentConfig();
     
+    // Use functional update to access current fallingWords without dependency
+    setFallingWords(currentWords => {
+      // Find available lanes (lanes without words too close to the top)
+      const availableLanes = [];
+      for (let lane = 0; lane < LANES; lane++) {
+        const wordsInLane = currentWords.filter(w => w.lane === lane && !w.typed && !w.missed);
+        const hasRecentWord = wordsInLane.some(w => w.y < 100); // Check if any word is within 100px from top
+        if (!hasRecentWord) {
+          availableLanes.push(lane);
+        }
+      }
+      
+      // If no lanes available, use a random lane anyway (but this should be rare)
+      const selectedLane = availableLanes.length > 0 
+        ? availableLanes[Math.floor(Math.random() * availableLanes.length)]
+        : Math.floor(Math.random() * LANES);
+    
     const newWord: FallingWord = {
       id: `word-${Date.now()}-${Math.random()}`,
       word: generateWord(),
-      lane: Math.floor(Math.random() * LANES),
+        lane: selectedLane,
       y: -10, // Start above screen
       speed: config.speed,
       typed: false,
       missed: false
     };
     
-    setFallingWords(prev => [...prev, newWord]);
-  }, [gameState, generateWord, currentDifficulty]);
+    // NEW: Apply adaptive speed adjustment
+    const adaptedWord = {
+      ...newWord,
+      speed: config.speed * adaptiveSettings.currentSpeedMultiplier
+    };
+    
+      return [...currentWords, adaptedWord];
+    });
+    
+    // NEW: Track when word appears for reaction time calculation
+    setLastWordAppearTime(performance.now());
+  }, [gameState, generateWord, currentDifficulty]); // Removed fallingWords to prevent infinite loop!
 
   // Start game with selected difficulty
-  const startGame = (difficulty: DifficultyLevel = 'medium') => {
+  const startGame = (difficulty: DifficultyLevel = 'rockstar') => {
     // Trigger header SignUp dialog if user is not logged in
     if (!user) {
       if (typeof window !== 'undefined') {
@@ -451,20 +737,31 @@ export default function TypingHeroPage() {
     setIsInitialStart(true); // Reset for new game
     endCalledRef.current = false;
     sessionSavedRef.current = false;
+    setRecoveryGraceTime(0); // Reset grace period for new game
+    recoveryGraceRef.current = 0; // Reset ref as well
     
     const config = BPO_VOCABULARY[difficulty];
+    setCurrentSpawnRate(config.spawnRate); // Initialize spawn rate based on difficulty
     setGameStats({
       score: 0,
       fires: 0,
       poos: 0,
       combo: 0,
+      longestStreak: 0,
       wpm: 0,
       accuracy: 0,
-      timeLeft: config.timeLimit,
+      elapsedTime: 0,
       charactersTyped: 0,
       correctWords: 0,
-      totalWords: 0
+      totalWords: 0,
+      missedWords: 0,
+      totalKeypresses: 0,
+      burstWPM: 0,
+      sustainedWPM: 0,
+      realtimeWPM: 0
     });
+
+    // Removed WPM tracker - using simple calculation now
     
     setFallingWords([]);
     setCurrentInput('');
@@ -506,7 +803,7 @@ export default function TypingHeroPage() {
             setCountdown(null);
             setGameState('playing');
             setIsInitialStart(false); // Mark that we've started the game (after countdown)
-            const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
+            const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
             playMusic(musicTrack);
             if (inputRef.current) {
               inputRef.current.focus();
@@ -544,7 +841,7 @@ export default function TypingHeroPage() {
               clearInterval(countdownInterval);
               setCountdown(null);
               setGameState('playing');
-              const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
+              const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
               playMusic(musicTrack);
               if (inputRef.current) {
                 inputRef.current.focus();
@@ -563,14 +860,46 @@ export default function TypingHeroPage() {
     }
   };
 
+  // Handle overwhelmed state recovery with countdown
+  const handleOverwhelmedRecovery = () => {
+    // Clear most of the falling words to give player breathing room
+    setFallingWords(prev => prev.slice(0, 3)); // Keep only 3 words
+    
+    // Start recovery countdown
+    setRecoveryCountdown(5);
+    setGameState('recovering');
+  };
+
+  // Check if player can end session (minimum 1:00)
+  const canEndSession = () => {
+    return gameStats.elapsedTime >= 60; // 1 minute
+  };
+
   // End game
-  const endGame = async (_success: boolean, finalMetrics?: { wpm?: number; accuracy?: number }) => {
+  const endGame = async (success: boolean, finalMetrics?: { wpm?: number; accuracy?: number }) => {
     if (endCalledRef.current) return;
     endCalledRef.current = true;
-    setGameState('failed'); // Always show "Challenge failed to complete"
+    
+    // Check if user is logged in before saving
+    if (!user?.id) {
+      console.log('⚠️ User not logged in, skipping session save');
+      setGameState(success ? 'complete' : 'failed');
+      return;
+    }
+
+    console.log(`🎮 Game ended: ${success ? 'SUCCESS' : 'FAILED'}`);
+    console.log('📊 Final stats:', gameStats);
+    
+    // Set appropriate game state based on success and minimum time
+    if (success || gameStats.elapsedTime >= 60) {
+      setGameState('complete'); // Player completed session or reached minimum time
+    } else {
+      setGameState('failed'); // Game ended prematurely (overwhelmed, quit early, etc.)
+    }
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     if (wordSpawnRef.current) clearInterval(wordSpawnRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
+    if (inputTimeoutRef.current) clearTimeout(inputTimeoutRef.current);
     
     // Clear countdown if active
     setCountdown(null);
@@ -593,29 +922,91 @@ export default function TypingHeroPage() {
         sessionSavedRef.current = true;
         const wpmToSave = typeof finalMetrics?.wpm === 'number' ? finalMetrics.wpm : gameStats.wpm;
         const accToSave = typeof finalMetrics?.accuracy === 'number' ? finalMetrics.accuracy : gameStats.accuracy;
-        await fetch('/api/games/typing-hero/session', {
+        
+        // NEW: Calculate enhanced metrics for business intelligence
+        const enhancedMetrics = calculateEnhancedMetrics(hiddenMetrics, gameStats);
+        
+        // Get AI analysis first
+        let aiAnalysis = {};
+        try {
+          const aiResponse = await fetch('/api/games/typing-hero/ai-assessment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wpm: wpmToSave,
+              accuracy: accToSave,
+              totalWords: gameStats.totalWords,
+              correctWords: gameStats.correctWords,
+              missedWords: gameStats.missedWords,
+              fires: gameStats.fires,
+              poos: gameStats.poos,
+              elapsedTime: gameStats.elapsedTime,
+              charactersTyped: gameStats.charactersTyped,
+              errorPatterns: sessionData.errorPatterns,
+              difficultyLevel: currentDifficulty,
+              streakData: streakData
+            })
+          });
+          
+          const aiResult = await aiResponse.json();
+          if (aiResult.success) {
+            aiAnalysis = aiResult.analysis;
+            setAiAssessment(aiResult.analysis.aiAssessment);
+          }
+        } catch (aiError) {
+          console.error('Failed to get AI analysis:', aiError);
+        }
+
+        // Save session with new clean structure
+        console.log('💾 Saving Typing Hero session for user:', user.id);
+        console.log('📊 Session data being sent:', {
+          score: gameStats.score,
+          wpm: wpmToSave,
+          longest_streak: gameStats.longestStreak,
+          correct_words: gameStats.correctWords,
+          wrong_words: gameStats.poos,
+          elapsed_time: gameStats.elapsedTime,
+          overall_accuracy: accToSave,
+          hasAiAnalysis: Object.keys(aiAnalysis).length > 0
+        });
+        
+        const saveResponse = await fetch('/api/games/typing-hero/session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            startedAt,
-            finishedAt,
-            durationMs,
-            difficulty: currentDifficulty, // maps to enum in API (medium->intermediate, hard->advanced)
-            level: currentDifficulty,
+            // Core metrics (exactly as requested)
+            score: gameStats.score,
             wpm: wpmToSave,
-            accuracy: accToSave,
-            keypresses: gameStats.charactersTyped,
-            mistakes: Math.max(0, gameStats.totalWords - gameStats.correctWords),
-            error_breakdown: {},
+            longest_streak: gameStats.longestStreak,
+            correct_words: gameStats.correctWords,
+            wrong_words: gameStats.poos,
+            elapsed_time: gameStats.elapsedTime,
+            overall_accuracy: accToSave,
+            
+            // AI analysis as single JSONB
+            ai_analysis: aiAnalysis,
+            
+            // Optional metadata
+            difficulty_level: currentDifficulty,
+            session_status: success ? 'completed' : 'failed'
           })
         });
+        
+        if (saveResponse.ok) {
+          const saveResult = await saveResponse.json();
+          console.log('✅ Session saved successfully:', saveResult);
+        } else {
+          console.error('❌ Failed to save session:', await saveResponse.text());
+        }
       }
     } catch (e) {
       console.error('Failed to save Typing Hero session', e);
     }
+    
+    // AI assessment is now handled before saving the session
   };
 
   // Create visual effect
@@ -635,15 +1026,54 @@ export default function TypingHeroPage() {
     }, 1000);
   };
 
-  // Create bonus text effect
+  // NEW: Smart encouragement system
   const createBonusEffect = (text: string, lane: number, y: number) => {
     const bonusId = `bonus-${Date.now()}-${Math.random()}`;
-    setBonusEffects(prev => [...prev, { id: bonusId, text, lane, y }]);
+    
+    // Smart encouragement based on performance (only for non-point messages)
+    const smartText = text.includes('+') ? text : getSmartEncouragement(text);
+    
+    setBonusEffects(prev => [...prev, { id: bonusId, text: smartText, lane, y }]);
     
     // Remove bonus text after animation
     setTimeout(() => {
       setBonusEffects(prev => prev.filter(e => e.id !== bonusId));
     }, 1500);
+  };
+
+  // NEW: Get smart encouragement based on current performance
+  const getSmartEncouragement = (originalText: string) => {
+    const currentAccuracy = gameStats.correctWords / Math.max(1, gameStats.totalWords);
+    const recentErrors = hiddenMetrics.errorPatterns.slice(-5).filter(ep => ep.type !== 'correct').length;
+    const combo = gameStats.combo;
+    
+    // High performance - motivational messages
+    if (currentAccuracy > 0.9 && combo > 8) {
+      const messages = ['🚀 ON FIRE!', '⭐ AMAZING!', '💪 UNSTOPPABLE!', '🎯 PERFECT!', '👑 CHAMPION!'];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    // Good performance - encouraging messages
+    if (currentAccuracy > 0.8 && combo > 4) {
+      const messages = ['🔥 GREAT JOB!', '✨ EXCELLENT!', '🎉 FANTASTIC!', '💫 BRILLIANT!', '🌟 SUPERB!'];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    // Recovering from errors - supportive messages
+    if (recentErrors > 2 && combo > 2) {
+      const messages = ['💪 COMEBACK!', '🎯 FOCUSED!', '⚡ RECOVERING!', '🔄 BACK ON TRACK!', '🎪 NICE SAVE!'];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    // Struggling - gentle encouragement
+    if (currentAccuracy < 0.7 || recentErrors > 3) {
+      const messages = ['🌱 KEEP GOING!', '💝 YOU GOT THIS!', '🎨 IMPROVING!', '🌈 ALMOST THERE!', '🎵 STAY CALM!'];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    // Default positive messages
+    const messages = ['✅ NICE!', '👍 GOOD!', '🎯 HIT!', '⚡ FAST!', '🎪 COOL!'];
+    return messages[Math.floor(Math.random() * messages.length)];
   };
 
   // Calculate timing bonus based on word position
@@ -701,16 +1131,22 @@ export default function TypingHeroPage() {
         const newCombo = prev.combo + 1;
         const comboMultiplier = Math.min(Math.floor(newCombo / 5) + 1, 16);
         const basePoints = 100;
-        const difficultyBonus = currentDifficulty === 'easy' ? 0 : 
-                               currentDifficulty === 'medium' ? 25 :
-                               currentDifficulty === 'hard' ? 50 : 100;
+        const difficultyBonus = currentDifficulty === 'rookie' ? 0 : 
+                               currentDifficulty === 'rockstar' ? 25 :
+                               currentDifficulty === 'virtuoso' ? 50 : 100;
         const totalPoints = (basePoints + difficultyBonus + timingBonus) * comboMultiplier;
+        
+        // Update combo visual effects with new combo value
+        updateComboVisual(newCombo);
+        
+        const newLongestStreak = Math.max(prev.longestStreak, newCombo);
         
         return {
           ...prev,
           score: prev.score + totalPoints,
           fires: prev.fires + 1,
           combo: newCombo,
+          longestStreak: newLongestStreak,
           correctWords: prev.correctWords + 1,
           totalWords: prev.totalWords + 1,
           charactersTyped: prev.charactersTyped + word.word.length
@@ -775,10 +1211,74 @@ export default function TypingHeroPage() {
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputStartTime = performance.now();
     const value = e.target.value.toLowerCase();
+    console.log('⌨️ INPUT:', value, 'Falling words:', fallingWords.length); // DEBUG
     setCurrentInput(value);
     
-    if (!value.trim()) return;
+    // Simple character tracking for WPM calculation
+    if (value.length > 0) {
+      setGameStats(prev => ({
+        ...prev,
+        charactersTyped: prev.charactersTyped + 1
+      }));
+    }
+    
+    if (!value.trim()) {
+      // Clear timeout when input is empty
+      if (inputTimeoutRef.current) {
+        clearTimeout(inputTimeoutRef.current);
+        inputTimeoutRef.current = undefined;
+      }
+      return;
+    }
+    
+    // Auto-clear if input gets too long without matching (prevents getting stuck)
+    if (value.length > 15) {
+      console.log('🚫 Auto-clearing long input:', value);
+      setCurrentInput('');
+      if (inputRef.current) inputRef.current.value = '';
+      
+      // Give poo penalty for getting stuck
+      setEffects(prev => [...prev, {
+        id: Date.now().toString(),
+        type: 'poo',
+        lane: Math.floor(Math.random() * LANES)
+      }]);
+      
+      setGameStats(prev => ({
+        ...prev,
+        poos: prev.poos + 1
+      }));
+      return;
+    }
+    
+    // Set timeout to auto-clear input after 4 seconds of no matching word
+    if (inputTimeoutRef.current) {
+      clearTimeout(inputTimeoutRef.current);
+    }
+    
+    inputTimeoutRef.current = setTimeout(() => {
+      if (currentInput.trim().length > 2) {
+        console.log('⏰ Auto-clearing inactive input:', currentInput);
+        setCurrentInput('');
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
+        
+        // Give small poo penalty for timeout
+        setEffects(prev => [...prev, {
+          id: Date.now().toString(),
+          type: 'poo',
+          lane: Math.floor(Math.random() * LANES)
+        }]);
+        
+        setGameStats(prev => ({
+          ...prev,
+          poos: prev.poos + 1
+        }));
+      }
+    }, 4000);
     
     // Check if typed word matches any visible falling word
     // For words with spaces, we need to handle them specially
@@ -809,10 +1309,51 @@ export default function TypingHeroPage() {
     });
     
     if (matchingWord) {
+      console.log('🎯 WORD MATCHED!', matchingWord.word, 'at position:', matchingWord.y); // DEBUG
+      
+      // NEW: Collect hidden metrics for successful word match
+      const reactionTime = lastWordAppearTime ? inputStartTime - lastWordAppearTime : 0;
+      const wordCategory = getWordCategory(matchingWord.word);
+      const currentAccuracy = gameStats.correctWords / Math.max(1, gameStats.totalWords);
+      const stressLevel = calculateStressLevel(currentAccuracy, gameStats.combo);
+      
       // Simulate realistic typing errors
       const shouldHaveError = simulateTypingError(matchingWord.word, currentDifficulty);
       
       if (shouldHaveError) {
+        // NEW: Collect error metrics
+        setHiddenMetrics(prev => ({
+          ...prev,
+          reactionTimes: [...prev.reactionTimes, reactionTime],
+          errorPatterns: [...prev.errorPatterns, {
+            type: 'simulated_error',
+            category: wordCategory,
+            timestamp: Date.now(),
+            stressLevel,
+            comboLevel: gameStats.combo,
+            word: matchingWord.word
+          }],
+          vocabularyPerformance: {
+            ...prev.vocabularyPerformance,
+            [wordCategory]: (prev.vocabularyPerformance[wordCategory] || 0) - 0.5
+          }
+        }));
+        
+        // NEW: Trigger error visual effects (simplified)
+        const gameAreaRect = gameAreaRef.current?.getBoundingClientRect();
+        if (gameAreaRect) {
+          const x = gameAreaRect.left + (matchingWord.lane / LANES) * gameAreaRect.width + (gameAreaRect.width / LANES) / 2;
+          const y = gameAreaRect.top + (matchingWord.y / 100) * gameAreaRect.height;
+          
+          // Red error particles and screen shake
+          createParticleExplosion(x, y, '#ff0000', 6);
+          triggerScreenShake(8);
+          triggerBackgroundPulse('red', 0.25);
+          
+          // Reset combo visual effects
+          setComboVisual({ scale: 1, glow: 0 });
+        }
+        
         // Simulate a typing error - treat as incorrect
         handleWordType(matchingWord, false);
         setCurrentInput(''); // Clear input after error
@@ -820,11 +1361,81 @@ export default function TypingHeroPage() {
           inputRef.current.value = '';
         }
       } else {
+        // NEW: Collect success metrics
+        setHiddenMetrics(prev => ({
+          ...prev,
+          reactionTimes: [...prev.reactionTimes, reactionTime],
+          errorPatterns: [...prev.errorPatterns, {
+            type: 'correct',
+            category: wordCategory,
+            timestamp: Date.now(),
+            stressLevel,
+            comboLevel: gameStats.combo,
+            word: matchingWord.word
+          }],
+          vocabularyPerformance: {
+            ...prev.vocabularyPerformance,
+            [wordCategory]: (prev.vocabularyPerformance[wordCategory] || 0) + 1
+          },
+          focusMetrics: [...prev.focusMetrics, {
+            timestamp: Date.now(),
+            accuracy: currentAccuracy,
+            wpm: gameStats.wpm,
+            combo: gameStats.combo
+          }]
+        }));
+        
+        // NEW: Update adaptive settings based on performance
+        updateAdaptiveSettings(true, currentAccuracy, gameStats.combo);
+        
+        // NEW: Update streak tracking
+        updateStreakTracking(true, currentAccuracy, gameStats.wpm, gameStats.combo);
+        
+        // NEW: Trigger visual effects for successful hit (simplified)
+        // Use word position for effects
+        const gameAreaRect = gameAreaRef.current?.getBoundingClientRect();
+        if (gameAreaRect) {
+          const x = gameAreaRect.left + (matchingWord.lane / LANES) * gameAreaRect.width + (gameAreaRect.width / LANES) / 2;
+          const y = gameAreaRect.top + (matchingWord.y / 100) * gameAreaRect.height;
+          
+          // Perfect timing effects
+          const timingBonus = getTimingBonus(matchingWord);
+          if (timingBonus >= 50) {
+            createParticleExplosion(x, y, '#ffd700', 20); // MORE Gold particles
+            triggerScreenShake(30); // INTENSE shake
+            triggerBackgroundPulse('yellow', 0.8);
+          } else if (timingBonus >= 25) {
+            createParticleExplosion(x, y, '#00ffff', 16); // MORE Cyan particles
+            triggerScreenShake(25); // STRONG shake
+            triggerBackgroundPulse('cyan', 0.6);
+          } else {
+            createParticleExplosion(x, y, '#00ff00', 12); // MORE Green particles
+            triggerScreenShake(20); // NOTICEABLE shake
+            triggerBackgroundPulse('green', 0.5);
+          }
+          
+          // Combo visual effects are now handled in the stats update
+        }
+        
         // No error - proceed normally
         handleWordType(matchingWord, true);
+        
+        // Enhanced visual feedback for high-speed typing
+        if (gameStats.wpm > 80) {
+          createBonusEffect('🚀 SPEED DEMON!', matchingWord.lane, matchingWord.y - 20);
+        } else if (gameStats.wpm > 60) {
+          createBonusEffect('⚡ FAST!', matchingWord.lane, matchingWord.y - 20);
+        }
+        
         setCurrentInput(''); // Clear input after successful match
         if (inputRef.current) {
           inputRef.current.value = '';
+        }
+        
+        // Clear timeout after successful match
+        if (inputTimeoutRef.current) {
+          clearTimeout(inputTimeoutRef.current);
+          inputTimeoutRef.current = undefined;
         }
       }
     } else {
@@ -886,6 +1497,20 @@ export default function TypingHeroPage() {
         const randomLane = Math.floor(Math.random() * LANES);
         createEffect('poo', randomLane);
         
+        // Track error for AI analysis
+        const closestWord = fallingWords.find(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100);
+        if (closestWord) {
+          setSessionData(prev => ({
+            ...prev,
+            errorPatterns: [...prev.errorPatterns, {
+              word: closestWord.word,
+              userInput: currentInput.trim(),
+              errorType: 'spelling', // User pressed Enter on wrong word
+              timestamp: Date.now()
+            }]
+          }));
+        }
+        
         setGameStats(prev => ({
           ...prev,
           score: Math.max(0, prev.score - 25),
@@ -900,85 +1525,132 @@ export default function TypingHeroPage() {
       if (inputRef.current) {
         inputRef.current.value = '';
       }
+      
+      // Clear timeout after Enter key
+      if (inputTimeoutRef.current) {
+        clearTimeout(inputTimeoutRef.current);
+        inputTimeoutRef.current = undefined;
+      }
     }
   };
 
-  // Game timer
+  // Game timer - tracks elapsed time and progressive difficulty
   useEffect(() => {
+    console.log(`⚡ Timer useEffect starting - gameState: ${gameState}, difficulty: ${currentDifficulty}`);
     if (gameState !== 'playing') return;
     
     timerRef.current = setInterval(() => {
       setGameStats(prev => {
-        const newTimeLeft = prev.timeLeft - 1;
+          const newElapsedTime = prev.elapsedTime + 1;
+          console.log(`🕐 Timer tick: ${prev.elapsedTime} -> ${newElapsedTime}`);
         
-        if (newTimeLeft <= 0) {
-          // Time's up - game ends
-          const accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
-          const elapsedSeconds = getCurrentConfig().timeLimit;
-          const wordsTyped = prev.charactersTyped / 5;
-          const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
-          
-          setTimeout(() => endGame(false, { wpm: Math.round(wpm), accuracy }), 100);
-          return { ...prev, timeLeft: 0 };
+        // Check for overwhelmed condition - multiple triggers
+        // Note: We'll check this in a separate useEffect to avoid stale closure issues
+        const totalAttempts = prev.totalWords;
+        const recentAccuracy = totalAttempts > 0 ? (prev.correctWords / totalAttempts) * 100 : 100;
+        const missedCount = prev.missedWords;
+        
+        // Update grace period countdown using ref to avoid useEffect restart
+        if (recoveryGraceRef.current > 0) {
+          recoveryGraceRef.current = Math.max(0, recoveryGraceRef.current - 1);
+          setRecoveryGraceTime(recoveryGraceRef.current); // Update state for UI display if needed
+        }
+
+        // Performance-based overwhelmed detection - focus on accuracy and speed struggles
+        // IMPORTANT: Use > not >= to ensure we don't trigger exactly at the minute mark
+        // DISABLED during 30-second grace period after recovery
+        const shouldTriggerOverwhelmed = recoveryGraceRef.current === 0 && (
+          // Speed is getting too fast and accuracy is suffering
+          (newElapsedTime > 60 && recentAccuracy < 25 && missedCount >= 10) ||   // AFTER 1 min: struggling with speed
+          (newElapsedTime > 90 && recentAccuracy < 35 && missedCount >= 12) ||   // AFTER 1.5 min: still struggling
+          (newElapsedTime > 120 && recentAccuracy < 40 && missedCount >= 15) ||  // AFTER 2 min: consistent struggle
+          (newElapsedTime > 60 && recentAccuracy < 15 && missedCount >= 12) ||   // AFTER 1 min: very poor accuracy
+          (newElapsedTime > 75 && missedCount >= 18)                             // AFTER 1:15: too many missed words
+        );
+        
+        if (shouldTriggerOverwhelmed) {
+          setGameState('overwhelmed');
+          return { ...prev, elapsedTime: newElapsedTime };
         }
         
-                          // Gradually increase speed from 15 seconds down to 1 second remaining
-         if (newTimeLeft <= 15 && newTimeLeft >= 1) {
-           // Calculate progressive speed increase (0.5 -> 0.8 instead of 0.5 -> 1.0)
-           const speedIncrease = (15 - newTimeLeft) / 15; // 0 to 1 over 15 seconds
-           const newSpeed = 0.5 + (speedIncrease * 0.3); // Max speed: 0.8 instead of 1.0
+        // Progressive difficulty scaling every 30 seconds
+        if (newElapsedTime % 30 === 0 && newElapsedTime > 0) {
+          // Increase speed and spawn rate gradually
+          const difficultyMultiplier = 1 + (Math.floor(newElapsedTime / 30) * 0.1);
+          const newSpeed = Math.min(getCurrentConfig().speed * difficultyMultiplier, 2.0); // Cap at 2x speed
+          const newSpawnRate = Math.max(getCurrentConfig().spawnRate / difficultyMultiplier, 800); // Minimum 800ms spawn rate
            
            setFallingWords(current => 
              current.map(word => ({ ...word, speed: newSpeed }))
            );
-         }
+          
+          // Update spawn rate and restart spawn timer
+          setCurrentSpawnRate(newSpawnRate);
+          
+          // Restart word spawning with new rate
+          if (wordSpawnRef.current) {
+            clearInterval(wordSpawnRef.current);
+            wordSpawnRef.current = setInterval(spawnWord, newSpawnRate);
+          }
+          
+          console.log(`🎮 Difficulty increased! Speed: ${newSpeed.toFixed(1)}, Spawn Rate: ${newSpawnRate}ms`);
+        }
         
-        // Update WPM and accuracy
-        const elapsedSeconds = getCurrentConfig().timeLimit - newTimeLeft;
+        // Simple, accurate WPM calculation
         const wordsTyped = prev.charactersTyped / 5;
-        const wpm = elapsedSeconds > 0 ? (wordsTyped / (elapsedSeconds / 60)) : 0;
+        const minutes = newElapsedTime / 60;
+        let finalWPM = minutes > 0 ? Math.round(wordsTyped / minutes) : 0;
         
-                 // Calculate realistic accuracy with additional factors
-         let accuracy = prev.totalWords > 0 ? (prev.correctWords / prev.totalWords) * 100 : 0;
-         
-         // If no words were attempted, accuracy should be 0%
-         if (prev.totalWords === 0) {
-           accuracy = 0;
-         } else {
-           // Apply difficulty-based accuracy adjustment
-           const difficultyAccuracyMultipliers = {
-             easy: 1.0,      // No adjustment
-             medium: 0.95,   // Slightly harder
-             hard: 0.90,     // More challenging
-             expert: 0.85    // Most challenging
-           };
-           
-           accuracy = accuracy * difficultyAccuracyMultipliers[currentDifficulty];
-           
-           // Apply speed-based accuracy penalty (faster typing = more errors)
-           if (wpm > 50) {
-             const speedPenalty = Math.min((wpm - 50) * 0.002, 0.1); // Max 10% penalty
-             accuracy = accuracy * (1 - speedPenalty);
-           }
-           
-           // Ensure accuracy stays within realistic bounds (but allow 0% for no attempts)
-           accuracy = Math.max(accuracy, 0); // Minimum 0% accuracy
-           accuracy = Math.min(accuracy, 98); // Maximum 98% accuracy (realistic human limit)
+        // Cap at realistic maximum
+        finalWPM = Math.min(finalWPM, 120); // Reasonable max for a typing game
+        
+        // Simple accuracy calculation
+        let accuracy = 0;
+        if (prev.totalWords > 0) {
+          accuracy = Math.round((prev.correctWords / prev.totalWords) * 100 * 10) / 10; // Round to 1 decimal
+          accuracy = Math.max(0, Math.min(100, accuracy)); // Keep between 0-100%
          }
         
         return {
           ...prev,
-          timeLeft: newTimeLeft,
+          elapsedTime: newElapsedTime,
           accuracy,
-          wpm: Math.round(wpm)
+          wpm: finalWPM
         };
       });
     }, 1000);
     
     return () => {
+        console.log(`🛑 Timer cleanup - gameState: ${gameState}, difficulty: ${currentDifficulty}`);
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [gameState, currentDifficulty]);
+    }, [gameState]); // Removed currentDifficulty and recoveryGraceTime to prevent timer restarts
+
+  // Note: Removed "too many words" trigger - overwhelmed should only be based on performance/accuracy
+  // The main timer useEffect handles all overwhelmed conditions based on accuracy and missed words
+
+  // Recovery countdown timer
+  useEffect(() => {
+    if (gameState !== 'recovering') return;
+    
+    if (recoveryCountdown > 0) {
+      const timer = setTimeout(() => {
+        setRecoveryCountdown(prev => prev - 1);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // Countdown finished, resume playing with 30-second grace period
+      setGameState('playing');
+      recoveryGraceRef.current = 30; // Set ref for timer logic
+      setRecoveryGraceTime(30); // Set state for UI display
+      
+      // Focus input when recovering
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }, [gameState, recoveryCountdown]);
 
   // Game loop
   useEffect(() => {
@@ -999,10 +1671,57 @@ export default function TypingHeroPage() {
         // Mark missed words and update stats
         const withMissed = active.map(word => {
           if (word.y > TARGET_ZONE_Y + TARGET_ZONE_TOLERANCE && !word.missed && !word.typed) {
+            // Check if the missed word matches current input - if so, clear input to prevent blocking
+            const normalizedInput = currentInput.toLowerCase().trim();
+            const normalizedWord = word.word.toLowerCase();
+            
+            const inputMatchesWord = normalizedWord === normalizedInput || 
+              (normalizedWord.includes(' ') && normalizedWord.replace(/\s+/g, '') === normalizedInput) ||
+              (normalizedInput.includes(' ') && normalizedInput.replace(/\s+/g, '') === normalizedWord);
+            
+            if (inputMatchesWord && normalizedInput.length > 0) {
+              console.log('🚫 Auto-clearing input for missed word:', word.word);
+              
+              // Track missed word for AI analysis
+              setSessionData(prev => ({
+                ...prev,
+                errorPatterns: [...prev.errorPatterns, {
+                  word: word.word,
+                  userInput: normalizedInput,
+                  errorType: 'missed', // Word fell off screen while typing
+                  timestamp: Date.now()
+                }]
+              }));
+              
+              setCurrentInput('');
+              if (inputRef.current) {
+                inputRef.current.value = '';
+              }
+              
+              // Clear timeout when auto-clearing for missed word
+              if (inputTimeoutRef.current) {
+                clearTimeout(inputTimeoutRef.current);
+                inputTimeoutRef.current = undefined;
+              }
+              
+              // Give poo penalty for missing the word they were typing
+              setEffects(prev => [...prev, {
+                id: Date.now().toString(),
+                type: 'poo',
+                lane: word.lane
+              }]);
+              
+              setGameStats(prev => ({
+                ...prev,
+                poos: prev.poos + 1
+              }));
+            }
+            
             // Update game stats when word is missed
             setGameStats(prev => ({
               ...prev,
-              totalWords: prev.totalWords + 1
+              totalWords: prev.totalWords + 1,
+              missedWords: prev.missedWords + 1
             }));
             return { ...word, missed: true };
           }
@@ -1031,13 +1750,12 @@ export default function TypingHeroPage() {
   useEffect(() => {
     if (gameState !== 'playing') return;
     
-    const config = getCurrentConfig();
-    wordSpawnRef.current = setInterval(spawnWord, config.spawnRate);
+    wordSpawnRef.current = setInterval(spawnWord, currentSpawnRate);
     
     return () => {
       if (wordSpawnRef.current) clearInterval(wordSpawnRef.current);
     };
-  }, [gameState, currentDifficulty, spawnWord]);
+  }, [gameState, currentDifficulty, spawnWord, currentSpawnRate]);
 
   // Toggle mute
   const toggleMute = () => {
@@ -1047,12 +1765,14 @@ export default function TypingHeroPage() {
     if (wasMuted) {
       // Was muted, now unmuting - restart music based on current state
       if (gameState === 'playing') {
-        const musicTrack = currentDifficulty as 'easy' | 'medium' | 'hard' | 'expert';
+        const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
         playMusic(musicTrack);
       } else if (gameState === 'menu') {
         playMusic('menu');
       } else if (gameState === 'failed') {
         playMusic('failure');
+      } else if (gameState === 'complete') {
+        playMusic('success'); // Add success music for completed sessions
       }
     } else {
       // Was unmuted, now muting - stop music
@@ -1113,12 +1833,450 @@ export default function TypingHeroPage() {
     };
   }, [stopMusic]);
 
+  // NEW: Particle animation system
+  useEffect(() => {
+    if (particles.length === 0) return;
+    
+    const animateParticles = () => {
+      setParticles(prev => prev
+        .map(particle => ({
+          ...particle,
+          x: particle.x + particle.vx,
+          y: particle.y + particle.vy,
+          vy: particle.vy + 0.2, // gravity
+          life: particle.life - 1,
+          size: particle.size * 0.98 // shrink over time
+        }))
+        .filter(particle => particle.life > 0)
+      );
+    };
+
+    const animationId = requestAnimationFrame(animateParticles);
+    return () => cancelAnimationFrame(animationId);
+  }, [particles]);
+
+  // NEW: Screen shake animation
+  useEffect(() => {
+    if (screenShake.intensity <= 0) return;
+    
+    const shakeAnimation = () => {
+      setScreenShake(prev => ({
+        x: (Math.random() - 0.5) * prev.intensity,
+        y: (Math.random() - 0.5) * prev.intensity,
+        intensity: prev.intensity * 0.9 // decay
+      }));
+    };
+
+    const animationId = requestAnimationFrame(shakeAnimation);
+    return () => cancelAnimationFrame(animationId);
+  }, [screenShake]);
+
+  // NEW: Background pulse animation
+  useEffect(() => {
+    if (backgroundPulse.intensity <= 0) return;
+    
+    const pulseAnimation = () => {
+      setBackgroundPulse(prev => ({
+        ...prev,
+        intensity: prev.intensity * 0.95 // fade out
+      }));
+    };
+
+    const animationId = requestAnimationFrame(pulseAnimation);
+    return () => cancelAnimationFrame(animationId);
+  }, [backgroundPulse]);
+
+  // NEW: Helper functions for hidden metrics
+  const getWordCategory = (word: string) => {
+    if (!word) return 'unknown';
+    
+    const categories = {
+      'customer_service': ['customer', 'service', 'support', 'help', 'assist', 'call', 'chat'],
+      'technical': ['troubleshoot', 'system', 'network', 'database', 'configuration', 'update'],
+      'billing': ['billing', 'payment', 'invoice', 'account', 'transaction', 'refund'],
+      'quality': ['quality', 'standard', 'metric', 'compliance', 'review', 'audit'],
+      'communication': ['email', 'phone', 'message', 'respond', 'follow', 'escalate']
+    };
+    
+    for (const [category, words] of Object.entries(categories)) {
+      if (words.some(w => word.toLowerCase().includes(w))) return category;
+    }
+    return 'general';
+  };
+
+  // NEW: Get words from a specific category
+  const getCategoryWords = (category: string, allWords: string[]) => {
+    const categoryKeywords = {
+      'customer_service': ['customer', 'service', 'support', 'help', 'assist', 'call', 'chat'],
+      'technical': ['troubleshoot', 'system', 'network', 'database', 'configuration', 'update'],
+      'billing': ['billing', 'payment', 'invoice', 'account', 'transaction', 'refund'],
+      'quality': ['quality', 'standard', 'metric', 'compliance', 'review', 'audit'],
+      'communication': ['email', 'phone', 'message', 'respond', 'follow', 'escalate']
+    };
+    
+    const keywords = categoryKeywords[category as keyof typeof categoryKeywords] || [];
+    return allWords.filter(word => 
+      keywords.some(keyword => word.toLowerCase().includes(keyword))
+    );
+  };
+
+  const calculateStressLevel = (accuracy: number, combo: number) => {
+    const baselineAccuracy = 0.85;
+    const comboFactor = combo > 10 ? 'high_pressure' : combo > 5 ? 'medium_pressure' : 'low_pressure';
+    
+    if (accuracy < baselineAccuracy - 0.15) return 'high_stress';
+    if (accuracy < baselineAccuracy - 0.05) return 'medium_stress';
+    return 'low_stress';
+  };
+
+  // NEW: Calculate enhanced metrics for business intelligence
+  const calculateEnhancedMetrics = (hiddenMetrics: any, gameStats: any) => {
+    const reactionTimes = hiddenMetrics.reactionTimes.filter((rt: number) => rt > 0);
+    const avgReactionTime = reactionTimes.length > 0 
+      ? reactionTimes.reduce((a: number, b: number) => a + b, 0) / reactionTimes.length 
+      : 0;
+    
+    const errorPatterns = hiddenMetrics.errorPatterns || [];
+    const vocabularyPerf = hiddenMetrics.vocabularyPerformance || {};
+    
+    // Calculate advanced metrics
+    const consistency = calculateConsistency(reactionTimes);
+    const stressResponse = analyzeStressResponse(errorPatterns);
+    const learningCurve = analyzeLearningProgression(hiddenMetrics.focusMetrics);
+    const vocabularyStrengths = findTopVocabularyAreas(vocabularyPerf);
+    
+    return {
+      // Technical Performance
+      avg_reaction_time: Math.round(avgReactionTime),
+      reaction_consistency: Math.round(consistency * 100) / 100,
+      error_recovery_speed: calculateRecoverySpeed(errorPatterns),
+      
+      // Cognitive Performance
+      learning_velocity: Math.round(learningCurve.improvement * 100) / 100,
+      adaptability_score: calculateAdaptability(errorPatterns),
+      focus_sustainability: calculateFocusScore(hiddenMetrics.focusMetrics),
+      
+      // Workplace Readiness
+      stress_management: stressResponse.resilience,
+      performance_under_pressure: stressResponse.consistency,
+      persistence_indicator: gameStats.totalWords > 15 ? 'high' : 'medium',
+      
+      // Industry Fitness
+      vocabulary_strengths: vocabularyStrengths,
+      bpo_readiness_score: calculateBPOReadiness(vocabularyStrengths, stressResponse),
+      role_indicators: generateRoleIndicators(vocabularyPerf, stressResponse),
+      
+      // Meta Information
+      metrics_version: '1.0',
+      collected_at: new Date().toISOString(),
+      session_quality: reactionTimes.length > 10 ? 'high' : 'medium'
+    };
+  };
+
+  // Helper calculation functions for enhanced metrics
+  const calculateConsistency = (values: number[]) => {
+    if (values.length < 2) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const stdDev = Math.sqrt(variance);
+    return mean > 0 ? Math.max(0, 1 - (stdDev / mean)) : 0;
+  };
+
+  const analyzeStressResponse = (errorPatterns: any[]) => {
+    const stressLevels = errorPatterns.map(ep => ep.stressLevel);
+    const highStressErrors = stressLevels.filter(sl => sl === 'high_stress').length;
+    const totalErrors = errorPatterns.filter(ep => ep.type === 'incorrect' || ep.type === 'simulated_error').length;
+    
+    return {
+      resilience: highStressErrors === 0 ? 'high' : highStressErrors < 3 ? 'medium' : 'low',
+      consistency: totalErrors < 5 ? 'high' : totalErrors < 10 ? 'medium' : 'low'
+    };
+  };
+
+  const analyzeLearningProgression = (focusMetrics: any[]) => {
+    if (focusMetrics.length < 5) return { improvement: 0.5 };
+    
+    const firstHalf = focusMetrics.slice(0, Math.floor(focusMetrics.length / 2));
+    const secondHalf = focusMetrics.slice(Math.floor(focusMetrics.length / 2));
+    
+    const firstAvgWpm = firstHalf.reduce((sum, m) => sum + (m.wpm || 0), 0) / firstHalf.length;
+    const secondAvgWpm = secondHalf.reduce((sum, m) => sum + (m.wpm || 0), 0) / secondHalf.length;
+    
+    const improvement = firstAvgWpm > 0 ? (secondAvgWpm - firstAvgWpm) / firstAvgWpm : 0;
+    return { improvement: Math.max(-1, Math.min(2, improvement)) };
+  };
+
+  const findTopVocabularyAreas = (vocabularyPerf: any) => {
+    const areas = Object.entries(vocabularyPerf)
+      .filter(([_, score]) => (score as number) > 2)
+      .sort(([_, a], [__, b]) => (b as number) - (a as number))
+      .slice(0, 3)
+      .map(([area, _]) => area);
+    
+    return areas.length > 0 ? areas : ['general'];
+  };
+
+  const calculateRecoverySpeed = (errorPatterns: any[]) => {
+    // Simple recovery speed calculation based on error spacing
+    const errors = errorPatterns.filter(ep => ep.type !== 'correct');
+    if (errors.length < 2) return 'fast';
+    
+    const avgTimeBetweenErrors = errors.length > 1 
+      ? (errors[errors.length - 1].timestamp - errors[0].timestamp) / (errors.length - 1)
+      : 10000;
+    
+    return avgTimeBetweenErrors > 5000 ? 'fast' : avgTimeBetweenErrors > 2000 ? 'medium' : 'slow';
+  };
+
+  const calculateAdaptability = (errorPatterns: any[]) => {
+    const totalPatterns = errorPatterns.length;
+    const correctPatterns = errorPatterns.filter(ep => ep.type === 'correct').length;
+    return totalPatterns > 0 ? Math.round((correctPatterns / totalPatterns) * 100) : 50;
+  };
+
+  const calculateFocusScore = (focusMetrics: any[]) => {
+    if (focusMetrics.length === 0) return 50;
+    
+    const consistentAccuracy = focusMetrics.every(m => Math.abs(m.accuracy - 0.85) < 0.1);
+    const consistentWpm = focusMetrics.length > 1 && 
+      Math.abs(focusMetrics[focusMetrics.length - 1].wpm - focusMetrics[0].wpm) < 10;
+    
+    return consistentAccuracy && consistentWpm ? 85 : 
+           consistentAccuracy || consistentWpm ? 70 : 50;
+  };
+
+  const calculateBPOReadiness = (vocabStrengths: string[], stressResponse: any) => {
+    let score = 50; // baseline
+    
+    // Boost for customer service vocabulary
+    if (vocabStrengths.includes('customer_service')) score += 20;
+    if (vocabStrengths.includes('communication')) score += 15;
+    if (vocabStrengths.includes('technical')) score += 10;
+    
+    // Boost for stress management
+    if (stressResponse.resilience === 'high') score += 15;
+    else if (stressResponse.resilience === 'medium') score += 5;
+    
+    return Math.min(100, Math.max(0, score));
+  };
+
+  const generateRoleIndicators = (vocabularyPerf: any, stressResponse: any) => {
+    const indicators = [];
+    
+    if (vocabularyPerf.customer_service > 3) indicators.push('customer_support');
+    if (vocabularyPerf.technical > 3) indicators.push('technical_support');
+    if (vocabularyPerf.billing > 2) indicators.push('billing_specialist');
+    if (stressResponse.resilience === 'high') indicators.push('crisis_management');
+    
+    return indicators.length > 0 ? indicators : ['general_bpo'];
+  };
+
+  // NEW: Visual effects functions
+  const createParticleExplosion = (x: number, y: number, color: string, count: number = 8) => {
+    console.log('🎆 Creating particle explosion:', { x, y, color, count }); // DEBUG
+    const newParticles = [];
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count;
+      const speed = 2 + Math.random() * 3;
+      newParticles.push({
+        id: `particle-${Date.now()}-${i}`,
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color,
+        size: 12 + Math.random() * 8, // MUCH BIGGER particles
+        life: 120 + Math.random() * 60, // LONGER lasting
+        maxLife: 120 + Math.random() * 60
+      });
+    }
+    setParticles(prev => [...prev, ...newParticles]);
+    console.log('✨ Total particles:', newParticles.length); // DEBUG
+  };
+
+  const triggerScreenShake = (intensity: number = 10) => {
+    setScreenShake({ x: 0, y: 0, intensity });
+  };
+
+  const triggerBackgroundPulse = (color: string, intensity: number = 0.3) => {
+    setBackgroundPulse({ color, intensity });
+  };
+
+  const updateComboVisual = (combo: number) => {
+    const scale = 1 + Math.min(combo * 0.05, 0.5);
+    const glow = Math.min(combo * 0.1, 1);
+    setComboVisual({ scale, glow });
+
+    // Enhanced streak effects
+    if (combo >= 10) {
+      // Hot streak! Add screen shake and background pulse
+      triggerScreenShake(15);
+      triggerBackgroundPulse('#fbbf24', 0.3); // Golden glow
+      
+      // Create bonus text effect
+      const randomLane = Math.floor(Math.random() * LANES);
+      if (combo === 10) {
+        createBonusEffect('🔥 HOT STREAK! 🔥', randomLane, 50);
+      } else if (combo === 20) {
+        createBonusEffect('🚀 ON FIRE! 🚀', randomLane, 50);
+      } else if (combo === 30) {
+        createBonusEffect('⚡ LEGENDARY! ⚡', randomLane, 50);
+      } else if (combo % 10 === 0) {
+        createBonusEffect(`🎸 ${combo}x COMBO! 🎸`, randomLane, 50);
+      }
+    }
+  };
+
+  // NEW: INTELLIGENT ADAPTIVE SYSTEM with announcements
+  const updateAdaptiveSettings = (isCorrect: boolean, currentAccuracy: number, combo: number) => {
+    const now = Date.now();
+    
+    // Only update every 2 seconds for more responsive adaptation
+    if (now - adaptiveSettings.lastPerformanceCheck < 2000) return;
+    
+    setAdaptiveSettings(prev => {
+      let newSettings = { ...prev };
+      
+      // Track consecutive successes/failures
+      if (isCorrect) {
+        newSettings.consecutiveSuccesses++;
+        newSettings.consecutiveFailures = 0;
+      } else {
+        newSettings.consecutiveFailures++;
+        newSettings.consecutiveSuccesses = 0;
+      }
+      
+      // PHASE-BASED ADAPTATION
+      switch (prev.assessmentPhase) {
+        case 'baseline':
+          // Learning player's baseline - start slow and assess
+          if (currentAccuracy > 0.8 && newSettings.consecutiveSuccesses >= 5) {
+            announcePhaseChange("Nice! Getting warmed up! Let's try some BPO terms...");
+            newSettings.assessmentPhase = 'finding_speed';
+            newSettings.currentSpeedMultiplier = 0.8;
+          } else if (currentAccuracy < 0.5) {
+            // Player struggling with basics - stay slow
+            newSettings.currentSpeedMultiplier = Math.max(0.4, prev.currentSpeedMultiplier - 0.1);
+            if (now - prev.lastAnnouncement > 10000) {
+              announcePhaseChange("Take your time! Finding your rhythm...");
+              newSettings.lastAnnouncement = now;
+            }
+          }
+          break;
+          
+        case 'finding_speed':
+          // Finding optimal speed
+          if (currentAccuracy > 0.85 && combo > 5) {
+            // Speed up gradually
+            newSettings.currentSpeedMultiplier = Math.min(1.2, prev.currentSpeedMultiplier + 0.1);
+            if (newSettings.currentSpeedMultiplier >= 1.0 && !prev.playerSpeedFound) {
+              announcePhaseChange("Great! You're hitting your stride! Ready for professional terms?");
+              newSettings.assessmentPhase = 'optimal';
+              newSettings.playerSpeedFound = true;
+              newSettings.optimalSpeed = newSettings.currentSpeedMultiplier;
+            }
+          } else if (currentAccuracy < 0.7 || newSettings.consecutiveFailures >= 3) {
+            // Slow down if struggling
+            newSettings.currentSpeedMultiplier = Math.max(0.6, prev.currentSpeedMultiplier - 0.1);
+            if (now - prev.lastAnnouncement > 8000) {
+              announcePhaseChange("Let me slow this down a bit...");
+              newSettings.lastAnnouncement = now;
+            }
+          }
+          break;
+          
+        case 'optimal':
+          // Found their speed - maintain and fine-tune
+          if (currentAccuracy > 0.9 && combo > 8) {
+            announcePhaseChange("Excellent! You're crushing it! Let's test your limits...");
+            newSettings.assessmentPhase = 'challenge';
+            newSettings.currentSpeedMultiplier = Math.min(1.5, prev.currentSpeedMultiplier + 0.2);
+          } else if (currentAccuracy < 0.75) {
+            // Return to optimal speed
+            newSettings.currentSpeedMultiplier = prev.optimalSpeed;
+            if (now - prev.lastAnnouncement > 8000) {
+              announcePhaseChange("Back to your sweet spot!");
+              newSettings.lastAnnouncement = now;
+            }
+          }
+          break;
+          
+        case 'challenge':
+          // Testing limits
+          if (currentAccuracy < 0.7) {
+            announcePhaseChange("Perfect! We found your limits. This is your optimal challenge level!");
+            newSettings.assessmentPhase = 'optimal';
+            newSettings.currentSpeedMultiplier = prev.optimalSpeed * 1.1; // Slightly above optimal
+          }
+          break;
+      }
+      
+      return {
+        ...newSettings,
+        lastPerformanceCheck: now
+      };
+    });
+  };
+  
+  // NEW: Announce phase changes
+  const announcePhaseChange = (message: string) => {
+    console.log('📢 ANNOUNCEMENT:', message); // DEBUG
+    setCurrentAnnouncement(message);
+    
+    // Clear announcement after 3 seconds
+    setTimeout(() => {
+      setCurrentAnnouncement(null);
+    }, 3000);
+  };
+
+  // NEW: Smart streak tracking and achievements
+  const updateStreakTracking = (isCorrect: boolean, accuracy: number, wpm: number, combo: number) => {
+    setStreakData(prev => {
+      let newCurrentStreak = prev.currentStreak;
+      let newBestStreak = prev.bestStreak;
+      let newAchievements = [...prev.achievements];
+      
+      if (isCorrect) {
+        newCurrentStreak++;
+        newBestStreak = Math.max(newBestStreak, newCurrentStreak);
+        
+        // Achievement triggers
+        if (newCurrentStreak === 10 && !newAchievements.includes('streak_10')) {
+          newAchievements.push('streak_10');
+          createBonusEffect('🏆 10 STREAK!', 2, 50);
+        } else if (newCurrentStreak === 20 && !newAchievements.includes('streak_20')) {
+          newAchievements.push('streak_20');
+          createBonusEffect('🎯 20 STREAK!', 2, 50);
+        } else if (wpm > 60 && !newAchievements.includes('speed_demon')) {
+          newAchievements.push('speed_demon');
+          createBonusEffect('⚡ SPEED DEMON!', 2, 50);
+        } else if (accuracy > 95 && combo > 5 && !newAchievements.includes('precision_master')) {
+          newAchievements.push('precision_master');
+          createBonusEffect('🎯 PRECISION MASTER!', 2, 50);
+        }
+      } else {
+        newCurrentStreak = 0; // Reset streak on error
+      }
+      
+      return {
+        ...prev,
+        currentStreak: newCurrentStreak,
+        bestStreak: newBestStreak,
+        achievements: newAchievements
+      };
+    });
+  };
+
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
       {/* Hidden audio elements */}
       <audio ref={audioRef} preload="auto">
         <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEgCj2a4OwPPgEEQJvQ8t2RQgoMX7zS8dlUIAwXZr7n7qhVEwdAXbzS8NxTHwMFPZnK8N+Ja" type="audio/wav" />
       </audio>
+      
+      {/* NEW: Custom music audio element */}
+      <audio ref={musicAudioRef} preload="auto" />
+      
 
       {/* Background Effects */}
       <div className="absolute inset-0">
@@ -1192,6 +2350,16 @@ export default function TypingHeroPage() {
                 >
                   {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
+                
+                {/* NEW: Music Gender Toggle */}
+                <Button
+                  variant="outline"
+                  onClick={() => setMusicGender(musicGender === 'male' ? 'female' : 'male')}
+                  className="border-white/20 text-white hover:bg-white/10 text-xs"
+                  title={`Switch to ${musicGender === 'male' ? 'Female' : 'Male'} Vocals`}
+                >
+                  🎵 {musicGender === 'male' ? '♂️' : '♀️'}
+                </Button>
               </div>
             )}
           </motion.div>
@@ -1210,7 +2378,7 @@ export default function TypingHeroPage() {
                        Welcome to Typing Hero!
                      </CardTitle>
                      <CardDescription className="text-gray-300 text-lg">
-                       Click "Start Typing" to begin the medium difficulty challenge!
+                       Click "Start Typing" to begin the {BPO_VOCABULARY[currentDifficulty].displayName} challenge!
                      </CardDescription>
                    </div>
                   
@@ -1267,6 +2435,41 @@ export default function TypingHeroPage() {
                    </div>
                 </CardHeader>
                                  <CardContent>
+                   {/* NEW: Music Selection */}
+                   <div className="mb-6 p-4 bg-black/20 rounded-lg border border-white/10">
+                     <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                       🎵 Choose Your Soundtrack
+                     </h3>
+                     <div className="flex gap-3">
+                       <Button
+                         variant={musicGender === 'male' ? 'default' : 'outline'}
+                         onClick={() => setMusicGender('male')}
+                         className={musicGender === 'male' 
+                           ? 'bg-blue-500 hover:bg-blue-600 text-white flex-1' 
+                           : 'border-white/20 text-white hover:bg-white/10 flex-1'
+                         }
+                       >
+                         <div className="text-center">
+                           <div>♂️ Male Vocals</div>
+                           <div className="text-xs opacity-70">WORDS PER MINUTE WARRIOR</div>
+                         </div>
+                       </Button>
+                       <Button
+                         variant={musicGender === 'female' ? 'default' : 'outline'}
+                         onClick={() => setMusicGender('female')}
+                         className={musicGender === 'female' 
+                           ? 'bg-pink-500 hover:bg-pink-600 text-white flex-1' 
+                           : 'border-white/20 text-white hover:bg-white/10 flex-1'
+                         }
+                       >
+                         <div className="text-center">
+                           <div>♀️ Female Vocals</div>
+                           <div className="text-xs opacity-70">Keys to My Dreams</div>
+                         </div>
+                       </Button>
+                     </div>
+                   </div>
+
                    <div className="flex gap-4">
                      <Button
                        variant="outline"
@@ -1278,7 +2481,7 @@ export default function TypingHeroPage() {
                      </Button>
                      <Button
                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
-                       onClick={() => startGame('medium')}
+                       onClick={() => startGame('rockstar')}
                      >
                        <Play className="h-6 w-6 mr-3" />
                        Start Typing
@@ -1301,13 +2504,13 @@ export default function TypingHeroPage() {
                 {/* Time Progress Bar */}
                 <div className="bg-gray-800/50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-medium">Time Remaining</span>
+                    <span className="text-white font-medium">Time Elapsed</span>
                     <span className="text-cyan-400 font-bold">
-                      {Math.floor(gameStats.timeLeft / 60)}:{(gameStats.timeLeft % 60).toString().padStart(2, '0')}
+                      {Math.floor(gameStats.elapsedTime / 60)}:{(gameStats.elapsedTime % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
                   <Progress 
-                    value={(gameStats.timeLeft / getCurrentConfig().timeLimit) * 100} 
+                    value={Math.min((gameStats.elapsedTime / 180) * 100, 100)} 
                     className="h-2"
                   />
                 </div>
@@ -1329,17 +2532,103 @@ export default function TypingHeroPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-purple-400" />
-                      <span className="text-purple-400 font-bold">{gameStats.combo}x</span>
+                      <div className="flex flex-col items-center gap-1">
+                        {/* Current vs Best Streak Display */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                      <span 
+                              className="text-purple-400 font-bold transition-all duration-300 block text-lg"
+                        style={{
+                          transform: `scale(${comboVisual.scale})`,
+                          textShadow: comboVisual.glow > 0 ? `0 0 ${comboVisual.glow * 10}px #a855f7` : 'none',
+                          color: comboVisual.glow > 0.5 ? '#fbbf24' : '#a855f7'
+                        }}
+                      >
+                              {gameStats.combo}
+                      </span>
+                            <span className="text-xs text-gray-400 font-medium">CURRENT</span>
+                          </div>
+                          <div className="text-gray-500 text-sm">vs</div>
+                          <div className="text-center">
+                            <span className="text-green-400 font-bold block text-lg">
+                              {gameStats.longestStreak}
+                            </span>
+                            <span className="text-xs text-gray-400 font-medium">BEST</span>
+                          </div>
+                        </div>
+                        
+                        {/* Streak Status */}
+                        {gameStats.combo >= 5 && (
+                          <span className="text-xs font-bold animate-pulse" style={{
+                            color: gameStats.combo >= 30 ? '#fbbf24' : 
+                                   gameStats.combo >= 20 ? '#f97316' : 
+                                   gameStats.combo >= 10 ? '#ef4444' : '#8b5cf6'
+                          }}>
+                            {gameStats.combo >= 30 ? '🏆 LEGENDARY STREAK!' : 
+                             gameStats.combo >= 20 ? '🚀 INSANE STREAK!' : 
+                             gameStats.combo >= 10 ? '🔥 ON FIRE!' : 
+                             '⚡ Hot Streak!'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-cyan-400" />
-                      <span className="text-cyan-400 font-bold">{gameStats.wpm} WPM</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-cyan-400 font-bold text-lg">{gameStats.wpm} WPM</span>
+                        {gameStats.burstWPM > gameStats.wpm + 10 && (
+                          <span className="text-xs text-green-400 animate-pulse">
+                            ⚡ Peak: {gameStats.burstWPM}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">Level:</span>
+                      <span className="text-sm font-bold" style={{ color: getDifficultyColor(getActualPerformanceLevel()).split(' ')[0].split('-')[1] }}>
+                        {BPO_VOCABULARY[getActualPerformanceLevel()].displayName}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-white">
                       Accuracy: <span className="font-bold">{Math.round(gameStats.accuracy)}%</span>
                     </span>
+                    {/* NEW: Smart Performance Indicator */}
+                    {gameStats.totalWords > 2 && (
+                      <div className="flex items-center gap-2">
+                        {/* Phase Indicator */}
+                        <div className={`px-2 py-1 rounded text-xs font-bold ${
+                          adaptiveSettings.assessmentPhase === 'baseline' ? 'bg-blue-500/20 text-blue-400' :
+                          adaptiveSettings.assessmentPhase === 'finding_speed' ? 'bg-yellow-500/20 text-yellow-400' :
+                          adaptiveSettings.assessmentPhase === 'optimal' ? 'bg-green-500/20 text-green-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {adaptiveSettings.assessmentPhase === 'baseline' ? '🎯 ASSESSING' :
+                           adaptiveSettings.assessmentPhase === 'finding_speed' ? '⚡ FINDING SPEED' :
+                           adaptiveSettings.assessmentPhase === 'optimal' ? '🎪 OPTIMAL ZONE' :
+                           '🚀 CHALLENGE MODE'}
+                        </div>
+                        
+                        {/* Speed Indicator */}
+                        <div className="text-xs text-gray-400">
+                          Speed: {Math.round(adaptiveSettings.currentSpeedMultiplier * 100)}%
+                        </div>
+                        
+                        {/* Consecutive Success/Failure Indicator */}
+                        {adaptiveSettings.consecutiveSuccesses > 2 && (
+                          <div className="text-xs text-green-400">
+                            🔥 {adaptiveSettings.consecutiveSuccesses} streak
+                          </div>
+                        )}
+                        
+                        {adaptiveSettings.consecutiveFailures > 1 && (
+                          <div className="text-xs text-red-400">
+                            💪 Keep going ({adaptiveSettings.consecutiveFailures})
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -1349,7 +2638,14 @@ export default function TypingHeroPage() {
                 <div
                   ref={gameAreaRef}
                   className="relative h-96 bg-gradient-to-b from-gray-900/50 to-gray-800/50"
-                  style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(30,30,30,0.9) 100%)' }}
+                  style={{ 
+                    background: `linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(30,30,30,0.9) 100%)`,
+                    transform: `translate(${screenShake.x}px, ${screenShake.y}px)`,
+                    boxShadow: backgroundPulse.intensity > 0 ? 
+                      `inset 0 0 ${20 * backgroundPulse.intensity}px ${backgroundPulse.color === 'yellow' ? '#ffd700' : 
+                       backgroundPulse.color === 'cyan' ? '#00ffff' : 
+                       backgroundPulse.color === 'green' ? '#00ff00' : '#ff0000'}` : 'none'
+                  }}
                 >
                   {/* Ready State Overlay */}
                   {gameState === 'ready' && (
@@ -1377,15 +2673,38 @@ export default function TypingHeroPage() {
                       animate={{ opacity: 1 }}
                       className="absolute inset-0 bg-black/80 flex items-center justify-center z-50"
                     >
-                      <div className="text-center">
+                      <div className="text-center space-y-6">
                         <h2 className="text-4xl font-bold text-white mb-4">Game Paused</h2>
+                        
+                        {/* Pause Menu Options */}
+                        <div className="flex flex-col gap-4 min-w-[300px]">
                         <Button
                           onClick={togglePause}
                           className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                         >
                           <Play className="h-4 w-4 mr-2" />
-                          Resume
+                            Resume Game
                         </Button>
+                          
+                          {canEndSession() ? (
+                            <Button 
+                              onClick={() => endGame(true, { wpm: gameStats.wpm, accuracy: gameStats.accuracy })}
+                              className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                            >
+                              <Trophy className="h-4 w-4 mr-2" />
+                              End Session
+                            </Button>
+                          ) : (
+                            <div className="text-center p-3 bg-gray-800/50 rounded border border-gray-600/50">
+                              <p className="text-sm text-gray-400">
+                                Complete 1 minute to end session
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {60 - gameStats.elapsedTime} seconds remaining
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -1442,6 +2761,7 @@ export default function TypingHeroPage() {
                     {fallingWords.map((word) => (
                       <motion.div
                         key={word.id}
+                        data-word-id={word.id}
                         initial={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.5 }}
                         className={`absolute text-white font-bold text-sm px-2 py-1 rounded ${
@@ -1451,9 +2771,10 @@ export default function TypingHeroPage() {
                           left: `${(word.lane / LANES) * 100 + (1 / LANES) * 50}%`,
                           top: `${word.y}%`,
                           transform: 'translateX(-50%)',
-                          fontSize: currentDifficulty === 'easy' ? '13px' : 
-                                   currentDifficulty === 'medium' ? '12px' :
-                                   currentDifficulty === 'hard' ? '11px' : '10px'
+                           fontSize: currentDifficulty === 'rookie' ? '13px' : 
+                                    currentDifficulty === 'rockstar' ? '12px' :
+                                    currentDifficulty === 'virtuoso' ? '11px' : '10px',
+                           zIndex: 100 // Ensure words are always visible above announcements
                         }}
                       >
                         {word.word}
@@ -1505,6 +2826,40 @@ export default function TypingHeroPage() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
+
+                  {/* NEW: Particle System */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {particles.map((particle) => (
+                      <div
+                        key={particle.id}
+                        className="absolute rounded-full"
+                        style={{
+                          left: `${particle.x}px`,
+                          top: `${particle.y}px`,
+                          width: `${particle.size}px`,
+                          height: `${particle.size}px`,
+                          backgroundColor: particle.color,
+                          opacity: particle.life / particle.maxLife,
+                          boxShadow: `0 0 ${particle.size}px ${particle.color}`,
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                   {/* NEW: SMART ANNOUNCEMENTS - Positioned to not block falling words */}
+                  {currentAnnouncement && (
+                    <motion.div
+                       initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                       exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                       className="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-30"
+                    >
+                       <div className="bg-gradient-to-r from-purple-500/95 to-cyan-500/95 text-white px-4 py-2 rounded-full text-center font-bold text-sm shadow-lg backdrop-blur-sm border border-white/30">
+                        🎯 {currentAnnouncement}
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* Reaction Zone */}
                   <div className="absolute bottom-4 left-0 right-0 flex justify-center">
@@ -1587,8 +2942,129 @@ export default function TypingHeroPage() {
             </div>
           )}
 
+          {/* Overwhelmed State - Recovery Chance */}
+          {gameState === 'overwhelmed' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-2xl mx-auto space-y-6"
+            >
+              <Card className="glass-card border-red-500/30 bg-red-500/5">
+                <CardHeader>
+                  <CardTitle className="text-3xl text-center mb-4 text-red-400">
+                    🚨 OVERWHELMED! 🚨
+                  </CardTitle>
+                  <div className="text-center">
+                    <Badge className="bg-red-500/20 text-red-300 border-red-400/30">
+                      SPEED TOO FAST
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="text-center space-y-4">
+                    <p className="text-lg text-gray-300">
+                      The game speed got too fast and you're missing too many words!
+                    </p>
+                    <p className="text-gray-400">
+                      Take a breather and decide your next move:
+                    </p>
+                  </div>
+
+                  {/* Current Stats */}
+                  <div className="grid grid-cols-3 gap-4 bg-black/20 p-4 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-cyan-400">{gameStats.wpm}</div>
+                      <div className="text-xs text-gray-400">WPM</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-400">{gameStats.longestStreak}</div>
+                      <div className="text-xs text-gray-400">Best Streak</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-400">
+                        {Math.floor(gameStats.elapsedTime / 60)}:{(gameStats.elapsedTime % 60).toString().padStart(2, '0')}
+                      </div>
+                      <div className="text-xs text-gray-400">Time</div>
+                    </div>
+                  </div>
+
+                  {/* Recovery Options */}
+                  <div className="flex gap-4">
+                    {canEndSession() ? (
+                      <Button 
+                        onClick={() => endGame(true, { wpm: gameStats.wpm, accuracy: gameStats.accuracy })}
+                        className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                      >
+                        <Trophy className="h-5 w-5 mr-2" />
+                        End Session
+                      </Button>
+                    ) : (
+                      <div className="flex-1 text-center p-3 bg-gray-800/50 rounded border border-gray-600/50">
+                        <p className="text-sm text-gray-400">
+                          Minimum session: {Math.ceil((60 - gameStats.elapsedTime) / 60)} min remaining
+                        </p>
+                      </div>
+                    )}
+                    <Button 
+                      onClick={handleOverwhelmedRecovery}
+                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                    >
+                      <Zap className="h-5 w-5 mr-2" />
+                      Get Ready - Fight Back!
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Recovery Countdown State */}
+          {gameState === 'recovering' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-2xl mx-auto space-y-6"
+            >
+              <Card className="glass-card border-green-500/30 bg-green-500/5">
+                <CardContent className="text-center py-12">
+                  <div className="space-y-6">
+                    <h2 className="text-4xl font-bold text-green-400">
+                      Get Ready!
+                    </h2>
+                    
+                    {/* Countdown Display */}
+                    <div className="relative">
+                      <motion.div
+                        key={recoveryCountdown}
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 1.5, opacity: 0 }}
+                        className="text-8xl font-bold text-white mb-4"
+                      >
+                        {recoveryCountdown > 0 ? recoveryCountdown : 'GO!'}
+                      </motion.div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <p className="text-lg text-gray-300">
+                        {recoveryCountdown > 0 ? 
+                          "Take your time... Relax and get ready. Game resumes in:" : 
+                          "Perfect! Now let's get back to typing!"}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {recoveryCountdown > 0 ?
+                          "Screen cleared • Breathe deeply • Focus on accuracy over speed" :
+                          "You've got this! Start with any visible word and build momentum"}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Game Complete */}
-          {gameState === 'failed' && (
+          {(gameState === 'failed' || gameState === 'complete') && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1596,44 +3072,168 @@ export default function TypingHeroPage() {
             >
               <Card className="glass-card border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-3xl text-center mb-4 text-green-400">
-                    Challenge Complete
+                  <CardTitle className={`text-3xl text-center mb-4 ${gameState === 'complete' ? 'text-green-400' : 'text-red-400'}`}>
+                    {gameState === 'complete' ? 'Session Complete! 🎉' : 'Challenge Failed'}
                   </CardTitle>
                   <div className="text-center">
-                    <Badge className="bg-green-500/20 text-green-300 border-green-400/30">
-                      COMPLETED
+                    <Badge className={gameState === 'complete' 
+                      ? "bg-green-500/20 text-green-300 border-green-400/30"
+                      : "bg-red-500/20 text-red-300 border-red-400/30"
+                    }>
+                      {gameState === 'complete' ? 'COMPLETED' : 'FAILED'}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Final Stats */}
-                  <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-yellow-400">{gameStats.score.toLocaleString()}</div>
                       <div className="text-sm text-gray-400">Score</div>
                     </div>
-                    <div className="text-center">
+                     <div className="text-center relative">
                       <div className="text-3xl font-bold text-cyan-400">{gameStats.wpm}</div>
-                      <div className="text-sm text-gray-400">WPM</div>
+                       <div className="text-sm text-gray-400">WPM (Adjusted)</div>
+                       {gameStats.burstWPM > gameStats.wpm && (
+                         <div className="text-xs text-green-400 mt-1">
+                           🚀 Peak Speed: {gameStats.burstWPM} WPM
+                         </div>
+                       )}
+                       {gameStats.sustainedWPM !== gameStats.wpm && (
+                         <div className="text-xs text-orange-400">
+                           📊 Raw: {gameStats.sustainedWPM} WPM
+                         </div>
+                       )}
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-green-400">{gameStats.fires}</div>
-                      <div className="text-sm text-gray-400">Fires</div>
+                       <div className="text-3xl font-bold text-purple-400">{gameStats.longestStreak}</div>
+                       <div className="text-sm text-gray-400">Longest Streak</div>
                     </div>
                     <div className="text-center">
+                      <div className="text-2xl font-bold text-green-400">{gameStats.fires}</div>
+                      <div className="text-xs text-gray-400">🔥 Correct Words</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-400">{gameStats.poos}</div>
+                      <div className="text-xs text-gray-400">💩 Wrong Words</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-400">
+                        {Math.floor(gameStats.elapsedTime / 60)}:{(gameStats.elapsedTime % 60).toString().padStart(2, '0')}
+                      </div>
+                      <div className="text-xs text-gray-400">⏱️ Elapsed Time</div>
+                    </div>
+                    <div className="text-center col-span-3">
                       <div className={`text-3xl font-bold ${gameStats.accuracy >= 70 ? 'text-green-400' : 'text-red-400'}`}>
                         {Math.round(gameStats.accuracy)}%
                       </div>
-                      <div className="text-sm text-gray-400">Accuracy</div>
+                      <div className="text-sm text-gray-400">Overall Accuracy</div>
                     </div>
                   </div>
 
-                  {/* Challenge Results */}
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
-                    <p className="text-green-400 font-medium mb-2">Challenge Complete! 🎉</p>
+                   {/* Enhanced Challenge Results with AI Analysis */}
+                   <div className={`bg-gradient-to-r ${gameState === 'complete' 
+                     ? 'from-green-500/10 to-cyan-500/10 border-green-500/30' 
+                     : 'from-red-500/10 to-orange-500/10 border-red-500/30'
+                   } border rounded-lg p-4 text-center`}>
+                     <p className={`font-medium mb-2 ${gameState === 'complete' ? 'text-green-400' : 'text-red-400'}`}>
+                       {gameState === 'complete' ? 'Session Complete! 🎉' : 'Session Ended! 📊'}
+                     </p>
+                     <div className="space-y-2">
                     <p className="text-gray-300 text-sm">
-                      Great job! You've completed the typing challenge. Here are your final results.
-                    </p>
+                         {gameState === 'complete' 
+                           ? 'Great job! You successfully completed your typing session.' 
+                           : 'Here are your results from this typing session.'}
+                       </p>
+                       
+                       {/* AI Performance Analysis */}
+                       <div className="bg-black/20 rounded p-3 mt-3">
+                         <p className="text-cyan-400 font-semibold text-sm mb-2">🤖 AI Performance Analysis</p>
+                         <div className="text-xs text-gray-300 space-y-1">
+                           {gameStats.burstWPM > 60 && (
+                             <p>⚡ <span className="text-green-400">Excellent burst speed detected!</span> Your peak typing shows great potential.</p>
+                           )}
+                           {gameStats.wpm > gameStats.sustainedWPM * 1.2 && (
+                             <p>🎯 <span className="text-blue-400">Game adaptation successful!</span> Your rhythm improved during gameplay.</p>
+                           )}
+                           {gameStats.longestStreak > 10 && (
+                             <p>🔥 <span className="text-orange-400">Strong focus pattern!</span> You maintain concentration well under pressure.</p>
+                           )}
+                           {gameStats.accuracy > 80 && (
+                             <p>🎪 <span className="text-purple-400">High precision typing!</span> Excellent accuracy for a rhythm-based game.</p>
+                           )}
+                           <p className="text-yellow-400 mt-2">
+                             💡 <strong>Estimated Real WPM:</strong> {Math.round(gameStats.burstWPM * 1.15)}-{Math.round(gameStats.wpm * 1.3)} WPM on standard tests
+                           </p>
+                         </div>
+                       </div>
+
+                       {/* AI Personalized Assessment */}
+                       {loadingAssessment && (
+                         <div className="bg-purple-500/10 border border-purple-500/30 rounded p-4 mt-4">
+                           <div className="flex items-center justify-center space-x-2">
+                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400"></div>
+                             <p className="text-purple-400 text-sm">🧠 AI analyzing your performance...</p>
+                           </div>
+                         </div>
+                       )}
+
+                       {aiAssessment && (
+                         <div className="bg-purple-500/10 border border-purple-500/30 rounded p-4 mt-4 space-y-3">
+                           <div className="flex items-center space-x-2 mb-3">
+                             <span className="text-2xl">🧠</span>
+                             <div>
+                               <p className="text-purple-400 font-semibold text-sm">AI Typing Coach Assessment</p>
+                               <p className="text-xs text-gray-400">Performance Level: {aiAssessment.performanceLevel}</p>
+                             </div>
+                           </div>
+                           
+                           <div className="space-y-3 text-xs">
+                             <div>
+                               <p className="text-gray-200 leading-relaxed">{aiAssessment.overallAssessment}</p>
+                             </div>
+                             
+                             {aiAssessment.strengths?.length > 0 && (
+                               <div>
+                                 <p className="text-green-400 font-medium mb-1">💪 Your Strengths:</p>
+                                 <ul className="text-gray-300 space-y-1">
+                                   {aiAssessment.strengths.map((strength: string, i: number) => (
+                                     <li key={i}>• {strength}</li>
+                                   ))}
+                                 </ul>
+                               </div>
+                             )}
+                             
+                             {aiAssessment.personalizedTips?.length > 0 && (
+                               <div>
+                                 <p className="text-cyan-400 font-medium mb-2">🎯 Personalized Tips:</p>
+                                 <div className="space-y-2">
+                                   {aiAssessment.personalizedTips.map((tip: any, i: number) => (
+                                     <div key={i} className="bg-black/30 rounded p-2">
+                                       <p className="text-yellow-400 font-medium text-xs">
+                                         {tip.category}: {tip.tip}
+                                       </p>
+                                       <p className="text-gray-400 text-xs mt-1">{tip.explanation}</p>
+                                     </div>
+                                   ))}
+                                 </div>
+                               </div>
+                             )}
+                             
+                             {aiAssessment.nextSessionGoal && (
+                               <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2">
+                                 <p className="text-blue-400 font-medium text-xs">🎯 Next Session Goal:</p>
+                                 <p className="text-gray-300 text-xs">{aiAssessment.nextSessionGoal}</p>
+                               </div>
+                             )}
+                             
+                             <div className="text-center pt-2">
+                               <p className="text-purple-300 text-xs italic">{aiAssessment.encouragement}</p>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                     </div>
                   </div>
                 </CardContent>
               </Card>

@@ -522,8 +522,14 @@ ANALYSIS REQUIREMENTS:
 3. Calculate scores based on real data quality and completeness
 4. Identify strengths from actual skills, experience, achievements, and certifications
 5. Suggest improvements based on what's missing or could be enhanced
-6. Provide salary recommendations based on actual experience level, location, and certifications
+6. Provide salary recommendations based on actual experience level, location, and certifications - MUST be in PHP (Philippine Peso) format only
 7. Create career path based on current position, skills, and qualifications
+
+IMPORTANT SALARY FORMAT REQUIREMENTS:
+- ALL salary ranges MUST be in PHP format (e.g., "PHP 20,000 - 35,000")
+- Do NOT use USD, EUR, or any other currency
+- Use Philippine Peso market rates for BPO industry
+- Format: "PHP [minimum] - [maximum]" (e.g., "PHP 25,000 - 40,000")
 
 Please provide a detailed analysis in the following JSON structure, using ONLY information from the provided resume data:
 
@@ -569,7 +575,7 @@ Please provide a detailed analysis in the following JSON structure, using ONLY i
   "improvedSummary": "[Create a compelling 3-4 sentence professional summary that highlights key strengths, career objectives, and certifications, optimized for BPO industry]",
   "salaryAnalysis": {
     "currentLevel": "${experienceLevel}",
-    "recommendedSalaryRange": "[Calculate based on experience level, location, and certifications]",
+    "recommendedSalaryRange": "[Calculate based on experience level, location, and certifications - MUST be in PHP format like 'PHP 20,000 - 35,000' or 'PHP 25,000 - 40,000']",
     "marketPosition": "[Describe the candidate's market position and competitiveness]",
     "growthPotential": "[Describe the candidate's potential for salary growth and advancement]",
     "factorsAffectingSalary": [

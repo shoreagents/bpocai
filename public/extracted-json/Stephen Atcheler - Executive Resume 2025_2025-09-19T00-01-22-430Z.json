@@ -1,0 +1,105 @@
+{
+  "name": "Stephen Atcheler",
+  "email": "stephen@shoreagents.com",
+  "phone": "",
+  "location": "Philippines/Australia",
+  "summary": "Experienced entrepreneur with proven track record of building profitable, scalable business operations. From generating $750k commission at 22 as a real estate contractor to building $4M+ AUD turnover operations with 200+ staff, I specialize in sales, marketing, and business automation. Expert in modern development technologies and AI integration for business optimization.",
+  "skills": [
+    "Full-Stack Development",
+    "Next.js",
+    "React.js",
+    "Electron Native Apps",
+    "PostgreSQL",
+    "HTML/CSS",
+    "Tailwind",
+    "ShadCN",
+    "Database Management",
+    "Supabase",
+    "Railway deployment",
+    "SQL optimization",
+    "AI Integration",
+    "Claude AI",
+    "chatbot development",
+    "vector databases",
+    "Automation",
+    "Make.com workflows",
+    "Zapier integration",
+    "Microsoft Graph API",
+    "Paid Advertising",
+    "Facebook Ads management",
+    "Google Ads optimization",
+    "Content Creation",
+    "Video editing",
+    "Canva",
+    "image generation",
+    "Midjourney",
+    "SEO content writing",
+    "Campaign Management",
+    "WhatsApp marketing",
+    "email automation",
+    "multi-channel campaigns",
+    "Creative Tools",
+    "Suno audio creation",
+    "Google Veo video production",
+    "Sales & Marketing",
+    "Direct sales",
+    "lead generation",
+    "conversion optimization",
+    "Team Management",
+    "Remote team coordination",
+    "training",
+    "Process Automation",
+    "Workflow optimization",
+    "systematic business processes",
+    "Systems Development",
+    "Custom solutions for business efficiency"
+  ],
+  "experience": [
+    {
+      "company": "ShoreAgents",
+      "position": "Founder & CEO",
+      "duration": "2018 - Present",
+      "description": "Business Process Outsourcing. Revenue Achievement: $4M+ AUD annual turnover. Team Leadership: Built and manage 200+ staff across multiple service divisions. Operations Management: Lead complex multi-client operations with high retention rates. Technology Implementation: Integrated modern tech stack including AI tools for improved efficiency. Service Development: Developed flexible service models for different client requirements. Scalable Growth: Expanded from startup to major BPO provider in 7 years."
+    },
+    {
+      "company": "Reval",
+      "position": "Managing Director",
+      "duration": "2015 - 2018",
+      "description": "Real Estate & Property Services. Business Growth: Scaled to $2.5M AUD annual turnover with 14 salespeople and 400+ rental properties. Team Leadership: Built and managed offshore team for sales admin, property management, and operations. Process Development: Created systematic approaches for property management and sales processes. Remote Operations: Successfully managed operations across multiple locations."
+    },
+    {
+      "company": "REMAX",
+      "position": "Real Estate Contractor",
+      "duration": "2012 - 2015",
+      "description": "High-Performance Sales. Revenue Achievement: $750K AUD gross commission at 22 years old with 92% commission structure. Sales Excellence: Achieved $80K commission in single month through effective sales methodology. Lead Generation: Developed prospecting systems that generated consistent pipeline. Market Knowledge: Deep understanding of real estate markets and client acquisition."
+    }
+  ],
+  "education": [],
+  "key_achievements": [
+    {
+      "category": "Revenue Results",
+      "details": [
+        "$750K AUD gross commission at age 22 (top performer in network)",
+        "$2.5M AUD annual turnover with Reval operations",
+        "$4M+ AUD ShoreAgents annual revenue with 200+ staff"
+      ]
+    },
+    {
+      "category": "Operational Success",
+      "details": [
+        "400+ Properties managed with systematic processes",
+        "14 Salespeople coordinated through effective management systems",
+        "Multi-location operations managed remotely with consistent quality"
+      ]
+    },
+    {
+      "category": "Technology Implementation",
+      "details": [
+        "Successfully integrated AI tools for business optimization",
+        "Built custom applications using modern development stack",
+        "Automated key business processes for improved efficiency"
+      ]
+    }
+  ],
+  "linkedin": "https://www.linkedin.com/in/stephen-atcheler-b6004662/"
+}
