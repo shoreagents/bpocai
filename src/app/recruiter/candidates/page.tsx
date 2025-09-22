@@ -326,15 +326,24 @@ export default function CandidatesPage() {
                         </span>
                       </div>
 
-                      {/* View Profile Button - Push to bottom */}
-                      <div className="mt-auto">
+                      {/* Action Buttons - Push to bottom */}
+                      <div className="mt-auto flex gap-2">
                         <Button 
                           size="sm" 
-                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
                           onClick={() => router.push(`/${candidate.slug}`)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
                           View Profile
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          onClick={() => router.push(`/recruiter/messages?candidate=${encodeURIComponent(candidate.name)}`)}
+                        >
+                          <MessageCircle className="w-4 h-4 mr-1" />
+                          Message
                         </Button>
                       </div>
                     </CardContent>

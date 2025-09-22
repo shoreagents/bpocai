@@ -50,7 +50,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
   const [hasReadTerms, setHasReadTerms] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false)
   const [showTermsContent, setShowTermsContent] = useState(false)
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false)
 
@@ -219,16 +218,9 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
           setErrors({ general: error.message })
         }
       } else if (data.user) {
-
-        setShowVerifyDialog(true)
-
         // Successful registration
         console.log('Registration successful:', data.user.email)
-        // Show verification modal
-        setShowVerifyDialog(true)
-        // Optionally keep a small info banner in the sign-up form as well
-
-        setSuccessMessage('Account created! Please verify your email to continue.')
+        setSuccessMessage('Account created successfully! You can now sign in.')
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -285,11 +277,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
     }
   }
 
-  const handleContinueToLoginFromVerify = () => {
-    setShowVerifyDialog(false)
-    onOpenChange(false)
-    if (onSwitchToLogin) onSwitchToLogin()
-  }
 
   return (
     <>
@@ -669,26 +656,6 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
         </DialogContent>
       </Dialog>
 
-      {/* Verification Modal */}
-      <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
-        <DialogContent className="glass-card border-white/20 max-w-md w-full mx-4 sm:mx-auto">
-          <DialogHeader className="text-center space-y-2">
-            <DialogTitle className="text-xl font-bold text-white">Verify your email</DialogTitle>
-            <DialogDescription className="text-gray-300">
-              We just sent a verification link to <span className="text-white font-medium">{formData.email}</span>. Please check your inbox and confirm your email to continue.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="text-center mt-2">
-            <button
-              type="button"
-              className="text-cyan-400 hover:text-cyan-300 underline font-medium"
-              onClick={handleContinueToLoginFromVerify}
-            >
-              Continue to login
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

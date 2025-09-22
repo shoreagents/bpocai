@@ -336,7 +336,7 @@ export default function ApplicantsPage() {
 
   const stats = [
     { label: 'Total Applicants', value: totalApplicants.toLocaleString(), change: '+12%', changeType: 'positive' },
-    { label: 'Pending Review', value: pendingApplicants.toString(), change: '-5%', changeType: 'negative' },
+    { label: 'Hiring', value: pendingApplicants.toString(), change: '-5%', changeType: 'negative' },
     { label: 'Interviewed', value: interviewedApplicants.toString(), change: '+8%', changeType: 'positive' },
     { label: 'Hired This Month', value: hiredApplicants.toString(), change: '+15%', changeType: 'positive' }
   ];
@@ -435,7 +435,7 @@ export default function ApplicantsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-yellow-600 mb-1">Pending Review</p>
+                  <p className="text-sm font-medium text-yellow-600 mb-1">Hiring</p>
                   <div className="text-3xl font-bold text-yellow-900">
                     {loading ? (
                       <span className="inline-block w-12 h-8 bg-yellow-300 animate-pulse rounded"></span>
@@ -763,8 +763,8 @@ export default function ApplicantsPage() {
                         variant="outline" 
                         size="sm"
                         onClick={() => {
-                          // Placeholder for message functionality
-                          console.log('Message clicked for:', application.candidateName);
+                          // Redirect to messages page with the specific candidate
+                          router.push(`/recruiter/messages?candidate=${encodeURIComponent(application.candidateName)}`);
                         }}
                       >
                         <MessageCircle className="h-4 w-4 mr-2" />
@@ -907,7 +907,15 @@ export default function ApplicantsPage() {
             <Button variant="outline" onClick={() => setShowApplicationModal(false)}>
               Close
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                if (selectedApplication) {
+                  router.push(`/recruiter/messages?candidate=${encodeURIComponent(selectedApplication.candidateName)}`);
+                  setShowApplicationModal(false);
+                }
+              }}
+            >
               <MessageCircle className="h-4 w-4 mr-2" />
               Contact Candidate
             </Button>

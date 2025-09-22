@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { 
   Dialog,
   DialogContent,
@@ -48,7 +47,6 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false)
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -155,8 +153,6 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
             last_name: formData.lastName,
             full_name: `${formData.firstName} ${formData.lastName}`,
             location: 'Not specified',
-            company: formData.company || null,
-            position: formData.position || null,
             completed_data: false
           })
 
@@ -190,8 +186,7 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
           console.log('✅ Recruiter created successfully in database')
           
           // Add a small delay to ensure the database operation completes
-          // before the AuthContext sync potentially runs
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          await new Promise(resolve => setTimeout(resolve, 500))
           
         } catch (recruiterError) {
           console.error('❌ Error creating recruiter:', recruiterError)
@@ -200,8 +195,15 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
           return
         }
 
-        setShowVerifyDialog(true)
-        setSuccessMessage('Recruiter account created! Please verify your email to continue.')
+        setSuccessMessage('Recruiter account created successfully! Please sign in to continue.')
+        
+        // Close the sign up modal and show sign in modal
+        setTimeout(() => {
+          onOpenChange(false)
+          if (onSwitchToLogin) {
+            onSwitchToLogin()
+          }
+        }, 2000) // Give user time to read the success message
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -251,16 +253,11 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
     }
   }
 
-  const handleContinueToLoginFromVerify = () => {
-    setShowVerifyDialog(false)
-    onOpenChange(false)
-    if (onSwitchToLogin) onSwitchToLogin()
-  }
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl">
+        <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl" data-recruiter-modal="true">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -312,7 +309,7 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                       placeholder="John"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500 ${
+                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
                         errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                       }`}
                       disabled={isLoading}
@@ -333,7 +330,7 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                       placeholder="Smith"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500 ${
+                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
                         errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                       }`}
                       disabled={isLoading}
@@ -357,7 +354,7 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                     placeholder="john.smith@company.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500 ${
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
                       errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                     }`}
                     disabled={isLoading}
@@ -369,19 +366,20 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                 </div>
 
 
+
                 {/* Password Field */}
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1">
                     Password
                   </label>
-                  <Input
+                  <input
                     id="password"
                     type="password"
                     required
                     placeholder="Create a password"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500 ${
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
                       errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                     }`}
                     disabled={isLoading}
@@ -398,13 +396,13 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <Input
+                    <input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm your password"
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500 ${
+                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
                         errors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                       }`}
                       disabled={isLoading}
@@ -435,13 +433,13 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                   />
                   <label htmlFor="terms" className="text-sm text-gray-600">
                     I agree to the{' '}
-                    <a href="/terms-and-conditions" target="_blank" className="text-emerald-600 hover:text-emerald-700 underline">
+                    <span className="text-gray-500 cursor-not-allowed underline">
                       Terms and Conditions
-                    </a>{' '}
+                    </span>{' '}
                     and{' '}
-                    <a href="/privacy-policy" target="_blank" className="text-emerald-600 hover:text-emerald-700 underline">
+                    <span className="text-gray-500 cursor-not-allowed underline">
                       Privacy Policy
-                    </a>
+                    </span>
                   </label>
                 </div>
                 {errors.terms && (
@@ -490,26 +488,6 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
         </DialogContent>
       </Dialog>
 
-      {/* Verification Modal */}
-      <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
-        <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl">
-          <DialogHeader className="text-center space-y-2">
-            <DialogTitle className="text-xl font-bold text-gray-900">Verify your email</DialogTitle>
-            <DialogDescription className="text-gray-600">
-              We just sent a verification link to <span className="text-gray-900 font-medium">{formData.email}</span>. Please check your inbox and confirm your email to continue.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="text-center mt-2">
-            <button
-              type="button"
-              className="text-emerald-600 hover:text-emerald-700 underline font-medium"
-              onClick={handleContinueToLoginFromVerify}
-            >
-              Continue to login
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

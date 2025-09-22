@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Trophy,
@@ -228,27 +227,25 @@ export default function LeaderboardPage() {
               <p className="mt-1 text-sm text-gray-600">Top performers and companies in the BPOC network</p>
             </div>
             <div className="mt-4 sm:mt-0 flex space-x-3">
-              <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="quarter">This Quarter</SelectItem>
-                  <SelectItem value="year">This Year</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="overall">Overall</SelectItem>
-                  <SelectItem value="individuals">Individuals</SelectItem>
-                  <SelectItem value="companies">Companies</SelectItem>
-                </SelectContent>
-              </Select>
+              <select
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value)}
+                className="w-32 px-3 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 text-sm font-medium"
+              >
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="quarter">This Quarter</option>
+                <option value="year">This Year</option>
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-40 px-3 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 text-sm font-medium"
+              >
+                <option value="overall">Overall</option>
+                <option value="individuals">Individuals</option>
+                <option value="companies">Companies</option>
+              </select>
             </div>
           </div>
         </div>
@@ -279,11 +276,19 @@ export default function LeaderboardPage() {
                     <div className="flex justify-center mb-4">
                       {getRankIcon(performer.rank)}
                     </div>
-                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
-                      {performer.user?.full_name ? (
-                        performer.user.full_name.split(' ')[0].charAt(0).toUpperCase()
+                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4 overflow-hidden">
+                      {performer.user?.avatar_url ? (
+                        <img 
+                          src={performer.user.avatar_url} 
+                          alt={performer.user.full_name || 'User'}
+                          className="w-full h-full object-cover rounded-full"
+                        />
                       ) : (
-                        performer.user?.email?.charAt(0).toUpperCase() || 'A'
+                        performer.user?.full_name ? (
+                          performer.user.full_name.split(' ')[0].charAt(0).toUpperCase()
+                        ) : (
+                          performer.user?.email?.charAt(0).toUpperCase() || 'A'
+                        )
                       )}
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">
@@ -334,11 +339,19 @@ export default function LeaderboardPage() {
                         <div className="flex items-center justify-center w-8">
                           {getRankIcon(performer.rank)}
                         </div>
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {performer.user?.full_name ? (
-                            performer.user.full_name.split(' ')[0].charAt(0).toUpperCase()
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden">
+                          {performer.user?.avatar_url ? (
+                            <img 
+                              src={performer.user.avatar_url} 
+                              alt={performer.user.full_name || 'User'}
+                              className="w-full h-full object-cover rounded-full"
+                            />
                           ) : (
-                            performer.user?.email?.charAt(0).toUpperCase() || 'A'
+                            performer.user?.full_name ? (
+                              performer.user.full_name.split(' ')[0].charAt(0).toUpperCase()
+                            ) : (
+                              performer.user?.email?.charAt(0).toUpperCase() || 'A'
+                            )
                           )}
                         </div>
                         <div className="flex-1">
@@ -500,40 +513,6 @@ export default function LeaderboardPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Recent Achievements */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Flame className="h-5 w-5 text-orange-500 mr-2" />
-              Recent Achievements
-            </CardTitle>
-            <CardDescription>Latest accomplishments and milestones</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentAchievements.map((achievement) => (
-                <div key={achievement.id} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
-                  <div className="flex-shrink-0">
-                    {achievement.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-semibold text-gray-900">{achievement.name}</h4>
-                      <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 bg-emerald-50">
-                        +{achievement.points} pts
-                      </Badge>
-                    </div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">{achievement.achievement}</p>
-                    <p className="text-xs text-gray-600">{achievement.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">{achievement.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Sign In Modal */}

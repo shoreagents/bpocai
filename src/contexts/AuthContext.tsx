@@ -60,15 +60,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setSession(session)
           setUser(session?.user ?? null)
           
-          // Sync user to Railway database if session exists
+          // Note: App load sync removed - user data is already in database from sign up
+          // Profile data is fetched from database via /api/user/profile endpoint
           if (session?.user) {
-            console.log('🔄 Initial session found, syncing user:', session.user.email)
-            try {
-              await syncUserToDatabase(session.user)
-              console.log('✅ Initial sync successful')
-            } catch (error) {
-              console.error('❌ Error syncing user on initial load:', error)
-            }
+            console.log('🔍 Initial session found for user:', session.user.email)
           }
         }
       } catch (error) {
@@ -103,19 +98,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session)
         setUser(session?.user ?? null)
         
-        // Sync user to Railway database on sign up/sign in
-        if (session?.user && event === 'SIGNED_IN') {
-          console.log('🔄 Attempting sync for:', session.user.email)
-          console.log('📋 User metadata:', session.user.user_metadata)
-          try {
-            await syncUserToDatabase(session.user)
-            console.log('✅ User synced to Railway database:', session.user.email)
-          } catch (error) {
-            console.error('❌ Error syncing user to Railway:', error)
-          }
-        } else {
-          console.log('⏭️ Skipping sync - event:', event, 'user:', !!session?.user)
-        }
+        // Note: Sign in sync removed - user data is already in database from sign up
+        // Profile data is fetched from database via /api/user/profile endpoint
+        console.log('🔍 Auth Event:', event, 'user:', !!session?.user)
         
         setLoading(false)
       }

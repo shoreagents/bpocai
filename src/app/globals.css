@@ -817,3 +817,30 @@ select:-webkit-autofill:focus {
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
+/* Fix autofill text visibility in recruiter modals (white background) */
+[data-recruiter-modal="true"] input:-webkit-autofill,
+[data-recruiter-modal="true"] input:-webkit-autofill:hover,
+[data-recruiter-modal="true"] input:-webkit-autofill:focus,
+[data-recruiter-modal="true"] input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #111827 !important; /* gray-900 */
+  background-color: white !important;
+  color: #111827 !important;
+  caret-color: #111827 !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+}
+
+/* For Firefox autofill in recruiter modals */
+[data-recruiter-modal="true"] input:-moz-autofill {
+  background-color: white !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+}
+
+/* For other browsers autofill in recruiter modals */
+[data-recruiter-modal="true"] input:autofill {
+  background-color: white !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+}
+
