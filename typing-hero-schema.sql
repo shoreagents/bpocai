@@ -79,3 +79,4 @@ CREATE INDEX idx_typing_hero_word_performance_word ON typing_hero_word_performan
 -- Comments
 COMMENT ON TABLE typing_hero_sessions IS 'Main table storing complete Typing Hero session results including AI analysis';
 COMMENT ON TABLE typing_hero_word_performance IS 'Detailed word-level performance tracking for each session';
+

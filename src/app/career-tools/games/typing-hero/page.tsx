@@ -880,6 +880,16 @@ export default function TypingHeroPage() {
     if (endCalledRef.current) return;
     endCalledRef.current = true;
     
+    // Check if user is logged in before saving
+    if (!user?.id) {
+      console.log('⚠️ User not logged in, skipping session save');
+      setGameState(success ? 'complete' : 'failed');
+      return;
+    }
+
+    console.log(`🎮 Game ended: ${success ? 'SUCCESS' : 'FAILED'}`);
+    console.log('📊 Final stats:', gameStats);
+    
     // Set appropriate game state based on success and minimum time
     if (success || gameStats.elapsedTime >= 60) {
       setGameState('complete'); // Player completed session or reached minimum time
@@ -916,38 +926,87 @@ export default function TypingHeroPage() {
         // NEW: Calculate enhanced metrics for business intelligence
         const enhancedMetrics = calculateEnhancedMetrics(hiddenMetrics, gameStats);
         
-        await fetch('/api/games/typing-hero/session', {
+        // Get AI analysis first
+        let aiAnalysis = {};
+        try {
+          const aiResponse = await fetch('/api/games/typing-hero/ai-assessment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wpm: wpmToSave,
+              accuracy: accToSave,
+              totalWords: gameStats.totalWords,
+              correctWords: gameStats.correctWords,
+              missedWords: gameStats.missedWords,
+              fires: gameStats.fires,
+              poos: gameStats.poos,
+              elapsedTime: gameStats.elapsedTime,
+              charactersTyped: gameStats.charactersTyped,
+              errorPatterns: sessionData.errorPatterns,
+              difficultyLevel: currentDifficulty,
+              streakData: streakData
+            })
+          });
+          
+          const aiResult = await aiResponse.json();
+          if (aiResult.success) {
+            aiAnalysis = aiResult.analysis;
+            setAiAssessment(aiResult.analysis.aiAssessment);
+          }
+        } catch (aiError) {
+          console.error('Failed to get AI analysis:', aiError);
+        }
+
+        // Save session with new clean structure
+        console.log('💾 Saving Typing Hero session for user:', user.id);
+        console.log('📊 Session data being sent:', {
+          score: gameStats.score,
+          wpm: wpmToSave,
+          longest_streak: gameStats.longestStreak,
+          correct_words: gameStats.correctWords,
+          wrong_words: gameStats.poos,
+          elapsed_time: gameStats.elapsedTime,
+          overall_accuracy: accToSave,
+          hasAiAnalysis: Object.keys(aiAnalysis).length > 0
+        });
+        
+        const saveResponse = await fetch('/api/games/typing-hero/session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            startedAt,
-            finishedAt,
-            durationMs,
-            difficulty: currentDifficulty, // maps to enum in API (medium->intermediate, hard->advanced)
-            level: currentDifficulty,
+            // Core metrics (exactly as requested)
+            score: gameStats.score,
             wpm: wpmToSave,
-            accuracy: accToSave,
-            keypresses: gameStats.charactersTyped,
-            mistakes: Math.max(0, gameStats.totalWords - gameStats.correctWords),
-            error_breakdown: enhancedMetrics, // NEW: Enhanced metrics stored here
+            longest_streak: gameStats.longestStreak,
+            correct_words: gameStats.correctWords,
+            wrong_words: gameStats.poos,
+            elapsed_time: gameStats.elapsedTime,
+            overall_accuracy: accToSave,
+            
+            // AI analysis as single JSONB
+            ai_analysis: aiAnalysis,
+            
+            // Optional metadata
+            difficulty_level: currentDifficulty,
+            session_status: success ? 'completed' : 'failed'
           })
         });
+        
+        if (saveResponse.ok) {
+          const saveResult = await saveResponse.json();
+          console.log('✅ Session saved successfully:', saveResult);
+        } else {
+          console.error('❌ Failed to save session:', await saveResponse.text());
+        }
       }
     } catch (e) {
       console.error('Failed to save Typing Hero session', e);
     }
     
-    // Get AI assessment for completed sessions
-    if (success || gameStats.elapsedTime >= 30) { // Get assessment for sessions 30+ seconds
-      // Capture current game stats before they might be reset
-      const currentStats = { ...gameStats };
-      setTimeout(() => {
-        getAIAssessment(currentStats);
-      }, 1000); // Small delay to let UI settle
-    }
+    // AI assessment is now handled before saving the session
   };
 
   // Create visual effect
@@ -3060,9 +3119,9 @@ export default function TypingHeroPage() {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-orange-400">
-                        {gameStats.poos > 0 ? (gameStats.fires / gameStats.poos).toFixed(1) : 'Perfect'}:1
+                        {Math.floor(gameStats.elapsedTime / 60)}:{(gameStats.elapsedTime % 60).toString().padStart(2, '0')}
                       </div>
-                      <div className="text-xs text-gray-400">Accuracy Ratio</div>
+                      <div className="text-xs text-gray-400">⏱️ Elapsed Time</div>
                     </div>
                     <div className="text-center col-span-3">
                       <div className={`text-3xl font-bold ${gameStats.accuracy >= 70 ? 'text-green-400' : 'text-red-400'}`}>
