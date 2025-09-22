@@ -179,7 +179,23 @@ export default function TypingHeroPage() {
     totalKeypresses: 0,
     burstWPM: 0,
     sustainedWPM: 0,
-    realtimeWPM: 0
+    realtimeWPM: 0,
+    // NEW: Word-level tracking for AI analysis
+    wordsCorrect: [] as Array<{
+      word: string;
+      timestamp: number;
+      reactionTime: number;
+      difficulty: string;
+      position: { lane: number; y: number };
+    }>,
+    wordsIncorrect: [] as Array<{
+      word: string;
+      userInput: string;
+      timestamp: number;
+      errorType: 'typo' | 'spelling' | 'speed' | 'missed';
+      difficulty: string;
+      position: { lane: number; y: number };
+    }>
   });
   
   // NEW: Hidden metrics collection (invisible to users)
@@ -231,6 +247,10 @@ export default function TypingHeroPage() {
   // NEW: AI Assessment state
   const [aiAssessment, setAiAssessment] = useState<any>(null);
   const [loadingAssessment, setLoadingAssessment] = useState(false);
+  // NEW: Stats snapshot returned by save API (aggregated top words, totals)
+  const [statsSnapshot, setStatsSnapshot] = useState<any>(null);
+  // NEW: Saving session spinner
+  const [savingSession, setSavingSession] = useState(false);
   
   // NEW: Smart streak tracking
   const [streakData, setStreakData] = useState({
@@ -637,7 +657,10 @@ export default function TypingHeroPage() {
         charactersTyped: stats.charactersTyped,
         errorPatterns: sessionErrors,
         difficultyLevel: currentDifficulty,
-        streakData: streakData
+        streakData: streakData,
+        // NEW: Word-level tracking for better AI analysis
+        wordsCorrect: stats.wordsCorrect,
+        wordsIncorrect: stats.wordsIncorrect
       };
       
       const response = await fetch('/api/games/typing-hero/ai-assessment', {
@@ -758,7 +781,10 @@ export default function TypingHeroPage() {
       totalKeypresses: 0,
       burstWPM: 0,
       sustainedWPM: 0,
-      realtimeWPM: 0
+      realtimeWPM: 0,
+      // Initialize word tracking arrays
+      wordsCorrect: [],
+      wordsIncorrect: []
     });
 
     // Removed WPM tracker - using simple calculation now
@@ -928,6 +954,8 @@ export default function TypingHeroPage() {
         
         // Get AI analysis first
         let aiAnalysis = {};
+        // Show loading spinner while AI analysis runs
+        setLoadingAssessment(true);
         try {
           const aiResponse = await fetch('/api/games/typing-hero/ai-assessment', {
             method: 'POST',
@@ -944,7 +972,10 @@ export default function TypingHeroPage() {
               charactersTyped: gameStats.charactersTyped,
               errorPatterns: sessionData.errorPatterns,
               difficultyLevel: currentDifficulty,
-              streakData: streakData
+              streakData: streakData,
+              // NEW: Word-level tracking for better AI analysis
+              wordsCorrect: gameStats.wordsCorrect,
+              wordsIncorrect: gameStats.wordsIncorrect
             })
           });
           
@@ -955,6 +986,9 @@ export default function TypingHeroPage() {
           }
         } catch (aiError) {
           console.error('Failed to get AI analysis:', aiError);
+        } finally {
+          // Hide loading spinner regardless of success/failure
+          setLoadingAssessment(false);
         }
 
         // Save session with new clean structure
@@ -967,9 +1001,14 @@ export default function TypingHeroPage() {
           wrong_words: gameStats.poos,
           elapsed_time: gameStats.elapsedTime,
           overall_accuracy: accToSave,
-          hasAiAnalysis: Object.keys(aiAnalysis).length > 0
+          hasAiAnalysis: Object.keys(aiAnalysis).length > 0,
+          wordsCorrectCount: gameStats.wordsCorrect.length,
+          wordsIncorrectCount: gameStats.wordsIncorrect.length,
+          wordsCorrectSample: gameStats.wordsCorrect.slice(0, 2),
+          wordsIncorrectSample: gameStats.wordsIncorrect.slice(0, 2)
         });
         
+        setSavingSession(true);
         const saveResponse = await fetch('/api/games/typing-hero/session', {
           method: 'POST',
           headers: {
@@ -989,6 +1028,10 @@ export default function TypingHeroPage() {
             // AI analysis as single JSONB
             ai_analysis: aiAnalysis,
             
+            // NEW: Word-level tracking for detailed analysis
+            words_correct: gameStats.wordsCorrect,
+            words_incorrect: gameStats.wordsIncorrect,
+            
             // Optional metadata
             difficulty_level: currentDifficulty,
             session_status: success ? 'completed' : 'failed'
@@ -998,12 +1041,19 @@ export default function TypingHeroPage() {
         if (saveResponse.ok) {
           const saveResult = await saveResponse.json();
           console.log('✅ Session saved successfully:', saveResult);
+          if (saveResult?.stats) {
+            setStatsSnapshot(saveResult.stats);
+            console.log('📊 Stats snapshot:', saveResult.stats);
+          }
         } else {
           console.error('❌ Failed to save session:', await saveResponse.text());
         }
+        setSavingSession(false);
       }
     } catch (e) {
       console.error('Failed to save Typing Hero session', e);
+    } finally {
+      setSavingSession(false);
     }
     
     // AI assessment is now handled before saving the session
@@ -1149,9 +1199,18 @@ export default function TypingHeroPage() {
           longestStreak: newLongestStreak,
           correctWords: prev.correctWords + 1,
           totalWords: prev.totalWords + 1,
-          charactersTyped: prev.charactersTyped + word.word.length
+          charactersTyped: prev.charactersTyped + word.word.length,
+          // Track correct word for AI analysis
+          wordsCorrect: [...prev.wordsCorrect, {
+            word: word.word,
+            timestamp: Date.now(),
+            reactionTime: Math.max(0, Date.now() - (lastWordAppearTime || Date.now())),
+            difficulty: currentDifficulty,
+            position: { lane: word.lane, y: word.y }
+          }]
         };
       });
+      console.log('✅ Correct word tracked:', word.word, 'Total correct:', gameStats.wordsCorrect.length + 1);
     } else {
       // Poo effect! 💩
       createEffect('poo', word.lane);
@@ -1161,8 +1220,18 @@ export default function TypingHeroPage() {
         score: Math.max(0, prev.score - 25),
         poos: prev.poos + 1,
         combo: 0, // Reset combo
-        totalWords: prev.totalWords + 1
-      }));
+        totalWords: prev.totalWords + 1,
+          // Track incorrect word for AI analysis
+          wordsIncorrect: [...prev.wordsIncorrect, {
+            word: word.word,
+            userInput: currentInput.trim(),
+            timestamp: Date.now(),
+            errorType: 'spelling' as const,
+            difficulty: currentDifficulty,
+            position: { lane: word.lane, y: word.y }
+          }]
+        }));
+        console.log('❌ Incorrect word tracked:', word.word, 'User input:', currentInput.trim(), 'Total incorrect:', gameStats.wordsIncorrect.length + 1);
     }
     
     // Mark word as typed
@@ -1246,9 +1315,22 @@ export default function TypingHeroPage() {
         lane: Math.floor(Math.random() * LANES)
       }]);
       
+      // Find closest word for tracking
+      const closestWord = fallingWords.find(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100);
+      
       setGameStats(prev => ({
         ...prev,
-        poos: prev.poos + 1
+        poos: prev.poos + 1,
+        totalWords: prev.totalWords + 1,
+        // Track long input as incorrect word
+        wordsIncorrect: [...prev.wordsIncorrect, {
+          word: closestWord?.word || 'long_input',
+          userInput: value,
+          timestamp: Date.now(),
+          errorType: 'speed' as const,
+          difficulty: currentDifficulty,
+          position: { lane: closestWord?.lane || 0, y: closestWord?.y || 0 }
+        }]
       }));
       return;
     }
@@ -1273,9 +1355,22 @@ export default function TypingHeroPage() {
           lane: Math.floor(Math.random() * LANES)
         }]);
         
+        // Find closest word for tracking
+        const closestWord = fallingWords.find(w => !w.typed && !w.missed && w.y >= 0 && w.y <= 100);
+        
         setGameStats(prev => ({
           ...prev,
-          poos: prev.poos + 1
+          poos: prev.poos + 1,
+          totalWords: prev.totalWords + 1,
+          // Track timeout as incorrect word
+          wordsIncorrect: [...prev.wordsIncorrect, {
+            word: closestWord?.word || 'timeout',
+            userInput: currentInput.trim(),
+            timestamp: Date.now(),
+            errorType: 'speed' as const,
+            difficulty: currentDifficulty,
+            position: { lane: closestWord?.lane || 0, y: closestWord?.y || 0 }
+          }]
         }));
       }
     }, 4000);
@@ -1516,7 +1611,16 @@ export default function TypingHeroPage() {
           score: Math.max(0, prev.score - 25),
           poos: prev.poos + 1,
           combo: 0,
-          totalWords: prev.totalWords + 1
+          totalWords: prev.totalWords + 1,
+          // Track incorrect word for AI analysis
+          wordsIncorrect: [...prev.wordsIncorrect, {
+            word: closestWord?.word || 'unknown',
+            userInput: currentInput.trim(),
+            timestamp: Date.now(),
+            errorType: 'spelling' as const,
+            difficulty: currentDifficulty,
+            position: { lane: closestWord?.lane || 0, y: closestWord?.y || 0 }
+          }]
         }));
       }
       
@@ -1721,7 +1825,16 @@ export default function TypingHeroPage() {
             setGameStats(prev => ({
               ...prev,
               totalWords: prev.totalWords + 1,
-              missedWords: prev.missedWords + 1
+              missedWords: prev.missedWords + 1,
+              // Track missed word for AI analysis
+              wordsIncorrect: [...prev.wordsIncorrect, {
+                word: word.word,
+                userInput: normalizedInput,
+                timestamp: Date.now(),
+                errorType: 'missed' as const,
+                difficulty: currentDifficulty,
+                position: { lane: word.lane, y: word.y }
+              }]
             }));
             return { ...word, missed: true };
           }
@@ -3129,6 +3242,69 @@ export default function TypingHeroPage() {
                       </div>
                       <div className="text-sm text-gray-400">Overall Accuracy</div>
                     </div>
+                  </div>
+
+                  {/* Word-Level Tracking Display */}
+                  <div className="bg-gray-800/30 border border-gray-600/30 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                      📊 Word-Level Tracking
+                    </h3>
+                    {savingSession && (
+                      <div className="mb-3 flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                        <p className="text-cyan-400 text-xs">Saving session...</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">{gameStats.wordsCorrect.length}</div>
+                        <div className="text-sm text-gray-400">Correct Words Tracked</div>
+                        {gameStats.wordsCorrect.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Sample: {gameStats.wordsCorrect.slice(0, 3).map(w => w.word).join(', ')}
+                            {gameStats.wordsCorrect.length > 3 && '...'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">{gameStats.wordsIncorrect.length}</div>
+                        <div className="text-sm text-gray-400">Incorrect Words Tracked</div>
+                        {gameStats.wordsIncorrect.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Sample: {gameStats.wordsIncorrect.slice(0, 3).map(w => w.word).join(', ')}
+                            {gameStats.wordsIncorrect.length > 3 && '...'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {statsSnapshot && (
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-green-400 font-semibold mb-1">Top Correct Words</p>
+                          <ul className="text-xs text-gray-300 space-y-1">
+                            {(statsSnapshot.most_common_correct_words || []).slice(0,6).map((cw: any, i: number) => (
+                              <li key={`cw-${i}`} className="flex justify-between"><span>{cw.word}</span><span className="text-green-500">{cw.count}×</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-sm text-red-400 font-semibold mb-1">Top Incorrect Words</p>
+                          <ul className="text-xs text-gray-300 space-y-1">
+                            {(statsSnapshot.most_common_incorrect_words || []).slice(0,6).map((iw: any, i: number) => (
+                              <li key={`iw-${i}`} className="flex justify-between"><span>{iw.word}</span><span className="text-red-500">{iw.count}×</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                    {gameStats.wordsCorrect.length === 0 && gameStats.wordsIncorrect.length === 0 && (
+                      <div className="text-center text-yellow-400 text-sm mt-2">
+                        ⚠️ No word-level data tracked - check console for debugging info
+                        <div className="text-xs text-gray-500 mt-1">
+                          Debug: Fires: {gameStats.fires}, Poos: {gameStats.poos}, Total Words: {gameStats.totalWords}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                    {/* Enhanced Challenge Results with AI Analysis */}
