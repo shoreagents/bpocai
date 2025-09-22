@@ -26,10 +26,30 @@ interface SessionData {
     bestStreak: number;
     currentStreak: number;
   };
+  // NEW: Word-level tracking for detailed analysis
+  wordsCorrect?: Array<{
+    word: string;
+    timestamp: number;
+    reactionTime: number;
+    difficulty: string;
+    position: { lane: number; y: number };
+  }>;
+  wordsIncorrect?: Array<{
+    word: string;
+    userInput: string;
+    timestamp: number;
+    errorType: 'typo' | 'spelling' | 'speed' | 'missed';
+    difficulty: string;
+    position: { lane: number; y: number };
+  }>;
 }
 
 export async function POST(request: NextRequest) {
-  let sessionData: SessionData;
+  let sessionData: SessionData = {
+    wpm: 0, accuracy: 0, totalWords: 0, correctWords: 0, missedWords: 0,
+    fires: 0, poos: 0, elapsedTime: 0, charactersTyped: 0, errorPatterns: [],
+    difficultyLevel: 'rookie', streakData: { bestStreak: 0, currentStreak: 0 }
+  };
   
   try {
     sessionData = await request.json();
@@ -47,6 +67,23 @@ export async function POST(request: NextRequest) {
       throw new Error('No Claude API key configured');
     }
     
+    // Compute session-level top correct/incorrect words
+    const countWords = (words: Array<{ word: string }> | undefined) => {
+      const freq: Record<string, number> = {};
+      for (const w of words || []) {
+        if (!w?.word) continue;
+        const key = String(w.word).toLowerCase();
+        freq[key] = (freq[key] || 0) + 1;
+      }
+      return Object.entries(freq)
+        .map(([word, count]) => ({ word, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+    };
+
+    const sessionTopCorrect = countWords(sessionData.wordsCorrect as any);
+    const sessionTopIncorrect = countWords(sessionData.wordsIncorrect as any);
+
     // Analyze the session data with Claude
     const prompt = `
 You are an expert typing coach analyzing a typing game session. Provide personalized, encouraging feedback and actionable tips.
@@ -70,6 +107,24 @@ ${sessionData.errorPatterns?.map(error =>
   `- Word: "${error.word}" → Typed: "${error.userInput}" (${error.errorType})`
 ).join('\n') || 'No detailed error data available'}
 
+WORD-LEVEL ANALYSIS:
+${sessionData.wordsCorrect?.length ? `
+CORRECT WORDS (${sessionData.wordsCorrect.length}):
+${sessionData.wordsCorrect.map(word => 
+  `- "${word.word}" (reaction: ${word.reactionTime}ms, lane: ${word.position.lane})`
+).join('\n')}` : 'No correct word data available'}
+
+${sessionData.wordsIncorrect?.length ? `
+INCORRECT WORDS (${sessionData.wordsIncorrect.length}):
+${sessionData.wordsIncorrect.map(word => 
+  `- "${word.word}" → "${word.userInput}" (${word.errorType}, lane: ${word.position.lane})`
+).join('\n')}` : 'No incorrect word data available'}
+
+SESSION TOP WORDS (by frequency within this session):
+${sessionTopCorrect.length ? `Top Correct (${sessionTopCorrect.length}):\n${sessionTopCorrect.map(w => `- ${w.word}: ${w.count}×`).join('\n')}` : 'No top correct words available'}
+
+${sessionTopIncorrect.length ? `Top Incorrect (${sessionTopIncorrect.length}):\n${sessionTopIncorrect.map(w => `- ${w.word}: ${w.count}×`).join('\n')}` : 'No top incorrect words available'}
+
 ANALYSIS GUIDELINES:
 1. **Performance Level Assessment**: 
    - Below 20 WPM: Beginner (focus on accuracy over speed)
@@ -78,16 +133,23 @@ ANALYSIS GUIDELINES:
    - 60-80 WPM: Advanced (fine-tune technique)
    - 80+ WPM: Expert (maintain accuracy at high speed)
 
-2. **Error Analysis**:
+2. **Word-Level Analysis**:
+   - Analyze specific words that were problematic
+   - Look for patterns in correct vs incorrect words
+   - Consider reaction times and lane positions
+   - Identify vocabulary strengths and weaknesses
+   - Interpret the TOP WORDS lists to infer familiarity vs. difficulty areas (e.g., short BPO terms vs longer technical words)
+
+3. **Error Analysis**:
    - Typos: Usually adjacent keys or finger coordination issues
    - Spelling: Knowledge gaps or common word confusion
    - Speed errors: Rushing causing inaccuracy
    - Missed words: Reaction time or visual tracking issues
 
-3. **Provide 3-4 specific, actionable tips**
-4. **Keep tone encouraging and fun**
-5. **Include keyboard technique advice if relevant**
-6. **Mention specific improvement areas based on their data**
+4. **Provide 3-4 specific, actionable tips based on word-level data**
+5. **Keep tone encouraging and fun**
+6. **Include keyboard technique advice if relevant**
+7. **Mention specific improvement areas based on their data**
 
 Format your response as JSON with these fields:
 {
@@ -97,13 +159,19 @@ Format your response as JSON with these fields:
   "improvementAreas": ["area1", "area2"],
   "personalizedTips": [
     {
-      "category": "Speed/Accuracy/Technique/Focus",
+      "category": "Speed/Accuracy/Technique/Focus/Vocabulary",
       "tip": "Specific actionable advice",
       "explanation": "Why this helps"
     }
   ],
   "encouragement": "Motivational closing message",
-  "nextSessionGoal": "Specific goal for next session"
+  "nextSessionGoal": "Specific goal for next session",
+  "wordAnalysis": {
+    "strongWords": ["word1", "word2"],
+    "problemWords": ["word3", "word4"],
+    "vocabularyRecommendations": ["practice_word1", "practice_word2"],
+    "interpretation": "Brief interpretation of top correct/incorrect words and what it suggests about the player's vocabulary and technique"
+  }
 }
 `;
 
@@ -189,7 +257,22 @@ Format your response as JSON with these fields:
           increasing: false,
           decreasing: true,
           stable: false
-        }
+        },
+        // NEW: Word-level error analysis
+        wordLevelErrors: sessionData.wordsIncorrect || [],
+        wordLevelSuccesses: sessionData.wordsCorrect || [],
+        vocabularyPerformance: {
+          strongWords: sessionData.wordsCorrect?.map(w => w.word) || [],
+          problemWords: sessionData.wordsIncorrect?.map(w => w.word) || [],
+          averageReactionTime: sessionData.wordsCorrect?.length ? 
+            Math.round(sessionData.wordsCorrect.reduce((sum, w) => sum + w.reactionTime, 0) / sessionData.wordsCorrect.length) : 0,
+          lanePerformance: sessionData.wordsCorrect?.reduce((acc, word) => {
+            acc[word.position.lane] = (acc[word.position.lane] || 0) + 1;
+            return acc;
+          }, {} as Record<number, number>) || {}
+        },
+        sessionTopCorrectWords: sessionTopCorrect,
+        sessionTopIncorrectWords: sessionTopIncorrect
       },
       streakAnalysis: {
         bestStreak: sessionData.streakData?.bestStreak || 0,
