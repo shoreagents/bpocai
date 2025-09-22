@@ -69,7 +69,7 @@ export default function RecruiterSignInModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl">
+      <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl" data-recruiter-modal="true">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-gray-900">
             <Building2 className="h-5 w-5 text-emerald-600" />

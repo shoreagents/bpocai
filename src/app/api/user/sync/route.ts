@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { syncUserToDatabaseServer } from '@/lib/user-sync-server'
 
+// Test endpoint to verify the route is working
+export async function GET() {
+  return NextResponse.json({ 
+    message: 'User sync API is working',
+    methods: ['GET', 'POST'],
+    timestamp: new Date().toISOString()
+  })
+}
+
 export async function POST(request: NextRequest) {
+  console.log('🚀 POST /api/user/sync called')
+  console.log('📡 Request method:', request.method)
+  console.log('📡 Request URL:', request.url)
+  console.log('📡 Request headers:', Object.fromEntries(request.headers.entries()))
+  
   let userData: any = null
   
   try {

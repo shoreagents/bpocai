@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     const query = `
       SELECT 
         u.id, u.email, u.first_name, u.last_name, u.full_name, u.location, u.avatar_url, u.phone, u.bio, u.position, u.completed_data, u.birthday, u.slug, u.created_at, u.updated_at,
+        u.gender, u.gender_custom, u.username, u.company,
+        u.location_place_id, u.location_lat, u.location_lng, u.location_city, u.location_province, u.location_country, u.location_barangay, u.location_region,
         COALESCE(los.overall_score, 0) as overall_score
       FROM users u
       LEFT JOIN leaderboard_overall_scores los ON u.id = los.user_id
@@ -32,32 +34,6 @@ export async function GET(request: NextRequest) {
     }
 
     const user = result.rows[0]
-    
-    // Try to get gender separately if column exists
-    let gender = null
-    let genderCustom: string | null = null
-    
-    try {
-      // Check if gender columns exist first
-      const genderColsRes = await pool.query(`
-        SELECT column_name FROM information_schema.columns 
-        WHERE table_schema = 'public' AND table_name = 'users' 
-        AND column_name IN ('gender', 'gender_custom')
-      `)
-      const genderCols = new Set(genderColsRes.rows.map((r: any) => r.column_name))
-      
-      if (genderCols.has('gender')) {
-        const genderResult = await pool.query(`SELECT gender FROM users WHERE id = $1`, [userId])
-        gender = genderResult.rows[0]?.gender || null
-      }
-      
-      if (genderCols.has('gender_custom')) {
-        const gcRes = await pool.query(`SELECT gender_custom FROM users WHERE id = $1`, [userId])
-        genderCustom = gcRes.rows?.[0]?.gender_custom ?? null
-      }
-    } catch (error) {
-      console.log('⚠️ Error checking gender columns, defaulting to null:', error instanceof Error ? error.message : String(error))
-    }
 
     const userProfile = {
       id: user.id,
@@ -73,8 +49,18 @@ export async function GET(request: NextRequest) {
       completed_data: user.completed_data,
       birthday: user.birthday,
       slug: user.slug,
-      gender: gender,
-      gender_custom: genderCustom,
+      gender: user.gender,
+      gender_custom: user.gender_custom,
+      username: user.username,
+      company: user.company,
+      location_place_id: user.location_place_id,
+      location_lat: user.location_lat,
+      location_lng: user.location_lng,
+      location_city: user.location_city,
+      location_province: user.location_province,
+      location_country: user.location_country,
+      location_barangay: user.location_barangay,
+      location_region: user.location_region,
       created_at: user.created_at,
       updated_at: user.updated_at,
       overall_score: user.overall_score
@@ -101,6 +87,12 @@ export async function PUT(request: NextRequest) {
 
     console.log('🔄 API: Updating profile for user:', userId)
     console.log('📊 API: Update data received:', updateData)
+    console.log('📊 API: Company field:', updateData.company)
+    console.log('📊 API: Phone field:', updateData.phone)
+    console.log('📊 API: Bio field:', updateData.bio)
+    console.log('📊 API: Position field:', updateData.position)
+    console.log('📊 API: Birthday field:', updateData.birthday)
+    console.log('📊 API: Gender field:', updateData.gender)
 
     // First, check what columns actually exist in the users table
     const colsRes = await pool.query(
@@ -123,6 +115,7 @@ export async function PUT(request: NextRequest) {
     if (available.has('gender')) selectFields.push('gender')
     if (available.has('gender_custom')) selectFields.push('gender_custom')
     if (available.has('username')) selectFields.push('username')
+    if (available.has('company')) selectFields.push('company')
     
     const selectQuery = `SELECT ${selectFields.join(', ')} FROM users WHERE id = $1`
     console.log('🔍 SELECT query:', selectQuery)
@@ -159,9 +152,10 @@ export async function PUT(request: NextRequest) {
     const gender = available.has('gender') ? (updateData.gender ?? existing.gender) : null
     const genderCustom = available.has('gender_custom') ? (updateData.gender_custom ?? existing.gender_custom) : null
     const username = available.has('username') ? (updateData.username ?? existing.username) : null
+    const company = available.has('company') ? (updateData.company ?? existing.company) : null
 
     console.log('🔧 Processed field values:', {
-      firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom,
+      firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom, company,
       locationPlaceId, locationLat, locationLng, locationCity, locationProvince, locationCountry
     })
 
@@ -210,6 +204,7 @@ export async function PUT(request: NextRequest) {
     if (available.has('gender')) optionalFields.push({ col: 'gender', val: gender })
     if (available.has('gender_custom')) optionalFields.push({ col: 'gender_custom', val: genderCustom })
     if (available.has('username')) optionalFields.push({ col: 'username', val: username })
+    if (available.has('company')) optionalFields.push({ col: 'company', val: company })
 
     const allFields = [...baseFields, ...optionalFields]
     const setClauses: string[] = []

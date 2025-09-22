@@ -16,11 +16,18 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
+import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
+import RecruiterProfileCompletionModal from '@/components/auth/RecruiterProfileCompletionModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RecruiterDashboardPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // Modal handler functions
   const handleSwitchToSignUp = () => {
@@ -31,6 +38,73 @@ export default function RecruiterDashboardPage() {
   const handleSwitchToSignIn = () => {
     setShowSignUpModal(false);
     setShowSignInModal(true);
+  };
+
+  // Fetch user profile from Railway
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          setProfileLoading(true);
+          console.log('🔄 Fetching user profile for:', user.id);
+          const response = await fetch(`/api/user/profile?userId=${user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ User profile loaded:', data.user);
+            setUserProfile(data.user);
+            
+            // Check if profile completion is needed
+            // Don't show modal if user was just created (within last 5 minutes) - they just signed up
+            const userCreatedAt = new Date(data.user.created_at);
+            const now = new Date();
+            const timeDiff = now.getTime() - userCreatedAt.getTime();
+            const minutesSinceCreation = timeDiff / (1000 * 60);
+            
+            if (data.user && !data.user.completed_data && minutesSinceCreation > 5) {
+              console.log('📝 Profile completion needed, showing modal');
+              console.log('📊 User completed_data value:', data.user.completed_data);
+              console.log('📊 Minutes since user creation:', minutesSinceCreation);
+              setShowProfileModal(true);
+            } else if (data.user && !data.user.completed_data && minutesSinceCreation <= 5) {
+              console.log('⏭️ User recently created (within 5 minutes), not showing modal yet');
+              console.log('📊 Minutes since user creation:', minutesSinceCreation);
+            } else {
+              console.log('✅ Profile already completed, not showing modal');
+              console.log('📊 User completed_data value:', data.user?.completed_data);
+            }
+          } else {
+            console.error('❌ Failed to fetch user profile:', response.status, response.statusText);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching user profile:', error);
+        } finally {
+          setProfileLoading(false);
+        }
+      } else {
+        console.log('⚠️ No user ID available for profile fetch');
+        setProfileLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.id]);
+
+  const handleProfileComplete = async () => {
+    setShowProfileModal(false);
+    // Refetch profile data instead of reloading the page
+    if (user?.id) {
+      try {
+        const response = await fetch(`/api/user/profile?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile(data.user);
+        }
+      } catch (error) {
+        console.error('Error refetching profile after completion:', error);
+        // Fallback to page reload if refetch fails
+        window.location.reload();
+      }
+    }
   };
   
   // Dashboard data states
@@ -114,61 +188,10 @@ export default function RecruiterDashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Recruiter Navbar */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Navigation */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  BPOC Recruiter
-                </span>
-              </div>
-              
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-                <Link href="/recruiter" className="text-gray-700 hover:text-emerald-600 font-medium">Home</Link>
-                <Link href="/recruiter/dashboard" className="text-emerald-600 font-medium border-b-2 border-emerald-600">Dashboard</Link>
-                <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium">Jobs</Link>
-                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium">Applications</Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium">Applicants</Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium">Analysis</Link>
-                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium">Leaderboard</Link>
-              </div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 px-4 py-2 font-medium transition-all duration-200 rounded-full"
-                onClick={() => setShowSignInModal(true)}
-              >
-                Sign In
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white px-4 py-2 font-medium transition-all duration-200 shadow-sm rounded-full"
-                onClick={() => setShowSignUpModal(true)}
-              >
-                Sign Up
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                onClick={() => router.push('/recruiter/post-job')}
-              >
-                🎯 Post Job
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <RecruiterNavbar 
+        onSignInClick={() => setShowSignInModal(true)}
+        onSignUpClick={() => setShowSignUpModal(true)}
+      />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -400,6 +423,13 @@ export default function RecruiterDashboardPage() {
         open={showSignUpModal}
         onOpenChange={setShowSignUpModal}
         onSwitchToLogin={handleSwitchToSignIn}
+      />
+
+      {/* Profile Completion Modal */}
+      <RecruiterProfileCompletionModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        onComplete={handleProfileComplete}
       />
 
       {/* Recruiter Footer */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -29,13 +29,98 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
+import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
+import RecruiterProfileCompletionModal from '@/components/auth/RecruiterProfileCompletionModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RecruiterHomePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  const handleSwitchToSignUp = () => {
+    setShowSignInModal(false);
+    setShowSignUpModal(true);
+  };
+
+  const handleSwitchToSignIn = () => {
+    setShowSignUpModal(false);
+    setShowSignInModal(true);
+  };
+
+  // Fetch user profile from Railway
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        try {
+          setProfileLoading(true);
+          console.log('🔄 Fetching user profile for:', user.id);
+          const response = await fetch(`/api/user/profile?userId=${user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ User profile loaded:', data.user);
+            setUserProfile(data.user);
+            
+            // Check if profile completion is needed
+            // Don't show modal if user was just created (within last 5 minutes) - they just signed up
+            const userCreatedAt = new Date(data.user.created_at);
+            const now = new Date();
+            const timeDiff = now.getTime() - userCreatedAt.getTime();
+            const minutesSinceCreation = timeDiff / (1000 * 60);
+            
+            if (data.user && !data.user.completed_data && minutesSinceCreation > 5) {
+              console.log('📝 Profile completion needed, showing modal');
+              console.log('📊 User completed_data value:', data.user.completed_data);
+              console.log('📊 Minutes since user creation:', minutesSinceCreation);
+              setShowProfileModal(true);
+            } else if (data.user && !data.user.completed_data && minutesSinceCreation <= 5) {
+              console.log('⏭️ User recently created (within 5 minutes), not showing modal yet');
+              console.log('📊 Minutes since user creation:', minutesSinceCreation);
+            } else {
+              console.log('✅ Profile already completed, not showing modal');
+              console.log('📊 User completed_data value:', data.user?.completed_data);
+            }
+          } else {
+            console.error('❌ Failed to fetch user profile:', response.status, response.statusText);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching user profile:', error);
+        } finally {
+          setProfileLoading(false);
+        }
+      } else {
+        console.log('⚠️ No user ID available for profile fetch');
+        setProfileLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.id]);
+
+  const handleProfileComplete = async () => {
+    setShowProfileModal(false);
+    // Refetch profile data instead of reloading the page
+    if (user?.id) {
+      try {
+        const response = await fetch(`/api/user/profile?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile(data.user);
+        }
+      } catch (error) {
+        console.error('Error refetching profile after completion:', error);
+        // Fallback to page reload if refetch fails
+        window.location.reload();
+      }
+    }
+  };
 
   const stats = [
     {
@@ -162,82 +247,10 @@ export default function RecruiterHomePage() {
         }
       `}</style>
       {/* Recruiter Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg shadow-gray-900/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Navigation */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  BPOC Recruiter
-                </span>
-              </div>
-              
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
-                <Link href="/recruiter" className="text-emerald-600 font-medium border-b-2 border-emerald-600 relative group">
-                  Home
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                </Link>
-                <Link href="/recruiter/dashboard" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Dashboard
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                </Link>
-                <Link href="/recruiter/post-job" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Jobs
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                </Link>
-                <Link href="/recruiter/applications" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Applications
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                </Link>
-                <Link href="/recruiter/candidates" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Applicants
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                </Link>
-                <Link href="/recruiter/analytics" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Analysis
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                </Link>
-                <Link href="/recruiter/leaderboard" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 relative group">
-                  Leaderboard
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 px-4 py-2 font-medium transition-all duration-200 rounded-full"
-                onClick={() => setShowSignInModal(true)}
-              >
-                Sign In
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white px-4 py-2 font-medium transition-all duration-200 shadow-sm rounded-full"
-                onClick={() => setShowSignUpModal(true)}
-              >
-                Sign Up
-              </Button>
-              <Button 
-                size="sm" 
-                className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                onClick={() => router.push('/recruiter/post-job')}
-              >
-                🎯 Post Job
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <RecruiterNavbar 
+        onSignInClick={() => setShowSignInModal(true)}
+        onSignUpClick={() => setShowSignUpModal(true)}
+      />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 text-white overflow-hidden min-h-screen flex items-center">
@@ -673,7 +686,7 @@ export default function RecruiterHomePage() {
               transition={{ delay: 0.1 }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col">
                 <CardHeader className="text-center pb-8">
                   <CardTitle className="text-2xl font-bold text-gray-900">Starter</CardTitle>
                   <CardDescription className="text-gray-600">Perfect for small teams</CardDescription>
@@ -682,8 +695,8 @@ export default function RecruiterHomePage() {
                     <span className="text-gray-600">/month</span>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="space-y-4 flex flex-col flex-grow">
+                  <div className="space-y-3 flex-grow">
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                       <span className="text-gray-700">Up to 5 job postings</span>
@@ -699,6 +712,10 @@ export default function RecruiterHomePage() {
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                       <span className="text-gray-700">Email support</span>
+                    </div>
+                    <div className="flex items-center opacity-0">
+                      <CheckCircle className="h-5 w-5 mr-3" />
+                      <span className="text-gray-700">Placeholder</span>
                     </div>
                   </div>
                   <Button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white">
@@ -716,7 +733,7 @@ export default function RecruiterHomePage() {
               transition={{ delay: 0.2 }}
               whileHover={{ y: -5, scale: 1.02 }}
             >
-              <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-500 shadow-lg hover:shadow-xl transition-all duration-300 relative h-full">
+              <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-500 shadow-lg hover:shadow-xl transition-all duration-300 relative h-full flex flex-col">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-emerald-500 text-white px-4 py-1">Most Popular</Badge>
                 </div>
@@ -728,8 +745,8 @@ export default function RecruiterHomePage() {
                     <span className="text-gray-600">/month</span>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="space-y-4 flex flex-col flex-grow">
+                  <div className="space-y-3 flex-grow">
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                       <span className="text-gray-700">Unlimited job postings</span>
@@ -766,7 +783,7 @@ export default function RecruiterHomePage() {
               transition={{ delay: 0.3 }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-sm hover:shadow-lg transition-all duration-300 h-full flex flex-col">
                 <CardHeader className="text-center pb-8">
                   <CardTitle className="text-2xl font-bold text-gray-900">Enterprise</CardTitle>
                   <CardDescription className="text-gray-600">For large organizations</CardDescription>
@@ -775,8 +792,8 @@ export default function RecruiterHomePage() {
                     <span className="text-gray-600">/month</span>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="space-y-4 flex flex-col flex-grow">
+                  <div className="space-y-3 flex-grow">
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                       <span className="text-gray-700">Unlimited everything</span>
@@ -883,95 +900,24 @@ export default function RecruiterHomePage() {
       </section>
 
       {/* Sign In Modal */}
-      <Dialog open={showSignInModal} onOpenChange={setShowSignInModal}>
-        <DialogContent className="max-w-md bg-white border-gray-200 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-gray-900">
-              <Building2 className="h-5 w-5 text-emerald-600" />
-              Recruiter Sign In
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              Access your recruiter dashboard and manage your talent pipeline
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Simple Sign In Form */}
-            <form className="space-y-4">
-              {/* Email Field */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-1">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  placeholder="john.smith@company.com"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                />
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  placeholder="Enter your password"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
-                />
-              </div>
-
-              {/* Sign Up Link */}
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                  onClick={() => {
-                    setShowSignInModal(false);
-                    setShowSignUpModal(true);
-                  }}
-                >
-                  Don't have an account? Create one
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <DialogFooter className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowSignInModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="bg-emerald-600 hover:bg-emerald-700 flex-1"
-              onClick={() => {
-                setShowSignInModal(false);
-                // Mock successful login - redirect to recruiter dashboard
-                router.push('/recruiter/dashboard');
-              }}
-            >
-              Sign In
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Recruiter Sign Up Form */}
-      <RecruiterSignUpForm 
-        open={showSignUpModal} 
+      <RecruiterSignInModal 
+        open={showSignInModal} 
+        onOpenChange={setShowSignInModal}
+        onSwitchToSignUp={handleSwitchToSignUp}
+      />
+      
+      {/* Sign Up Modal */}
+      <RecruiterSignUpForm
+        open={showSignUpModal}
         onOpenChange={setShowSignUpModal}
-        onSwitchToLogin={() => {
-          setShowSignUpModal(false);
-          setShowSignInModal(true);
-        }}
+        onSwitchToLogin={handleSwitchToSignIn}
+      />
+
+      {/* Profile Completion Modal */}
+      <RecruiterProfileCompletionModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        onComplete={handleProfileComplete}
       />
 
       {/* Recruiter Footer */}
