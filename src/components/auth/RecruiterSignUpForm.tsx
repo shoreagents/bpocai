@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { 
   Dialog,
@@ -110,6 +111,9 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
 
     console.log('Starting signup process...')
     setIsLoading(true)
+    
+    // Set flag to indicate this is a recruiter sign-up flow
+    sessionStorage.setItem('recruiterSignupFlow', 'true')
 
     try {
       // 1) Check if email already exists in user_recruiter table
@@ -216,16 +220,32 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
   const handleSocialSignUp = async () => {
     try {
       setIsLoading(true)
+      
+      // For sign-up flow, redirect to Google OAuth with a signup flag
+      console.log('🔄 Starting Google OAuth sign-up flow')
+      
+      // Set a flag in sessionStorage to indicate this is a sign-up flow
+      sessionStorage.setItem('googleOAuthFlow', 'signup')
+      
+      // Close the sign-up modal
+      onOpenChange(false)
+      
+      // Start Google OAuth flow
       const { error } = await signInWithGoogle()
       
       if (error) {
         console.error('Google sign up error:', error)
         setErrors({ general: 'Failed to sign up with Google. Please try again.' })
+        // Clear the flag on error
+        sessionStorage.removeItem('googleOAuthFlow')
       }
-      // Note: On success, the user will be redirected to the callback URL
+      // Note: On success, user will be redirected to callback URL
+      
     } catch (error) {
       console.error('Google sign up error:', error)
       setErrors({ general: 'An error occurred during Google sign up.' })
+      // Clear the flag on error
+      sessionStorage.removeItem('googleOAuthFlow')
     } finally {
       setIsLoading(false)
     }

@@ -218,6 +218,43 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
           setErrors({ general: error.message })
         }
       } else if (data.user) {
+        // 3) Sync user to database
+        try {
+          console.log('🔄 Syncing user to database:', data.user.email)
+          
+          const syncResponse = await fetch('/api/user/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: data.user.id,
+              email: data.user.email,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              full_name: `${formData.firstName} ${formData.lastName}`,
+              location: '',
+              avatar_url: null,
+              phone: '',
+              bio: '',
+              position: '',
+              company: '',
+              completed_data: false,
+              birthday: null,
+              gender: null,
+              admin_level: 'user'
+            })
+          })
+
+          if (syncResponse.ok) {
+            console.log('✅ User synced to database successfully')
+          } else {
+            console.error('❌ Failed to sync user to database:', syncResponse.status)
+          }
+        } catch (syncError) {
+          console.error('❌ Error syncing user to database:', syncError)
+        }
+
         // Successful registration
         console.log('Registration successful:', data.user.email)
         setSuccessMessage('Account created successfully! You can now sign in.')
@@ -233,16 +270,32 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
   const handleSocialSignUp = async () => {
     try {
       setIsLoading(true)
+      
+      // For sign-up flow, redirect to Google OAuth with a signup flag
+      console.log('🔄 Starting Google OAuth sign-up flow')
+      
+      // Set a flag in sessionStorage to indicate this is a sign-up flow
+      sessionStorage.setItem('googleOAuthFlow', 'signup')
+      
+      // Close the sign-up modal
+      onOpenChange(false)
+      
+      // Start Google OAuth flow
       const { error } = await signInWithGoogle()
       
       if (error) {
         console.error('Google sign up error:', error)
         setErrors({ general: 'Failed to sign up with Google. Please try again.' })
+        // Clear the flag on error
+        sessionStorage.removeItem('googleOAuthFlow')
       }
-      // Note: On success, the user will be redirected to the callback URL
+      // Note: On success, user will be redirected to callback URL
+      
     } catch (error) {
       console.error('Google sign up error:', error)
       setErrors({ general: 'An error occurred during Google sign up.' })
+      // Clear the flag on error
+      sessionStorage.removeItem('googleOAuthFlow')
     } finally {
       setIsLoading(false)
     }

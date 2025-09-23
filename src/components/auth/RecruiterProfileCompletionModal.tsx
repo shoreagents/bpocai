@@ -418,6 +418,11 @@ export default function RecruiterProfileCompletionModal({
       
       onComplete()
       onOpenChange(false)
+      
+      // Redirect to /recruiter after successful completion
+      if (typeof window !== 'undefined') {
+        window.location.href = '/recruiter'
+      }
     } catch (error) {
       console.error('Error updating recruiter profile:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile. Please try again.'

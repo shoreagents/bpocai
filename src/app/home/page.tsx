@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import Header from '@/components/layout/Header'
@@ -43,6 +43,7 @@ import ProfileCompletionModal from '@/components/auth/ProfileCompletionModal'
 
 export default function HomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -197,6 +198,30 @@ export default function HomePage() {
     }, 5000)
     return () => clearInterval(id)
   }, [testimonialsData.length])
+
+  // Check URL parameters for sign-in flow from sign-up
+  useEffect(() => {
+    const action = searchParams.get('action')
+    const source = searchParams.get('source')
+    
+    if (action === 'signin' && source === 'signup') {
+      console.log('🔄 Detected sign-up flow, opening sign-in modal')
+      // Clear the URL parameters
+      const url = new URL(window.location.href)
+      url.searchParams.delete('action')
+      url.searchParams.delete('source')
+      window.history.replaceState({}, '', url.toString())
+      
+      // Open sign-in modal by triggering a click on the sign-in button
+      // We'll use a small delay to ensure the page is fully loaded
+      setTimeout(() => {
+        const signInButton = document.querySelector('[data-signin-button]') as HTMLButtonElement
+        if (signInButton) {
+          signInButton.click()
+        }
+      }, 1000)
+    }
+  }, [searchParams])
 
   // Check if user needs to complete profile
   useEffect(() => {

@@ -9,8 +9,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId and jobIds are required' }, { status: 400 });
     }
 
+    console.log('🔍 Batch match request:', { userId, jobIds });
+
     const client = await pool.connect();
     try {
+      console.log('🔍 About to query user data for userId:', userId);
       // Get user data once
       const userResult = await client.query(`
         SELECT 
@@ -32,19 +35,63 @@ export async function POST(request: NextRequest) {
 
       const user = userResult.rows[0];
 
-      // Get all jobs in one query
-      const jobResult = await client.query(`
-        SELECT 
-          pjr.id, pjr.job_title, pjr.job_description, pjr.requirements, 
-          pjr.responsibilities, pjr.benefits, pjr.skills, pjr.experience_level,
-          pjr.industry, pjr.department, pjr.work_arrangement, pjr.salary_min, pjr.salary_max,
-          m.company as company_name
-        FROM processed_job_requests pjr
-        LEFT JOIN members m ON pjr.company_id = m.company_id
-        WHERE pjr.id = ANY($1)
-      `, [jobIds]);
+      // Separate job IDs by type (processed jobs are integers, recruiter jobs are UUIDs)
+      const processedJobIds = jobIds.filter(id => !id.includes('-') && !isNaN(Number(id)));
+      const recruiterJobIds = jobIds.filter(id => id.includes('-') || isNaN(Number(id)));
+      
+      console.log('🔍 Separated job IDs:', { processedJobIds, recruiterJobIds });
+
+      // Get all jobs from both sources
+      let processedJobsResult, recruiterJobsResult;
+      
+      if (processedJobIds.length > 0) {
+        try {
+          processedJobsResult = await client.query(`
+            SELECT 
+              pjr.id, pjr.job_title, pjr.job_description, pjr.requirements, 
+              pjr.responsibilities, pjr.benefits, pjr.skills, pjr.experience_level,
+              pjr.industry, pjr.department, pjr.work_arrangement, pjr.salary_min, pjr.salary_max,
+              m.company as company_name, 'processed_job_requests' as source
+            FROM processed_job_requests pjr
+            LEFT JOIN members m ON pjr.company_id = m.company_id
+            WHERE pjr.id = ANY($1)
+          `, [processedJobIds]);
+        } catch (error) {
+          console.error('Error fetching processed jobs:', error);
+          processedJobsResult = { rows: [] };
+        }
+      } else {
+        processedJobsResult = { rows: [] };
+      }
+
+      if (recruiterJobIds.length > 0) {
+        try {
+          recruiterJobsResult = await client.query(`
+            SELECT 
+              rj.id, rj.job_title, rj.job_description, rj.requirements, 
+              rj.responsibilities, rj.benefits, rj.skills, rj.experience_level,
+              rj.industry, rj.department, rj.work_arrangement, rj.salary_min, rj.salary_max,
+              COALESCE(rj.company_id, u.company) as company_name, 'recruiter_jobs' as source
+            FROM recruiter_jobs rj
+            LEFT JOIN users u ON u.id = rj.recruiter_id
+            WHERE rj.id = ANY($1)
+          `, [recruiterJobIds]);
+        } catch (error) {
+          console.error('Error fetching recruiter jobs:', error);
+          recruiterJobsResult = { rows: [] };
+        }
+      } else {
+        recruiterJobsResult = { rows: [] };
+      }
+
+      // Combine results from both sources
+      const jobResult = {
+        rows: [...processedJobsResult.rows, ...recruiterJobsResult.rows]
+      };
 
       const jobs = jobResult.rows;
+      console.log('🔍 Batch match - Found jobs:', jobs.length);
+      console.log('🔍 Batch match - Job sources:', jobs.map(j => ({ id: j.id, source: j.source, title: j.job_title })));
 
       // Check cache for all jobs at once (24 hours cache)
       const cachedResults = await client.query(`
@@ -180,7 +227,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in batch job matching:', error);
-    return NextResponse.json({ error: 'Failed to analyze job matches' }, { status: 500 });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    return NextResponse.json({ 
+      error: 'Failed to analyze job matches',
+      details: error.message 
+    }, { status: 500 });
   }
 }
 
