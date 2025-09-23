@@ -17,13 +17,20 @@ export async function GET(request: NextRequest) {
     try {
       console.log('🔗 Database connected, executing query...');
       
-      // First, let's check if the user has any applications with a simple query
+      // First, let's check if the user has any applications from both tables
       console.log('🔍 Checking if user has applications...');
       const userAppsCheck = await client.query(
         'SELECT COUNT(*) as count FROM applications WHERE user_id = $1',
         [userId]
       );
-      console.log('📊 User applications count:', userAppsCheck.rows[0]?.count);
+      const recruiterAppsCheck = await client.query(
+        'SELECT COUNT(*) as count FROM recruiter_applications WHERE user_id = $1',
+        [userId]
+      );
+      const totalApps = Number(userAppsCheck.rows[0]?.count || 0) + Number(recruiterAppsCheck.rows[0]?.count || 0);
+      console.log('📊 User applications count (processed):', userAppsCheck.rows[0]?.count);
+      console.log('📊 User applications count (recruiter):', recruiterAppsCheck.rows[0]?.count);
+      console.log('📊 Total applications count:', totalApps);
 
       // Let's also check what status values actually exist in the applications table
       console.log('🔍 Checking what status values exist in applications table...');
@@ -33,7 +40,7 @@ export async function GET(request: NextRequest) {
       );
       console.log('📊 Available status values:', statusCheck.rows.map(row => ({ status: row.status, type: typeof row.status })));
 
-      if (userAppsCheck.rows[0]?.count === 0) {
+      if (totalApps === 0) {
         console.log('📭 No applications found for user');
         return NextResponse.json({
           applications: [],
@@ -42,57 +49,127 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Now let's try a simpler query first to see if the JOIN is the issue
-      console.log('🔍 Executing simple applications query...');
-      const simpleResult = await client.query(
+      // Fetch applications from both tables
+      console.log('🔍 Executing applications queries...');
+      
+      // Fetch from applications table (processed jobs)
+      const processedResult = await client.query(
         `SELECT 
           a.id,
           a.job_id::int4 as "jobId",
           a.resume_id as "resumeId",
           a.resume_slug as "resumeSlug",
           a.status as "applicationStatus",
-          a.created_at as "appliedDate"
+          a.created_at as "appliedDate",
+          'processed' as "jobType"
          FROM applications a
          WHERE a.user_id = $1
          ORDER BY a.created_at DESC`,
         [userId]
       );
-      console.log('📋 Simple query executed, rows returned:', simpleResult.rows.length);
-      console.log('📋 Applications query result:', JSON.stringify(simpleResult.rows, null, 2));
-      console.log('🔍 Raw status values from database:', simpleResult.rows.map(row => ({ id: row.id, status: row.applicationStatus, statusType: typeof row.applicationStatus })));
+      
+      // Fetch from recruiter_applications table (recruiter jobs)
+      const recruiterResult = await client.query(
+        `SELECT 
+          ra.id,
+          ra.job_id as "jobId",
+          ra.resume_id as "resumeId",
+          ra.resume_slug as "resumeSlug",
+          ra.status as "applicationStatus",
+          ra.created_at as "appliedDate",
+          'recruiter' as "jobType"
+         FROM recruiter_applications ra
+         WHERE ra.user_id = $1
+         ORDER BY ra.created_at DESC`,
+        [userId]
+      );
+      
+      // Combine results
+      const simpleResult = {
+        rows: [...processedResult.rows, ...recruiterResult.rows]
+      };
+      
+      console.log('📋 Processed applications query executed, rows returned:', processedResult.rows.length);
+      console.log('📋 Recruiter applications query executed, rows returned:', recruiterResult.rows.length);
+      console.log('📋 Total applications query result:', JSON.stringify(simpleResult.rows, null, 2));
+      console.log('🔍 Raw status values from database:', simpleResult.rows.map(row => ({ id: row.id, status: row.applicationStatus, statusType: typeof row.applicationStatus, jobType: row.jobType })));
 
       // Now let's try to get job details separately
       if (simpleResult.rows.length > 0) {
         console.log('🔍 Fetching job details...');
-        const jobIds = simpleResult.rows.map(row => row.jobId);
-        console.log('📋 Job IDs to fetch:', jobIds);
-        console.log('📋 Job IDs type check:', jobIds.map(id => ({ id, type: typeof id })));
+        
+        // Separate processed and recruiter job IDs
+        const processedJobIds = simpleResult.rows.filter(row => row.jobType === 'processed').map(row => row.jobId);
+        const recruiterJobIds = simpleResult.rows.filter(row => row.jobType === 'recruiter').map(row => row.jobId);
+        
+        console.log('📋 Processed Job IDs to fetch:', processedJobIds);
+        console.log('📋 Recruiter Job IDs to fetch:', recruiterJobIds);
 
-        const jobsResult = await client.query(
-          `SELECT 
-            p.id,
-            p.job_title,
-            p.job_description,
-            p.requirements,
-            p.benefits,
-            p.skills,
-            p.salary_min,
-            p.salary_max,
-            p.currency,
-            p.salary_type,
-            p.work_arrangement,
-            p.experience_level,
-            p.industry,
-            p.department,
-            p.application_deadline,
-            m.company as company_name
-           FROM processed_job_requests p
-           LEFT JOIN members m ON p.company_id = m.company_id
-           WHERE p.id = ANY($1)`,
-          [jobIds]
-        );
-        console.log('📋 Jobs query executed, rows returned:', jobsResult.rows.length);
-        console.log('📋 Jobs query result:', JSON.stringify(jobsResult.rows, null, 2));
+        let processedJobsResult = { rows: [] };
+        let recruiterJobsResult = { rows: [] };
+
+        // Fetch processed jobs
+        if (processedJobIds.length > 0) {
+          processedJobsResult = await client.query(
+            `SELECT 
+              p.id,
+              p.job_title,
+              p.job_description,
+              p.requirements,
+              p.benefits,
+              p.skills,
+              p.salary_min,
+              p.salary_max,
+              p.currency,
+              p.salary_type,
+              p.work_arrangement,
+              p.experience_level,
+              p.industry,
+              p.department,
+              p.application_deadline,
+              m.company as company_name
+             FROM processed_job_requests p
+             LEFT JOIN members m ON p.company_id = m.company_id
+             WHERE p.id = ANY($1)`,
+            [processedJobIds]
+          );
+        }
+
+        // Fetch recruiter jobs
+        if (recruiterJobIds.length > 0) {
+          recruiterJobsResult = await client.query(
+            `SELECT 
+              rj.id,
+              rj.job_title,
+              rj.job_description,
+              rj.requirements,
+              rj.benefits,
+              rj.skills,
+              rj.salary_min,
+              rj.salary_max,
+              rj.currency,
+              rj.salary_type,
+              rj.work_arrangement,
+              rj.experience_level,
+              rj.industry,
+              rj.department,
+              rj.application_deadline,
+              COALESCE(rj.company_id, u.company) as company_name
+             FROM recruiter_jobs rj
+             LEFT JOIN users u ON u.id = rj.recruiter_id
+             WHERE rj.id = ANY($1)`,
+            [recruiterJobIds]
+          );
+        }
+
+        // Combine job results
+        const jobsResult = {
+          rows: [...processedJobsResult.rows, ...recruiterJobsResult.rows]
+        };
+        
+        console.log('📋 Processed jobs query executed, rows returned:', processedJobsResult.rows.length);
+        console.log('📋 Recruiter jobs query executed, rows returned:', recruiterJobsResult.rows.length);
+        console.log('📋 Total jobs query result:', JSON.stringify(jobsResult.rows, null, 2));
 
         // Create a map of job details
         const jobDetailsMap = new Map();
@@ -148,7 +225,7 @@ export async function GET(request: NextRequest) {
             resumeId: appRow.resumeId,
             resumeSlug: appRow.resumeSlug,
             jobTitle: jobDetails?.job_title || 'Unknown Position',
-            companyName: 'ShoreAgents',
+            companyName: jobDetails?.company_name || (appRow.jobType === 'processed' ? 'ShoreAgents' : 'Unknown Company'),
             location: 'Location not specified', // Default since location column doesn't exist
             salary,
             status: finalStatus,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,9 +34,11 @@ import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
 import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 import RecruiterProfileCompletionModal from '@/components/auth/RecruiterProfileCompletionModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { Suspense } from 'react';
 
-export default function RecruiterHomePage() {
+function RecruiterHomePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -103,6 +105,27 @@ export default function RecruiterHomePage() {
 
     fetchUserProfile();
   }, [user?.id]);
+
+  // Check URL parameters for sign-in flow from sign-up
+  useEffect(() => {
+    const action = searchParams.get('action');
+    const source = searchParams.get('source');
+    
+    if (action === 'signin' && source === 'signup') {
+      console.log('🔄 Detected recruiter sign-up flow, opening sign-in modal');
+      // Clear the URL parameters
+      const url = new URL(window.location.href);
+      url.searchParams.delete('action');
+      url.searchParams.delete('source');
+      window.history.replaceState({}, '', url.toString());
+      
+      // Open sign-in modal by triggering a click on the sign-in button
+      // We'll use a small delay to ensure the page is fully loaded
+      setTimeout(() => {
+        setShowSignInModal(true);
+      }, 1000);
+    }
+  }, [searchParams]);
 
   const handleProfileComplete = async () => {
     setShowProfileModal(false);
@@ -966,5 +989,13 @@ export default function RecruiterHomePage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function RecruiterHomePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RecruiterHomePageContent />
+    </Suspense>
   );
 }

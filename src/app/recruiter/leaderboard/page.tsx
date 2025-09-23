@@ -52,124 +52,11 @@ export default function LeaderboardPage() {
   const [timeFilter, setTimeFilter] = useState('month');
   const [categoryFilter, setCategoryFilter] = useState('overall');
   const [topPerformers, setTopPerformers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch leaderboard data from API
-  useEffect(() => {
-    const fetchLeaderboardData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/leaderboards?category=applicants&source=tables&limit=10');
-        if (response.ok) {
-          const data = await response.json();
-          setTopPerformers(data.results || []);
-        } else {
-          console.error('Failed to fetch leaderboard data');
-          setTopPerformers([]);
-        }
-      } catch (error) {
-        console.error('Error fetching leaderboard data:', error);
-        setTopPerformers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const companyLeaders: any[] = [];
 
-    fetchLeaderboardData();
-  }, []);
-
-  const companyLeaders = [
-    {
-      rank: 1,
-      company: 'TechCorp Solutions',
-      logo: '/api/placeholder/50/50',
-      score: 97.2,
-      change: '+2.1',
-      changeType: 'up',
-      employees: 45,
-      location: 'Manila, Philippines',
-      stats: {
-        totalHires: 23,
-        avgRating: 4.8,
-        responseTime: '1.9 hours',
-        retentionRate: '94%'
-      },
-      specialties: ['Customer Service', 'Technical Support', 'Sales']
-    },
-    {
-      rank: 2,
-      company: 'CloudTech Inc',
-      logo: '/api/placeholder/50/50',
-      score: 95.6,
-      change: '+1.7',
-      changeType: 'up',
-      employees: 32,
-      location: 'Cebu, Philippines',
-      stats: {
-        totalHires: 18,
-        avgRating: 4.7,
-        responseTime: '2.2 hours',
-        retentionRate: '91%'
-      },
-      specialties: ['Technical Support', 'DevOps', 'Cloud Services']
-    },
-    {
-      rank: 3,
-      company: 'GrowthCorp',
-      logo: '/api/placeholder/50/50',
-      score: 93.1,
-      change: '+2.8',
-      changeType: 'up',
-      employees: 28,
-      location: 'Davao, Philippines',
-      stats: {
-        totalHires: 15,
-        avgRating: 4.6,
-        responseTime: '2.4 hours',
-        retentionRate: '89%'
-      },
-      specialties: ['Sales', 'Marketing', 'Business Development']
-    }
-  ];
-
-  const recentAchievements = [
-    {
-      id: 1,
-      name: 'Sarah Johnson',
-      achievement: 'Perfect Score Week',
-      description: 'Achieved 100% rating for 5 consecutive days',
-      icon: <Trophy className="h-5 w-5 text-yellow-500" />,
-      date: '2 hours ago',
-      points: 50
-    },
-    {
-      id: 2,
-      name: 'Michael Chen',
-      achievement: 'Speed Demon',
-      description: 'Responded to applications in under 1 hour',
-      icon: <Zap className="h-5 w-5 text-blue-500" />,
-      date: '4 hours ago',
-      points: 30
-    },
-    {
-      id: 3,
-      name: 'Maria Rodriguez',
-      achievement: 'Hiring Champion',
-      description: 'Successfully hired 3 candidates this week',
-      icon: <Target className="h-5 w-5 text-green-500" />,
-      date: '6 hours ago',
-      points: 40
-    },
-    {
-      id: 4,
-      name: 'TechCorp Solutions',
-      achievement: 'Company Milestone',
-      description: 'Reached 100 total successful hires',
-      icon: <Building2 className="h-5 w-5 text-purple-500" />,
-      date: '1 day ago',
-      points: 100
-    }
-  ];
+  const recentAchievements: any[] = [];
 
   const getTierIcon = (tier) => {
     switch (tier) {
@@ -261,7 +148,14 @@ export default function LeaderboardPage() {
           <TabsContent value="individuals" className="space-y-6">
             {/* Top 3 Podium */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {topPerformers.slice(0, 3).map((performer, index) => (
+              {topPerformers.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
+                  <p className="text-gray-600">No leaderboard data found for individuals.</p>
+                </div>
+              ) : (
+                topPerformers.slice(0, 3).map((performer, index) => (
                 <Card key={performer.rank} className={`relative overflow-hidden ${
                   index === 0 ? 'ring-2 ring-yellow-400 shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50' : 
                   index === 1 ? 'ring-2 ring-gray-300 shadow-md bg-gradient-to-br from-gray-50 to-slate-50' : 
@@ -309,7 +203,8 @@ export default function LeaderboardPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Full Leaderboard */}
@@ -394,7 +289,14 @@ export default function LeaderboardPage() {
           <TabsContent value="companies" className="space-y-6">
             {/* Top 3 Company Podium */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {companyLeaders.slice(0, 3).map((company, index) => (
+              {companyLeaders.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <Building2 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
+                  <p className="text-gray-600">No leaderboard data found for companies.</p>
+                </div>
+              ) : (
+                companyLeaders.slice(0, 3).map((company, index) => (
                 <Card key={company.rank} className={`relative overflow-hidden ${
                   index === 0 ? 'ring-2 ring-yellow-400 shadow-lg bg-gradient-to-br from-yellow-50 to-amber-50' : 
                   index === 1 ? 'ring-2 ring-gray-300 shadow-md bg-gradient-to-br from-gray-50 to-slate-50' : 
@@ -437,7 +339,8 @@ export default function LeaderboardPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Complete Company Rankings */}
@@ -451,7 +354,14 @@ export default function LeaderboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {companyLeaders.map((company) => (
+                  {companyLeaders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Building2 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
+                      <p className="text-gray-600">No company leaderboard data found.</p>
+                    </div>
+                  ) : (
+                    companyLeaders.map((company) => (
                     <div key={company.rank} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center justify-center w-8">
                         {getRankIcon(company.rank)}
@@ -506,7 +416,8 @@ export default function LeaderboardPage() {
                         <p className="text-xs text-gray-500">Overall Score</p>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

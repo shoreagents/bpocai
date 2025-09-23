@@ -23,6 +23,14 @@ export async function syncUserToDatabaseServer(userData: UserData) {
   
   try {
     console.log('🔄 Starting server-side user sync for:', userData.email)
+    console.log('🔍 User data received:', {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
+      full_name: userData.full_name,
+      admin_level: userData.admin_level
+    })
     
     // Check if user already exists
     const checkQuery = 'SELECT id FROM users WHERE id = $1'
@@ -32,12 +40,25 @@ export async function syncUserToDatabaseServer(userData: UserData) {
       // User exists, update their data
       console.log('👤 User exists, updating data...')
       
+      // First, get the existing completed_data value to preserve it
+      const existingUserQuery = 'SELECT completed_data FROM users WHERE id = $1'
+      const existingUserResult = await client.query(existingUserQuery, [userData.id])
+      const existingCompletedData = existingUserResult.rows[0]?.completed_data
+      
+      console.log('🔍 Existing completed_data value:', existingCompletedData)
+      console.log('🔍 New completed_data value from metadata:', userData.completed_data)
+      
+      // Use existing completed_data if it's true, otherwise use the new value
+      const finalCompletedData = existingCompletedData === true ? true : (userData.completed_data ?? false)
+      
+      console.log('🔍 Final completed_data value to save:', finalCompletedData)
+      
       const updateQuery = `
         UPDATE users SET
           email = $2,
-          first_name = $3,
-          last_name = $4,
-          full_name = $5,
+          first_name = COALESCE(NULLIF($3, ''), 'Unknown'),
+          last_name = COALESCE(NULLIF($4, ''), 'User'),
+          full_name = COALESCE(NULLIF($5, ''), $2),
           location = $6,
           avatar_url = $7,
           phone = $8,
@@ -65,13 +86,21 @@ export async function syncUserToDatabaseServer(userData: UserData) {
         userData.bio,
         userData.position,
         userData.company,
-        userData.completed_data,
+        finalCompletedData,
         userData.birthday,
         userData.gender,
         userData.admin_level
       ])
       
       console.log('✅ User updated successfully:', updateResult.rows[0])
+      console.log('🔍 Updated user data:', {
+        id: updateResult.rows[0].id,
+        email: updateResult.rows[0].email,
+        first_name: updateResult.rows[0].first_name,
+        last_name: updateResult.rows[0].last_name,
+        admin_level: updateResult.rows[0].admin_level
+      })
+      console.log('⚠️ WARNING: User sync is updating admin_level to:', userData.admin_level)
       return {
         success: true,
         action: 'updated',
@@ -88,7 +117,7 @@ export async function syncUserToDatabaseServer(userData: UserData) {
           avatar_url, phone, bio, position, company, completed_data,
           birthday, gender, admin_level, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
+          $1, $2, COALESCE(NULLIF($3, ''), 'Unknown'), COALESCE(NULLIF($4, ''), 'User'), COALESCE(NULLIF($5, ''), $2), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
         )
         RETURNING id, email, first_name, last_name, admin_level
       `
@@ -112,6 +141,13 @@ export async function syncUserToDatabaseServer(userData: UserData) {
       ])
       
       console.log('✅ User created successfully:', insertResult.rows[0])
+      console.log('🔍 Created user data:', {
+        id: insertResult.rows[0].id,
+        email: insertResult.rows[0].email,
+        first_name: insertResult.rows[0].first_name,
+        last_name: insertResult.rows[0].last_name,
+        admin_level: insertResult.rows[0].admin_level
+      })
       return {
         success: true,
         action: 'created',
