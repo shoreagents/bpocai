@@ -19,6 +19,7 @@ import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
 import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 import RecruiterProfileCompletionModal from '@/components/auth/RecruiterProfileCompletionModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function RecruiterDashboardPage() {
   const router = useRouter();
@@ -113,6 +114,7 @@ export default function RecruiterDashboardPage() {
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [applicationTrends, setApplicationTrends] = useState<any[]>([]);
+  const [recruiterJobs, setRecruiterJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,7 +122,11 @@ export default function RecruiterDashboardPage() {
       try {
         setLoading(true);
         
-        // Fetch total users
+        // Get access token for API calls
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        
+        // Fetch total users (keep this for platform overview)
         try {
           const usersResponse = await fetch('/api/admin/total-users');
           if (usersResponse.ok) {
@@ -130,27 +136,52 @@ export default function RecruiterDashboardPage() {
         } catch (error) {
           console.error('Error fetching total users:', error);
         }
-        
-        // Fetch total applicants
-        try {
-          const applicantsResponse = await fetch('/api/admin/total-applicants');
-          if (applicantsResponse.ok) {
-            const applicantsData = await applicantsResponse.json();
-            setTotalApplicants(applicantsData.total_applicants);
-          }
-        } catch (error) {
-          console.error('Error fetching total applicants:', error);
-        }
 
-        // Fetch active jobs
+        // Fetch recruiter jobs first
         try {
-          const jobsResponse = await fetch('/api/admin/active-jobs');
+          const jobsResponse = await fetch('/api/recruiter/jobs', {
+            headers: {
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+          });
+          
           if (jobsResponse.ok) {
             const jobsData = await jobsResponse.json();
-            setActiveJobs(jobsData.active_jobs);
+            const jobs = jobsData.jobs || [];
+            setRecruiterJobs(jobs);
+            
+            // Count active jobs (status not 'closed' or 'inactive')
+            const activeJobsCount = jobs.filter((job: any) => 
+              job.status && !['closed', 'inactive'].includes(job.status)
+            ).length;
+            setActiveJobs(activeJobsCount);
+            
+            // Calculate total applicants from recruiter jobs
+            try {
+              let totalApplicantsCount = 0;
+              for (const job of jobs) {
+                try {
+                  const applicantsResponse = await fetch(`/api/recruiter/applicants?jobId=${job.originalId}`, {
+                    headers: {
+                      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                    },
+                  });
+                  
+                  if (applicantsResponse.ok) {
+                    const applicantsData = await applicantsResponse.json();
+                    totalApplicantsCount += applicantsData.applicants?.length || 0;
+                  }
+                } catch (err) {
+                  console.error('Error fetching applicants for job:', job.id, err);
+                }
+              }
+              setTotalApplicants(totalApplicantsCount);
+            } catch (error) {
+              console.error('Error calculating total applicants:', error);
+            }
           }
         } catch (error) {
-          console.error('Error fetching active jobs:', error);
+          console.error('Error fetching recruiter jobs:', error);
         }
 
         // Fetch recent activity
@@ -223,7 +254,7 @@ export default function RecruiterDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 mb-1">Total Users</p>
+                  <p className="text-sm font-medium text-blue-600 mb-1">Platform Users</p>
                   <div className="text-3xl font-bold text-blue-900">
                     {loading ? (
                       <span className="inline-block w-12 h-8 bg-blue-300 animate-pulse rounded"></span>
@@ -231,7 +262,7 @@ export default function RecruiterDashboardPage() {
                       totalUsers.toLocaleString()
                     )}
                   </div>
-                  <p className="text-sm text-blue-700 mt-2">Registered candidates</p>
+                  <p className="text-sm text-blue-700 mt-2">Total platform users</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Users className="h-6 w-6 text-white" />
@@ -244,7 +275,7 @@ export default function RecruiterDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-emerald-600 mb-1">Total Applications</p>
+                  <p className="text-sm font-medium text-emerald-600 mb-1">Your Applications</p>
                   <div className="text-3xl font-bold text-emerald-900">
                     {loading ? (
                       <span className="inline-block w-12 h-8 bg-emerald-300 animate-pulse rounded"></span>
@@ -252,7 +283,7 @@ export default function RecruiterDashboardPage() {
                       totalApplicants.toLocaleString()
                     )}
                   </div>
-                  <p className="text-sm text-emerald-700 mt-2">Job applications received</p>
+                  <p className="text-sm text-emerald-700 mt-2">Applications to your jobs</p>
                 </div>
                 <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                   <FileText className="h-6 w-6 text-white" />
@@ -265,7 +296,7 @@ export default function RecruiterDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600 mb-1">Active Jobs</p>
+                  <p className="text-sm font-medium text-purple-600 mb-1">Your Active Jobs</p>
                   <div className="text-3xl font-bold text-purple-900">
                     {loading ? (
                       <span className="inline-block w-12 h-8 bg-purple-300 animate-pulse rounded"></span>
@@ -273,7 +304,7 @@ export default function RecruiterDashboardPage() {
                       activeJobs.toLocaleString()
                     )}
                   </div>
-                  <p className="text-sm text-purple-700 mt-2">Currently open positions</p>
+                  <p className="text-sm text-purple-700 mt-2">Your open positions</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Building2 className="h-6 w-6 text-white" />
