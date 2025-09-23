@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/database'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +9,14 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ isAdmin: false })
     }
+
+    // If DATABASE_URL is not configured (e.g., local dev without DB), avoid failing fetch
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ isAdmin: false })
+    }
+
+    // Lazy-load database pool only when DB is configured
+    const { default: pool } = await import('@/lib/database')
 
     // Check if user is admin in the Railway users table
     const query = `

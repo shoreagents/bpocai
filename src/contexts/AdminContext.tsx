@@ -42,7 +42,10 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     console.log('Checking admin status for user:', user.id)
     try {
       // Check admin status directly in Railway database
-      const response = await fetch(`/api/admin/check-status?userId=${user.id}`)
+      const response = await fetch(`/api/admin/check-status?userId=${user.id}`, { cache: 'no-store' })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
       const data = await response.json()
       
       console.log('Admin check response:', data)
