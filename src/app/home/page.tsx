@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Header from '@/components/layout/Header'
 import Hero from '@/components/sections/Hero'
 import { Button } from '@/components/ui/button'
@@ -41,7 +41,7 @@ import {
 import { formatNumber, generateInitials } from '@/lib/utils'
 import ProfileCompletionModal from '@/components/auth/ProfileCompletionModal'
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -1233,5 +1233,13 @@ export default function HomePage() {
         onComplete={handleProfileComplete}
       />
     </main>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomePageContent />
+    </Suspense>
   )
 } 
