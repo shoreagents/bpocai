@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         // Note: expected_salary is now PUBLIC, only email, phone, current_salary remain private
         selectClause = `
           user_id, first_name, last_name, full_name, location, avatar_url, bio, position, 
-          gender, gender_custom, slug, location_city, location_province, location_country, 
+          gender, gender_custom, slug, username, location_city, location_province, location_country, 
           location_region, location_barangay, user_created_at, user_updated_at,
           work_status_id, current_employer, current_position, work_status, preferred_shift, 
           work_setup, current_mood, notice_period_days, expected_salary, work_status_completed,
