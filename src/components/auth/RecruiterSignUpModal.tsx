@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog,
@@ -71,6 +72,9 @@ export default function RecruiterSignUpModal({
     setError('');
     setSuccessMessage('');
     
+    // Set flag to indicate this is a recruiter sign-up flow
+    sessionStorage.setItem('recruiterSignupFlow', 'true');
+    
     try {
       // Check if email already exists
       const existsRes = await fetch(`/api/recruiter/signup?email=${encodeURIComponent(formData.email)}`);
@@ -127,10 +131,13 @@ export default function RecruiterSignUpModal({
             return;
           }
 
-          setSuccessMessage('Recruiter account created! Please verify your email to continue.');
+          setSuccessMessage('Recruiter account created! Please sign in to continue.');
+          
           setTimeout(() => {
             onOpenChange(false);
-            router.push('/recruiter/dashboard');
+            if (onSwitchToSignIn) {
+              onSwitchToSignIn();
+            }
           }, 2000);
           
         } catch (recruiterError) {

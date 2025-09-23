@@ -34,15 +34,19 @@ import {
   Edit3,
   Save,
   X,
-  Trophy
+  Trophy,
+  RefreshCw
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/lib/supabase';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
 import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ApplicantsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
@@ -72,53 +76,137 @@ export default function ApplicantsPage() {
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [tempStatus, setTempStatus] = useState<string>('');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showApplicantsModal, setShowApplicantsModal] = useState(false);
+  const [selectedJobForModal, setSelectedJobForModal] = useState<any>(null);
+  const [showApplicantStatusDropdown, setShowApplicantStatusDropdown] = useState<string | null>(null);
+  const [isUpdatingApplicantStatus, setIsUpdatingApplicantStatus] = useState(false);
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
 
   // Fetch real job data from database
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
+  const fetchJobs = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
-        setError(null);
+      }
+      setError(null);
+      
+      if (!user?.id) {
+        if (isRefresh) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+        return;
+      }
+      
+      // Fetch jobs from recruiter jobs API
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      
+      const response = await fetch('/api/recruiter/jobs', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to load jobs');
+      
+      const data = await response.json();
+      
+      // Fetch application counts for each job
+      const jobsWithApplicants = await Promise.all((data.jobs || []).map(async (job: any) => {
+        let applicationsCount = 0;
+        try {
+          // Fetch applicants for this job to get the real count
+          const applicantsResponse = await fetch(`/api/recruiter/applicants?jobId=${job.originalId}`, {
+            headers: {
+              'x-user-id': user?.id || ''
+            }
+          });
+          
+          if (applicantsResponse.ok) {
+            const applicantsData = await applicantsResponse.json();
+            applicationsCount = applicantsData.applicants?.length || 0;
+          }
+        } catch (err) {
+          console.error('Error fetching applicants count for job:', job.id, err);
+        }
         
-        // Fetch active jobs with applicants
-        const response = await fetch('/api/jobs/active', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Failed to load jobs');
-        
-        const data = await response.json();
-        const jobsWithApplicants = (data.jobs || [])
-          .filter((job: any) => (job.applicants ?? 0) > 0)
-          .map((job: any) => ({
-            id: job.id,
-            title: job.title,
-            company: job.company,
-            location: job.location || 'Remote',
-            type: job.employmentType?.[0] || 'Full-time',
-            salary: job.salary || 'Not specified',
-            postedDate: new Date(job.created_at || Date.now()).toISOString().split('T')[0],
-            applicationsCount: job.applicants || 0,
-            status: job.status || 'active',
-            description: job.description || 'No description available',
-            requirements: job.requirements || [],
-            priority: job.priority || 'medium',
-            application_deadline: job.application_deadline,
-            experience_level: job.experience_level,
-            work_arrangement: job.work_arrangement,
-            industry: job.industry,
-            department: job.department,
-            // Mock applicants data for now - you can replace this with real API call later
-            applicants: generateMockApplicants(job.applicants || 0)
-          }));
-        
-        setJobs(jobsWithApplicants);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load jobs');
-      } finally {
+        return {
+          id: job.id,
+          originalId: job.originalId,
+          title: job.title,
+          company: job.company,
+          location: job.work_arrangement || 'Remote',
+          type: job.work_type || 'Full-time',
+          salary: job.salaryMin && job.salaryMax ? 
+            `₱${job.salaryMin.toLocaleString()} - ₱${job.salaryMax.toLocaleString()}` : 
+            'Not specified',
+          postedDate: new Date(job.created_at || Date.now()).toISOString().split('T')[0],
+          applicationsCount: applicationsCount,
+          status: job.status || 'new_request',
+          description: job.description || 'No description available',
+          requirements: job.requirements || [],
+          priority: job.priority || 'medium',
+          application_deadline: job.application_deadline,
+          experience_level: job.experienceLevel,
+          work_arrangement: job.work_arrangement,
+          industry: job.industry,
+          department: job.department,
+          // Mock applicants data for now - you can replace this with real API call later
+          applicants: generateMockApplicants(applicationsCount)
+        };
+      }));
+      
+      setJobs(jobsWithApplicants);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load jobs');
+    } finally {
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
         setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, [user?.id]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showApplicantStatusDropdown) {
+        setShowApplicantStatusDropdown(null);
       }
     };
 
-    fetchJobs();
-  }, []);
+    if (showApplicantStatusDropdown) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showApplicantStatusDropdown]);
+
+  // Refresh jobs when page comes into focus (e.g., when navigating from post-job page)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id && viewMode === 'jobs') {
+        fetchJobs(true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, viewMode]);
 
   // Generate mock applicants data based on job applicants count
   const generateMockApplicants = (count: number) => {
@@ -211,8 +299,8 @@ export default function ApplicantsPage() {
       setLoading(true);
       setError(null);
       
-      // Fetch real applicants for this job
-      const response = await fetch(`/api/recruiter/applicants?jobId=${job.id}`, { cache: 'no-store' });
+      // Fetch real applicants for this job using originalId
+      const response = await fetch(`/api/recruiter/applicants?jobId=${job.originalId}`, { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to load applicants');
       
       const data = await response.json();
@@ -237,7 +325,8 @@ export default function ApplicantsPage() {
       // Update the job with real applicants
       const updatedJob = {
         ...job,
-        applicants: realApplicants
+        applicants: realApplicants,
+        applicationsCount: realApplicants.length
       };
       
       setSelectedJob(updatedJob);
@@ -252,6 +341,83 @@ export default function ApplicantsPage() {
   const handleBackToJobs = () => {
     setViewMode('jobs');
     setSelectedJob(null);
+  };
+
+  const handleViewApplicants = async (job: any) => {
+    setSelectedJobForModal(job);
+    setShowApplicantsModal(true);
+    setLoadingApplicants(true);
+    
+    try {
+      // Extract the original UUID from the combined job ID
+      const originalJobId = job.originalId || job.id.split('_').slice(1, -1).join('_');
+      
+      console.log('🔍 Original job ID:', originalJobId);
+      
+      const response = await fetch(`/api/recruiter/applicants?jobId=${originalJobId}`, {
+        headers: {
+          'x-user-id': user?.id || ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setApplicants(data.applicants || []);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to fetch applicants:', response.status, errorData);
+        setApplicants([]);
+        
+        // Show error details in console for debugging
+        if (errorData.details) {
+          console.error('Error details:', errorData.details);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching applicants:', error);
+      setApplicants([]);
+    } finally {
+      setLoadingApplicants(false);
+    }
+  };
+
+  const handleApplicantStatusUpdate = async (applicantId: string, newStatus: string) => {
+    setIsUpdatingApplicantStatus(true);
+    setShowApplicantStatusDropdown(null);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      const response = await fetch(`/api/recruiter/applicants/${applicantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        // Update the applicant in the local state
+        setApplicants(prevApplicants => 
+          prevApplicants.map(applicant => 
+            applicant.id === applicantId 
+              ? { ...applicant, status: newStatus }
+              : applicant
+          )
+        );
+        alert('✅ Applicant status updated successfully');
+      } else {
+        const errorData = await response.json();
+        alert(`❌ Failed to update applicant status: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating applicant status:', error);
+      alert('❌ Failed to update applicant status. Please try again.');
+    } finally {
+      setIsUpdatingApplicantStatus(false);
+    }
   };
 
   // Status editing functions
@@ -403,6 +569,18 @@ export default function ApplicantsPage() {
                 </div>
               )}
             </div>
+            {viewMode === 'jobs' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchJobs(true)}
+                disabled={refreshing}
+                className="flex items-center space-x-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -556,45 +734,60 @@ export default function ApplicantsPage() {
               const cardColor = colorVariations[index % colorVariations.length];
               
               return (
-                <Card key={job.id} className={`${cardColor} shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1`} onClick={() => handleJobClick(job)}>
+                <Card key={job.id} className={`${cardColor} shadow-sm hover:shadow-lg transition-all duration-300`}>
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-                        <Badge className="bg-green-100 text-green-800 text-xs border-green-200">
-                          {job.status}
-                        </Badge>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">{job.title}</h3>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
+                          job.status === 'new_request' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                          job.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                          job.status === 'inactive' ? 'bg-gray-50 text-gray-700 border-gray-200' : 
+                          'bg-red-50 text-red-700 border-red-200'
+                        }`}>
+                          {job.status.replace('_', ' ')}
+                        </span>
                       </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">{job.company}</p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1 truncate">{job.company}</p>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-3">
                         <div className="flex items-center space-x-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{job.location}</span>
+                          <MapPin className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{job.work_arrangement || 'Remote'}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <DollarSign className="h-4 w-4" />
-                          <span>{job.salary}</span>
+                          <DollarSign className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{job.salary}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Posted {job.postedDate}</span>
+                          <Calendar className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">Posted {job.postedDate}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <User className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{job.experience_level}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{job.description}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {job.requirements.map((req, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
-                            {req}
-                          </Badge>
-                        ))}
-                      </div>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-3">{job.description}</p>
+                      {job.application_deadline && (
+                        <div className="flex items-center gap-1 text-sm text-red-600 mb-3">
+                          <Calendar className="h-4 w-4 flex-shrink-0" />
+                          <span>Deadline: {new Date(job.application_deadline).toLocaleDateString()}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right ml-6">
+                    <div className="text-right flex-shrink-0">
                       <div className="text-2xl font-bold text-emerald-600 mb-1">{job.applicationsCount}</div>
                       <div className="text-sm text-gray-600 mb-3">Applications</div>
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                        View Applications
+                      <Button 
+                        size="sm" 
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewApplicants(job);
+                        }}
+                      >
+                        View Applicants
                       </Button>
                     </div>
                   </div>
@@ -940,6 +1133,285 @@ export default function ApplicantsPage() {
         onOpenChange={setShowSignUpModal}
         onSwitchToLogin={handleSwitchToSignIn}
       />
+
+      {/* Applicants Modal */}
+      <Dialog open={showApplicantsModal} onOpenChange={setShowApplicantsModal}>
+        <DialogContent className="!max-w-[70vw] max-h-[90vh] overflow-y-auto bg-white border-gray-300 text-gray-900">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              {selectedJobForModal?.title} - Applicants
+            </DialogTitle>
+            <DialogDescription>
+              View and manage applicants for this job posting
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Applicants Count */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{applicants.length} {applicants.length === 1 ? 'Applicant' : 'Applicants'}</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {selectedJobForModal && (
+              <>
+                {/* Applicants List */}
+                <div className="space-y-3">
+                  {loadingApplicants ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading applicants...</p>
+                    </div>
+                  ) : applicants.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No applicants found</h3>
+                      <p className="text-gray-600">This job posting has not received any applications yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {applicants.map((applicant) => (
+                        <div key={applicant.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                                <span className="text-emerald-600 font-semibold text-lg">
+                                  {applicant.fullName?.charAt(0) || 'U'}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold text-gray-900 text-lg">
+                                    {applicant.fullName || 'Unknown User'}
+                                  </h4>
+                                  <div className="relative">
+                                    <div className="flex items-center gap-1">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        applicant.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
+                                        applicant.status === 'qualified' ? 'bg-green-100 text-green-800' :
+                                        applicant.status === 'for verification' ? 'bg-yellow-100 text-yellow-800' :
+                                        applicant.status === 'verified' ? 'bg-emerald-100 text-emerald-800' :
+                                        applicant.status === 'initial' ? 'bg-purple-100 text-purple-800' :
+                                        applicant.status === 'interview' ? 'bg-indigo-100 text-indigo-800' :
+                                        applicant.status === 'final interview' ? 'bg-blue-100 text-blue-800' :
+                                        applicant.status === 'not qualified' ? 'bg-red-100 text-red-800' :
+                                        applicant.status === 'passed' ? 'bg-green-100 text-green-800' :
+                                        applicant.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                        applicant.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+                                        applicant.status === 'hired' ? 'bg-emerald-100 text-emerald-800' :
+                                        applicant.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                                        applicant.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
+                                      }`}>
+                                        {applicant.status || 'submitted'}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowApplicantStatusDropdown(showApplicantStatusDropdown === applicant.id ? null : applicant.id);
+                                        }}
+                                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                        disabled={isUpdatingApplicantStatus}
+                                      >
+                                        <Edit3 className="w-3 h-3 text-gray-500" />
+                                      </button>
+                                    </div>
+                                    
+                                    {/* Applicant Status Dropdown */}
+                                    {showApplicantStatusDropdown === applicant.id && (
+                                      <div className="absolute left-0 top-8 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'submitted');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'submitted' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
+                                        >
+                                          Submitted
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'qualified');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'qualified' ? 'bg-green-50 text-green-700' : 'text-gray-700'}`}
+                                        >
+                                          Qualified
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'for verification');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'for verification' ? 'bg-yellow-50 text-yellow-700' : 'text-gray-700'}`}
+                                        >
+                                          For Verification
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'verified');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'verified' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700'}`}
+                                        >
+                                          Verified
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'initial');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'initial' ? 'bg-purple-50 text-purple-700' : 'text-gray-700'}`}
+                                        >
+                                          Initial
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'interview');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'interview' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}
+                                        >
+                                          Interview
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'final interview');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'final interview' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
+                                        >
+                                          Final Interview
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'not qualified');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'not qualified' ? 'bg-red-50 text-red-700' : 'text-gray-700'}`}
+                                        >
+                                          Not Qualified
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'passed');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'passed' ? 'bg-green-50 text-green-700' : 'text-gray-700'}`}
+                                        >
+                                          Passed
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'rejected');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'rejected' ? 'bg-red-50 text-red-700' : 'text-gray-700'}`}
+                                        >
+                                          Rejected
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'withdrawn');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'withdrawn' ? 'bg-gray-50 text-gray-700' : 'text-gray-700'}`}
+                                        >
+                                          Withdrawn
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'hired');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'hired' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700'}`}
+                                        >
+                                          Hired
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'closed');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'closed' ? 'bg-gray-50 text-gray-700' : 'text-gray-700'}`}
+                                        >
+                                          Closed
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleApplicantStatusUpdate(applicant.id, 'failed');
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${applicant.status === 'failed' ? 'bg-red-50 text-red-700' : 'text-gray-700'}`}
+                                        >
+                                          Failed
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-1">{applicant.email}</p>
+                                <div className="text-sm text-gray-500">
+                                  Applied: <span className="text-gray-900 font-medium">
+                                    {new Date(applicant.appliedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                {applicant.resumeSlug && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="text-xs px-3"
+                                    onClick={() => {
+                                      // Handle view resume
+                                      console.log('View resume for:', applicant.id);
+                                    }}
+                                  >
+                                    Resume
+                                  </Button>
+                                )}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs px-3"
+                                  onClick={() => {
+                                    // Handle view profile
+                                    console.log('View profile for:', applicant.id);
+                                  }}
+                                >
+                                  Profile
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs px-3"
+                                  onClick={() => {
+                                    // Redirect to messages page
+                                    router.push('/recruiter/messages');
+                                  }}
+                                >
+                                  Message
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApplicantsModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

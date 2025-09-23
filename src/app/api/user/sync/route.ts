@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       last_name: userData.last_name,
       full_name: userData.full_name,
       location: userData.location,
+      admin_level: userData.admin_level,
       phone: userData.phone,
       bio: userData.bio,
       position: userData.position,
@@ -40,6 +41,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Sync user to Railway database
+    console.log('🔄 About to call syncUserToDatabaseServer with data:', {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name || '',
+      last_name: userData.last_name || '',
+      full_name: userData.full_name || '',
+      location: userData.location || '',
+      avatar_url: userData.avatar_url,
+      phone: userData.phone,
+      bio: userData.bio,
+      position: userData.position,
+      company: userData.company,
+      completed_data: userData.completed_data ?? null,
+      birthday: userData.birthday ?? null,
+      gender: userData.gender ?? null,
+      admin_level: userData.admin_level || 'user'
+    })
+    
     const result = await syncUserToDatabaseServer({
       id: userData.id,
       email: userData.email,

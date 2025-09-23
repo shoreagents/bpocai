@@ -199,20 +199,22 @@ export default function JobMatchingPage() {
           setHasResume(null)
         }
 
-        // Public endpoint for active jobs (no auth required)
-        const res = await fetch('/api/jobs/active', { cache: 'no-store' })
+        // Combined endpoint for active jobs (includes both processed_job_requests and recruiter_jobs)
+        const res = await fetch('/api/jobs/combined', { cache: 'no-store' })
         if (!res.ok) throw new Error('Failed to load jobs')
         const data = await res.json()
         const active = data.jobs || []
         const mapped = active.map((row: any) => ({
           id: row.id,
+          originalId: row.originalId,
+          source: row.source,
           company: row.company,
           companyLogo: row.companyLogo || '🏢',
           postedDays: row.postedDays ?? 0,
           title: row.title,
           employmentType: row.employmentType || [],
           salary: row.salary || '',
-          location: '',
+          location: row.location || '',
           matchPercentage: 0, // Will be updated with real scores
           // NEW FIELDS - All requested database fields
           priority: row.priority,
@@ -224,20 +226,20 @@ export default function JobMatchingPage() {
           experience_level: row.experience_level,
           work_type: row.work_type,
           // details will be loaded on demand
-          description: '',
-          responsibilities: [],
-          qualifications: [],
-          perks: []
+          description: row.job_description || '',
+          responsibilities: row.responsibilities || [],
+          qualifications: row.requirements || [],
+          perks: row.benefits || []
         }))
         setJobs(mapped)
 
-        // Calculate match scores for each job if user is logged in
-        if (user?.id) {
+        // Calculate match scores for each job if user is logged in and has resume
+        if (user?.id && hasResume) {
           setIsLoadingMatches(true)
           setAnalysisProgress(0)
           
           try {
-            const jobIds = mapped.map((job: any) => job.id)
+            const jobIds = mapped.map((job: any) => job.originalId)
             setAnalysisProgress(25)
             
             const response = await fetch('/api/jobs/batch-match', {
@@ -257,25 +259,33 @@ export default function JobMatchingPage() {
               
               const scores: {[key: string]: any} = {}
               
-              // Process results
-              Object.entries(data.results).forEach(([jobId, result]: [string, any]) => {
-                scores[jobId] = {
-                  score: result.score,
-                  reasoning: result.reasoning,
-                  breakdown: result.breakdown,
-                  cached: result.cached
-                }
-              })
+              // Process results - map originalId back to combined job.id
+              if (data.results) {
+                Object.entries(data.results).forEach(([originalId, result]: [string, any]) => {
+                  // Find the corresponding job with this originalId
+                  const job = mapped.find((j: any) => j.originalId === originalId)
+                  if (job) {
+                    scores[job.id] = {
+                      score: result.score,
+                      reasoning: result.reasoning,
+                      breakdown: result.breakdown,
+                      cached: result.cached
+                    }
+                  }
+                })
+              }
               
               setMatchScores(scores)
               setAnalysisProgress(100)
             } else {
-              throw new Error('Failed to analyze jobs')
+              const errorText = await response.text()
+              console.error('Batch match API error:', response.status, errorText)
+              throw new Error(`Failed to analyze jobs: ${response.status} ${errorText}`)
             }
           } catch (error) {
             console.error('Error in batch job matching:', error)
             
-            // Fallback to default scores
+            // Fallback to default scores - don't throw error, just use defaults
             const scores: {[key: string]: any} = {}
             mapped.forEach((job: any) => {
               scores[job.id] = { 
@@ -286,6 +296,7 @@ export default function JobMatchingPage() {
               }
             })
             setMatchScores(scores)
+            setAnalysisProgress(100)
           }
           
           setTimeout(() => {
@@ -298,62 +309,80 @@ export default function JobMatchingPage() {
         setJobs([])
       }
     })()
-  }, [user?.id])
+  }, [user?.id, hasResume])
 
   // Refresh match scores when user changes
   useEffect(() => {
-    if (user?.id && jobs.length > 0) {
+    if (user?.id && jobs.length > 0 && hasResume) {
+      // Check if we already have match scores for all jobs
+      const hasAllScores = jobs.every(job => matchScores[job.id])
+      
+      if (hasAllScores) {
+        // Already have scores, don't show loading modal
+        return
+      }
+      
       (async () => {
-        setIsLoadingMatches(true)
-        setAnalysisProgress(0)
-        
-        const scores: {[key: string]: any} = {}
-        const totalJobs = jobs.length
-        
-        for (let i = 0; i < jobs.length; i++) {
-          const job = jobs[i]
-          const progress = Math.round(((i + 1) / totalJobs) * 100)
+        try {
+          setIsLoadingMatches(true)
+          setAnalysisProgress(0)
           
-          setAnalysisProgress(progress)
+          const scores: {[key: string]: any} = {}
+          const totalJobs = jobs.length
           
-          try {
-            const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.id}`)
-            if (matchRes.ok) {
-              const matchData = await matchRes.json()
-              scores[job.id] = {
-                score: Math.round(matchData.matchScore),
-                reasoning: matchData.reasoning,
-                breakdown: matchData.breakdown
+          for (let i = 0; i < jobs.length; i++) {
+            const job = jobs[i]
+            const progress = Math.round(((i + 1) / totalJobs) * 100)
+            
+            setAnalysisProgress(progress)
+            
+            try {
+              const matchRes = await fetch(`/api/jobs/match?userId=${user.id}&jobId=${job.originalId}`)
+              if (matchRes.ok) {
+                const matchData = await matchRes.json()
+                scores[job.id] = {
+                  score: Math.round(matchData.matchScore),
+                  reasoning: matchData.reasoning,
+                  breakdown: matchData.breakdown
+                }
+              } else {
+                scores[job.id] = { score: 0, reasoning: 'Analysis failed', breakdown: {} }
               }
-            } else {
-              scores[job.id] = { score: 0, reasoning: 'Analysis failed', breakdown: {} }
+            } catch (error) {
+              console.error('Error fetching match score for job:', job.id, error)
+              scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
             }
-          } catch (error) {
-            console.error('Error fetching match score for job:', job.id, error)
-            scores[job.id] = { score: 0, reasoning: 'Network error', breakdown: {} }
+            
+            // Small delay to show progress
+            await new Promise(resolve => setTimeout(resolve, 200))
           }
           
-          // Small delay to show progress
-          await new Promise(resolve => setTimeout(resolve, 200))
+          setAnalysisProgress(100)
+          setMatchScores(scores)
+        } catch (error) {
+          console.error('Error in individual job matching:', error)
+          // Set default scores if everything fails
+          const scores: {[key: string]: any} = {}
+          jobs.forEach((job: any) => {
+            scores[job.id] = { score: 75, reasoning: 'Using default score due to analysis error', breakdown: {} }
+          })
+          setMatchScores(scores)
+        } finally {
+          setTimeout(() => {
+            setIsLoadingMatches(false)
+            setAnalysisProgress(0)
+          }, 500)
         }
-        
-        setAnalysisProgress(100)
-        setMatchScores(scores)
-        
-        setTimeout(() => {
-          setIsLoadingMatches(false)
-          setAnalysisProgress(0)
-        }, 500)
       })()
     }
-  }, [user?.id, jobs])
+  }, [user?.id, jobs, hasResume, matchScores])
 
   // Load full job details when a job is selected (public endpoint so logged-out users can view)
   useEffect(() => {
     (async () => {
       if (!selectedJob) { setSelectedJobDetails(null); return }
       try {
-        const res = await fetch(`/api/jobs/active/${selectedJob}`, { cache: 'no-store' })
+        const res = await fetch(`/api/jobs/combined/${selectedJob}`, { cache: 'no-store' })
         if (!res.ok) throw new Error('Failed to load job details')
         const data = await res.json()
         setSelectedJobDetails(data.job || null)
@@ -413,7 +442,12 @@ export default function JobMatchingPage() {
   };
 
   const getWorkType = (job: any) => {
-    // Mock work type based on company
+    // Use actual work_arrangement from job data if available
+    if (job.work_arrangement) {
+      return job.work_arrangement;
+    }
+    
+    // Fallback to mock work type based on company
     const workTypes: { [key: string]: string } = {
       'Amazon': 'remote',
       'Google': 'hybrid',
@@ -422,7 +456,8 @@ export default function JobMatchingPage() {
       'Accenture': 'onsite',
       'Concentrix': 'hybrid',
       'Netflix': 'remote',
-      'Spotify': 'hybrid'
+      'Spotify': 'hybrid',
+      'ShoreAgents': 'onsite'
     };
     return workTypes[job.company] || 'onsite';
   };
@@ -535,10 +570,10 @@ export default function JobMatchingPage() {
           // Create a set of applied job IDs
           const appliedJobIds = new Set(applications.map((app: any) => String(app.jobId)))
           
-          // Check each job against applied jobs
+          // Check each job against applied jobs (compare originalId with stored jobId)
           const results: Record<string, boolean> = {}
           for (const job of jobs) {
-            results[job.id] = appliedJobIds.has(String(job.id))
+            results[job.id] = appliedJobIds.has(String(job.originalId))
           }
           
           setAppliedMap(results)
@@ -1292,7 +1327,7 @@ export default function JobMatchingPage() {
                             const resp = await fetch('/api/user/applications', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                              body: JSON.stringify({ jobId: selectedJobData.id, resumeId: j.id || j.resumeId, resumeSlug: j.resumeSlug })
+                              body: JSON.stringify({ jobId: selectedJobData.originalId, resumeId: j.id || j.resumeId, resumeSlug: j.resumeSlug })
                             })
                             if (!resp.ok) throw new Error('Failed to submit application')
                                                           setApplicationMessage('Application submitted successfully!');
@@ -1327,7 +1362,7 @@ export default function JobMatchingPage() {
                           <FileText className="h-5 w-5 text-cyan-400" />
                           Job Description
                         </h3>
-                        <p className="text-gray-300 leading-relaxed text-sm">{selectedJobDetails?.job_description || selectedJobData.description}</p>
+                        <p className="text-gray-300 leading-relaxed text-sm">{selectedJobDetails?.description || selectedJobData.description}</p>
                       </div>
 
                       {/* Responsibilities */}
@@ -1479,7 +1514,7 @@ export default function JobMatchingPage() {
 
 
       {/* AI Analysis Loading Modal */}
-      {isLoadingMatches && (
+      {isLoadingMatches && hasResume && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-gray-900 border border-white/20 rounded-2xl p-8 max-w-lg w-full mx-4">
             <div className="flex flex-col space-y-6">

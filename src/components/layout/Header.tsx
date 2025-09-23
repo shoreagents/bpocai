@@ -120,7 +120,149 @@ export default function Header({}: HeaderProps) {
           if (response.ok) {
             const data = await response.json()
             console.log('✅ User profile loaded:', data.user)
-            setUserProfile(data.user)
+            
+            // Check if user has missing name information (common with Google OAuth)
+            if (!data.user.first_name || !data.user.last_name || !data.user.full_name) {
+              console.log('⚠️ User missing name information, attempting to sync with Google data...')
+              console.log('🔍 User metadata from Supabase:', user.user_metadata)
+              console.log('🔍 Available name fields:', {
+                given_name: user.user_metadata?.given_name,
+                family_name: user.user_metadata?.family_name,
+                name: user.user_metadata?.name,
+                first_name: user.user_metadata?.first_name,
+                last_name: user.user_metadata?.last_name,
+                full_name: user.user_metadata?.full_name
+              })
+              try {
+                // Parse name data from Google metadata
+                let firstName = user.user_metadata?.first_name || user.user_metadata?.given_name || ''
+                let lastName = user.user_metadata?.last_name || user.user_metadata?.family_name || ''
+                let fullName = user.user_metadata?.full_name || user.user_metadata?.name || ''
+                
+                // If we have a full name but no individual names, parse it
+                if (fullName && (!firstName || !lastName)) {
+                  const nameParts = fullName.trim().split(' ')
+                  if (nameParts.length >= 2) {
+                    firstName = nameParts[0]
+                    lastName = nameParts.slice(1).join(' ')
+                  } else if (nameParts.length === 1) {
+                    firstName = nameParts[0]
+                    lastName = ''
+                  }
+                }
+                
+                // Fallback to email if no name data at all
+                if (!fullName && !firstName && !lastName) {
+                  fullName = user.email
+                }
+
+                const syncResponse = await fetch('/api/user/sync', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    first_name: firstName,
+                    last_name: lastName,
+                    full_name: fullName,
+                    location: user.user_metadata?.location || '',
+                    avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+                    phone: user.user_metadata?.phone || '',
+                    bio: user.user_metadata?.bio || '',
+                    position: user.user_metadata?.position || '',
+                    company: user.user_metadata?.company || '',
+                    completed_data: data.user.completed_data || false,
+                    birthday: user.user_metadata?.birthday || null,
+                    gender: user.user_metadata?.gender || null,
+                    admin_level: data.user.admin_level || 'user' // Preserve existing admin_level
+                  })
+                })
+
+                if (syncResponse.ok) {
+                  console.log('✅ User name information synced successfully, retrying profile fetch...')
+                  // Retry fetching the profile
+                  const retryResponse = await fetch(`/api/user/profile?userId=${user.id}`)
+                  if (retryResponse.ok) {
+                    const retryData = await retryResponse.json()
+                    setUserProfile(retryData.user)
+                  }
+                } else {
+                  console.error('❌ Failed to sync user name information:', syncResponse.status)
+                  setUserProfile(data.user) // Still set the profile even if sync failed
+                }
+              } catch (syncError) {
+                console.error('❌ Error during user name sync:', syncError)
+                setUserProfile(data.user) // Still set the profile even if sync failed
+              }
+            } else {
+              setUserProfile(data.user)
+            }
+          } else if (response.status === 404) {
+            // User not found in database, try to sync them
+            console.log('⚠️ User not found in database, attempting to sync...')
+            try {
+              // Parse name data from Google metadata
+              let firstName = user.user_metadata?.first_name || user.user_metadata?.given_name || ''
+              let lastName = user.user_metadata?.last_name || user.user_metadata?.family_name || ''
+              let fullName = user.user_metadata?.full_name || user.user_metadata?.name || ''
+              
+              // If we have a full name but no individual names, parse it
+              if (fullName && (!firstName || !lastName)) {
+                const nameParts = fullName.trim().split(' ')
+                if (nameParts.length >= 2) {
+                  firstName = nameParts[0]
+                  lastName = nameParts.slice(1).join(' ')
+                } else if (nameParts.length === 1) {
+                  firstName = nameParts[0]
+                  lastName = ''
+                }
+              }
+              
+              // Fallback to email if no name data at all
+              if (!fullName && !firstName && !lastName) {
+                fullName = user.email
+              }
+
+              const syncResponse = await fetch('/api/user/sync', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  id: user.id,
+                  email: user.email,
+                  first_name: firstName,
+                  last_name: lastName,
+                  full_name: fullName,
+                  location: user.user_metadata?.location || '',
+                  avatar_url: user.user_metadata?.avatar_url || null,
+                  phone: user.user_metadata?.phone || '',
+                  bio: user.user_metadata?.bio || '',
+                  position: user.user_metadata?.position || '',
+                  company: user.user_metadata?.company || '',
+                  completed_data: user.user_metadata?.completed_data ?? false,
+                  birthday: user.user_metadata?.birthday || null,
+                  gender: user.user_metadata?.gender || null,
+                  admin_level: 'user' // Default for new users
+                })
+              })
+
+              if (syncResponse.ok) {
+                console.log('✅ User synced successfully, retrying profile fetch...')
+                // Retry fetching the profile
+                const retryResponse = await fetch(`/api/user/profile?userId=${user.id}`)
+                if (retryResponse.ok) {
+                  const retryData = await retryResponse.json()
+                  setUserProfile(retryData.user)
+                }
+              } else {
+                console.error('❌ Failed to sync user:', syncResponse.status)
+              }
+            } catch (syncError) {
+              console.error('❌ Error during user sync:', syncError)
+            }
           } else {
             console.error('❌ Failed to fetch user profile:', response.status, response.statusText)
           }
@@ -540,6 +682,7 @@ export default function Header({}: HeaderProps) {
                   variant="ghost" 
                   className="text-white hover:text-cyan-400 hover:bg-white/10 transition-all duration-200 px-3"
                   onClick={handleOpenLogin}
+                  data-signin-button
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Sign In
@@ -749,6 +892,7 @@ export default function Header({}: HeaderProps) {
                           variant="outline" 
                           className="w-full border-white/20 text-white hover:bg-white/10 transition-all duration-200"
                           onClick={handleOpenLogin}
+                          data-signin-button
                         >
                           <LogIn className="w-4 h-4 mr-2" />
                           Sign In

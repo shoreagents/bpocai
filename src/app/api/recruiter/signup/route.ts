@@ -88,6 +88,8 @@ export async function POST(request: NextRequest) {
       admin_level: 'recruiter', completed_data: false
     })
 
+    console.log('🔍 About to insert recruiter with admin_level: recruiter')
+    
     const result = await pool.query(
       `INSERT INTO users (
         id, email, first_name, last_name, full_name, 
@@ -101,8 +103,11 @@ export async function POST(request: NextRequest) {
         'recruiter', false
       ]
     )
+    
+    console.log('🔍 Insert completed, checking result...')
 
     console.log('✅ Recruiter created successfully:', result.rows[0])
+    console.log('🔍 Final admin_level in database:', result.rows[0].admin_level)
 
     return NextResponse.json({ 
       success: true, 

@@ -13,12 +13,13 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('🔍 API: Fetching profile for user:', userId)
+    console.log('🔍 API: Database URL available:', !!process.env.DATABASE_URL)
 
     // Base query (avoid selecting optional columns that may not exist across envs)
     const query = `
       SELECT 
         u.id, u.email, u.first_name, u.last_name, u.full_name, u.location, u.avatar_url, u.phone, u.bio, u.position, u.completed_data, u.birthday, u.slug, u.created_at, u.updated_at,
-        u.gender, u.gender_custom, u.username, u.company,
+        u.gender, u.gender_custom, u.username, u.company, u.admin_level,
         u.location_place_id, u.location_lat, u.location_lng, u.location_city, u.location_province, u.location_country, u.location_barangay, u.location_region,
         COALESCE(los.overall_score, 0) as overall_score
       FROM users u
@@ -26,7 +27,11 @@ export async function GET(request: NextRequest) {
       WHERE u.id = $1
     `
     
+    console.log('🔍 API: Executing query:', query)
+    console.log('🔍 API: Query parameters:', [userId])
+    
     const result = await pool.query(query, [userId])
+    console.log('🔍 API: Query result rows count:', result.rows.length)
 
     if (result.rows.length === 0) {
       console.log('❌ API: User not found:', userId)
@@ -53,6 +58,7 @@ export async function GET(request: NextRequest) {
       gender_custom: user.gender_custom,
       username: user.username,
       company: user.company,
+      admin_level: user.admin_level,
       location_place_id: user.location_place_id,
       location_lat: user.location_lat,
       location_lng: user.location_lng,
@@ -116,6 +122,7 @@ export async function PUT(request: NextRequest) {
     if (available.has('gender_custom')) selectFields.push('gender_custom')
     if (available.has('username')) selectFields.push('username')
     if (available.has('company')) selectFields.push('company')
+    if (available.has('admin_level')) selectFields.push('admin_level')
     
     const selectQuery = `SELECT ${selectFields.join(', ')} FROM users WHERE id = $1`
     console.log('🔍 SELECT query:', selectQuery)
@@ -153,6 +160,7 @@ export async function PUT(request: NextRequest) {
     const genderCustom = available.has('gender_custom') ? (updateData.gender_custom ?? existing.gender_custom) : null
     const username = available.has('username') ? (updateData.username ?? existing.username) : null
     const company = available.has('company') ? (updateData.company ?? existing.company) : null
+    const adminLevel = available.has('admin_level') ? (updateData.admin_level ?? existing.admin_level) : null
 
     console.log('🔧 Processed field values:', {
       firstName, lastName, location, avatarUrl, phone, bio, position, gender, genderCustom, company,
@@ -205,6 +213,7 @@ export async function PUT(request: NextRequest) {
     if (available.has('gender_custom')) optionalFields.push({ col: 'gender_custom', val: genderCustom })
     if (available.has('username')) optionalFields.push({ col: 'username', val: username })
     if (available.has('company')) optionalFields.push({ col: 'company', val: company })
+    if (available.has('admin_level')) optionalFields.push({ col: 'admin_level', val: adminLevel })
 
     const allFields = [...baseFields, ...optionalFields]
     const setClauses: string[] = []

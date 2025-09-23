@@ -49,45 +49,12 @@ export default function CandidatesPage() {
     setShowSignInModal(true);
   };
   const [candidates, setCandidates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState([
     { label: "Total", count: 0, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: Users },
     { label: "Profile Complete", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
   ]);
-
-  // Fetch real candidates data from database
-  useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch('/api/recruiter/candidates', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Failed to load candidates');
-        
-        const data = await response.json();
-        if (data.success) {
-          setCandidates(data.candidates);
-          
-          // Update stats
-          const profileCount = data.candidates.filter((candidate: any) => candidate.profileComplete).length;
-          
-          setStats([
-            { label: "Total", count: data.total, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: Users },
-            { label: "Profile Complete", count: profileCount, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
-          ]);
-        } else {
-          throw new Error(data.error || 'Failed to load candidates');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load candidates');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCandidates();
-  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,11 +93,7 @@ export default function CandidatesPage() {
     return null;
   };
 
-  const filteredCandidates = candidates.filter(candidate =>
-    candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    candidate.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCandidates: any[] = [];
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -163,11 +126,7 @@ export default function CandidatesPage() {
                 <div>
                   <p className="text-sm font-medium text-blue-600 mb-1">Total Candidates</p>
                   <div className="text-3xl font-bold text-blue-900">
-                    {loading ? (
-                      <span className="inline-block w-12 h-8 bg-blue-300 animate-pulse rounded"></span>
-                    ) : (
-                      candidates.length.toLocaleString()
-                    )}
+                    0
                   </div>
                   <p className="text-sm text-blue-700 mt-2">Qualified professionals</p>
                 </div>
@@ -184,11 +143,7 @@ export default function CandidatesPage() {
                 <div>
                   <p className="text-sm font-medium text-emerald-600 mb-1">Profile Complete</p>
                   <div className="text-3xl font-bold text-emerald-900">
-                    {loading ? (
-                      <span className="inline-block w-12 h-8 bg-emerald-300 animate-pulse rounded"></span>
-                    ) : (
-                      candidates.filter(c => c.profileComplete).length.toLocaleString()
-                    )}
+                    0
                   </div>
                   <p className="text-sm text-emerald-700 mt-2">Ready for interviews</p>
                 </div>
@@ -232,28 +187,8 @@ export default function CandidatesPage() {
           </CardContent>
         </Card>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading candidates...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <Card className="bg-white border border-red-200 shadow-sm">
-            <CardContent className="p-6">
-              <div className="text-center text-red-600">
-                <p className="text-lg font-medium">Error loading candidates</p>
-                <p className="text-sm">{error}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Candidates List */}
-        {!loading && !error && (
+        {(
           <div className="space-y-4">
             {filteredCandidates.length === 0 ? (
               <Card className="bg-white border border-gray-200 shadow-sm">
@@ -261,9 +196,9 @@ export default function CandidatesPage() {
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Users className="w-8 h-8 text-gray-400" />
                   </div>
-                  <p className="text-gray-600 mb-2">No candidates found</p>
+                  <p className="text-gray-600 mb-2">No applicants available</p>
                   <p className="text-gray-500 text-sm">
-                    {searchTerm ? 'Try adjusting your search terms' : 'No qualified candidates available yet'}
+                    There are currently no candidates in the system. Check back later for new applicants.
                   </p>
                 </CardContent>
               </Card>

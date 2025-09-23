@@ -35,17 +35,45 @@ export async function GET(request: NextRequest) {
 
       const user = userResult.rows[0];
 
-      // Get job details
-      const jobResult = await client.query(`
-        SELECT 
-          pjr.id, pjr.job_title, pjr.job_description, pjr.requirements, 
-          pjr.responsibilities, pjr.benefits, pjr.skills, pjr.experience_level,
-          pjr.industry, pjr.department, pjr.work_arrangement, pjr.salary_min, pjr.salary_max,
-          m.company as company_name
-        FROM processed_job_requests pjr
-        LEFT JOIN members m ON pjr.company_id = m.company_id
-        WHERE pjr.id = $1
-      `, [jobId]);
+      // Determine job type and query appropriate table
+      const isRecruiterJob = jobId.includes('-') || isNaN(Number(jobId));
+      let jobResult;
+      
+      if (isRecruiterJob) {
+        try {
+          jobResult = await client.query(`
+            SELECT 
+              rj.id, rj.job_title, rj.job_description, rj.requirements, 
+              rj.responsibilities, rj.benefits, rj.skills, rj.experience_level,
+              rj.industry, rj.department, rj.work_arrangement, rj.salary_min, rj.salary_max,
+              COALESCE(rj.company_id, u.company) as company_name, 'recruiter_jobs' as source
+            FROM recruiter_jobs rj
+            LEFT JOIN users u ON u.id = rj.recruiter_id
+            WHERE rj.id = $1
+          `, [jobId]);
+        } catch (error) {
+          console.error('Error fetching recruiter job:', error);
+          jobResult = { rows: [] };
+        }
+      } else {
+        try {
+          jobResult = await client.query(`
+            SELECT 
+              pjr.id, pjr.job_title, pjr.job_description, pjr.requirements, 
+              pjr.responsibilities, pjr.benefits, pjr.skills, pjr.experience_level,
+              pjr.industry, pjr.department, pjr.work_arrangement, pjr.salary_min, pjr.salary_max,
+              m.company as company_name, 'processed_job_requests' as source
+            FROM processed_job_requests pjr
+            LEFT JOIN members m ON pjr.company_id = m.company_id
+            WHERE pjr.id = $1
+          `, [jobId]);
+        } catch (error) {
+          console.error('Error fetching processed job:', error);
+          jobResult = { rows: [] };
+        }
+      }
+
+      // jobResult is already set above
 
       if (jobResult.rows.length === 0) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
