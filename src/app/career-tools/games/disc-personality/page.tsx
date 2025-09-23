@@ -151,7 +151,7 @@ interface QuestionResponse {
 
 export default function FilipinoDiscGame() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   
   const [gameState, setGameState] = useState<GameState>({
     currentQuestion: 0,
@@ -181,6 +181,9 @@ export default function FilipinoDiscGame() {
   const [showSpiritReveal, setShowSpiritReveal] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
   const [aiAssessment, setAiAssessment] = useState<string | null>(null);
+  const [isGeneratingAIAssessment, setIsGeneratingAIAssessment] = useState(false);
+  const [aiBpoRoles, setAiBpoRoles] = useState<any[] | null>(null);
+  const [isGeneratingBpoRoles, setIsGeneratingBpoRoles] = useState(false);
 
   // Sound effects for spirit selection
   const playSpiritSound = (discType: string) => {
@@ -275,7 +278,49 @@ export default function FilipinoDiscGame() {
   // Randomize choice order to prevent pattern recognition
   const shuffledOptions = currentScenario?.options ? [...currentScenario.options].sort(() => Math.random() - 0.5) : [];
   
+	// Style helpers for DISC options
+	const getDiscStyles = (disc: string) => {
+		switch (disc) {
+			case 'D':
+				return {
+					bg: 'from-red-500/10 to-red-600/10',
+					border: 'border-red-500/40',
+					ring: 'ring-red-500/30',
+					text: 'text-red-300'
+				}
+			case 'I':
+				return {
+					bg: 'from-yellow-500/10 to-yellow-600/10',
+					border: 'border-yellow-500/40',
+					ring: 'ring-yellow-500/30',
+					text: 'text-yellow-300'
+				}
+			case 'S':
+				return {
+					bg: 'from-green-500/10 to-green-600/10',
+					border: 'border-green-500/40',
+					ring: 'ring-green-500/30',
+					text: 'text-green-300'
+				}
+			case 'C':
+				return {
+					bg: 'from-blue-500/10 to-blue-600/10',
+					border: 'border-blue-500/40',
+					ring: 'ring-blue-500/30',
+					text: 'text-blue-300'
+				}
+			default:
+				return {
+					bg: 'from-cyan-500/10 to-purple-600/10',
+					border: 'border-white/10',
+					ring: 'ring-white/10',
+					text: 'text-gray-300'
+				}
+		}
+	}
+  
   const totalQuestions = FILIPINO_DISC_SCENARIOS.length + (gameState.personalizedQuestions?.length || 0);
+  const progressPercent = Math.min(100, Math.round(((gameState.currentQuestion + 1) / Math.max(totalQuestions, 1)) * 100));
   
   // Auto-create user profile from existing data
   useEffect(() => {
@@ -386,7 +431,7 @@ export default function FilipinoDiscGame() {
     }
   };
 
-	const completeGame = () => {
+  const completeGame = () => {
     setGameState(prev => ({
       ...prev,
       gameCompleted: true,
@@ -411,8 +456,133 @@ export default function FilipinoDiscGame() {
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [currentScenario, gameState.gameStarted, gameState.gameCompleted, gameState.isGeneratingPersonalized])
 
-  const generateAIAssessment = async (results: any, allResponses: any[]) => {
-    if (!user) return;
+  const generateAIBpoRoles = async (results: any, allResponses: any[]): Promise<any[]> => {
+    if (!user) return [];
+    
+    setIsGeneratingBpoRoles(true);
+    
+    try {
+      console.log('💼 Generating AI BPO roles for user:', user.id);
+      
+      // Get user's current position from user metadata or profile
+      const currentPosition = user.user_metadata?.position || user.user_metadata?.current_position || 'Not specified';
+      const currentExperience = user.user_metadata?.bio || 'No bio available';
+      const location = user.user_metadata?.location || 'Philippines';
+      
+      const bpoRolesPrompt = `You are an expert BPO career consultant. Based on this candidate's DISC personality and current position, recommend 4 suitable BPO job titles.
+
+CANDIDATE:
+- Current Position: ${currentPosition}
+- Primary DISC Type: ${results.primaryType} (${results.scores[results.primaryType]}%)
+- Secondary Type: ${results.secondaryType} (${results.scores[results.secondaryType]}%)
+
+Return ONLY a JSON array of exactly 4 job titles:
+[
+  {"title": "Customer Experience Specialist"},
+  {"title": "Quality Assurance Analyst"},
+  {"title": "Team Lead - Technical Support"},
+  {"title": "Data Analytics Specialist"}
+]
+
+Focus on real BPO roles in the Philippines that match their personality and experience level.`;
+
+      const response = await fetch('/api/games/disc/personalized', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          responses: allResponses,
+          discScores: results.scores,
+          prompt: bpoRolesPrompt,
+          isAssessment: true // Reuse the same endpoint
+        })
+      });
+
+      let generatedRoles: any[] = [];
+      if (response.ok) {
+        const data = await response.json();
+        const aiResponse = data.aiAssessment || '';
+        
+        // Try to extract JSON from the AI response
+        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          try {
+            generatedRoles = JSON.parse(jsonMatch[0]);
+            console.log('✅ AI BPO roles generated:', generatedRoles.length);
+          } catch (parseError) {
+            console.error('Error parsing BPO roles JSON:', parseError);
+            // Fallback to default roles
+            generatedRoles = [
+              { title: "Customer Service Representative" },
+              { title: "Technical Support Specialist" },
+              { title: "Quality Assurance Analyst" },
+              { title: "Team Lead" }
+            ];
+          }
+        } else {
+          console.error('No JSON found in BPO roles response');
+          generatedRoles = [
+            { title: "Customer Service Representative" },
+            { title: "Technical Support Specialist" },
+            { title: "Quality Assurance Analyst" },
+            { title: "Team Lead" }
+          ];
+        }
+      } else {
+        // Fallback roles based on DISC type
+        const discBasedRoles = {
+          'D': [
+            { title: "Team Lead - Operations" },
+            { title: "Quality Assurance Supervisor" },
+            { title: "Training Manager" },
+            { title: "Customer Experience Manager" }
+          ],
+          'I': [
+            { title: "Customer Experience Specialist" },
+            { title: "Training and Development" },
+            { title: "Team Lead - Customer Support" },
+            { title: "Sales Representative" }
+          ],
+          'S': [
+            { title: "Technical Support Specialist" },
+            { title: "Data Entry Specialist" },
+            { title: "Customer Service Representative" },
+            { title: "Quality Assurance Analyst" }
+          ],
+          'C': [
+            { title: "Data Analytics Specialist" },
+            { title: "Quality Assurance Analyst" },
+            { title: "Technical Documentation" },
+            { title: "Process Improvement Specialist" }
+          ]
+        };
+        generatedRoles = discBasedRoles[results.primaryType as keyof typeof discBasedRoles] || discBasedRoles['I'];
+      }
+      
+      // Set state for UI display
+      setAiBpoRoles(generatedRoles);
+      console.log('🎯 AI BPO Roles generated and returned:', generatedRoles.length, 'roles');
+      return generatedRoles;
+      
+    } catch (error) {
+      console.error('❌ AI BPO roles generation failed:', error);
+      const fallbackRoles = [
+        { title: "Customer Service Representative" },
+        { title: "Technical Support Specialist" },
+        { title: "Quality Assurance Analyst" },
+        { title: "Team Lead" }
+      ];
+      setAiBpoRoles(fallbackRoles);
+      return fallbackRoles;
+    } finally {
+      setIsGeneratingBpoRoles(false);
+    }
+  };
+
+  const generateAIAssessment = async (results: any, allResponses: any[]): Promise<string> => {
+    if (!user) return '';
+    
+    setIsGeneratingAIAssessment(true);
     
     try {
       console.log('🧠 Generating AI assessment with ALL', allResponses.length, 'responses');
@@ -449,14 +619,27 @@ Make it deeply personal and actionable based on their actual choices.`;
         })
       });
 
+      let generatedAssessment = '';
       if (response.ok) {
         const data = await response.json();
-        setAiAssessment(data.aiAssessment || `Based on your complete ${allResponses.length}-question assessment, you demonstrate strong ${results.primaryType === 'D' ? 'leadership and decisive action' : results.primaryType === 'I' ? 'social influence and team building' : results.primaryType === 'S' ? 'reliability and steady support' : 'analytical thinking and systematic approach'}. Your response patterns show authentic decision-making that aligns well with Filipino workplace values and BPO industry requirements.`);
+        generatedAssessment = data.aiAssessment || `Based on your complete ${allResponses.length}-question assessment, you demonstrate strong ${results.primaryType === 'D' ? 'leadership and decisive action' : results.primaryType === 'I' ? 'social influence and team building' : results.primaryType === 'S' ? 'reliability and steady support' : 'analytical thinking and systematic approach'}. Your response patterns show authentic decision-making that aligns well with Filipino workplace values and BPO industry requirements.`;
         console.log('✅ AI assessment generated using:', data.generatedBy);
+      } else {
+        generatedAssessment = `Your comprehensive ${allResponses.length}-question assessment reveals a ${results.primaryType === 'D' ? 'dynamic leader' : results.primaryType === 'I' ? 'natural influencer' : results.primaryType === 'S' ? 'steady supporter' : 'analytical thinker'} with strong potential. Your response patterns show consistent decision-making that indicates excellent professional capabilities and cultural adaptability in the Philippine workplace.`;
       }
+      
+      // Set state for UI display
+      setAiAssessment(generatedAssessment);
+      console.log('🎯 AI Assessment generated and returned:', generatedAssessment.length, 'characters');
+      return generatedAssessment;
+      
     } catch (error) {
       console.log('❌ AI assessment failed, using enhanced fallback');
-      setAiAssessment(`Your comprehensive ${allResponses.length}-question assessment reveals a ${results.primaryType === 'D' ? 'dynamic leader' : results.primaryType === 'I' ? 'natural influencer' : results.primaryType === 'S' ? 'steady supporter' : 'analytical thinker'} with strong potential. Your response patterns show consistent decision-making that indicates excellent professional capabilities and cultural adaptability in the Philippine workplace.`);
+      const fallbackAssessment = `Your comprehensive ${allResponses.length}-question assessment reveals a ${results.primaryType === 'D' ? 'dynamic leader' : results.primaryType === 'I' ? 'natural influencer' : results.primaryType === 'S' ? 'steady supporter' : 'analytical thinker'} with strong potential. Your response patterns show consistent decision-making that indicates excellent professional capabilities and cultural adaptability in the Philippine workplace.`;
+      setAiAssessment(fallbackAssessment);
+      return fallbackAssessment;
+    } finally {
+      setIsGeneratingAIAssessment(false);
     }
   };
 
@@ -485,8 +668,8 @@ Make it deeply personal and actionable based on their actual choices.`;
       timestamp: new Date()
     };
 
-    // Calculate XP and achievements
-    let xpGain = Math.floor(Math.random() * 15) + 15; // Base 15-30 XP
+    // Calculate XP per question (small amount per question)
+    let xpGain = 5; // 5 XP per question answered
     const newAchievements = [...gameState.achievements];
     
     // Streak system
@@ -496,7 +679,7 @@ Make it deeply personal and actionable based on their actual choices.`;
     if (disc === gameState.lastAnswer) {
       newStreak += 1;
       newCombo += 1;
-      xpGain += Math.floor(newStreak * 3); // Bonus XP for streaks
+      xpGain += Math.floor(newStreak * 2); // Bonus XP for streaks (reduced)
     } else {
       newStreak = 1;
       newCombo = 0;
@@ -587,47 +770,115 @@ Make it deeply personal and actionable based on their actual choices.`;
         authenticity: 90 // High for demo purposes
     };
 
-      // Generate AI assessment
-      generateAIAssessment(results, gameState.responses);
+      // Calculate final XP bonus using the same formula as database
+      const durationSeconds = Math.floor((Date.now() - (gameState.sessionStartTime?.getTime() || Date.now())) / 1000);
+      const completionBonusXP = Math.round(
+        (results.confidence * 2) + 
+        (results.culturalAlignment * 1.5) + 
+        (gameState.responses.length * 5) +
+        (durationSeconds < 600 ? 50 : 0) // Speed bonus for under 10 minutes
+      );
+      
+      // Calculate badges using same logic as database
+      const finalBadges = results.confidence >= 85 ? ['High Confidence Achievement'] : [];
+      
+      // Update XP and badges with final values
+      setGameState(prev => ({
+        ...prev,
+        xpPoints: completionBonusXP, // Set to final calculated XP (not accumulative)
+        achievements: finalBadges // Set to final badges
+      }));
+      
+      console.log('🎯 Final XP calculated:', completionBonusXP, 'points');
+      console.log('📊 XP Breakdown:', {
+        confidenceXP: results.confidence * 2,
+        culturalXP: results.culturalAlignment * 1.5,
+        questionXP: gameState.responses.length * 5,
+        speedBonus: durationSeconds < 600 ? 50 : 0,
+        duration: `${Math.floor(durationSeconds / 60)}m ${durationSeconds % 60}s`,
+        badges: finalBadges.length
+      });
+
+      // Generate AI assessment and BPO roles - WAIT for both to complete and capture results
+      console.log('🤖 Starting AI analysis...');
+      const [generatedAssessment, generatedBpoRoles] = await Promise.all([
+        generateAIAssessment(results, gameState.responses),
+        generateAIBpoRoles(results, gameState.responses)
+      ]);
+      console.log('✅ AI analysis completed');
+      console.log('📝 Generated AI Assessment:', generatedAssessment.length, 'characters');
+      console.log('💼 Generated BPO Roles:', generatedBpoRoles.length, 'roles');
 
     setDiscResult(results);
       setShowSpiritReveal(false);
     setShowResults(true);
 
-      // Save complete session to database
+      // Save complete session to database (AI data should now be available)
       console.log('💾 Saving complete DISC session to database');
+      console.log('🔑 User info:', { id: user?.id, email: user?.email });
+      console.log('📊 Session data:', {
+        responses: gameState.responses.length,
+        scores: gameState.scores,
+        hasAiAssessment: !!generatedAssessment,
+        aiAssessmentLength: generatedAssessment?.length || 0,
+        hasBpoRoles: !!generatedBpoRoles && generatedBpoRoles.length > 0,
+        bpoRolesCount: generatedBpoRoles?.length || 0,
+        bpoRolesPreview: generatedBpoRoles?.slice(0, 2).map(r => r?.title) || []
+      });
+      
       try {
-        await fetch('/api/games/disc/session', {
+        console.log('📤 Sending AI data to database:', {
+          aiAssessmentPreview: generatedAssessment?.substring(0, 100) + '...',
+          bpoRolesData: generatedBpoRoles
+        });
+        
+        const response = await fetch('/api/games/disc/session', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || 'no-token'}`
           },
-						body: JSON.stringify({
-							userId: user?.id,
-							sessionData: {
-								sessionStartTime: gameState.sessionStartTime,
-								totalResponses: gameState.responses.length,
-								completionTime: Math.floor((Date.now() - (gameState.sessionStartTime?.getTime() || Date.now())) / 1000),
-								culturalContexts: ['FAMILY', 'WORK', 'SOCIAL', 'TRAFFIC', 'MONEY', 'CRISIS'],
-								personalizedQuestionsUsed: gameState.personalizedQuestions.length
-							},
-							coreResponses: gameState.responses.slice(0, 30),
-							coreScores: gameState.scores,
-							personalizedResponses: gameState.responses.slice(30),
-							personalizedQuestions: gameState.personalizedQuestions,
-							finalResults: results,
-							aiAssessment: aiAssessment
-						})
+          body: JSON.stringify({
+						sessionStartTime: gameState.sessionStartTime,
+            sessionData: {
+							totalResponses: gameState.responses.length,
+							completionTime: Math.floor((Date.now() - (gameState.sessionStartTime?.getTime() || Date.now())) / 1000),
+							culturalContexts: ['FAMILY', 'WORK', 'SOCIAL', 'TRAFFIC', 'MONEY', 'CRISIS'],
+							personalizedQuestionsUsed: gameState.personalizedQuestions.length
+            },
+            coreResponses: gameState.responses.slice(0, 30),
+            coreScores: gameState.scores,
+            personalizedResponses: gameState.responses.slice(30),
+            personalizedQuestions: gameState.personalizedQuestions,
+						finalResults: results,
+						aiAssessment: generatedAssessment,
+						aiBpoRoles: generatedBpoRoles,
+						userContext: {
+							position: user?.user_metadata?.position || user?.user_metadata?.current_position,
+							location: user?.user_metadata?.location,
+							bio: user?.user_metadata?.bio
+            }
+          })
         });
+        
+        console.log('🌐 API Response status:', response.status);
+        const responseData = await response.json();
+        console.log('📋 API Response data:', responseData);
+        
+        if (response.ok) {
         console.log('✅ DISC session saved successfully');
+        } else {
+          console.error('❌ API returned error:', responseData);
+        }
       } catch (error) {
         console.error('❌ Failed to save DISC session:', error);
+        console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
       }
     }, 5000);
   };
 
   const resetGame = () => {
-	setGameState({
+    setGameState({
       currentQuestion: 0,
       scores: { D: 0, I: 0, S: 0, C: 0 },
       gameStarted: false,
@@ -660,7 +911,7 @@ Make it deeply personal and actionable based on their actual choices.`;
     ];
 
     return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
+			<div className="min-h-screen cyber-grid pb-40">
         <Header />
         <div className="pt-16 relative z-10 flex items-center justify-center min-h-screen">
           <Card className="disc-game-screen max-w-2xl mx-auto">
@@ -726,7 +977,7 @@ Make it deeply personal and actionable based on their actual choices.`;
   // Show loading screen for personalized question generation
   if (gameState.isGeneratingPersonalized) {
     return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
+			<div className="min-h-screen cyber-grid pb-40">
         <Header />
         <div className="pt-16 relative z-10 flex items-center justify-center min-h-screen">
           <Card className="disc-game-screen max-w-2xl mx-auto">
@@ -767,7 +1018,7 @@ Make it deeply personal and actionable based on their actual choices.`;
     const personalityType = ANIMAL_PERSONALITIES[discResult.primaryType as keyof typeof ANIMAL_PERSONALITIES];
 
     return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
+			<div className="min-h-screen cyber-grid pb-40">
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
@@ -881,13 +1132,27 @@ Make it deeply personal and actionable based on their actual choices.`;
                     </p>
                   </div>
 
-				{typeof aiAssessment === 'string' && (
+				{/* AI Assessment Section - Show loading or content */}
           <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg p-6">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="h-6 w-6 text-purple-400" />
               <h4 className="text-xl font-semibold text-purple-300">🧠 AI Personal Assessment</h4>
+						{isGeneratingAIAssessment && (
+							<div className="flex items-center gap-2 ml-auto">
+								<div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent"></div>
+								<span className="text-xs text-purple-300">Analyzing...</span>
+							</div>
+						)}
             </div>
             
+					{isGeneratingAIAssessment ? (
+						<div className="text-center py-8">
+							<div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+							<p className="text-purple-300 text-lg font-medium">AI is analyzing your personality...</p>
+							<p className="text-gray-400 text-sm mt-2">Examining your response patterns and cultural alignment</p>
+						</div>
+					) : typeof aiAssessment === 'string' ? (
+						<>
             {/* Visual Response Pattern Analysis */}
             <div className="mb-6 p-4 bg-black/20 rounded-lg">
               <h5 className="text-sm font-semibold text-cyan-300 mb-3">📊 Response Pattern Analysis</h5>
@@ -1018,17 +1283,55 @@ Make it deeply personal and actionable based on their actual choices.`;
                 ))}
               </div>
                     </div>
+						</>
+					) : (
+						<div className="text-center py-6">
+							<p className="text-gray-400">AI assessment will appear here once generated.</p>
                   </div>
                 )}
+				</div>
                 </CardContent>
               </Card>
 
-              {/* BPO Career Insights */}
+              {/* AI-Powered BPO Career Insights */}
               <Card className="disc-game-screen mb-8">
                 <CardHeader>
+                  <div className="flex items-center justify-between">
                   <CardTitle className="text-white">💼 Perfect BPO Roles for You</CardTitle>
+                    {isGeneratingBpoRoles && (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400 border-t-transparent"></div>
+                        <span className="text-xs text-cyan-300">AI Analyzing...</span>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
+                  {isGeneratingBpoRoles ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent mx-auto mb-4"></div>
+                      <p className="text-cyan-300 text-lg font-medium">AI is finding your perfect BPO roles...</p>
+                      <p className="text-gray-400 text-sm mt-2">Analyzing your personality against {user?.user_metadata?.position || 'your background'}</p>
+                    </div>
+                  ) : aiBpoRoles && aiBpoRoles.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Brain className="h-5 w-5 text-cyan-400" />
+                        <span className="text-sm text-cyan-300">Personalized for your {user?.user_metadata?.position || 'background'}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {aiBpoRoles.map((role: any, index: number) => (
+                          <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                            <Briefcase className="h-5 w-5 text-cyan-400" />
+                            <span className="text-white">{role.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Fallback to default roles
+                    <div className="space-y-4">
+                      <div className="text-sm text-gray-400 mb-4">Based on your {personalityType.animal} personality:</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {personalityType.bpoRoles.map((role, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
@@ -1037,6 +1340,8 @@ Make it deeply personal and actionable based on their actual choices.`;
                           </div>
                       ))}
                     </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1082,7 +1387,7 @@ Make it deeply personal and actionable based on their actual choices.`;
   // Welcome screen
   if (!gameState.gameStarted) {
     return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
+		<div className="min-h-screen cyber-grid pb-40">
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
@@ -1189,7 +1494,7 @@ Make it deeply personal and actionable based on their actual choices.`;
       
       <Header />
       
-      <div className="pt-16 relative z-10 h-screen">
+		<div className="pt-16 relative z-10 min-h-screen">
         <div className="container mx-auto px-4 md:px-6 py-4 h-full">
           {/* Compact Header */}
           <motion.div
@@ -1224,18 +1529,16 @@ Make it deeply personal and actionable based on their actual choices.`;
           {/* Main Game Layout */}
           <div className="flex gap-4 h-[calc(100vh-140px)]">
             {/* Left Side - Progress and Stats */}
-            <div className="w-1/3 space-y-4">
-				{/* Removed animal progress cards per request */}
-
+				<div className="w-1/3 h-full grid grid-rows-2 gap-4">
               {/* Filipino Personality Journey */}
               <Card className="disc-game-screen">
-                  <CardContent className="p-4">
+						<CardContent className="p-4 h-full flex flex-col">
                     <div className="text-center mb-3">
                       <h3 className="text-lg font-bold text-cyan-300">🇵🇭 Personality Journey</h3>
                       <div className="text-xs text-gray-400">Discovering Your Filipino Work Style</div>
                       </div>
                     
-                    <div className="space-y-3">
+                    <div className="flex-1 space-y-3">
                       {/* Current Context */}
                       <div className="bg-black/20 rounded-lg p-3">
                         <div className="text-xs text-gray-400 mb-1">Current Context</div>
@@ -1287,14 +1590,14 @@ Make it deeply personal and actionable based on their actual choices.`;
                   </CardContent>
                 </Card>
 
-            {/* Animated Character Theater - Top Box */}
+            {/* Spirit Stage */}
             <Card className="disc-game-screen">
-              <CardContent className="p-6">
-                <div className="text-center mb-4">
-                  <div className="text-lg font-bold text-cyan-300 mb-4">🎭 Spirit Stage 🎭</div>
+						<CardContent className="p-4 h-full flex flex-col">
+							<div className="text-center flex flex-col h-full">
+								<div className="text-lg font-bold text-cyan-300 mb-3">🎭 Spirit Stage 🎭</div>
                   
-                  {/* Main Character Stage */}
-                  <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-lg p-8 mb-4 border border-purple-500/30 h-32 flex items-center justify-center">
+                  {/* Main Character Stage - takes up remaining space */}
+							<div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-lg p-4 border border-purple-500/30 flex-1 flex items-center justify-center min-h-[200px]">
                     {selectedOption && showReaction && (
               <motion.div
                         key={`${gameState.currentQuestion}-${selectedOption}`}
@@ -1321,7 +1624,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                                   scale: [1, 1.2, 1]
                                 }}
                                 transition={{ duration: 0.8, repeat: 2 }}
-                                className="text-8xl"
+                                className="text-9xl"
                                 style={{ filter: 'drop-shadow(0 0 20px #ef4444)' }}
                               >
                                 🦅
@@ -1335,7 +1638,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                                   scale: [1, 1.3, 1]
                                 }}
                                 transition={{ duration: 1, repeat: 2 }}
-                                className="text-8xl"
+                                className="text-9xl"
                                 style={{ filter: 'drop-shadow(0 0 20px #ffd23f)' }}
                               >
                                 🦚
@@ -1349,7 +1652,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                                   scale: [1, 1.1, 1]
                                 }}
                                 transition={{ duration: 1.2, repeat: 2 }}
-                                className="text-8xl"
+                                className="text-9xl"
                                 style={{ filter: 'drop-shadow(0 0 20px #10b981)' }}
                               >
                                 🐢
@@ -1363,7 +1666,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                                   scale: [1, 1.2, 1]
                                 }}
                                 transition={{ duration: 0.9, repeat: 2 }}
-                                className="text-8xl"
+                                className="text-9xl"
                                 style={{ filter: 'drop-shadow(0 0 20px #3b82f6)' }}
                               >
                                 🦉
@@ -1377,123 +1680,125 @@ Make it deeply personal and actionable based on their actual choices.`;
                     
                     {/* Default state when no selection */}
                     {!selectedOption && (
-                      <div className="text-6xl opacity-30">🔮</div>
+								<div className="text-8xl opacity-30">🔮</div>
                     )}
                        </div>
                   
-                  <div className="text-center text-sm text-gray-400">
+							<div className="text-center text-sm text-gray-400 mt-3 font-medium">
                     Question {gameState.currentQuestion + 1} of {totalQuestions}
                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-            {/* Spirit Collection - Bottom Box (Keep Same) */}
-            <Card className="disc-game-screen">
-              <CardContent className="p-4">
-                <div className="text-center mb-4">
-                  <div className="text-sm text-gray-400 mb-3">Ancient Spirits Gathering</div>
-                  <div className="flex justify-center gap-6">
-                    <motion.div 
-                      className="flex flex-col items-center"
-                      animate={{ scale: gameState.scores.D > 0 ? [1, 1.2, 1] : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="text-3xl mb-1" style={{ opacity: gameState.scores.D > 0 ? 1 : 0.3 }}>🦅</div>
-                      <div className="text-xs text-red-400 font-bold">{gameState.scores.D}</div>
-                    </motion.div>
-                    <motion.div 
-                      className="flex flex-col items-center"
-                      animate={{ scale: gameState.scores.I > 0 ? [1, 1.2, 1] : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="text-3xl mb-1" style={{ opacity: gameState.scores.I > 0 ? 1 : 0.3 }}>🦚</div>
-                      <div className="text-xs text-yellow-400 font-bold">{gameState.scores.I}</div>
-                    </motion.div>
-                    <motion.div 
-                      className="flex flex-col items-center"
-                      animate={{ scale: gameState.scores.S > 0 ? [1, 1.2, 1] : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="text-3xl mb-1" style={{ opacity: gameState.scores.S > 0 ? 1 : 0.3 }}>🐢</div>
-                      <div className="text-xs text-green-400 font-bold">{gameState.scores.S}</div>
-                    </motion.div>
-                    <motion.div 
-                      className="flex flex-col items-center"
-                      animate={{ scale: gameState.scores.C > 0 ? [1, 1.2, 1] : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="text-3xl mb-1" style={{ opacity: gameState.scores.C > 0 ? 1 : 0.3 }}>🦉</div>
-                      <div className="text-xs text-blue-400 font-bold">{gameState.scores.C}</div>
-              </motion.div>
-                  </div>
-                </div>
-                
-                <div className="text-center text-xs text-gray-500">
-                  Question {gameState.currentQuestion + 1} of {totalQuestions} • The spirits are choosing you...
-                </div>
-              </CardContent>
-            </Card>
             </div>
 
             {/* Right Side - Main Game Content */}
-            <div className="w-2/3">
+				<div className="w-2/3 h-full">
               <motion.div
                 key={gameState.currentQuestion}
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="h-full"
               >
-                <Card className={`disc-game-screen h-full scenario-${currentScenario?.context.toLowerCase()}`}>
-                  <CardContent className="p-6 h-full flex flex-col">
-                    {/* Scenario Header */}
-                    <div className="text-center mb-4">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <ContextIcon className="h-6 w-6 text-cyan-400" />
-                        <span className="text-sm text-cyan-400 font-medium">{currentScenario?.context}</span>
+                <div className={`disc-game-screen h-full rounded-xl border border-white/10 bg-black/30 pt-2 pb-0 px-2 scenario-${currentScenario?.context.toLowerCase()} flex flex-col`}>
+                  {/* Compact top header with progress */}
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <div className="flex items-center gap-2">
+                      <ContextIcon className="h-5 w-5 text-cyan-400" />
+                      <span className="px-2 py-0.5 rounded-full bg-white/5 border border-cyan-400/30 text-cyan-300 text-[10px] tracking-wide uppercase">{currentScenario?.context}</span>
                       </div>
-                      <h2 className="text-2xl font-bold gradient-text mb-2">{currentScenario?.title}</h2>
+                    <div className="flex-1">
+                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-cyan-500 to-purple-500" style={{ width: `${progressPercent}%` }} />
                     </div>
-
-                                         {/* Scenario Description */}
-                    <div className="mb-6 flex-1">
-                      <div className="scenario-background p-4 mb-4">
-                        <p className="text-lg text-gray-200">{currentScenario?.scenario}</p>
                        </div>
+                    <div className="text-[10px] text-gray-400 whitespace-nowrap">{gameState.currentQuestion + 1}/{totalQuestions}</div>
                      </div>
 
-                     {/* Options */}
-                     <div className="space-y-3">
-                      <h3 className="text-lg font-bold text-center mb-4 text-white">
-                        How do you respond? Choose your path! 🇵🇭
-                      </h3>
-                      {shuffledOptions.map((choice, index) => (
+                  {/* Title */}
+                  <h2 className="text-2xl font-extrabold text-center mb-2 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow">{currentScenario?.title}</h2>
+
+                  {/* Scenario */}
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-3 mb-1">
+                    <p className="text-lg text-gray-200 leading-relaxed">{currentScenario?.scenario}</p>
+                  </div>
+
+                  {/* Choices grid - force 2x2 */}
+                  <div className="grid grid-cols-2 gap-2 flex-1">
+                    {shuffledOptions.map((choice, index) => {
+                      const styles = getDiscStyles(choice.disc)
+                      return (
                         <motion.button
                           key={choice.id}
                           onClick={() => handleOptionSelect(choice.id, choice.disc, choice.reaction)}
                           disabled={selectedOption !== null}
-                          className={`choice-card w-full text-left transition-all ${
-                            selectedOption === choice.id 
-                              ? 'selected border-cyan-400' 
-                              : ''
-                          }`}
-                          whileHover={{ scale: selectedOption === null ? 1.02 : 1 }}
-                          whileTap={{ scale: 0.98 }}
-                          initial={{ opacity: 0, y: 20 }}
+                          className={`text-left transition-all rounded-lg border ${styles.border} bg-gradient-to-br ${styles.bg} ${selectedOption === choice.id ? `ring-2 ${styles.ring} scale-[1.005]` : 'hover:ring-1'} hover:translate-y-[-1px] hover:shadow-lg/30 backdrop-blur-sm`}
+                          whileHover={{ scale: selectedOption === null ? 1.01 : 1 }}
+                          whileTap={{ scale: 0.99 }}
+                          initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
+                          transition={{ delay: index * 0.05 }}
                         >
-                          <div className="flex items-start gap-3">
-                            <span className="text-2xl">🔮</span>
-                            <div>
-                              <div className="text-white">{choice.text}</div>
+                          <div className="flex items-start gap-4 p-4">
+                            <div className="text-2xl select-none">
+                              {choice.animal.split(' ')[0]}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-white font-semibold leading-snug text-base">{choice.text}</div>
+                              <div className={`mt-1 text-xs ${styles.text}`}>{choice.animal}</div>
                             </div>
                           </div>
                         </motion.button>
-                      ))}
+                      )
+                    })}
+                  </div>
+
+                  {/* Ancient Spirits Gathering moved below choices */}
+                  <div className="mt-2">
+                    <Card className="disc-game-screen py-1">
+                      <CardContent className="p-3">
+                        <div className="text-center mb-3">
+                          <div className="text-sm text-gray-300 mb-3">Ancient Spirits Gathering</div>
+                          <div className="flex justify-center gap-8 min-h-[128px] items-end">
+                            <motion.div 
+                              className="flex flex-col items-center"
+                              animate={{ scale: gameState.scores.D > 0 ? [1, 1.15, 1] : 1 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.D > 0 ? 1 : 0.3 }}>🦅</div>
+                              <div className="text-sm text-red-400 font-bold">{gameState.scores.D}</div>
+                            </motion.div>
+                            <motion.div 
+                              className="flex flex-col items-center"
+                              animate={{ scale: gameState.scores.I > 0 ? [1, 1.15, 1] : 1 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.I > 0 ? 1 : 0.3 }}>🦚</div>
+                              <div className="text-sm text-yellow-400 font-bold">{gameState.scores.I}</div>
+                            </motion.div>
+                            <motion.div 
+                              className="flex flex-col items-center"
+                              animate={{ scale: gameState.scores.S > 0 ? [1, 1.15, 1] : 1 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.S > 0 ? 1 : 0.3 }}>🐢</div>
+                              <div className="text-sm text-green-400 font-bold">{gameState.scores.S}</div>
+                            </motion.div>
+                            <motion.div 
+                              className="flex flex-col items-center"
+                              animate={{ scale: gameState.scores.C > 0 ? [1, 1.15, 1] : 1 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.C > 0 ? 1 : 0.3 }}>🦉</div>
+                              <div className="text-sm text-blue-400 font-bold">{gameState.scores.C}</div>
+                            </motion.div>
+                          </div>
                     </div>
                   </CardContent>
                 </Card>
+                  </div>
+                </div>
               </motion.div>
             </div>
           </div>
