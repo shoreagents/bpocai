@@ -7,13 +7,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('jobId');
+    const userId = searchParams.get('userId');
     const recruiterId = request.headers.get('x-user-id');
 
-    console.log('🔍 Request params:', { jobId, recruiterId });
+    console.log('🔍 Request params:', { jobId, userId, recruiterId });
 
-    if (!jobId) {
-      console.log('❌ No jobId provided');
-      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+    if (!jobId && !userId) {
+      console.log('❌ No jobId or userId provided');
+      return NextResponse.json({ error: 'Job ID or User ID is required' }, { status: 400 });
     }
 
     if (!recruiterId) {
@@ -91,6 +92,9 @@ export async function GET(request: NextRequest) {
             ra.status,
             ra.created_at,
             u.full_name,
+            u.first_name,
+            u.last_name,
+            u.username,
             u.email,
             u.phone,
             u.location,
@@ -131,6 +135,9 @@ export async function GET(request: NextRequest) {
           status: row.status,
           appliedAt: row.created_at,
           fullName: 'User data unavailable',
+          firstName: null,
+          lastName: null,
+          username: null,
           email: 'Email unavailable',
           phone: null,
           location: null,
@@ -160,6 +167,9 @@ export async function GET(request: NextRequest) {
         status: row.status,
         appliedAt: row.created_at,
         fullName: row.full_name,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        username: row.username,
         email: row.email,
         phone: row.phone,
         location: row.location,

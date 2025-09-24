@@ -38,6 +38,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
@@ -81,8 +82,12 @@ export default function ApplicantsPage() {
   const [selectedJobForModal, setSelectedJobForModal] = useState<any>(null);
   const [showApplicantStatusDropdown, setShowApplicantStatusDropdown] = useState<string | null>(null);
   const [isUpdatingApplicantStatus, setIsUpdatingApplicantStatus] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Fetch real job data from database
   const fetchJobs = async (isRefresh = false) => {
@@ -185,16 +190,19 @@ export default function ApplicantsPage() {
       if (showApplicantStatusDropdown) {
         setShowApplicantStatusDropdown(null);
       }
+      if (showStatusDropdown) {
+        setShowStatusDropdown(null);
+      }
     };
 
-    if (showApplicantStatusDropdown) {
+    if (showApplicantStatusDropdown || showStatusDropdown) {
       document.addEventListener('click', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [showApplicantStatusDropdown]);
+  }, [showApplicantStatusDropdown, showStatusDropdown]);
 
   // Refresh jobs when page comes into focus (e.g., when navigating from post-job page)
   useEffect(() => {
@@ -407,7 +415,8 @@ export default function ApplicantsPage() {
               : applicant
           )
         );
-        alert('✅ Applicant status updated successfully');
+        setSuccessMessage('Applicant status updated successfully');
+        setShowSuccessDialog(true);
       } else {
         const errorData = await response.json();
         alert(`❌ Failed to update applicant status: ${errorData.error || 'Unknown error'}`);
@@ -417,6 +426,46 @@ export default function ApplicantsPage() {
       alert('❌ Failed to update applicant status. Please try again.');
     } finally {
       setIsUpdatingApplicantStatus(false);
+    }
+  };
+
+  const handleJobStatusUpdate = async (jobId: string, newStatus: string) => {
+    setIsUpdatingStatus(true);
+    setShowStatusDropdown(null);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      const response = await fetch(`/api/recruiter/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        // Update the job in the local state
+        setJobs(prevJobs => 
+          prevJobs.map(job => 
+            job.originalId === jobId 
+              ? { ...job, status: newStatus }
+              : job
+          )
+        );
+        setSuccessMessage('Job status updated successfully');
+        setShowSuccessDialog(true);
+      } else {
+        const errorData = await response.json();
+        alert(`❌ Failed to update job status: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      alert(`❌ Failed to update job status: ${error.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -740,14 +789,68 @@ export default function ApplicantsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900 truncate">{job.title}</h3>
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
-                          job.status === 'new_request' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
-                          job.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                          job.status === 'inactive' ? 'bg-gray-50 text-gray-700 border-gray-200' : 
-                          'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                          {job.status.replace('_', ' ')}
-                        </span>
+                        <div className="flex items-center gap-1 relative">
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
+                            job.status === 'new_request' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                            job.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                            job.status === 'inactive' ? 'bg-gray-50 text-gray-700 border-gray-200' : 
+                            'bg-red-50 text-red-700 border-red-200'
+                          }`}>
+                            {job.status.replace('_', ' ')}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowStatusDropdown(showStatusDropdown === job.id ? null : job.id);
+                            }}
+                            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                            disabled={isUpdatingStatus}
+                          >
+                            <Edit3 className="w-3 h-3 text-gray-500" />
+                          </button>
+                          
+                          {/* Job Status Dropdown */}
+                          {showStatusDropdown === job.id && (
+                            <div className="absolute left-0 top-8 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleJobStatusUpdate(job.originalId, 'new_request');
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${job.status === 'new_request' ? 'bg-amber-50 text-amber-700' : 'text-gray-700'}`}
+                              >
+                                New Request
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleJobStatusUpdate(job.originalId, 'active');
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${job.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700'}`}
+                              >
+                                Active
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleJobStatusUpdate(job.originalId, 'inactive');
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${job.status === 'inactive' ? 'bg-gray-50 text-gray-700' : 'text-gray-700'}`}
+                              >
+                                Inactive
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleJobStatusUpdate(job.originalId, 'closed');
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${job.status === 'closed' ? 'bg-red-50 text-red-700' : 'text-gray-700'}`}
+                              >
+                                Closed
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <p className="text-sm font-medium text-gray-700 mb-1 truncate">{job.company}</p>
                       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-3">
@@ -1175,7 +1278,7 @@ export default function ApplicantsPage() {
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <span className="text-emerald-600 font-semibold text-lg">
-                                  {applicant.fullName?.charAt(0) || 'U'}
+                                  {(applicant.firstName || applicant.fullName)?.charAt(0) || 'U'}
                                 </span>
                               </div>
                               <div>
@@ -1349,7 +1452,9 @@ export default function ApplicantsPage() {
                                     )}
                                   </div>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-1">{applicant.email}</p>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  @{applicant.username || 'no-username'}
+                                </p>
                                 <div className="text-sm text-gray-500">
                                   Applied: <span className="text-gray-900 font-medium">
                                     {new Date(applicant.appliedAt).toLocaleDateString()}
@@ -1412,6 +1517,31 @@ export default function ApplicantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Success Alert Dialog */}
+      <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 text-sm">✓</span>
+              </div>
+              Success
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {successMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => setShowSuccessDialog(false)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
