@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
           // Compute session XP (overwrite strategy)
           const sessionXP = Math.round(
             (sessionInsert.confidence_score * 2) +
+            (sessionInsert.cultural_alignment * 1.5) +
             (sessionInsert.total_questions * 5) +
             (sessionInsert.duration_seconds < 600 ? 50 : 0)
           )
