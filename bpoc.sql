@@ -28,15 +28,6 @@ CREATE TYPE public."experience_level_enum" AS ENUM (
 	'mid-level',
 	'senior-level');
 
--- DROP TYPE public."game_difficulty_enum";
-
-CREATE TYPE public."game_difficulty_enum" AS ENUM (
-	'beginner',
-	'easy',
-	'intermediate',
-	'advanced',
-	'expert');
-
 -- DROP TYPE public."job_status_enum";
 
 CREATE TYPE public."job_status_enum" AS ENUM (
@@ -188,63 +179,6 @@ update
     public.members for each row execute function update_updated_at_column();
 
 
--- public.user_recruiter definition
-
--- Drop table
-
--- DROP TABLE public.user_recruiter;
-
-CREATE TABLE public.user_recruiter (
-	id uuid NOT NULL,
-	email text NOT NULL,
-	first_name text NOT NULL,
-	last_name text NOT NULL,
-	full_name text NOT NULL,
-	"location" text NOT NULL,
-	avatar_url text NULL,
-	created_at timestamp DEFAULT now() NULL,
-	updated_at timestamp DEFAULT now() NULL,
-	phone text NULL,
-	bio text NULL,
-	"position" text NULL,
-	completed_data bool DEFAULT false NOT NULL,
-	birthday date NULL,
-	slug text NULL,
-	gender text NULL,
-	gender_custom text NULL,
-	location_place_id text NULL,
-	location_lat float8 NULL,
-	location_lng float8 NULL,
-	location_city text NULL,
-	location_province text NULL,
-	location_country text NULL,
-	location_barangay text NULL,
-	location_region text NULL,
-	username text NULL,
-	company text NULL,
-	CONSTRAINT user_recruiter_email_key UNIQUE (email),
-	CONSTRAINT user_recruiter_gender_check CHECK (((gender IS NULL) OR (lower(gender) = ANY (ARRAY['male'::text, 'female'::text, 'others'::text])))),
-	CONSTRAINT user_recruiter_pkey PRIMARY KEY (id),
-	CONSTRAINT user_recruiter_username_key UNIQUE (username)
-);
-CREATE INDEX idx_user_recruiter_company ON public.user_recruiter USING btree (company);
-CREATE INDEX idx_user_recruiter_gender_custom ON public.user_recruiter USING btree (gender_custom) WHERE (gender_custom IS NOT NULL);
-CREATE UNIQUE INDEX user_recruiter_slug_key ON public.user_recruiter USING btree (slug);
-
--- Table Triggers
-
-create trigger update_user_recruiter_updated_at before
-update
-    on
-    public.user_recruiter for each row execute function update_updated_at_column();
-create trigger user_recruiter_set_slug before
-insert
-    or
-update
-    of username on
-    public.user_recruiter for each row execute function users_set_slug_trigger();
-
-
 -- public.users definition
 
 -- Drop table
@@ -265,7 +199,6 @@ CREATE TABLE public.users (
 	bio text NULL,
 	"position" text NULL,
 	admin_level varchar(10) DEFAULT 'user'::character varying NULL,
-	is_admin bool DEFAULT false NULL,
 	completed_data bool DEFAULT false NOT NULL,
 	birthday date NULL,
 	slug text NULL,
@@ -279,9 +212,9 @@ CREATE TABLE public.users (
 	location_country text NULL,
 	location_barangay text NULL,
 	location_region text NULL,
-	is_recruiter bool DEFAULT false NULL,
 	username text NULL,
-	CONSTRAINT users_admin_level_check CHECK (((admin_level)::text = ANY ((ARRAY['user'::character varying, 'admin'::character varying])::text[]))),
+	company varchar(255) NULL,
+	CONSTRAINT users_admin_level_check CHECK (((admin_level)::text = ANY ((ARRAY['user'::character varying, 'admin'::character varying, 'recruiter'::character varying])::text[]))),
 	CONSTRAINT users_email_key UNIQUE (email),
 	CONSTRAINT users_gender_check CHECK (((gender IS NULL) OR (lower(gender) = ANY (ARRAY['male'::text, 'female'::text, 'others'::text])))),
 	CONSTRAINT users_pkey PRIMARY KEY (id),
@@ -407,40 +340,67 @@ CREATE INDEX idx_bpoc_cultural_stats_user ON public.bpoc_cultural_stats USING bt
 CREATE TABLE public.disc_personality_sessions (
 	id uuid DEFAULT gen_random_uuid() NOT NULL,
 	user_id uuid NOT NULL,
-	started_at timestamptz DEFAULT now() NULL,
-	finished_at timestamptz NULL,
-	duration_ms int4 NULL,
-	d int2 NULL,
-	i int2 NULL,
-	s int2 NULL,
-	c int2 NULL,
-	primary_style text NULL,
-	secondary_style text NULL,
-	consistency_index numeric(5, 2) NULL,
-	strengths jsonb NULL,
-	blind_spots jsonb NULL,
-	preferred_env jsonb NULL,
 	created_at timestamptz DEFAULT now() NULL,
+	started_at timestamptz NOT NULL,
+	finished_at timestamptz NULL,
+	duration_seconds int4 NULL,
+	total_questions int4 DEFAULT 35 NOT NULL,
+	d_score int4 DEFAULT 0 NOT NULL,
+	i_score int4 DEFAULT 0 NOT NULL,
+	s_score int4 DEFAULT 0 NOT NULL,
+	c_score int4 DEFAULT 0 NOT NULL,
+	primary_type text NOT NULL,
+	secondary_type text NULL,
+	confidence_score int4 DEFAULT 0 NULL,
+	cultural_alignment int4 DEFAULT 95 NULL,
+	consistency_index numeric(5, 2) NULL,
+	ai_assessment jsonb DEFAULT '{}'::jsonb NULL, -- Full AI-generated personality assessment text
+	ai_bpo_roles jsonb DEFAULT '[]'::jsonb NULL, -- AI-recommended BPO roles based on personality and user background
+	core_responses jsonb DEFAULT '[]'::jsonb NULL, -- Detailed responses to the 30 Filipino scenario questions
+	personalized_responses jsonb DEFAULT '[]'::jsonb NULL, -- Responses to AI-generated personalized follow-up questions
+	response_patterns jsonb DEFAULT '{}'::jsonb NULL, -- Analysis of response times, consistency, and decision patterns
+	user_position text NULL,
+	user_location text NULL,
+	user_experience text NULL,
+	session_status text DEFAULT 'completed'::text NULL,
 	updated_at timestamptz DEFAULT now() NULL,
-	CONSTRAINT disc_personality_sessions_c_check CHECK (((c IS NULL) OR ((c >= 0) AND (c <= 100)))),
-	CONSTRAINT disc_personality_sessions_d_check CHECK (((d IS NULL) OR ((d >= 0) AND (d <= 100)))),
-	CONSTRAINT disc_personality_sessions_duration_ms_check CHECK (((duration_ms IS NULL) OR (duration_ms >= 0))),
-	CONSTRAINT disc_personality_sessions_i_check CHECK (((i IS NULL) OR ((i >= 0) AND (i <= 100)))),
+	CONSTRAINT disc_personality_sessions_c_score_check CHECK (((c_score >= 0) AND (c_score <= 100))),
+	CONSTRAINT disc_personality_sessions_confidence_score_check CHECK (((confidence_score >= 0) AND (confidence_score <= 100))),
+	CONSTRAINT disc_personality_sessions_cultural_alignment_check CHECK (((cultural_alignment >= 0) AND (cultural_alignment <= 100))),
+	CONSTRAINT disc_personality_sessions_d_score_check CHECK (((d_score >= 0) AND (d_score <= 100))),
+	CONSTRAINT disc_personality_sessions_i_score_check CHECK (((i_score >= 0) AND (i_score <= 100))),
 	CONSTRAINT disc_personality_sessions_pkey PRIMARY KEY (id),
-	CONSTRAINT disc_personality_sessions_primary_style_check CHECK (((primary_style IS NULL) OR (primary_style = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text])))),
-	CONSTRAINT disc_personality_sessions_s_check CHECK (((s IS NULL) OR ((s >= 0) AND (s <= 100)))),
-	CONSTRAINT disc_personality_sessions_secondary_style_check CHECK (((secondary_style IS NULL) OR (secondary_style = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text])))),
+	CONSTRAINT disc_personality_sessions_primary_type_check CHECK ((primary_type = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text]))),
+	CONSTRAINT disc_personality_sessions_s_score_check CHECK (((s_score >= 0) AND (s_score <= 100))),
+	CONSTRAINT disc_personality_sessions_secondary_type_check CHECK ((secondary_type = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text]))),
+	CONSTRAINT disc_personality_sessions_session_status_check CHECK ((session_status = ANY (ARRAY['completed'::text, 'abandoned'::text, 'in_progress'::text]))),
 	CONSTRAINT disc_personality_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_disc_sessions_started ON public.disc_personality_sessions USING btree (started_at);
-CREATE INDEX idx_disc_sessions_user ON public.disc_personality_sessions USING btree (user_id);
+CREATE INDEX idx_disc_sessions_ai_assessment ON public.disc_personality_sessions USING gin (ai_assessment);
+CREATE INDEX idx_disc_sessions_ai_bpo_roles ON public.disc_personality_sessions USING gin (ai_bpo_roles);
+CREATE INDEX idx_disc_sessions_confidence ON public.disc_personality_sessions USING btree (confidence_score);
+CREATE INDEX idx_disc_sessions_core_responses ON public.disc_personality_sessions USING gin (core_responses);
+CREATE INDEX idx_disc_sessions_created_at ON public.disc_personality_sessions USING btree (created_at);
+CREATE INDEX idx_disc_sessions_primary_type ON public.disc_personality_sessions USING btree (primary_type);
+CREATE INDEX idx_disc_sessions_response_patterns ON public.disc_personality_sessions USING gin (response_patterns);
+CREATE INDEX idx_disc_sessions_status ON public.disc_personality_sessions USING btree (session_status);
+CREATE INDEX idx_disc_sessions_user_id ON public.disc_personality_sessions USING btree (user_id);
+COMMENT ON TABLE public.disc_personality_sessions IS 'Individual DISC personality assessment sessions with detailed response tracking and AI analysis';
+
+-- Column comments
+
+COMMENT ON COLUMN public.disc_personality_sessions.ai_assessment IS 'Full AI-generated personality assessment text';
+COMMENT ON COLUMN public.disc_personality_sessions.ai_bpo_roles IS 'AI-recommended BPO roles based on personality and user background';
+COMMENT ON COLUMN public.disc_personality_sessions.core_responses IS 'Detailed responses to the 30 Filipino scenario questions';
+COMMENT ON COLUMN public.disc_personality_sessions.personalized_responses IS 'Responses to AI-generated personalized follow-up questions';
+COMMENT ON COLUMN public.disc_personality_sessions.response_patterns IS 'Analysis of response times, consistency, and decision patterns';
 
 -- Table Triggers
 
 create trigger update_disc_sessions_updated_at before
 update
     on
-    public.disc_personality_sessions for each row execute function update_updated_at_column();
+    public.disc_personality_sessions for each row execute function update_disc_sessions_updated_at();
 
 
 -- public.disc_personality_stats definition
@@ -452,36 +412,49 @@ update
 CREATE TABLE public.disc_personality_stats (
 	id uuid DEFAULT gen_random_uuid() NOT NULL,
 	user_id uuid NOT NULL,
+	created_at timestamptz DEFAULT now() NULL,
+	updated_at timestamptz DEFAULT now() NULL,
 	total_sessions int4 DEFAULT 0 NOT NULL,
 	completed_sessions int4 DEFAULT 0 NOT NULL,
 	last_taken_at timestamptz NULL,
-	d int2 NULL,
-	i int2 NULL,
-	s int2 NULL,
-	c int2 NULL,
-	primary_style text NULL,
-	secondary_style text NULL,
-	consistency_index numeric(5, 2) NULL,
+	latest_d_score int4 NULL,
+	latest_i_score int4 NULL,
+	latest_s_score int4 NULL,
+	latest_c_score int4 NULL,
+	latest_primary_type text NULL,
+	latest_secondary_type text NULL,
+	best_confidence_score int4 NULL,
+	average_completion_time int4 NULL,
+	consistency_trend numeric(5, 2) NULL,
+	latest_ai_assessment text NULL,
+	latest_bpo_roles jsonb DEFAULT '[]'::jsonb NULL,
 	percentile numeric(5, 2) NULL,
-	created_at timestamptz DEFAULT now() NULL,
-	updated_at timestamptz DEFAULT now() NULL,
-	ai_interpretation jsonb NULL,
+	CONSTRAINT disc_personality_stats_best_confidence_score_check CHECK (((best_confidence_score IS NULL) OR ((best_confidence_score >= 0) AND (best_confidence_score <= 100)))),
+	CONSTRAINT disc_personality_stats_latest_c_score_check CHECK (((latest_c_score IS NULL) OR ((latest_c_score >= 0) AND (latest_c_score <= 100)))),
+	CONSTRAINT disc_personality_stats_latest_d_score_check CHECK (((latest_d_score IS NULL) OR ((latest_d_score >= 0) AND (latest_d_score <= 100)))),
+	CONSTRAINT disc_personality_stats_latest_i_score_check CHECK (((latest_i_score IS NULL) OR ((latest_i_score >= 0) AND (latest_i_score <= 100)))),
+	CONSTRAINT disc_personality_stats_latest_primary_type_check CHECK (((latest_primary_type IS NULL) OR (latest_primary_type = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text])))),
+	CONSTRAINT disc_personality_stats_latest_s_score_check CHECK (((latest_s_score IS NULL) OR ((latest_s_score >= 0) AND (latest_s_score <= 100)))),
+	CONSTRAINT disc_personality_stats_latest_secondary_type_check CHECK (((latest_secondary_type IS NULL) OR (latest_secondary_type = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text])))),
 	CONSTRAINT disc_personality_stats_percentile_check CHECK (((percentile IS NULL) OR ((percentile >= (0)::numeric) AND (percentile <= (100)::numeric)))),
 	CONSTRAINT disc_personality_stats_pkey PRIMARY KEY (id),
-	CONSTRAINT disc_personality_stats_primary_style_check CHECK (((primary_style IS NULL) OR (primary_style = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text])))),
-	CONSTRAINT disc_personality_stats_secondary_style_check CHECK (((secondary_style IS NULL) OR (secondary_style = ANY (ARRAY['D'::text, 'I'::text, 'S'::text, 'C'::text])))),
 	CONSTRAINT disc_personality_stats_user_id_key UNIQUE (user_id),
 	CONSTRAINT disc_personality_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_disc_stats_ai_interpretation ON public.disc_personality_stats USING gin (ai_interpretation jsonb_path_ops);
-CREATE INDEX idx_disc_stats_user ON public.disc_personality_stats USING btree (user_id);
+CREATE INDEX idx_disc_stats_bpo_roles ON public.disc_personality_stats USING gin (latest_bpo_roles);
+CREATE INDEX idx_disc_stats_confidence ON public.disc_personality_stats USING btree (best_confidence_score);
+CREATE INDEX idx_disc_stats_last_taken ON public.disc_personality_stats USING btree (last_taken_at);
+CREATE INDEX idx_disc_stats_percentile ON public.disc_personality_stats USING btree (percentile);
+CREATE INDEX idx_disc_stats_primary_type ON public.disc_personality_stats USING btree (latest_primary_type);
+CREATE INDEX idx_disc_stats_user_id ON public.disc_personality_stats USING btree (user_id);
+COMMENT ON TABLE public.disc_personality_stats IS 'Aggregated DISC personality statistics per user for quick lookups and leaderboards';
 
 -- Table Triggers
 
 create trigger update_disc_stats_updated_at before
 update
     on
-    public.disc_personality_stats for each row execute function update_updated_at_column();
+    public.disc_personality_stats for each row execute function update_disc_stats_updated_at();
 
 
 -- public.job_requests definition
@@ -711,6 +684,68 @@ update
     public.processed_job_requests for each row execute function update_updated_at_column();
 
 
+-- public.recruiter_jobs definition
+
+-- Drop table
+
+-- DROP TABLE public.recruiter_jobs;
+
+CREATE TABLE public.recruiter_jobs (
+	id uuid DEFAULT gen_random_uuid() NOT NULL, -- References users.id - the recruiter who created the job
+	company_id text NULL, -- References users.company - the company of the logged-in recruiter
+	job_title text NOT NULL,
+	work_arrangement public."work_arrangement_enum" NULL,
+	salary_min int4 NULL,
+	salary_max int4 NULL,
+	job_description text NOT NULL,
+	requirements _text DEFAULT '{}'::text[] NULL,
+	responsibilities _text DEFAULT '{}'::text[] NULL,
+	benefits _text DEFAULT '{}'::text[] NULL,
+	skills _text DEFAULT '{}'::text[] NULL,
+	experience_level public."experience_level_enum" NULL,
+	application_deadline date NULL,
+	industry text NULL,
+	department text NULL,
+	work_type text DEFAULT 'full-time'::text NOT NULL,
+	currency text DEFAULT 'PHP'::text NOT NULL,
+	salary_type text DEFAULT 'monthly'::text NOT NULL,
+	status text DEFAULT 'new_request'::text NOT NULL, -- Job status: new_request (default), active, inactive, closed
+	"views" int4 DEFAULT 0 NOT NULL, -- Number of times the job has been viewed
+	applicants int4 DEFAULT 0 NOT NULL, -- Number of applicants for this job
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	priority public."priority_enum" DEFAULT 'medium'::priority_enum NOT NULL,
+	shift public."shift_enum" DEFAULT 'day'::shift_enum NOT NULL,
+	recruiter_id uuid NOT NULL,
+	CONSTRAINT recruiter_jobs_pkey PRIMARY KEY (id),
+	CONSTRAINT recruiter_jobs_salary_max_check CHECK (((salary_max IS NULL) OR (salary_max >= 0))),
+	CONSTRAINT recruiter_jobs_salary_min_check CHECK (((salary_min IS NULL) OR (salary_min >= 0))),
+	CONSTRAINT recruiter_jobs_status_check CHECK ((status = ANY (ARRAY['new_request'::text, 'active'::text, 'inactive'::text, 'closed'::text]))),
+	CONSTRAINT recruiter_jobs_recruiter_id_fkey FOREIGN KEY (recruiter_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_recruiter_jobs_company_id ON public.recruiter_jobs USING btree (company_id);
+CREATE INDEX idx_recruiter_jobs_created_at ON public.recruiter_jobs USING btree (created_at);
+CREATE INDEX idx_recruiter_jobs_recruiter_id ON public.recruiter_jobs USING btree (recruiter_id);
+CREATE INDEX idx_recruiter_jobs_shift ON public.recruiter_jobs USING btree (shift);
+CREATE INDEX idx_recruiter_jobs_status ON public.recruiter_jobs USING btree (status);
+COMMENT ON TABLE public.recruiter_jobs IS 'Table to store job postings created by recruiters';
+
+-- Column comments
+
+COMMENT ON COLUMN public.recruiter_jobs.id IS 'References users.id - the recruiter who created the job';
+COMMENT ON COLUMN public.recruiter_jobs.company_id IS 'References users.company - the company of the logged-in recruiter';
+COMMENT ON COLUMN public.recruiter_jobs.status IS 'Job status: new_request (default), active, inactive, closed';
+COMMENT ON COLUMN public.recruiter_jobs."views" IS 'Number of times the job has been viewed';
+COMMENT ON COLUMN public.recruiter_jobs.applicants IS 'Number of applicants for this job';
+
+-- Table Triggers
+
+create trigger update_recruiter_jobs_updated_at before
+update
+    on
+    public.recruiter_jobs for each row execute function update_updated_at_column();
+
+
 -- public.resumes_extracted definition
 
 -- Drop table
@@ -815,35 +850,57 @@ update
 CREATE TABLE public.typing_hero_sessions (
 	id uuid DEFAULT gen_random_uuid() NOT NULL,
 	user_id uuid NOT NULL,
-	started_at timestamptz DEFAULT now() NULL,
-	finished_at timestamptz NULL,
-	duration_ms int4 NULL,
-	difficulty public."game_difficulty_enum" NULL,
-	"level" text NULL,
-	wpm int4 NULL,
-	accuracy numeric(5, 2) NULL,
-	keypresses int4 NULL,
-	mistakes int4 NULL,
-	error_breakdown jsonb DEFAULT '{}'::jsonb NOT NULL,
 	created_at timestamptz DEFAULT now() NULL,
+	score int4 DEFAULT 0 NOT NULL, -- Total score achieved in the session
+	wpm int4 DEFAULT 0 NOT NULL, -- Words per minute achieved
+	longest_streak int4 DEFAULT 0 NOT NULL, -- Longest consecutive correct words streak
+	correct_words int4 DEFAULT 0 NOT NULL, -- Number of correctly typed words
+	wrong_words int4 DEFAULT 0 NOT NULL, -- Number of incorrectly typed words
+	elapsed_time int4 DEFAULT 0 NOT NULL, -- Session duration in seconds
+	overall_accuracy numeric(5, 2) DEFAULT 0.00 NOT NULL, -- Overall accuracy percentage (0-100)
+	ai_analysis jsonb DEFAULT '{}'::jsonb NULL, -- Complete AI assessment and analysis as JSONB
+	difficulty_level text DEFAULT 'rockstar'::text NULL, -- Difficulty level played (rookie, rockstar, virtuoso, legend)
+	session_status text DEFAULT 'completed'::text NULL, -- Session completion status
 	updated_at timestamptz DEFAULT now() NULL,
-	CONSTRAINT typing_hero_sessions_accuracy_check CHECK (((accuracy IS NULL) OR ((accuracy >= (0)::numeric) AND (accuracy <= (100)::numeric)))),
-	CONSTRAINT typing_hero_sessions_duration_ms_check CHECK (((duration_ms IS NULL) OR (duration_ms >= 0))),
-	CONSTRAINT typing_hero_sessions_keypresses_check CHECK (((keypresses IS NULL) OR (keypresses >= 0))),
-	CONSTRAINT typing_hero_sessions_mistakes_check CHECK (((mistakes IS NULL) OR (mistakes >= 0))),
+	words_correct jsonb DEFAULT '[]'::jsonb NULL, -- Array of correctly typed words with metadata (word, timestamp, reactionTime, difficulty, position) as JSONB.
+	words_incorrect jsonb DEFAULT '[]'::jsonb NULL, -- Array of incorrectly typed words with metadata (word, userInput, timestamp, errorType, difficulty, position) as JSONB.
 	CONSTRAINT typing_hero_sessions_pkey PRIMARY KEY (id),
-	CONSTRAINT typing_hero_sessions_wpm_check CHECK (((wpm IS NULL) OR (wpm >= 0))),
+	CONSTRAINT typing_hero_sessions_session_status_check CHECK ((session_status = ANY (ARRAY['completed'::text, 'failed'::text, 'abandoned'::text]))),
 	CONSTRAINT typing_hero_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_typing_hero_sessions_started ON public.typing_hero_sessions USING btree (started_at);
-CREATE INDEX idx_typing_hero_sessions_user ON public.typing_hero_sessions USING btree (user_id);
+CREATE INDEX idx_typing_hero_sessions_accuracy ON public.typing_hero_sessions USING btree (overall_accuracy);
+CREATE INDEX idx_typing_hero_sessions_ai_analysis ON public.typing_hero_sessions USING gin (ai_analysis);
+CREATE INDEX idx_typing_hero_sessions_created_at ON public.typing_hero_sessions USING btree (created_at);
+CREATE INDEX idx_typing_hero_sessions_difficulty ON public.typing_hero_sessions USING btree (difficulty_level);
+CREATE INDEX idx_typing_hero_sessions_performance_level ON public.typing_hero_sessions USING btree (((ai_analysis ->> 'performanceLevel'::text)));
+CREATE INDEX idx_typing_hero_sessions_score ON public.typing_hero_sessions USING btree (score);
+CREATE INDEX idx_typing_hero_sessions_user_id ON public.typing_hero_sessions USING btree (user_id);
+CREATE INDEX idx_typing_hero_sessions_words_correct ON public.typing_hero_sessions USING gin (words_correct);
+CREATE INDEX idx_typing_hero_sessions_words_incorrect ON public.typing_hero_sessions USING gin (words_incorrect);
+CREATE INDEX idx_typing_hero_sessions_wpm ON public.typing_hero_sessions USING btree (wpm);
+COMMENT ON TABLE public.typing_hero_sessions IS 'Individual Typing Hero session records with core metrics and AI analysis';
+
+-- Column comments
+
+COMMENT ON COLUMN public.typing_hero_sessions.score IS 'Total score achieved in the session';
+COMMENT ON COLUMN public.typing_hero_sessions.wpm IS 'Words per minute achieved';
+COMMENT ON COLUMN public.typing_hero_sessions.longest_streak IS 'Longest consecutive correct words streak';
+COMMENT ON COLUMN public.typing_hero_sessions.correct_words IS 'Number of correctly typed words';
+COMMENT ON COLUMN public.typing_hero_sessions.wrong_words IS 'Number of incorrectly typed words';
+COMMENT ON COLUMN public.typing_hero_sessions.elapsed_time IS 'Session duration in seconds';
+COMMENT ON COLUMN public.typing_hero_sessions.overall_accuracy IS 'Overall accuracy percentage (0-100)';
+COMMENT ON COLUMN public.typing_hero_sessions.ai_analysis IS 'Complete AI assessment and analysis as JSONB';
+COMMENT ON COLUMN public.typing_hero_sessions.difficulty_level IS 'Difficulty level played (rookie, rockstar, virtuoso, legend)';
+COMMENT ON COLUMN public.typing_hero_sessions.session_status IS 'Session completion status';
+COMMENT ON COLUMN public.typing_hero_sessions.words_correct IS 'Array of correctly typed words with metadata (word, timestamp, reactionTime, difficulty, position) as JSONB.';
+COMMENT ON COLUMN public.typing_hero_sessions.words_incorrect IS 'Array of incorrectly typed words with metadata (word, userInput, timestamp, errorType, difficulty, position) as JSONB.';
 
 -- Table Triggers
 
 create trigger update_typing_hero_sessions_updated_at before
 update
     on
-    public.typing_hero_sessions for each row execute function update_updated_at_column();
+    public.typing_hero_sessions for each row execute function update_typing_hero_sessions_updated_at();
 
 
 -- public.typing_hero_stats definition
@@ -855,32 +912,73 @@ update
 CREATE TABLE public.typing_hero_stats (
 	id uuid DEFAULT gen_random_uuid() NOT NULL,
 	user_id uuid NOT NULL,
-	total_sessions int4 DEFAULT 0 NOT NULL,
-	completed_sessions int4 DEFAULT 0 NOT NULL,
+	total_sessions int4 DEFAULT 0 NULL, -- Total number of sessions played
+	completed_sessions int4 DEFAULT 0 NULL, -- Number of completed sessions
 	last_played_at timestamptz NULL,
-	best_wpm int4 NULL,
-	best_accuracy numeric(5, 2) NULL,
-	median_wpm numeric(6, 2) NULL,
-	recent_wpm int4 NULL,
-	highest_difficulty public."game_difficulty_enum" NULL,
-	consistency_index numeric(6, 3) NULL,
-	percentile numeric(5, 2) NULL,
+	best_score int4 NULL, -- Highest score achieved across all sessions
+	best_wpm int4 NULL, -- Highest WPM achieved across all sessions
+	best_accuracy numeric(5, 2) NULL, -- Highest accuracy achieved across all sessions
+	best_streak int4 NULL, -- Longest streak achieved across all sessions
+	latest_score int4 NULL, -- Score from most recent session
+	latest_wpm int4 NULL, -- WPM from most recent session
+	latest_accuracy numeric(5, 2) NULL, -- Accuracy from most recent session
+	latest_difficulty text NULL, -- Difficulty level from most recent session
+	avg_wpm numeric(5, 2) NULL, -- Average WPM across all sessions
+	avg_accuracy numeric(5, 2) NULL, -- Average accuracy across all sessions
+	total_play_time int4 NULL, -- Total time played in seconds
+	ai_analysis jsonb NULL, -- Latest AI assessment and analysis
 	created_at timestamptz DEFAULT now() NULL,
 	updated_at timestamptz DEFAULT now() NULL,
-	CONSTRAINT typing_hero_stats_best_accuracy_check CHECK (((best_accuracy IS NULL) OR ((best_accuracy >= (0)::numeric) AND (best_accuracy <= (100)::numeric)))),
-	CONSTRAINT typing_hero_stats_percentile_check CHECK (((percentile IS NULL) OR ((percentile >= (0)::numeric) AND (percentile <= (100)::numeric)))),
+	total_words_correct int4 DEFAULT 0 NULL, -- Total number of correctly typed words across all sessions.
+	total_words_incorrect int4 DEFAULT 0 NULL, -- Total number of incorrectly typed words across all sessions.
+	most_common_correct_words jsonb DEFAULT '[]'::jsonb NULL, -- Array of most frequently correctly typed words with counts as JSONB.
+	most_common_incorrect_words jsonb DEFAULT '[]'::jsonb NULL, -- Array of most frequently incorrectly typed words with counts as JSONB.
+	average_reaction_time numeric(5, 2) NULL, -- Average reaction time across all correct words in milliseconds.
+	vocabulary_strengths jsonb DEFAULT '[]'::jsonb NULL, -- Array of vocabulary areas where the user performs well as JSONB.
+	vocabulary_weaknesses jsonb DEFAULT '[]'::jsonb NULL, -- Array of vocabulary areas where the user needs improvement as JSONB.
 	CONSTRAINT typing_hero_stats_pkey PRIMARY KEY (id),
 	CONSTRAINT typing_hero_stats_user_id_key UNIQUE (user_id),
 	CONSTRAINT typing_hero_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
-CREATE INDEX idx_typing_hero_stats_user ON public.typing_hero_stats USING btree (user_id);
+CREATE INDEX idx_typing_hero_stats_ai_analysis ON public.typing_hero_stats USING gin (ai_analysis);
+CREATE INDEX idx_typing_hero_stats_best_score ON public.typing_hero_stats USING btree (best_score);
+CREATE INDEX idx_typing_hero_stats_best_wpm ON public.typing_hero_stats USING btree (best_wpm);
+CREATE INDEX idx_typing_hero_stats_last_played ON public.typing_hero_stats USING btree (last_played_at);
+CREATE INDEX idx_typing_hero_stats_user_id ON public.typing_hero_stats USING btree (user_id);
+CREATE INDEX idx_typing_hero_stats_vocabulary_strengths ON public.typing_hero_stats USING gin (vocabulary_strengths);
+CREATE INDEX idx_typing_hero_stats_vocabulary_weaknesses ON public.typing_hero_stats USING gin (vocabulary_weaknesses);
+COMMENT ON TABLE public.typing_hero_stats IS 'Aggregated Typing Hero statistics per user for fast lookups';
+
+-- Column comments
+
+COMMENT ON COLUMN public.typing_hero_stats.total_sessions IS 'Total number of sessions played';
+COMMENT ON COLUMN public.typing_hero_stats.completed_sessions IS 'Number of completed sessions';
+COMMENT ON COLUMN public.typing_hero_stats.best_score IS 'Highest score achieved across all sessions';
+COMMENT ON COLUMN public.typing_hero_stats.best_wpm IS 'Highest WPM achieved across all sessions';
+COMMENT ON COLUMN public.typing_hero_stats.best_accuracy IS 'Highest accuracy achieved across all sessions';
+COMMENT ON COLUMN public.typing_hero_stats.best_streak IS 'Longest streak achieved across all sessions';
+COMMENT ON COLUMN public.typing_hero_stats.latest_score IS 'Score from most recent session';
+COMMENT ON COLUMN public.typing_hero_stats.latest_wpm IS 'WPM from most recent session';
+COMMENT ON COLUMN public.typing_hero_stats.latest_accuracy IS 'Accuracy from most recent session';
+COMMENT ON COLUMN public.typing_hero_stats.latest_difficulty IS 'Difficulty level from most recent session';
+COMMENT ON COLUMN public.typing_hero_stats.avg_wpm IS 'Average WPM across all sessions';
+COMMENT ON COLUMN public.typing_hero_stats.avg_accuracy IS 'Average accuracy across all sessions';
+COMMENT ON COLUMN public.typing_hero_stats.total_play_time IS 'Total time played in seconds';
+COMMENT ON COLUMN public.typing_hero_stats.ai_analysis IS 'Latest AI assessment and analysis';
+COMMENT ON COLUMN public.typing_hero_stats.total_words_correct IS 'Total number of correctly typed words across all sessions.';
+COMMENT ON COLUMN public.typing_hero_stats.total_words_incorrect IS 'Total number of incorrectly typed words across all sessions.';
+COMMENT ON COLUMN public.typing_hero_stats.most_common_correct_words IS 'Array of most frequently correctly typed words with counts as JSONB.';
+COMMENT ON COLUMN public.typing_hero_stats.most_common_incorrect_words IS 'Array of most frequently incorrectly typed words with counts as JSONB.';
+COMMENT ON COLUMN public.typing_hero_stats.average_reaction_time IS 'Average reaction time across all correct words in milliseconds.';
+COMMENT ON COLUMN public.typing_hero_stats.vocabulary_strengths IS 'Array of vocabulary areas where the user performs well as JSONB.';
+COMMENT ON COLUMN public.typing_hero_stats.vocabulary_weaknesses IS 'Array of vocabulary areas where the user needs improvement as JSONB.';
 
 -- Table Triggers
 
 create trigger update_typing_hero_stats_updated_at before
 update
     on
-    public.typing_hero_stats for each row execute function update_updated_at_column();
+    public.typing_hero_stats for each row execute function update_typing_hero_stats_updated_at();
 
 
 -- public.ultimate_sessions definition
@@ -1174,6 +1272,29 @@ CREATE TABLE public.job_request_comments (
 CREATE INDEX idx_job_request_comments_job_request_id ON public.job_request_comments USING btree (job_request_id);
 
 
+-- public.recruiter_applications definition
+
+-- Drop table
+
+-- DROP TABLE public.recruiter_applications;
+
+CREATE TABLE public.recruiter_applications (
+	id uuid DEFAULT gen_random_uuid() NOT NULL,
+	user_id uuid NOT NULL,
+	job_id uuid NOT NULL,
+	resume_id uuid NOT NULL,
+	resume_slug text NOT NULL,
+	status text DEFAULT 'submitted'::text NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NULL,
+	CONSTRAINT recruiter_applications_pkey PRIMARY KEY (id),
+	CONSTRAINT recruiter_applications_user_job_uidx UNIQUE (user_id, job_id),
+	CONSTRAINT recruiter_applications_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.recruiter_jobs(id) ON DELETE CASCADE,
+	CONSTRAINT recruiter_applications_resume_id_fkey FOREIGN KEY (resume_id) REFERENCES public.saved_resumes(id) ON DELETE RESTRICT,
+	CONSTRAINT recruiter_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+
 -- public.mv_leaderboard_overall source
 
 CREATE MATERIALIZED VIEW public.mv_leaderboard_overall
@@ -1237,27 +1358,6 @@ WITH DATA;
 CREATE INDEX idx_mv_leaderboard_overall_score ON public.mv_leaderboard_overall USING btree (overall_score DESC);
 
 
--- public.v_disc_latest_session source
-
-CREATE OR REPLACE VIEW public.v_disc_latest_session
-AS SELECT DISTINCT ON (user_id) user_id,
-    id AS session_id,
-    started_at,
-    finished_at,
-    d,
-    i,
-    s,
-    c,
-    primary_style,
-    secondary_style,
-    consistency_index,
-    strengths,
-    blind_spots,
-    preferred_env
-   FROM disc_personality_sessions
-  ORDER BY user_id, started_at DESC;
-
-
 -- public.v_user_complete_data source
 
 CREATE OR REPLACE VIEW public.v_user_complete_data
@@ -1274,10 +1374,10 @@ AS SELECT u.id AS user_id,
     u.gender,
     u.gender_custom,
     u.admin_level,
-    u.is_admin,
     u.completed_data,
     u.birthday,
     u.slug,
+    u.username,
     u.location_place_id,
     u.location_lat,
     u.location_lng,
@@ -1332,7 +1432,7 @@ AS SELECT u.id AS user_id,
      LEFT JOIN user_work_status uws ON u.id = uws.user_id
      LEFT JOIN ai_analysis_results aar ON u.id = aar.user_id;
 
-COMMENT ON VIEW public.v_user_complete_data IS 'Simplified user data view combining users, work status, and AI analysis results for public API consumption';
+COMMENT ON VIEW public.v_user_complete_data IS 'Simplified user data view combining users, work status, and AI analysis results (no is_admin; includes username).';
 
 
 
@@ -1370,6 +1470,21 @@ CREATE OR REPLACE FUNCTION public.armor(bytea, text[], text[])
 AS '$libdir/pgcrypto', $function$pg_armor$function$
 ;
 
+-- DROP FUNCTION public.compute_user_slug(text, text, uuid);
+
+CREATE OR REPLACE FUNCTION public.compute_user_slug(p_first text, p_last text, p_id uuid)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  SELECT concat_ws('-',
+           nullif(public.slugify_text(p_first), ''),
+           nullif(public.slugify_text(p_last), ''),
+           right(translate(p_id::text, '-', ''), 4)
+         );
+$function$
+;
+
 -- DROP FUNCTION public.compute_user_slug(text, uuid);
 
 CREATE OR REPLACE FUNCTION public.compute_user_slug(p_username text, p_id uuid)
@@ -1385,21 +1500,6 @@ AS $function$
     ELSE 
       concat('user-', right(translate(p_id::text, '-', ''), 4))
   END;
-$function$
-;
-
--- DROP FUNCTION public.compute_user_slug(text, text, uuid);
-
-CREATE OR REPLACE FUNCTION public.compute_user_slug(p_first text, p_last text, p_id uuid)
- RETURNS text
- LANGUAGE sql
- IMMUTABLE
-AS $function$
-  SELECT concat_ws('-',
-           nullif(public.slugify_text(p_first), ''),
-           nullif(public.slugify_text(p_last), ''),
-           right(translate(p_id::text, '-', ''), 4)
-         );
 $function$
 ;
 
@@ -1493,15 +1593,6 @@ CREATE OR REPLACE FUNCTION public.gen_random_uuid()
 AS '$libdir/pgcrypto', $function$pg_random_uuid$function$
 ;
 
--- DROP FUNCTION public.gen_salt(text, int4);
-
-CREATE OR REPLACE FUNCTION public.gen_salt(text, integer)
- RETURNS text
- LANGUAGE c
- PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$
-;
-
 -- DROP FUNCTION public.gen_salt(text);
 
 CREATE OR REPLACE FUNCTION public.gen_salt(text)
@@ -1511,18 +1602,27 @@ CREATE OR REPLACE FUNCTION public.gen_salt(text)
 AS '$libdir/pgcrypto', $function$pg_gen_salt$function$
 ;
 
--- DROP FUNCTION public.hmac(bytea, bytea, text);
+-- DROP FUNCTION public.gen_salt(text, int4);
 
-CREATE OR REPLACE FUNCTION public.hmac(bytea, bytea, text)
+CREATE OR REPLACE FUNCTION public.gen_salt(text, integer)
+ RETURNS text
+ LANGUAGE c
+ PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$
+;
+
+-- DROP FUNCTION public.hmac(text, text, text);
+
+CREATE OR REPLACE FUNCTION public.hmac(text, text, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pg_hmac$function$
 ;
 
--- DROP FUNCTION public.hmac(text, text, text);
+-- DROP FUNCTION public.hmac(bytea, bytea, text);
 
-CREATE OR REPLACE FUNCTION public.hmac(text, text, text)
+CREATE OR REPLACE FUNCTION public.hmac(bytea, bytea, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1587,18 +1687,18 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea);
+-- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text)
  RETURNS text
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text);
+-- DROP FUNCTION public.pgp_pub_decrypt(bytea, bytea);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea)
  RETURNS text
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1632,18 +1732,18 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea)
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt(text, bytea, text);
+-- DROP FUNCTION public.pgp_pub_encrypt(text, bytea);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt(text, bytea);
+-- DROP FUNCTION public.pgp_pub_encrypt(text, bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea)
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea, text)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
@@ -1686,18 +1786,18 @@ CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt(bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text);
+-- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text);
+-- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1764,6 +1864,32 @@ END;
 $function$
 ;
 
+-- DROP FUNCTION public.update_disc_sessions_updated_at();
+
+CREATE OR REPLACE FUNCTION public.update_disc_sessions_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$function$
+;
+
+-- DROP FUNCTION public.update_disc_stats_updated_at();
+
+CREATE OR REPLACE FUNCTION public.update_disc_stats_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$function$
+;
+
 -- DROP FUNCTION public.update_privacy_settings_updated_at();
 
 CREATE OR REPLACE FUNCTION public.update_privacy_settings_updated_at()
@@ -1773,6 +1899,32 @@ AS $function$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
+END;
+$function$
+;
+
+-- DROP FUNCTION public.update_typing_hero_sessions_updated_at();
+
+CREATE OR REPLACE FUNCTION public.update_typing_hero_sessions_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$function$
+;
+
+-- DROP FUNCTION public.update_typing_hero_stats_updated_at();
+
+CREATE OR REPLACE FUNCTION public.update_typing_hero_stats_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
 END;
 $function$
 ;
