@@ -165,7 +165,34 @@ export async function GET(request: NextRequest) {
             'SELECT * FROM disc_personality_stats WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
             [user.id]
           )
-          gameStats.disc_personality_stats = discStatsRes.rows[0] || null
+          const ds = discStatsRes.rows[0] || null
+          if (ds) {
+            // Normalize stats so frontend always receives consistent keys
+            gameStats.disc_personality_stats = {
+              // Scores
+              d: ds.latest_d_score ?? ds.d ?? 0,
+              i: ds.latest_i_score ?? ds.i ?? 0,
+              s: ds.latest_s_score ?? ds.s ?? 0,
+              c: ds.latest_c_score ?? ds.c ?? 0,
+              // Types
+              primary_type: ds.latest_primary_type ?? ds.primary_style ?? null,
+              secondary_type: ds.latest_secondary_type ?? ds.secondary_style ?? null,
+              // Session/quality
+              confidence: ds.best_confidence_score ?? ds.consistency_index ?? null,
+              cultural_alignment: ds.cultural_alignment_score ?? null,
+              average_completion_time: ds.average_completion_time ?? null,
+              last_taken_at: ds.last_taken_at ?? null,
+              // XP/badges
+              total_xp: ds.total_xp ?? null,
+              latest_session_xp: ds.latest_session_xp ?? null,
+              badges_earned: ds.badges_earned ?? null,
+              // AI content
+              latest_ai_assessment: ds.latest_ai_assessment ?? null,
+              latest_bpo_roles: ds.latest_bpo_roles ?? null,
+            }
+          } else {
+            gameStats.disc_personality_stats = null
+          }
 
           // Fetch Typing Hero Stats
           const typingStatsRes = await client.query(

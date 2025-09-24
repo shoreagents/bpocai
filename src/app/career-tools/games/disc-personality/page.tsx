@@ -867,6 +867,16 @@ Make it deeply personal and actionable based on their actual choices.`;
         
         if (response.ok) {
         console.log('✅ DISC session saved successfully');
+        // Prefer latest session XP so UI matches disc_personality_stats.latest_session_xp
+        const apiLatestXp = responseData?.totals?.latest_session_xp;
+        const apiBadges = responseData?.totals?.badges_earned;
+        if (typeof apiLatestXp === 'number' || typeof apiBadges === 'number') {
+          setGameState(prev => ({
+            ...prev,
+            xpPoints: typeof apiLatestXp === 'number' ? apiLatestXp : prev.xpPoints,
+            achievements: typeof apiBadges === 'number' ? new Array(Math.max(0, apiBadges)).fill('') : prev.achievements
+          }));
+        }
         } else {
           console.error('❌ API returned error:', responseData);
         }
@@ -1086,7 +1096,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                     <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                         <div className="text-3xl font-bold text-cyan-400">{gameState.xpPoints}</div>
-                        <div className="text-sm text-gray-400">Total XP</div>
+                        <div className="text-sm text-gray-400">Session XP</div>
                     </div>
                       <div className="text-center">
                         <div className="text-3xl font-bold text-green-400">{gameState.achievements.length}</div>
