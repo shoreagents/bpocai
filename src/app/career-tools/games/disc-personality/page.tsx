@@ -867,6 +867,16 @@ Make it deeply personal and actionable based on their actual choices.`;
         
         if (response.ok) {
         console.log('✅ DISC session saved successfully');
+        // If API returns cumulative totals, prefer those for display
+        const apiTotalXp = responseData?.totals?.total_xp;
+        const apiBadges = responseData?.totals?.badges_earned;
+        if (typeof apiTotalXp === 'number' || typeof apiBadges === 'number') {
+          setGameState(prev => ({
+            ...prev,
+            xpPoints: typeof apiTotalXp === 'number' ? apiTotalXp : prev.xpPoints,
+            achievements: typeof apiBadges === 'number' ? new Array(Math.max(0, apiBadges)).fill('') : prev.achievements
+          }));
+        }
         } else {
           console.error('❌ API returned error:', responseData);
         }

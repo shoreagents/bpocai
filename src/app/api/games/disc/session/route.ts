@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/database'
 
-// Save DISC personality session data to new schema tables
+// Save DISC personality session data to existing schema tables
 export async function POST(request: NextRequest) {
   try {
     const userId = request.headers.get('x-user-id')
@@ -40,34 +40,50 @@ export async function POST(request: NextRequest) {
       durationSeconds
     })
 
-    // Prepare session data for new schema
+    // Prepare session data for NEW schema (as discovered at runtime)
+    const safeScores = {
+      D: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.D || coreScores?.D || 0))),
+      I: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.I || coreScores?.I || 0))),
+      S: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.S || coreScores?.S || 0))),
+      C: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.C || coreScores?.C || 0)))
+    }
+
+    const pickPrimary = () => {
+      if (finalResults?.primaryType && ['D','I','S','C'].includes(finalResults.primaryType)) return finalResults.primaryType
+      const entries = Object.entries(safeScores).sort((a,b) => (b[1] as number) - (a[1] as number))
+      return (entries[0]?.[0] as 'D'|'I'|'S'|'C') || 'D'
+    }
+    const pickSecondary = () => {
+      if (finalResults?.secondaryType && ['D','I','S','C'].includes(finalResults.secondaryType)) return finalResults.secondaryType
+      const entries = Object.entries(safeScores).sort((a,b) => (b[1] as number) - (a[1] as number))
+      return (entries[1]?.[0] as 'D'|'I'|'S'|'C') || null
+    }
+
     const sessionInsert = {
       user_id: userId,
       started_at: startTime.toISOString(),
       finished_at: endTime.toISOString(),
       duration_seconds: durationSeconds,
       total_questions: (coreResponses?.length || 30) + (personalizedResponses?.length || 0),
-      
-      // Core DISC scores (convert to percentages)
-      d_score: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.D || coreScores?.D || 0))),
-      i_score: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.I || coreScores?.I || 0))),
-      s_score: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.S || coreScores?.S || 0))),
-      c_score: Math.max(0, Math.min(100, Math.round(finalResults?.scores?.C || coreScores?.C || 0))),
-      
-      // Primary/Secondary types
-      primary_type: finalResults?.primaryType || 'D',
-      secondary_type: finalResults?.secondaryType || null,
-      
+
+      // Core DISC scores (new schema field names)
+      d_score: safeScores.D,
+      i_score: safeScores.I,
+      s_score: safeScores.S,
+      c_score: safeScores.C,
+
+      // Primary/Secondary types (primary_type is NOT NULL per schema)
+      primary_type: pickPrimary(),
+      secondary_type: pickSecondary(),
+
       // Assessment quality
       confidence_score: Math.round(finalResults?.confidence || 85),
       cultural_alignment: Math.round(finalResults?.culturalAlignment || 95),
-      authenticity: Math.round(finalResults?.authenticity || 90),
-      
-      // AI content (store as JSONB)
+      consistency_index: finalResults?.consistency || null,
+
+      // AI content and response data (JSONB)
       ai_assessment: aiAssessment ? { text: aiAssessment, generated_at: new Date().toISOString() } : {},
       ai_bpo_roles: Array.isArray(aiBpoRoles) ? aiBpoRoles : [],
-      
-      // Response data
       core_responses: Array.isArray(coreResponses) ? coreResponses : [],
       personalized_responses: Array.isArray(personalizedResponses) ? personalizedResponses : [],
       response_patterns: {
@@ -76,34 +92,22 @@ export async function POST(request: NextRequest) {
           Math.round(coreResponses.reduce((sum: number, r: any) => sum + (r.responseTime || 0), 0) / coreResponses.length) : 0,
         consistency_score: finalResults?.confidence || 85
       },
-      
-      // User context at time of assessment
+
+      // User context
       user_position: userContext?.position || null,
       user_location: userContext?.location || null,
       user_experience: userContext?.bio || null,
-      
+
       session_status: 'completed'
     }
 
-    console.log('📝 Session data prepared:', {
-      scores: {
-        D: sessionInsert.d_score,
-        I: sessionInsert.i_score,
-        S: sessionInsert.s_score,
-        C: sessionInsert.c_score
-      },
-      types: {
-        primary: sessionInsert.primary_type,
-        secondary: sessionInsert.secondary_type
-      },
-      responses: {
-        core: sessionInsert.core_responses.length,
-        personalized: sessionInsert.personalized_responses.length
-      },
-      ai: {
-        hasAssessment: !!aiAssessment,
-        rolesCount: sessionInsert.ai_bpo_roles.length
-      }
+    console.log('📝 Session data prepared (new schema):', {
+      scores: { D: sessionInsert.d_score, I: sessionInsert.i_score, S: sessionInsert.s_score, C: sessionInsert.c_score },
+      primary_type: sessionInsert.primary_type,
+      secondary_type: sessionInsert.secondary_type,
+      duration_seconds: sessionInsert.duration_seconds,
+      total_questions: sessionInsert.total_questions,
+      ai: { hasAssessment: !!aiAssessment, rolesCount: Array.isArray(aiBpoRoles) ? aiBpoRoles.length : 0 }
     })
 
     // Check database connection
@@ -115,238 +119,232 @@ export async function POST(request: NextRequest) {
     const client = await pool.connect()
     try {
       console.log('✅ Database connection established')
-      // Insert session record
+      
+      // Insert session record using NEW schema columns
       const sessionQuery = `
         INSERT INTO disc_personality_sessions (
           user_id, started_at, finished_at, duration_seconds, total_questions,
           d_score, i_score, s_score, c_score, primary_type, secondary_type,
-          confidence_score, cultural_alignment, ai_assessment, ai_bpo_roles,
-          core_responses, personalized_responses, response_patterns,
-          user_position, user_location, user_experience, session_status
+          confidence_score, cultural_alignment, consistency_index,
+          ai_assessment, ai_bpo_roles, core_responses, personalized_responses,
+          response_patterns, user_position, user_location, user_experience, session_status
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9, $10, $11,
+          $12, $13, $14,
+          $15, $16, $17, $18,
+          $19, $20, $21, $22, $23
         ) RETURNING id
       `
-      
+
       const sessionResult = await client.query(sessionQuery, [
-        sessionInsert.user_id, sessionInsert.started_at, sessionInsert.finished_at,
-        sessionInsert.duration_seconds, sessionInsert.total_questions,
-        sessionInsert.d_score, sessionInsert.i_score, sessionInsert.s_score, sessionInsert.c_score,
-        sessionInsert.primary_type, sessionInsert.secondary_type,
-        sessionInsert.confidence_score, sessionInsert.cultural_alignment,
-        JSON.stringify(sessionInsert.ai_assessment), JSON.stringify(sessionInsert.ai_bpo_roles),
-        JSON.stringify(sessionInsert.core_responses), JSON.stringify(sessionInsert.personalized_responses),
-        JSON.stringify(sessionInsert.response_patterns),
-        sessionInsert.user_position, sessionInsert.user_location, sessionInsert.user_experience,
-        sessionInsert.session_status
+        sessionInsert.user_id, sessionInsert.started_at, sessionInsert.finished_at, sessionInsert.duration_seconds, sessionInsert.total_questions,
+        sessionInsert.d_score, sessionInsert.i_score, sessionInsert.s_score, sessionInsert.c_score, sessionInsert.primary_type, sessionInsert.secondary_type,
+        sessionInsert.confidence_score, sessionInsert.cultural_alignment, sessionInsert.consistency_index,
+        JSON.stringify(sessionInsert.ai_assessment), JSON.stringify(sessionInsert.ai_bpo_roles), JSON.stringify(sessionInsert.core_responses), JSON.stringify(sessionInsert.personalized_responses),
+        JSON.stringify(sessionInsert.response_patterns), sessionInsert.user_position, sessionInsert.user_location, sessionInsert.user_experience, sessionInsert.session_status
       ])
 
       const sessionId = sessionResult.rows[0].id
       console.log('✅ DISC session saved with ID:', sessionId)
       console.log('💾 Session record inserted successfully')
 
-      // Prepare AI data for stats table - extract text from JSONB if needed
-      let aiAssessmentText = null;
-      if (aiAssessment) {
-        if (typeof aiAssessment === 'string') {
-          aiAssessmentText = aiAssessment;
-        } else if (aiAssessment.text) {
-          aiAssessmentText = aiAssessment.text;
-        }
-      }
-      const bpoRolesArray = Array.isArray(aiBpoRoles) ? aiBpoRoles : [];
-      
-      console.log('📝 Preparing stats data:', {
-        userId,
-        aiAssessmentText: aiAssessmentText ? `${aiAssessmentText.length} chars` : 'null',
-        bpoRolesArray: `${bpoRolesArray.length} roles`,
-        bpoRolesPreview: bpoRolesArray.slice(0, 2).map(r => r?.title || 'untitled')
-      });
+      // === Update aggregated stats table ===
+      try {
+        // Prepare response aggregates
+        let totalXp: number | null = null
+        let latestSessionXp: number | null = null
+        let badgesEarned: number | null = null
 
-      // First, check if user already has stats record
-      const existingStatsQuery = `SELECT user_id, total_sessions, completed_sessions, best_confidence_score, average_completion_time, total_xp, badges_earned FROM disc_personality_stats WHERE user_id = $1`;
-      const existingStats = await client.query(existingStatsQuery, [userId]);
-      
-      if (existingStats.rows.length > 0) {
-        // Update existing record
-        const existing = existingStats.rows[0];
-        const newTotalSessions = existing.total_sessions + 1;
-        const newCompletedSessions = existing.completed_sessions + 1;
-        const newBestConfidence = Math.max(existing.best_confidence_score || 0, sessionInsert.confidence_score);
-        const newAvgTime = Math.round(((existing.average_completion_time || 0) * existing.completed_sessions + sessionInsert.duration_seconds) / newCompletedSessions);
-        
-        // Calculate consistency trend (how stable results are across sessions)
-        const consistencyTrend = newTotalSessions >= 3 ? 
-          Math.max(75, Math.min(100, 85 + Math.random() * 15)) : null; // Placeholder logic for now
-        
-        // Calculate percentile (compared to other users) - placeholder logic
-        const percentile = Math.max(10, Math.min(95, 50 + (sessionInsert.confidence_score - 75) * 1.2));
-        
-        // Calculate XP and badges for update
-        const sessionXP = Math.round(
-          (sessionInsert.confidence_score * 2) + 
-          (sessionInsert.cultural_alignment * 1.5) + 
-          (sessionInsert.total_questions * 5) +
-          (sessionInsert.duration_seconds < 600 ? 50 : 0)
-        );
-        const newBadges = (existing.badges_earned || 0) + (sessionInsert.confidence_score >= 85 ? 1 : 0);
-        const newTotalXP = (existing.total_xp || 0) + sessionXP;
-        
-        console.log('📊 Updating existing stats record with calculated metrics:', {
-          consistencyTrend,
-          percentile: Math.round(percentile)
-        });
-        
-        const updateQuery = `
-          UPDATE disc_personality_stats SET
-            total_sessions = $2,
-            completed_sessions = $3,
-            last_taken_at = $4,
-            latest_d_score = $5,
-            latest_i_score = $6,
-            latest_s_score = $7,
-            latest_c_score = $8,
-            latest_primary_type = $9,
-            latest_secondary_type = $10,
-            best_confidence_score = $11,
-            average_completion_time = $12,
-            consistency_trend = $13,
-            latest_ai_assessment = $14,
-            latest_bpo_roles = $15,
-            percentile = $16,
-            total_xp = $17,
-            badges_earned = $18,
-            cultural_alignment_score = $19,
-            authenticity_score = $20,
-            latest_session_xp = $21,
-            updated_at = NOW()
-          WHERE user_id = $1
-        `;
-        
-        try {
-          await client.query(updateQuery, [
-            userId,
-            newTotalSessions,
-            newCompletedSessions,
-            endTime.toISOString(),
-            sessionInsert.d_score,
-            sessionInsert.i_score,
-            sessionInsert.s_score,
-            sessionInsert.c_score,
-            sessionInsert.primary_type,
-            sessionInsert.secondary_type,
-            newBestConfidence,
-            newAvgTime,
-            consistencyTrend,
-            aiAssessmentText,
-            JSON.stringify(bpoRolesArray),
-            Math.round(percentile),
-            newTotalXP, // total_xp
-            newBadges, // badges_earned
-            sessionInsert.cultural_alignment, // cultural_alignment_score
-            sessionInsert.authenticity, // authenticity_score
-            sessionXP // latest_session_xp
-          ]);
-          console.log('✅ Stats UPDATE successful with all fields including XP and badges');
-        } catch (updateError) {
-          console.error('❌ Stats UPDATE failed:', updateError);
-          throw updateError;
-        }
-        
-      } else {
-        // Insert new record
-        console.log('📊 Creating new stats record');
-        
-        // Calculate initial metrics for new user
-        const initialConsistencyTrend = null; // Need multiple sessions for consistency
-        const initialPercentile = Math.max(10, Math.min(95, 50 + (sessionInsert.confidence_score - 75) * 1.2));
-        
-        // Calculate XP and cultural scores
-        const sessionXP = Math.round(
-          (sessionInsert.confidence_score * 2) + 
-          (sessionInsert.cultural_alignment * 1.5) + 
-          (sessionInsert.total_questions * 5) +
-          (sessionInsert.duration_seconds < 600 ? 50 : 0) // Bonus for completing under 10 mins
-        );
-        const badges = sessionInsert.confidence_score >= 85 ? 1 : 0; // Badge for high confidence
-        
-        const insertQuery = `
-          INSERT INTO disc_personality_stats (
-            user_id, total_sessions, completed_sessions, last_taken_at,
-            latest_d_score, latest_i_score, latest_s_score, latest_c_score,
-            latest_primary_type, latest_secondary_type, best_confidence_score,
-            average_completion_time, consistency_trend, latest_ai_assessment, 
-            latest_bpo_roles, percentile, total_xp, badges_earned, 
-            cultural_alignment_score, authenticity_score, latest_session_xp
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-        `;
-        
-        try {
-          await client.query(insertQuery, [
-            userId,
-            1, // total_sessions
-            1, // completed_sessions
-            endTime.toISOString(),
-            sessionInsert.d_score,
-            sessionInsert.i_score,
-            sessionInsert.s_score,
-            sessionInsert.c_score,
-            sessionInsert.primary_type,
-            sessionInsert.secondary_type,
-            sessionInsert.confidence_score,
-            sessionInsert.duration_seconds,
-            initialConsistencyTrend,
-            aiAssessmentText,
-            JSON.stringify(bpoRolesArray),
-            Math.round(initialPercentile),
-            sessionXP, // total_xp
-            badges, // badges_earned
-            sessionInsert.cultural_alignment, // cultural_alignment_score
-            sessionInsert.authenticity, // authenticity_score
-            sessionXP // latest_session_xp
-          ]);
-          console.log('✅ Stats INSERT successful with all fields including XP and badges');
-        } catch (insertError) {
-          console.error('❌ Stats INSERT failed:', insertError);
-          throw insertError;
-        }
-      }
+        const statsColsRes = await client.query(
+          `SELECT column_name FROM information_schema.columns WHERE table_name = 'disc_personality_stats'`
+        )
+        const statsCols = new Set((statsColsRes.rows || []).map((r: any) => r.column_name))
+        console.log('📋 Available columns in disc_personality_stats:', Array.from(statsCols))
 
-      console.log('✅ DISC stats updated for user:', userId)
-      console.log('📊 Stats record upserted successfully')
-      
-      // Verify what was actually stored in stats table
-      const verifyQuery = `
-        SELECT 
-          user_id,
-          latest_ai_assessment,
-          latest_bpo_roles,
-          total_sessions,
-          completed_sessions
-        FROM disc_personality_stats 
-        WHERE user_id = $1
-      `;
-      
-      const verifyResult = await client.query(verifyQuery, [userId]);
-      if (verifyResult.rows.length > 0) {
-        const statsRow = verifyResult.rows[0];
-        console.log('🔍 Verification - Stats data stored:', {
-          userId: statsRow.user_id,
-          hasAiAssessment: !!statsRow.latest_ai_assessment,
-          aiAssessmentLength: statsRow.latest_ai_assessment?.length || 0,
-          bpoRolesType: typeof statsRow.latest_bpo_roles,
-          bpoRolesCount: Array.isArray(statsRow.latest_bpo_roles) ? statsRow.latest_bpo_roles.length : 'not array',
-          totalSessions: statsRow.total_sessions,
-          completedSessions: statsRow.completed_sessions
-        });
-      } else {
-        console.warn('⚠️ No stats record found after insert for user:', userId);
+        const isNewStatsSchema = statsCols.has('latest_d_score')
+
+        // Fetch existing row (works for both schemas)
+        const existingStatsRes = await client.query(
+          `SELECT * FROM disc_personality_stats WHERE user_id = $1 LIMIT 1`,
+          [sessionInsert.user_id]
+        )
+        const existingStats = existingStatsRes.rows?.[0]
+
+          if (isNewStatsSchema) {
+          // Compute session XP (overwrite strategy)
+          const sessionXP = Math.round(
+            (sessionInsert.confidence_score * 2) +
+            (sessionInsert.total_questions * 5) +
+            (sessionInsert.duration_seconds < 600 ? 50 : 0)
+          )
+
+          // UPSERT to overwrite latest values and increment counters atomically
+          await client.query(
+            `INSERT INTO disc_personality_stats (
+               user_id, total_sessions, completed_sessions, last_taken_at,
+               latest_d_score, latest_i_score, latest_s_score, latest_c_score,
+               latest_primary_type, latest_secondary_type, best_confidence_score,
+               average_completion_time, latest_ai_assessment, latest_bpo_roles,
+               cultural_alignment_score, authenticity_score, latest_session_xp,
+               total_xp, badges_earned
+             ) VALUES (
+               $1, 1, 1, $2,
+               $3, $4, $5, $6,
+               $7, $8, $9,
+               $10, $11, $12,
+               $13, $14, $15,
+               $16, $17
+             )
+             ON CONFLICT (user_id) DO UPDATE SET
+               total_sessions = disc_personality_stats.total_sessions + 1,
+               completed_sessions = disc_personality_stats.completed_sessions + 1,
+               last_taken_at = EXCLUDED.last_taken_at,
+               latest_d_score = EXCLUDED.latest_d_score,
+               latest_i_score = EXCLUDED.latest_i_score,
+               latest_s_score = EXCLUDED.latest_s_score,
+               latest_c_score = EXCLUDED.latest_c_score,
+               latest_primary_type = EXCLUDED.latest_primary_type,
+               latest_secondary_type = EXCLUDED.latest_secondary_type,
+               best_confidence_score = EXCLUDED.best_confidence_score,
+               average_completion_time = CASE 
+                 WHEN disc_personality_stats.completed_sessions > 0 THEN ROUND(((disc_personality_stats.average_completion_time * disc_personality_stats.completed_sessions) + EXCLUDED.average_completion_time)::numeric / (disc_personality_stats.completed_sessions + 1))::int
+                 ELSE EXCLUDED.average_completion_time
+               END,
+               latest_ai_assessment = EXCLUDED.latest_ai_assessment,
+               latest_bpo_roles = EXCLUDED.latest_bpo_roles,
+               cultural_alignment_score = EXCLUDED.cultural_alignment_score,
+               authenticity_score = EXCLUDED.authenticity_score,
+              latest_session_xp = EXCLUDED.latest_session_xp,
+              total_xp = COALESCE(disc_personality_stats.total_xp, 0) + EXCLUDED.latest_session_xp,
+              badges_earned = COALESCE(disc_personality_stats.badges_earned, 0) + (CASE WHEN EXCLUDED.best_confidence_score >= 85 THEN 1 ELSE 0 END),
+               updated_at = NOW()`,
+            [
+              sessionInsert.user_id,
+              sessionInsert.finished_at,
+              sessionInsert.d_score,
+              sessionInsert.i_score,
+              sessionInsert.s_score,
+              sessionInsert.c_score,
+              sessionInsert.primary_type,
+              sessionInsert.secondary_type,
+              sessionInsert.confidence_score,
+              sessionInsert.duration_seconds,
+              (sessionInsert.ai_assessment as any)?.text || null,
+              JSON.stringify(sessionInsert.ai_bpo_roles),
+              sessionInsert.cultural_alignment,
+              finalResults?.authenticity ? Math.round(finalResults.authenticity) : null,
+              sessionXP,
+              sessionXP,
+              sessionInsert.confidence_score >= 85 ? 1 : 0
+            ]
+          );
+          console.log('✅ Upserted disc_personality_stats (new schema)')
+
+          // Read back cumulative values for response
+          const agg = await client.query(
+            `SELECT total_xp, latest_session_xp, badges_earned FROM disc_personality_stats WHERE user_id = $1 LIMIT 1`,
+            [sessionInsert.user_id]
+          )
+          if (agg.rows?.[0]) {
+            totalXp = agg.rows[0].total_xp ?? null
+            latestSessionXp = agg.rows[0].latest_session_xp ?? null
+            badgesEarned = agg.rows[0].badges_earned ?? null
+          }
+        } else {
+          // Old stats schema with d/i/s/c and *_style and JSONB
+          if (existingStats) {
+            await client.query(
+              `UPDATE disc_personality_stats SET
+                 last_taken_at = $2,
+                 d = $3,
+                 i = $4,
+                 s = $5,
+                 c = $6,
+                 primary_style = $7,
+                 secondary_style = $8,
+                 consistency_index = $9,
+                 strengths = $10,
+                 blind_spots = $11,
+                 preferred_env = $12,
+                 updated_at = NOW()
+               WHERE user_id = $1`,
+              [
+                sessionInsert.user_id,
+                sessionInsert.finished_at,
+                sessionInsert.d_score,
+                sessionInsert.i_score,
+                sessionInsert.s_score,
+                sessionInsert.c_score,
+                sessionInsert.primary_type,
+                sessionInsert.secondary_type,
+                sessionInsert.consistency_index,
+                JSON.stringify(sessionInsert.ai_bpo_roles),
+                JSON.stringify(sessionInsert.core_responses),
+                JSON.stringify({
+                  ai_assessment: sessionInsert.ai_assessment,
+                  personalized_responses: sessionInsert.personalized_responses,
+                  response_patterns: sessionInsert.response_patterns,
+                  user_context: {
+                    position: sessionInsert.user_position,
+                    location: sessionInsert.user_location,
+                    bio: sessionInsert.user_experience
+                  }
+                })
+              ]
+            )
+          } else {
+            await client.query(
+              `INSERT INTO disc_personality_stats (
+                 user_id, last_taken_at, d, i, s, c,
+                 primary_style, secondary_style, consistency_index,
+                 strengths, blind_spots, preferred_env, created_at, updated_at
+               ) VALUES (
+                 $1, $2, $3, $4, $5, $6,
+                 $7, $8, $9,
+                 $10, $11, $12, NOW(), NOW()
+               )`,
+              [
+                sessionInsert.user_id,
+                sessionInsert.finished_at,
+                sessionInsert.d_score,
+                sessionInsert.i_score,
+                sessionInsert.s_score,
+                sessionInsert.c_score,
+                sessionInsert.primary_type,
+                sessionInsert.secondary_type,
+                sessionInsert.consistency_index,
+                JSON.stringify(sessionInsert.ai_bpo_roles),
+                JSON.stringify(sessionInsert.core_responses),
+                JSON.stringify({
+                  ai_assessment: sessionInsert.ai_assessment,
+                  personalized_responses: sessionInsert.personalized_responses,
+                  response_patterns: sessionInsert.response_patterns,
+                  user_context: {
+                    position: sessionInsert.user_position,
+                    location: sessionInsert.user_location,
+                    bio: sessionInsert.user_experience
+                  }
+                })
+              ]
+            )
+          }
+          console.log('✅ Updated disc_personality_stats (old schema)')
+        }
+      } catch (statsError) {
+        console.error('⚠️ Failed to update disc_personality_stats:', statsError)
+        // Do not fail the whole request; session was saved successfully
       }
 
       return NextResponse.json({ 
         success: true, 
         sessionId,
-        message: 'DISC session saved successfully'
+        message: 'DISC session saved successfully',
+        totals: {
+          total_xp: typeof totalXp === 'number' ? totalXp : undefined,
+          latest_session_xp: typeof latestSessionXp === 'number' ? latestSessionXp : undefined,
+          badges_earned: typeof badgesEarned === 'number' ? badgesEarned : undefined
+        }
       })
 
     } finally {
@@ -361,5 +359,3 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
-
-
