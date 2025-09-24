@@ -37,7 +37,8 @@ import {
   CheckCircle,
   Star,
   Share,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
@@ -2402,32 +2403,53 @@ export default function TypingHeroPage() {
       
       <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
-          {/* Header */}
+          {/* Enhanced Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
+            className="flex items-center justify-between mb-12"
           >
             <div className="flex items-center">
-                                <Button
-                    variant="ghost"
-                    onClick={() => {
-                      if (gameState === 'playing' || gameState === 'paused' || gameState === 'ready') {
-                        setShowExitDialog(true);
-                      } else {
-                        router.back();
-                      }
-                    }}
-                    className="mr-4 text-gray-400 hover:text-white"
-                  >
-                    <ArrowLeft className="h-5 w-5 mr-2" />
-                    Back
-                  </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (gameState === 'playing' || gameState === 'paused' || gameState === 'ready') {
+                    setShowExitDialog(true);
+                  } else {
+                    router.back();
+                  }
+                }}
+                className="mr-6 text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back
+              </Button>
               <div className="flex items-center">
-                <Guitar className="h-12 w-12 text-green-400 mr-4" />
+                <div className="relative">
+                  <Guitar className="h-16 w-16 text-green-400 mr-6 animate-pulse" />
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-white">🎵</span>
+                  </div>
+                </div>
                 <div>
-                  <h1 className="text-4xl font-bold gradient-text">Typing Hero</h1>
-                  <p className="text-gray-400">"Rock Your Keyboard!"</p>
+                  <h1 className="text-5xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                    Typing Hero
+                  </h1>
+                  <p className="text-gray-300 text-lg">🎵 Experience the ultimate typing challenge!</p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-2 bg-green-500/20 rounded-full px-3 py-1">
+                      <Zap className="w-4 h-4 text-green-400" />
+                      <span className="text-green-300 text-sm font-semibold">Lightning Speed</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-cyan-500/20 rounded-full px-3 py-1">
+                      <Target className="w-4 h-4 text-cyan-400" />
+                      <span className="text-cyan-300 text-sm font-semibold">Precision</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-purple-500/20 rounded-full px-3 py-1">
+                      <Trophy className="w-4 h-4 text-purple-400" />
+                      <span className="text-purple-300 text-sm font-semibold">Rhythm Mastery</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2482,126 +2504,188 @@ export default function TypingHeroPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-4xl mx-auto text-center space-y-8"
+              className="space-y-8"
             >
-              <Card className="glass-card border-white/10">
-                <CardHeader className="pb-6">
-                                     <div className="text-center mb-6">
-                     <CardTitle className="text-3xl font-bold gradient-text mb-2">
-                       Welcome to Typing Hero!
-                     </CardTitle>
-                     <CardDescription className="text-gray-300 text-lg">
-                       Click "Start Typing" to begin the {BPO_VOCABULARY[currentDifficulty].displayName} challenge!
-                     </CardDescription>
-                   </div>
-                  
-                                     {/* How to Play Section */}
-                   <div className="text-gray-300 space-y-4 mb-8">
-                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                       <Target className="w-5 h-5 text-red-400" />
-                       How to Play
-                     </h3>
-                     <div className="space-y-3">
-                       <div className="flex items-start">
-                         <span className="text-purple-400 mr-3 mt-0.5 text-lg">🎵</span>
-                         <span className="text-sm">Words fall down 5 lanes like Guitar Hero notes</span>
-                       </div>
-                       <div className="flex items-start">
-                         <span className="text-green-400 mr-3 mt-0.5 text-lg">⚡</span>
-                         <span className="text-sm">Type any visible word anytime - spaces optional</span>
-                       </div>
-                       <div className="flex items-start">
-                         <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎯</span>
-                         <span className="text-sm">Perfect timing in target zone = bonus points</span>
-                       </div>
-                       <div className="flex items-start">
-                         <span className="text-orange-400 mr-3 mt-0.5 text-lg">🔥</span>
-                         <span className="text-sm">Correct words = Fire effects & points!</span>
-                       </div>
-                       <div className="flex items-start">
-                         <span className="text-red-400 mr-3 mt-0.5 text-lg">💩</span>
-                         <span className="text-sm">Wrong words = Poo effects & lost combo</span>
-                       </div>
-                       <div className="flex items-start">
-                         <span className="text-cyan-400 mr-3 mt-0.5 text-lg">🏆</span>
-                         <span className="text-sm">Complete challenge for WPM & accuracy</span>
-                       </div>
-                     </div>
-                   </div>
+              {/* How to Play Card - Full width container */}
+              <div className="w-full">
+                <Card className="glass-card border-white/10 bg-gradient-to-br from-green-500/10 to-cyan-500/10 backdrop-blur-xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-2xl font-bold text-white flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                      <Play className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">How to Play</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-green-400 font-bold text-sm">1</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🎵 Choose Your Soundtrack</h4>
+                          <p className="text-gray-300 text-sm">Select between Male Vocals (Words Per Minute Warrior) or Female Vocals (Keys to My Dreams) to set the perfect mood for your typing session.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-green-400 font-bold text-sm">2</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">⌨️ Type the Falling Words</h4>
+                          <p className="text-gray-300 text-sm">Words fall from the top of the screen. Type them accurately before they hit the bottom to score points!</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-green-400 font-bold text-sm">3</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🎯 Hit the Perfect Notes</h4>
+                          <p className="text-gray-300 text-sm">Maintain high accuracy to keep the music playing. Miss too many words and the music stops!</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-green-400 font-bold text-sm">4</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🏆 Become a Legend</h4>
+                          <p className="text-gray-300 text-sm">Master the typing challenge and achieve the highest WPM scores to become a typing legend!</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Sparkles className="w-5 h-5 text-green-400" />
+                      <h4 className="text-lg font-semibold text-white">💡 Pro Tip</h4>
+                    </div>
+                    <p className="text-green-200 text-sm">Focus on accuracy over speed! The game rewards precision. Start with Rookie mode to learn the BPO vocabulary, then work your way up to Legend status.</p>
+                  </div>
+                </CardContent>
+              </Card>
+              </div>
 
-                   {/* Features Grid */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                       <div className="flex items-center gap-2 mb-2">
-                         <span className="text-purple-400 text-lg">🎵</span>
-                         <h4 className="text-white font-semibold">Dynamic Music</h4>
+              {/* Main Game Card */}
+              <div className="max-w-4xl mx-auto">
+                <Card className="glass-card border-white/10 bg-gradient-to-br from-green-500/10 to-cyan-500/10 backdrop-blur-xl relative overflow-hidden group hover:scale-105 transition-all duration-500">
+                  {/* Animated Background Effects */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-green-500/5 via-transparent to-cyan-500/5"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-r from-green-400/10 to-cyan-400/10 rounded-full blur-xl animate-pulse"></div>
+                  </div>
+
+                  <CardHeader className="pb-6 relative z-10">
+                    <div className="text-center mb-6">
+                      <CardTitle className="text-4xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent mb-3 animate-pulse">
+                        🎵 Welcome to Typing Hero! 🎵
+                      </CardTitle>
+                      <CardDescription className="text-gray-300 text-xl font-medium">
+                        Click "Start Typing" to begin the <span className="text-green-400 font-bold">{BPO_VOCABULARY[currentDifficulty].displayName}</span> challenge!
+                      </CardDescription>
+                    </div>
+
+                   {/* Enhanced Features Grid */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                     <div className="p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 hover:scale-105 group">
+                       <div className="flex items-center gap-3 mb-3">
+                         <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                           <span className="text-white text-lg">🎵</span>
+                         </div>
+                         <h4 className="text-white font-bold text-lg">Dynamic Music</h4>
                        </div>
-                       <p className="text-gray-300 text-sm">Each difficulty has unique music and challenge levels!</p>
+                       <p className="text-purple-200 text-sm leading-relaxed">Each difficulty has unique music and challenge levels that adapt to your typing rhythm!</p>
                      </div>
-                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                       <div className="flex items-center gap-2 mb-2">
-                         <span className="text-cyan-400 text-lg">📝</span>
-                         <h4 className="text-white font-semibold">Progressive Challenge</h4>
+                     <div className="p-6 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:scale-105 group">
+                       <div className="flex items-center gap-3 mb-3">
+                         <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                           <span className="text-white text-lg">📈</span>
+                         </div>
+                         <h4 className="text-white font-bold text-lg">Progressive Challenge</h4>
                        </div>
-                       <p className="text-gray-300 text-sm">Start with Easy and work your way up to Expert!</p>
+                       <p className="text-cyan-200 text-sm leading-relaxed">Start with Easy and work your way up to Expert! Master each level to unlock the next!</p>
                      </div>
                    </div>
                 </CardHeader>
                                  <CardContent>
-                   {/* NEW: Music Selection */}
-                   <div className="mb-6 p-4 bg-black/20 rounded-lg border border-white/10">
-                     <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                       🎵 Choose Your Soundtrack
+                   {/* Enhanced Music Selection */}
+                   <div className="mb-8 p-6 bg-gradient-to-br from-green-500/10 to-cyan-500/10 rounded-xl border border-green-500/20 hover:border-green-400/30 transition-all duration-300">
+                     <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-3">
+                       <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                         <span className="text-white text-lg">🎵</span>
+                       </div>
+                       Choose Your Soundtrack
                      </h3>
-                     <div className="flex gap-3">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <Button
                          variant={musicGender === 'male' ? 'default' : 'outline'}
                          onClick={() => setMusicGender('male')}
-                         className={musicGender === 'male' 
-                           ? 'bg-blue-500 hover:bg-blue-600 text-white flex-1' 
-                           : 'border-white/20 text-white hover:bg-white/10 flex-1'
-                         }
+                         className={`${musicGender === 'male' 
+                           ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30' 
+                           : 'border-blue-500/50 text-blue-300 hover:bg-blue-500/10 hover:border-blue-400/70'
+                         } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
                        >
-                         <div className="text-center">
-                           <div>♂️ Male Vocals</div>
-                           <div className="text-xs opacity-70">WORDS PER MINUTE WARRIOR</div>
+                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                         <div className="text-center relative z-10">
+                           <div className="text-lg font-bold flex items-center justify-center gap-2">
+                             <span className="text-2xl">♂️</span>
+                             Male Vocals
+                           </div>
+                           <div className="text-xs opacity-80 font-medium">WORDS PER MINUTE WARRIOR</div>
                          </div>
                        </Button>
                        <Button
                          variant={musicGender === 'female' ? 'default' : 'outline'}
                          onClick={() => setMusicGender('female')}
-                         className={musicGender === 'female' 
-                           ? 'bg-pink-500 hover:bg-pink-600 text-white flex-1' 
-                           : 'border-white/20 text-white hover:bg-white/10 flex-1'
-                         }
+                         className={`${musicGender === 'female' 
+                           ? 'bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg shadow-pink-500/30' 
+                           : 'border-pink-500/50 text-pink-300 hover:bg-pink-500/10 hover:border-pink-400/70'
+                         } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
                        >
-                         <div className="text-center">
-                           <div>♀️ Female Vocals</div>
-                           <div className="text-xs opacity-70">Keys to My Dreams</div>
+                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                         <div className="text-center relative z-10">
+                           <div className="text-lg font-bold flex items-center justify-center gap-2">
+                             <span className="text-2xl">♀️</span>
+                             Female Vocals
+                           </div>
+                           <div className="text-xs opacity-80 font-medium">Keys to My Dreams</div>
                          </div>
                        </Button>
                      </div>
                    </div>
 
-                   <div className="flex gap-4">
+                   <div className="flex gap-6">
                      <Button
                        variant="outline"
-                       className="flex-1 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400/70 font-bold text-lg py-6 h-14"
+                       className="flex-1 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400/70 font-bold text-lg py-6 h-16 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
                        onClick={() => setShowDemoModal(true)}
                      >
-                       <Eye className="h-6 w-6 mr-3" />
-                       Live Demo
+                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                       <div className="relative z-10 flex items-center justify-center gap-3">
+                         <Eye className="h-6 w-6" />
+                         <span>👁️ Live Demo</span>
+                       </div>
                      </Button>
                      <Button
-                       className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-14"
+                       className="flex-1 bg-gradient-to-r from-green-500 via-green-600 to-cyan-600 hover:from-green-600 hover:via-green-700 hover:to-cyan-700 text-white font-bold text-lg py-6 h-16 shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
                        onClick={() => startGame('rockstar')}
                      >
-                       <Play className="h-6 w-6 mr-3" />
-                       Start Typing
+                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                       <div className="relative z-10 flex items-center justify-center gap-3">
+                         <Play className="h-6 w-6" />
+                         <span>🚀 Start Typing</span>
+                         <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                       </div>
                      </Button>
                    </div>
                  </CardContent>
               </Card>
+              </div>
             </motion.div>
           )}
 

@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowLeft,
   Headphones,
   Keyboard,
   Target,
@@ -71,37 +70,39 @@ export default function CareerGamesPage() {
     {
         id: 'typing-hero',
         title: 'Typing Hero',
-        description: 'Guitar Hero meets typing',
+        description: '🎵 Experience the ultimate typing challenge! Master BPO vocabulary while jamming to the rhythm. Race against time, hit the perfect notes, and become a typing legend!',
         icon: Guitar,
-        difficulty: 'Intermediate',
-        category: 'Technical',
-        duration: '30 seconds',
-        content: 'Medium Challenge',
-        difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-        categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-        skillsDeveloped: ['BPO Vocabulary', 'Typing Speed', 'Rhythm', 'Accuracy'],
+        category: 'Speed',
+        duration: '2-3 minutes',
+        content: 'WPM Challenge',
+        categoryColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        skillsDeveloped: ['⚡ Lightning Speed', '🎯 Precision', '🎵 Rhythm Mastery', '💼 BPO Vocabulary', '🧠 Focus'],
         participants: 2847,
-        rating: 4.9
+        rating: 4.9,
+        gameInfo: '🔥 Most Popular Game! Master the art of fast, accurate typing while grooving to the beat. Perfect for call center agents who need lightning-fast keyboard skills!',
+        specialBadge: '🔥 HOT',
+        specialBadgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
       },
     {
       id: 'disc-personality',
       title: 'BPOC DISC',
-      description: 'Discover your workplace superpower through engaging scenarios',
+      description: '🧠 Unlock your professional superpowers! Navigate through real workplace scenarios and discover your unique communication style. Perfect for understanding team dynamics and leadership potential!',
       icon: Brain,
-      difficulty: 'Intermediate',
       category: 'Personality',
-      duration: '5-8 minutes',
-      content: '4 Scenarios',
-      difficultyColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      duration: '3-5 minutes',
+      content: 'DISC Analysis',
       categoryColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      skillsDeveloped: ['Self Awareness', 'Team Dynamics', 'Communication Style', 'Leadership Potential'],
+      skillsDeveloped: ['🎭 Self Discovery', '🤝 Team Harmony', '💬 Communication Style', '👑 Leadership DNA', '🎯 Emotional Intelligence'],
       participants: 156,
-      rating: 4.9
+      rating: 4.9,
+      gameInfo: '🌟 Discover your workplace personality! This game reveals your natural communication style and helps you understand how to work better with different team members.',
+      specialBadge: '🌟 INSIGHT',
+      specialBadgeColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
     },
     {
       id: 'ultimate',
       title: 'BPOC Ultimate',
-      description: 'Master the ultimate BPO challenge with real workplace scenarios',
+      description: '👑 The ultimate BPO mastery challenge! Face real workplace crises, make critical decisions, and prove you have what it takes to be a BPO leader. Are you ready for the ultimate test?',
       icon: Crown,
       difficulty: 'Advanced',
       category: 'Assessment',
@@ -109,14 +110,17 @@ export default function CareerGamesPage() {
       content: 'Multiple Scenarios',
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
       categoryColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      skillsDeveloped: ['Business Acumen', 'Crisis Management', 'Leadership', 'Integrity'],
+      skillsDeveloped: ['🎯 Strategic Thinking', '⚡ Crisis Management', '👑 Leadership', '💎 Integrity', '🚀 Innovation'],
       participants: 89,
-      rating: 4.8
+      rating: 4.8,
+      gameInfo: '🏆 The ultimate test for BPO professionals! This advanced challenge simulates real workplace scenarios where your decisions matter. Perfect for aspiring managers and team leads!',
+      specialBadge: '🏆 ELITE',
+      specialBadgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
     },
     {
       id: 'bpoc-cultural',
       title: 'BPOC Cultural',
-                description: 'Master cultural communication across all regions',
+      description: '🌍 Master global communication! Navigate cultural differences, adapt your communication style, and become a true global BPO professional. Connect with clients from every corner of the world!',
       icon: Globe,
       difficulty: 'Expert',
       category: 'Cultural',
@@ -124,9 +128,12 @@ export default function CareerGamesPage() {
       content: '4 Stages',
       difficultyColor: 'bg-red-500/20 text-red-400 border-red-500/30',
       categoryColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-                skillsDeveloped: ['Cultural Intelligence', 'Voice', 'Writing Adaptation', 'Global Communication'],
+      skillsDeveloped: ['🌍 Cultural Intelligence', '🗣️ Voice Adaptation', '✍️ Writing Mastery', '🤝 Global Communication', '🎭 Cultural Sensitivity'],
       participants: 45,
-      rating: 4.9
+      rating: 4.9,
+      gameInfo: '🌐 Become a global communication expert! This advanced game teaches you to work with clients from different cultures and adapt your communication style accordingly.',
+      specialBadge: '🌍 GLOBAL',
+      specialBadgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
     },
 
   ];
@@ -166,26 +173,39 @@ export default function CareerGamesPage() {
       
       <div className="pt-16 relative z-10">
         <div className="container mx-auto px-4 py-8">
-          {/* Header */}
+          {/* Enhanced Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-8"
+            className="flex items-center justify-between mb-12"
           >
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => router.push('/career-tools')}
-                className="mr-4 text-gray-400 hover:text-white"
-              >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Button>
               <div className="flex items-center">
-                <Trophy className="h-12 w-12 text-green-400 mr-4" />
+                <div className="relative">
+                  <Trophy className="h-16 w-16 text-green-400 mr-6 animate-pulse" />
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-yellow-900">⚡</span>
+                  </div>
+                </div>
                 <div>
-                  <h1 className="text-4xl font-bold gradient-text">Career Games</h1>
-                  <p className="text-gray-400">Level up your BPO skills through interactive challenges</p>
+                  <h1 className="text-5xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                    Career Games
+                  </h1>
+                  <p className="text-gray-300 text-lg">🎮 Level up your BPO skills through interactive challenges</p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-2 bg-green-500/20 rounded-full px-3 py-1">
+                      <Zap className="w-4 h-4 text-green-400" />
+                      <span className="text-green-300 text-sm font-semibold">Interactive Learning</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-purple-500/20 rounded-full px-3 py-1">
+                      <Target className="w-4 h-4 text-purple-400" />
+                      <span className="text-purple-300 text-sm font-semibold">Skill Building</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-cyan-500/20 rounded-full px-3 py-1">
+                      <Trophy className="w-4 h-4 text-cyan-400" />
+                      <span className="text-cyan-300 text-sm font-semibold">Achievements</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -201,49 +221,63 @@ export default function CareerGamesPage() {
                 transition={{ delay: 0.2 + (index * 0.1) }}
                 className="group"
               >
-                <Card className="glass-card border-white/10 hover:border-white/20 h-full transition-all duration-300 group-hover:scale-105 relative overflow-hidden">
-                  {/* Icon in top right */}
-                  <div className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                    <game.icon className="w-5 h-5 text-green-400" />
+                <Card className="glass-card border-white/10 hover:border-white/30 h-full transition-all duration-500 group-hover:scale-105 relative overflow-hidden bg-gradient-to-br from-slate-900/50 via-gray-900/30 to-slate-800/50 backdrop-blur-xl">
+                  {/* Animated Background Effects */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-r from-green-400/10 to-cyan-400/10 rounded-full blur-xl animate-pulse"></div>
                   </div>
 
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-xl text-white pr-12 mb-2">
+
+                  {/* Enhanced Icon with Glow Effect */}
+                  <div className="absolute top-4 right-4 w-12 h-12 bg-gradient-to-br from-green-400/20 to-cyan-400/20 rounded-xl flex items-center justify-center shadow-lg shadow-green-400/25 group-hover:shadow-green-400/40 transition-all duration-300">
+                    <game.icon className="w-6 h-6 text-green-400 group-hover:text-cyan-400 transition-colors duration-300" />
+                  </div>
+
+                  <CardHeader className="pb-4 relative z-10">
+                    <CardTitle className="text-2xl font-bold text-white pr-16 mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                       {game.title}
                     </CardTitle>
                     <CardDescription className="text-gray-300 text-sm leading-relaxed mb-4">
                       {game.description}
                     </CardDescription>
 
-                    {/* Difficulty and Category Badges */}
-                    <div className="flex gap-2 mb-4">
-                      <Badge className={game.difficultyColor}>
-                        {game.difficulty}
-                      </Badge>
-                      <Badge className={game.categoryColor}>
+                    {/* Enhanced Game Info with Glow */}
+                    {game.gameInfo && (
+                      <div className="bg-gradient-to-r from-cyan-500/15 to-purple-500/15 border border-cyan-500/30 rounded-xl p-4 mb-4 shadow-lg shadow-cyan-500/10">
+                        <p className="text-sm text-cyan-200 font-medium">{game.gameInfo}</p>
+                      </div>
+                    )}
+
+                    {/* Enhanced Badges with Better Styling */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <Badge className={`${game.categoryColor} font-semibold shadow-lg`}>
                         {game.category}
                       </Badge>
-                      <Badge className="bg-white/10 text-gray-300 border-white/20 flex items-center gap-1">
+                      <Badge className="bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-300 border-blue-500/40 flex items-center gap-1 shadow-lg">
                         <Clock className="w-3 h-3" />
                         {game.duration}
                       </Badge>
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1">
+                      <Badge className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 text-purple-300 border-purple-500/40 flex items-center gap-1 shadow-lg">
                         <BarChart3 className="w-3 h-3" />
                         {game.content}
                       </Badge>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
-                    {/* Skills Developed */}
+                  <CardContent className="space-y-5 relative z-10">
+                    {/* Enhanced Skills Section */}
                     <div>
-                      <h4 className="text-sm font-medium text-white mb-2">Skills Developed:</h4>
-                      <div className="flex flex-wrap gap-1">
+                      <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-green-400" />
+                        <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">Skills You'll Master:</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
                         {game.skillsDeveloped.map((skill, skillIndex) => (
                           <Badge 
                             key={skillIndex}
                             variant="secondary"
-                            className="bg-gray-800 text-gray-300 border-gray-700 text-xs"
+                            className="bg-gradient-to-r from-green-500/25 to-cyan-500/25 text-green-200 border-green-500/40 text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
                           >
                             {skill}
                           </Badge>
@@ -251,27 +285,20 @@ export default function CareerGamesPage() {
                       </div>
                     </div>
 
-                    {/* Stats */}
-                    <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          <span>{game.participants.toLocaleString()} played</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
-                          <span>{game.rating} rating</span>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Start Game Button */}
+                    {/* Enhanced CTA Button with Multiple Effects */}
                     <Button 
-                      className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 shadow-lg shadow-green-500/25 transition-all duration-300 group-hover:shadow-xl"
+                      className="w-full bg-gradient-to-r from-green-500 via-green-600 to-cyan-600 hover:from-green-600 hover:via-green-700 hover:to-cyan-700 text-white border-0 shadow-xl shadow-green-500/30 transition-all duration-500 group-hover:shadow-2xl hover:scale-110 font-bold text-base py-4 relative overflow-hidden"
                       onClick={() => handleStartGame(game.id)}
                     >
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Game
+                      {/* Button Background Animation */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                      
+                      <div className="relative z-10 flex items-center justify-center gap-3">
+                        <Play className="w-5 h-5" />
+                        <span>🚀 Start Your Journey</span>
+                        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                      </div>
                     </Button>
                   </CardContent>
                 </Card>
