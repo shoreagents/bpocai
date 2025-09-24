@@ -86,7 +86,7 @@ export default function CareerGamesPage() {
     {
       id: 'disc-personality',
       title: 'BPOC DISC',
-      description: '🧠 Unlock your professional superpowers! Navigate through real workplace scenarios and discover your unique communication style. Perfect for understanding team dynamics and leadership potential!',
+      description: '🇵🇭 Discover your Filipino BPO animal spirit! Navigate authentic Philippine scenarios and unlock your communication style. Get AI-powered personalized questions, earn XP and badges, and receive BPO career insights.',
       icon: Brain,
       category: 'Personality',
       duration: '3-5 minutes',
@@ -95,7 +95,7 @@ export default function CareerGamesPage() {
       skillsDeveloped: ['🎭 Self Discovery', '🤝 Team Harmony', '💬 Communication Style', '👑 Leadership DNA', '🎯 Emotional Intelligence'],
       participants: 156,
       rating: 4.9,
-      gameInfo: '🌟 Discover your workplace personality! This game reveals your natural communication style and helps you understand how to work better with different team members.',
+      gameInfo: '🐅 Meet your Filipino BPO animal! Discover which role fits your personality - from Eagle leaders to Turtle supporters. Perfect for understanding team dynamics in the Filipino workplace!',
       specialBadge: '🌟 INSIGHT',
       specialBadgeColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
     },
