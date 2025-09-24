@@ -351,14 +351,9 @@ export default function Header({}: HeaderProps) {
     { title: 'Home', href: '/home', icon: Home },
     { title: 'Resume Builder', href: '/resume-builder', icon: FileText },
     { 
-      title: 'Career Tools', 
-      href: '/career-tools', 
-      icon: Wrench,
-      dropdown: [
-        { title: 'Career Games', href: '/career-tools/games', icon: Gamepad2 },
-        { title: 'Skills Assessment', href: '/career-tools/assessments', icon: Brain, soon: true },
-        { title: 'Salary Calculator', href: '/career-tools/salary-calculator', icon: Calculator, soon: true }
-      ]
+      title: 'Career Games', 
+      href: '/career-tools/games', 
+      icon: Gamepad2
     },
     { title: 'Jobs', href: '/jobs/job-matching', icon: Briefcase },
     { 

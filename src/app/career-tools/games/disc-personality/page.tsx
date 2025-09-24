@@ -1407,17 +1407,134 @@ Make it deeply personal and actionable based on their actual choices.`;
         
         <div className="pt-16 relative z-10">
           <div className="container mx-auto px-4 py-8">
+            {/* Enhanced Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between mb-12"
+            >
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push('/career-tools/games')}
+                  className="mr-6 text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+                >
+                  <ArrowLeft className="h-5 w-5 mr-2" />
+                  Back
+                </Button>
+                <div className="flex items-center">
+                  <div className="relative">
+                    <Brain className="h-16 w-16 text-purple-400 mr-6 animate-pulse" />
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-400 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-bold text-white">🧠</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+                      BPOC DISC
+                    </h1>
+                    <p className="text-gray-300 text-lg">🧠 Unlock your professional superpowers through engaging scenarios</p>
+                    <div className="flex items-center gap-4 mt-3">
+                      <div className="flex items-center gap-2 bg-purple-500/20 rounded-full px-3 py-1">
+                        <Target className="w-4 h-4 text-purple-400" />
+                        <span className="text-purple-300 text-sm font-semibold">Personality Discovery</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-pink-500/20 rounded-full px-3 py-1">
+                        <Heart className="w-4 h-4 text-pink-400" />
+                        <span className="text-pink-300 text-sm font-semibold">Team Dynamics</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-cyan-500/20 rounded-full px-3 py-1">
+                        <Trophy className="w-4 h-4 text-cyan-400" />
+                        <span className="text-cyan-300 text-sm font-semibold">Leadership Potential</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* How to Play Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-12"
+            >
+              <Card className="glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-2xl font-bold text-white flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                      <Play className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">How to Play</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-purple-400 font-bold text-sm">1</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🎯 Choose Your Scenario</h4>
+                          <p className="text-gray-300 text-sm">Select from 4 different workplace scenarios that test your natural responses and decision-making style.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-purple-400 font-bold text-sm">2</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🤔 Answer Honestly</h4>
+                          <p className="text-gray-300 text-sm">Respond to each situation based on what you would naturally do, not what you think you should do.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-purple-400 font-bold text-sm">3</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🎭 Discover Your Type</h4>
+                          <p className="text-gray-300 text-sm">Get your personality type (D, I, S, or C) and learn about your unique communication style.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-purple-400 font-bold text-sm">4</span>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white mb-2">🚀 Unlock Your Potential</h4>
+                          <p className="text-gray-300 text-sm">See which BPO roles match your personality and how to work better with different team members.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Sparkles className="w-5 h-5 text-purple-400" />
+                      <h4 className="text-lg font-semibold text-white">💡 Pro Tip</h4>
+                    </div>
+                    <p className="text-purple-200 text-sm">There are no right or wrong answers! This assessment reveals your natural communication style and helps you understand how to work effectively with different personality types in the workplace.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
               className="max-w-4xl mx-auto text-center space-y-8"
             >
-              <Card className="disc-game-screen">
+              <Card className="disc-game-screen glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl">
                 <CardHeader className="pb-6">
                   <div className="flex items-center justify-center mb-6">
                     <div className="text-6xl mr-4">🇵🇭</div>
                     <div>
-                      <CardTitle className="text-4xl font-bold gradient-text mb-2">
+                      <CardTitle className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                         Filipino DISC Personality Game
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-lg">
@@ -1477,10 +1594,16 @@ Make it deeply personal and actionable based on their actual choices.`;
                 <CardContent>
                   <Button
                     onClick={startGame}
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg py-6 h-16"
+                    className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold text-lg py-6 h-16 shadow-xl shadow-purple-500/30 transition-all duration-500 hover:scale-105 relative overflow-hidden"
                   >
-                    <Play className="w-6 h-6 mr-3" />
-                    Discover My Filipino BPO Animal! 🇵🇭
+                    {/* Button Background Animation */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                    
+                    <div className="relative z-10 flex items-center justify-center gap-3">
+                      <Play className="w-6 h-6" />
+                      <span>🚀 Discover My Filipino BPO Animal!</span>
+                      <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                    </div>
                   </Button>
                 </CardContent>
               </Card>

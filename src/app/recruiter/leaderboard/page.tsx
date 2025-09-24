@@ -439,6 +439,72 @@ export default function LeaderboardPage() {
         onOpenChange={setShowSignUpModal}
         onSwitchToLogin={handleSwitchToSignIn}
       />
+
+      {/* Recruiter Footer */}
+      <footer className="bg-gradient-to-r from-slate-900 via-gray-900 to-slate-800 text-white mt-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Company Info */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  BPOC Recruiter
+                </span>
+              </div>
+              <p className="text-gray-300 mb-6 max-w-md">
+                The leading platform for BPO talent acquisition. Connect with 15,000+ pre-screened professionals and find your perfect hire in minutes.
+              </p>
+            </div>
+
+            {/* For Recruiters */}
+            <div>
+              <h3 className="text-lg font-semibold mb-6 text-emerald-400">
+                For Recruiters
+              </h3>
+              <ul className="space-y-3">
+                <li>
+                  <Link href="/recruiter/post-job" className="text-gray-300 hover:text-white transition-colors">
+                    Post a Job
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/recruiter/candidates" className="text-gray-300 hover:text-white transition-colors">
+                    Browse Candidates
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/recruiter/applications" className="text-gray-300 hover:text-white transition-colors">
+                    View Applications
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/recruiter/leaderboard" className="text-gray-300 hover:text-white transition-colors">
+                    Leaderboard
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+
+          {/* Bottom Border */}
+          <div className="mt-12 pt-8 border-t border-gray-700">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <p className="text-gray-400 text-sm">
+                © {new Date().getFullYear()} BPOC.IO. All rights reserved.
+              </p>
+              <div className="mt-4 md:mt-0">
+                <p className="text-gray-400 text-sm">
+                  Built for the future of BPO recruitment
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

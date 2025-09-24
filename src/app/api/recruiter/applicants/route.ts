@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
             u.location,
             u.position,
             u.bio,
+            u.avatar_url,
             sr.resume_data
           FROM recruiter_applications ra
           LEFT JOIN users u ON u.id = ra.user_id
@@ -109,6 +110,7 @@ export async function GET(request: NextRequest) {
         `, [jobId]);
       } catch (queryError) {
         console.error('🔍 Query error:', queryError);
+        console.error('🔍 Query error details:', queryError.message);
         
         // Try a simpler query without joins to see if the basic data exists
         const simpleResult = await client.query(`
@@ -126,25 +128,70 @@ export async function GET(request: NextRequest) {
         
         console.log('🔍 Simple query result:', simpleResult.rows.length);
         
-        // Return simplified data if joins fail
-        const applicants = simpleResult.rows.map(row => ({
-          id: row.id,
-          userId: row.user_id,
-          resumeId: row.resume_id,
-          resumeSlug: row.resume_slug,
-          status: row.status,
-          appliedAt: row.created_at,
-          fullName: 'User data unavailable',
-          firstName: null,
-          lastName: null,
-          username: null,
-          email: 'Email unavailable',
-          phone: null,
-          location: null,
-          position: null,
-          bio: null,
-          resumeData: null
-        }));
+        // Check if the user exists in the users table
+        if (simpleResult.rows.length > 0) {
+          const userId = simpleResult.rows[0].user_id;
+          console.log('🔍 Checking if user exists:', userId);
+          
+          try {
+            const userCheck = await client.query('SELECT id, full_name, username, avatar FROM users WHERE id = $1', [userId]);
+            console.log('🔍 User check result:', userCheck.rows.length, 'rows');
+            if (userCheck.rows.length > 0) {
+              console.log('🔍 User data:', userCheck.rows[0]);
+            }
+          } catch (userError) {
+            console.error('🔍 User check error:', userError);
+          }
+        }
+        
+        // Try to fetch user data individually for each application
+        const applicants = [];
+        for (const row of simpleResult.rows) {
+          let userData = {
+            fullName: 'User data unavailable',
+            firstName: null,
+            lastName: null,
+            username: null,
+            email: 'Email unavailable',
+            phone: null,
+            location: null,
+            position: null,
+            bio: null,
+            avatar: null
+          };
+          
+          try {
+            const userResult = await client.query('SELECT full_name, first_name, last_name, username, email, phone, location, position, bio, avatar_url FROM users WHERE id = $1', [row.user_id]);
+            if (userResult.rows.length > 0) {
+              const user = userResult.rows[0];
+              userData = {
+                fullName: user.full_name || 'Unknown User',
+                firstName: user.first_name,
+                lastName: user.last_name,
+                username: user.username,
+                email: user.email,
+                phone: user.phone,
+                location: user.location,
+                position: user.position,
+                bio: user.bio,
+                avatar: user.avatar_url
+              };
+            }
+          } catch (userError) {
+            console.error('🔍 Error fetching user data for user_id:', row.user_id, userError);
+          }
+          
+          applicants.push({
+            id: row.id,
+            userId: row.user_id,
+            resumeId: row.resume_id,
+            resumeSlug: row.resume_slug,
+            status: row.status,
+            appliedAt: row.created_at,
+            ...userData,
+            resumeData: null
+          });
+        }
 
         return NextResponse.json({
           job: {
@@ -175,6 +222,7 @@ export async function GET(request: NextRequest) {
         location: row.location,
         position: row.position,
         bio: row.bio,
+        avatar: row.avatar_url,
         resumeData: row.resume_data
       }));
 
