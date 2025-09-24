@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabase } from '@/lib/supabase';
 
 export async function PATCH(
   request: NextRequest,
@@ -134,15 +129,20 @@ export async function PATCH(
     }
   } catch (error) {
     console.error('❌ Error updating applicant status:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorName = error instanceof Error ? error.name : 'UnknownError';
+    
     console.error('❌ Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+      message: errorMessage,
+      stack: errorStack,
+      name: errorName
     });
     
     return NextResponse.json({ 
       error: 'Failed to update applicant status',
-      details: error.message
+      details: errorMessage
     }, { status: 500 });
   }
 }
