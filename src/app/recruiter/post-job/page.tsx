@@ -12,6 +12,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
 import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
@@ -97,6 +98,8 @@ export default function PostJobPage() {
   const [showApplicantStatusDropdown, setShowApplicantStatusDropdown] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isUpdatingApplicantStatus, setIsUpdatingApplicantStatus] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
 
@@ -529,7 +532,8 @@ export default function PostJobPage() {
       });
 
       if (response.ok) {
-        alert('✅ Job updated successfully');
+        setSuccessMessage('Job updated successfully');
+        setShowSuccessDialog(true);
         setIsEditingJob(false);
         await fetchJobs(); // Refresh the job list
       } else {
@@ -572,7 +576,8 @@ export default function PostJobPage() {
               : job
           )
         );
-        alert('✅ Job status updated successfully');
+        setSuccessMessage('Job status updated successfully');
+        setShowSuccessDialog(true);
       } else {
         const errorData = await response.json();
         alert(`❌ Failed to update status: ${errorData.error || 'Unknown error'}`);
@@ -611,7 +616,8 @@ export default function PostJobPage() {
               : applicant
           )
         );
-        alert('✅ Applicant status updated successfully');
+        setSuccessMessage('Applicant status updated successfully');
+        setShowSuccessDialog(true);
       } else {
         const errorData = await response.json();
         alert(`❌ Failed to update applicant status: ${errorData.error || 'Unknown error'}`);
@@ -1359,7 +1365,7 @@ export default function PostJobPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Company</label>
                     {isEditingJob ? (
                       <input
                         type="text"
@@ -1372,7 +1378,7 @@ export default function PostJobPage() {
                     )}
                    </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Industry</label>
                     {isEditingJob ? (
                       <input
                         type="text"
@@ -1385,7 +1391,7 @@ export default function PostJobPage() {
                     )}
                    </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Department</label>
                     {isEditingJob ? (
                       <input
                         type="text"
@@ -1398,7 +1404,7 @@ export default function PostJobPage() {
                     )}
                       </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Experience Level</label>
                     {isEditingJob ? (
                       <select
                         value={editJobForm?.experience_level || ''}
@@ -1417,7 +1423,7 @@ export default function PostJobPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Status</label>
                     {isEditingJob ? (
                       <select
                         value={editJobForm?.status || 'new_request'}
@@ -1441,7 +1447,7 @@ export default function PostJobPage() {
                     )}
                    </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Salary Range</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Salary Range</label>
                     {isEditingJob ? (
                       <div className="flex gap-2">
                         <input
@@ -1470,7 +1476,7 @@ export default function PostJobPage() {
                     )}
                    </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Created Date</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Created Date</label>
                     <p className="text-gray-900">
                       {selectedJob.created_at ? new Date(selectedJob.created_at).toLocaleDateString() : 'Not available'}
                     </p>
@@ -1480,7 +1486,7 @@ export default function PostJobPage() {
 
               {/* Job Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Job Description</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Job Description</label>
                 {isEditingJob ? (
                   <textarea
                     value={editJobForm?.job_description || ''}
@@ -1499,7 +1505,7 @@ export default function PostJobPage() {
               {/* Work Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Work Type</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Work Type</label>
                   {isEditingJob ? (
                     <select
                       value={editJobForm?.work_type || ''}
@@ -1516,7 +1522,7 @@ export default function PostJobPage() {
                   )}
                    </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Work Arrangement</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Work Arrangement</label>
                   {isEditingJob ? (
                     <select
                       value={editJobForm?.work_arrangement || ''}
@@ -1532,7 +1538,7 @@ export default function PostJobPage() {
                   )}
                    </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Shift</label>
                   {isEditingJob ? (
                     <select
                       value={editJobForm?.shift || ''}
@@ -1551,7 +1557,7 @@ export default function PostJobPage() {
                      
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Priority</label>
                   {isEditingJob ? (
                     <select
                       value={editJobForm?.priority || ''}
@@ -1567,7 +1573,7 @@ export default function PostJobPage() {
                   )}
                        </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Currency</label>
                   {isEditingJob ? (
                     <select
                       value={editJobForm?.currency || ''}
@@ -1583,7 +1589,7 @@ export default function PostJobPage() {
                   )}
                      </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Salary Type</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Salary Type</label>
                   {isEditingJob ? (
                     <select
                       value={editJobForm?.salary_type || ''}
@@ -1601,7 +1607,7 @@ export default function PostJobPage() {
                     </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Application Deadline</label>
                 {isEditingJob ? (
                   <input
                     type="date"
@@ -1854,7 +1860,7 @@ export default function PostJobPage() {
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <span className="text-emerald-600 font-semibold text-lg">
-                                    {applicant.fullName?.charAt(0) || 'U'}
+                                    {(applicant.firstName || applicant.fullName)?.charAt(0) || 'U'}
                                   </span>
                                 </div>
                                 <div>
@@ -2028,7 +2034,9 @@ export default function PostJobPage() {
                                 )}
                                   </div>
                                   </div>
-                                <p className="text-sm text-gray-600 mb-1">{applicant.email}</p>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  @{applicant.username || 'no-username'}
+                                </p>
                                 <div className="text-sm text-gray-500">
                                   Applied: <span className="text-gray-900 font-medium">
                                     {new Date(applicant.appliedAt).toLocaleDateString()}
@@ -2091,6 +2099,31 @@ export default function PostJobPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Success Alert Dialog */}
+      <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 text-sm">✓</span>
+              </div>
+              Success
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {successMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => setShowSuccessDialog(false)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
