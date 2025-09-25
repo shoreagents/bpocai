@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: "BPOC.IO",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/images/536272983_122107788842977640_5462108951149244384_n.jpg",
         width: 1200,
         height: 630,
         alt: "BPOC.IO - Where BPO Careers Begin",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "BPOC.IO - Where BPO Careers Begin",
     description: "Revolutionizing BPO recruitment with AI-powered tools",
-    images: ["/og-image.jpg"],
+    images: ["/images/536272983_122107788842977640_5462108951149244384_n.jpg"],
     creator: "@bpocai",
   },
   robots: {
