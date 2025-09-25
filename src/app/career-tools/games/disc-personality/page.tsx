@@ -184,6 +184,25 @@ export default function FilipinoDiscGame() {
   const [isGeneratingAIAssessment, setIsGeneratingAIAssessment] = useState(false);
   const [aiBpoRoles, setAiBpoRoles] = useState<any[] | null>(null);
   const [isGeneratingBpoRoles, setIsGeneratingBpoRoles] = useState(false);
+  
+  // Music selection state
+  const [musicLanguage, setMusicLanguage] = useState<'tagalog' | 'english'>('tagalog');
+  const [backgroundMusic, setBackgroundMusic] = useState<HTMLAudioElement | null>(null);
+
+  // Initialize background music
+  useEffect(() => {
+    const audio = new Audio(`/bpoc-disc-songs/${musicLanguage}.mp3`);
+    audio.loop = true;
+    audio.volume = 0.3;
+    setBackgroundMusic(audio);
+    
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [musicLanguage]);
 
   // Sound effects for spirit selection
   const playSpiritSound = (discType: string) => {
@@ -1592,6 +1611,52 @@ Make it deeply personal and actionable based on their actual choices.`;
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Music Selection */}
+                  <div className="mb-8 p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20 hover:border-purple-400/30 transition-all duration-300">
+                    <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-lg">🎵</span>
+                      </div>
+                      Choose Your Soundtrack
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button
+                        variant={musicLanguage === 'tagalog' ? 'default' : 'outline'}
+                        onClick={() => setMusicLanguage('tagalog')}
+                        className={`${musicLanguage === 'tagalog' 
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/30' 
+                          : 'border-purple-500/50 text-purple-300 hover:bg-purple-500/10 hover:border-purple-400/70'
+                        } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        <div className="text-center relative z-10">
+                          <div className="text-lg font-bold flex items-center justify-center gap-2">
+                            <span className="text-2xl">🇵🇭</span>
+                            Tagalog
+                          </div>
+                          <div className="text-xs opacity-80 font-medium">AUTHENTIC FILIPINO EXPERIENCE</div>
+                        </div>
+                      </Button>
+                      <Button
+                        variant={musicLanguage === 'english' ? 'default' : 'outline'}
+                        onClick={() => setMusicLanguage('english')}
+                        className={`${musicLanguage === 'english' 
+                          ? 'bg-gradient-to-r from-pink-500 to-cyan-500 hover:from-pink-600 hover:to-cyan-600 text-white shadow-lg shadow-pink-500/30' 
+                          : 'border-pink-500/50 text-pink-300 hover:bg-pink-500/10 hover:border-pink-400/70'
+                        } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        <div className="text-center relative z-10">
+                          <div className="text-lg font-bold flex items-center justify-center gap-2">
+                            <span className="text-2xl">🌍</span>
+                            English
+                          </div>
+                          <div className="text-xs opacity-80 font-medium">GLOBAL BPO PERSPECTIVE</div>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+
                   <Button
                     onClick={startGame}
                     className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold text-lg py-6 h-16 shadow-xl shadow-purple-500/30 transition-all duration-500 hover:scale-105 relative overflow-hidden"
