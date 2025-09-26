@@ -1,12 +1,13 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,8 @@ import {
   Clock,
   Star,
   Zap,
+  VolumeX,
+  Volume2,
   ChevronLeft,
   ChevronRight,
   Upload,
@@ -41,8 +44,10 @@ import {
   Car,
   Users,
   Church,
-  Home
+  Home,
+  ChevronDown
 } from 'lucide-react';
+import { PacmanLoader } from 'react-spinners';
 
 import { FILIPINO_DISC_SCENARIOS } from '../../../../data/filipinoDiscScenarios';
 
@@ -96,6 +101,82 @@ const CONTEXT_ICONS = {
   CRISIS: Shield,
   RELIGION: Church,
   RELATIONSHIPS: Heart
+};
+
+// Context color themes
+const CONTEXT_COLORS = {
+  FAMILY: {
+    primary: 'purple',
+    border: 'border-purple-500/30',
+    bg: 'bg-purple-900/30',
+    containerBg: 'bg-purple-900/20',
+    text: 'text-purple-300',
+    accent: 'text-purple-400'
+  },
+  WORK: {
+    primary: 'blue',
+    border: 'border-blue-500/30',
+    bg: 'bg-blue-900/30',
+    containerBg: 'bg-blue-900/20',
+    text: 'text-blue-300',
+    accent: 'text-blue-400'
+  },
+  SOCIAL: {
+    primary: 'green',
+    border: 'border-green-500/30',
+    bg: 'bg-green-900/30',
+    containerBg: 'bg-green-900/20',
+    text: 'text-green-300',
+    accent: 'text-green-400'
+  },
+  TRAFFIC: {
+    primary: 'orange',
+    border: 'border-orange-500/30',
+    bg: 'bg-orange-900/30',
+    containerBg: 'bg-orange-900/20',
+    text: 'text-orange-300',
+    accent: 'text-orange-400'
+  },
+  MONEY: {
+    primary: 'yellow',
+    border: 'border-yellow-500/30',
+    bg: 'bg-yellow-900/30',
+    containerBg: 'bg-yellow-900/20',
+    text: 'text-yellow-300',
+    accent: 'text-yellow-400'
+  },
+  CRISIS: {
+    primary: 'red',
+    border: 'border-red-500/30',
+    bg: 'bg-red-900/30',
+    containerBg: 'bg-red-900/20',
+    text: 'text-red-300',
+    accent: 'text-red-400'
+  },
+  RELIGION: {
+    primary: 'indigo',
+    border: 'border-indigo-500/30',
+    bg: 'bg-indigo-900/30',
+    containerBg: 'bg-indigo-900/20',
+    text: 'text-indigo-300',
+    accent: 'text-indigo-400'
+  },
+  RELATIONSHIPS: {
+    primary: 'pink',
+    border: 'border-pink-500/30',
+    bg: 'bg-pink-900/30',
+    containerBg: 'bg-pink-900/20',
+    text: 'text-pink-300',
+    accent: 'text-pink-400'
+  },
+  PERSONAL: {
+    primary: 'rose',
+    border: 'border-rose-500/30',
+    bg: 'bg-rose-900/30',
+    containerBg: 'bg-rose-900/20',
+    text: 'text-rose-300',
+    accent: 'text-rose-400'
+  }
 };
 
 interface GameState {
@@ -171,6 +252,52 @@ export default function FilipinoDiscGame() {
     showPersonalized: false,
     isGeneratingPersonalized: false
   });
+  
+  // Demo state
+  const [showDemo, setShowDemo] = useState(false);
+  const [discDemoStep, setDiscDemoStep] = useState(0);
+  const [discDemoScores, setDiscDemoScores] = useState({ D: 0, I: 0, S: 0, C: 0 });
+  const [discDemoSelected, setDiscDemoSelected] = useState<string | null>(null);
+  const [discDemoReaction, setDiscDemoReaction] = useState<string | null>(null);
+  const [discDemoAutoMode, setDiscDemoAutoMode] = useState(false);
+  const [discDemoCurrentChoice, setDiscDemoCurrentChoice] = useState(0);
+  
+  // DISC Demo scenarios (sample from actual game)
+  const discDemoScenarios = [
+    {
+      context: 'FAMILY',
+      title: 'Family Emergency',
+      scenario: 'Your lola (grandmother) suddenly needs to be hospitalized. Your family is panicking and needs someone to take charge. How do you respond?',
+      options: [
+        { id: 'd1', text: 'I\'ll call the hospital, arrange transport, and coordinate with everyone immediately.', animal: '🦁 Lion Leader', disc: 'D' },
+        { id: 'i1', text: 'Let me comfort everyone first, then we\'ll figure out the best way to handle this together.', animal: '🦜 Parrot Motivator', disc: 'I' },
+        { id: 's1', text: 'I\'ll stay calm and support whoever needs help most right now.', animal: '🐘 Elephant Supporter', disc: 'S' },
+        { id: 'c1', text: 'Let me gather all the medical information and insurance details first.', animal: '🦉 Owl Analyst', disc: 'C' }
+      ]
+    },
+    {
+      context: 'WORK',
+      title: 'Team Conflict',
+      scenario: 'Two of your teammates are having a heated argument during a client call. The client is waiting. How do you handle this?',
+      options: [
+        { id: 'd2', text: 'I\'ll step in immediately, take control of the call, and address this privately later.', animal: '🦁 Lion Leader', disc: 'D' },
+        { id: 'i2', text: 'Let me quickly lighten the mood and get everyone focused on the client.', animal: '🦜 Parrot Motivator', disc: 'I' },
+        { id: 's2', text: 'I\'ll quietly help mediate and ensure the client gets the support they need.', animal: '🐘 Elephant Supporter', disc: 'S' },
+        { id: 'c2', text: 'I need to analyze what went wrong and implement a process to prevent this.', animal: '🦉 Owl Analyst', disc: 'C' }
+      ]
+    },
+    {
+      context: 'SOCIAL',
+      title: 'Barkada Pressure',
+      scenario: 'Your friends are pressuring you to join an expensive trip to Boracay, but you\'re saving for your family. How do you respond?',
+      options: [
+        { id: 'd3', text: 'I\'ll be direct about my priorities and suggest a more affordable alternative.', animal: '🦁 Lion Leader', disc: 'D' },
+        { id: 'i3', text: 'Let me find a way to make this work for everyone - maybe we can plan something cheaper!', animal: '🦜 Parrot Motivator', disc: 'I' },
+        { id: 's3', text: 'I\'ll explain my situation gently and hope they understand.', animal: '🐘 Elephant Supporter', disc: 'S' },
+        { id: 'c3', text: 'Let me calculate the costs and present a detailed budget analysis.', animal: '🦉 Owl Analyst', disc: 'C' }
+      ]
+    }
+  ];
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -180,21 +307,52 @@ export default function FilipinoDiscGame() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showSpiritReveal, setShowSpiritReveal] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
+  const [isInsightsExpanded, setIsInsightsExpanded] = useState(false);
+  
+  // Music control state
+  const [musicGender, setMusicGender] = useState<'male' | 'female'>('male');
+  const [isMuted, setIsMuted] = useState(false);
+  const [showVolumeControl, setShowVolumeControl] = useState(false);
+  const [volume, setVolume] = useState(0.3);
   const [aiAssessment, setAiAssessment] = useState<string | null>(null);
   const [isGeneratingAIAssessment, setIsGeneratingAIAssessment] = useState(false);
   const [aiBpoRoles, setAiBpoRoles] = useState<any[] | null>(null);
   const [isGeneratingBpoRoles, setIsGeneratingBpoRoles] = useState(false);
   
   // Music selection state
-  const [musicLanguage, setMusicLanguage] = useState<'tagalog' | 'english'>('tagalog');
+  const [musicLanguage, setMusicLanguage] = useState<'maledisc' | 'femaledisc'>('maledisc');
   const [backgroundMusic, setBackgroundMusic] = useState<HTMLAudioElement | null>(null);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewingGender, setPreviewingGender] = useState<'maledisc' | 'femaledisc' | null>(null);
+  const [previewCountdown, setPreviewCountdown] = useState(0);
 
   // Initialize background music
   useEffect(() => {
+    // Stop current music if it exists
+    if (backgroundMusic) {
+      backgroundMusic.pause();
+      backgroundMusic.currentTime = 0;
+    }
+    
     const audio = new Audio(`/bpoc-disc-songs/${musicLanguage}.mp3`);
     audio.loop = true;
-    audio.volume = 0.3;
+    audio.volume = isMuted ? 0 : 0.3; // Respect mute state
+    audio.preload = 'auto';
+    
+    // Add error handling
+    audio.addEventListener('error', (e) => {
+      console.error('❌ Audio loading error:', e);
+    });
+    
     setBackgroundMusic(audio);
+    
+    // If music was playing before, start the new track
+    if (isMusicPlaying && gameState.gameStarted) {
+      audio.play().catch(error => {
+        console.log('Music play failed on gender change:', error);
+      });
+    }
     
     return () => {
       if (audio) {
@@ -203,6 +361,121 @@ export default function FilipinoDiscGame() {
       }
     };
   }, [musicLanguage]);
+
+  // Handle mute state changes
+  useEffect(() => {
+    if (backgroundMusic) {
+      backgroundMusic.volume = isMuted ? 0 : 0.3;
+    }
+  }, [isMuted, backgroundMusic]);
+
+  // Play music when game starts
+  useEffect(() => {
+    if (gameState.gameStarted && backgroundMusic && !isMusicPlaying) {
+      const playMusic = async () => {
+        try {
+          await backgroundMusic.play();
+          setIsMusicPlaying(true);
+        } catch (error) {
+          // Autoplay blocked - user can manually start music with toggle button
+        }
+      };
+      playMusic();
+    }
+  }, [gameState.gameStarted, backgroundMusic, isMusicPlaying]);
+
+  // Preview music function with countdown
+  const previewMusic = async (type: 'maledisc' | 'femaledisc') => {
+    if (isPreviewing) return;
+    
+    setIsPreviewing(true);
+    setPreviewingGender(type);
+    setPreviewCountdown(10);
+    const previewAudio = new Audio(`/bpoc-disc-songs/${type}.mp3`);
+    previewAudio.volume = 0.3;
+    
+    try {
+      await previewAudio.play();
+      
+      // Countdown from 10 to 0
+      const countdownInterval = setInterval(() => {
+        setPreviewCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            previewAudio.pause();
+            previewAudio.currentTime = 0;
+            setIsPreviewing(false);
+            setPreviewingGender(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Preview error:', error);
+      setIsPreviewing(false);
+      setPreviewingGender(null);
+      setPreviewCountdown(0);
+    }
+  };
+
+  // Stop preview function
+  const stopPreview = () => {
+    setIsPreviewing(false);
+    setPreviewingGender(null);
+    setPreviewCountdown(0);
+    // Stop any playing preview audio
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+      if (audio.src.includes('bpoc-disc-songs')) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+  };
+
+  // Toggle music function
+  const toggleMusic = async () => {
+    console.log('🎵 toggleMusic called');
+    console.log('🎵 backgroundMusic:', backgroundMusic);
+    console.log('🎵 isMusicPlaying:', isMusicPlaying);
+    
+    if (!backgroundMusic) {
+      console.log('🎵 No background music available');
+      return;
+    }
+    
+    try {
+      if (isMusicPlaying) {
+        console.log('🎵 Pausing music...');
+        backgroundMusic.pause();
+        setIsMusicPlaying(false);
+      } else {
+        console.log('🎵 Playing music...');
+        // Check if audio is ready to play
+        if (backgroundMusic.readyState >= 2) { // HAVE_CURRENT_DATA
+          await backgroundMusic.play();
+          setIsMusicPlaying(true);
+          console.log('🎵 Music started successfully');
+        } else {
+          console.log('🎵 Audio not ready, waiting...');
+          // Wait for audio to be ready
+          backgroundMusic.addEventListener('canplay', async () => {
+            try {
+              await backgroundMusic.play();
+              setIsMusicPlaying(true);
+              console.log('🎵 Music started after waiting');
+            } catch (playError) {
+              console.error('❌ Play error:', playError);
+            }
+          }, { once: true });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Music toggle error:', error);
+    }
+  };
 
   // Sound effects for spirit selection
   const playSpiritSound = (discType: string) => {
@@ -288,14 +561,36 @@ export default function FilipinoDiscGame() {
       console.log('🔇 Sound not available:', error);
     }
   };
+
+  // Toggle volume control
+  const toggleMute = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    
+    // Only toggle the volume control visibility, don't change mute state
+    setShowVolumeControl(!showVolumeControl);
+  };
+
+  // Handle volume change
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0); // Set mute state based on volume
+    if (backgroundMusic) {
+      backgroundMusic.volume = newVolume;
+    }
+  };
+
   // Profile modal removed - using existing user data
 
   const currentScenario = gameState.showPersonalized 
     ? gameState.personalizedQuestions?.[gameState.currentQuestion - FILIPINO_DISC_SCENARIOS.length]
     : FILIPINO_DISC_SCENARIOS[gameState.currentQuestion];
   
-  // Randomize choice order to prevent pattern recognition
-  const shuffledOptions = currentScenario?.options ? [...currentScenario.options].sort(() => Math.random() - 0.5) : [];
+  // Randomize choice order to prevent pattern recognition (memoized to prevent re-shuffling)
+  const shuffledOptions = useMemo(() => {
+    return currentScenario?.options ? [...currentScenario.options].sort(() => Math.random() - 0.5) : [];
+  }, [currentScenario?.options]);
   
 	// Style helpers for DISC options
 	const getDiscStyles = (disc: string) => {
@@ -358,6 +653,9 @@ export default function FilipinoDiscGame() {
   }, [user, gameState.gameStarted, gameState.userProfile]);
 
   const startGame = () => {
+    // Stop any preview that's playing
+    stopPreview();
+    
     if (!user) {
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
@@ -373,6 +671,66 @@ export default function FilipinoDiscGame() {
       sessionStartTime: new Date()
     }));
   };
+
+  // Demo functions
+  const startDemo = () => {
+    setShowDemo(true);
+    setDiscDemoStep(0);
+    setDiscDemoScores({ D: 0, I: 0, S: 0, C: 0 });
+    setDiscDemoSelected(null);
+    setDiscDemoReaction(null);
+    setDiscDemoAutoMode(true);
+    setDiscDemoCurrentChoice(0);
+  };
+
+  const closeDemo = () => {
+    setShowDemo(false);
+    setDiscDemoStep(0);
+    setDiscDemoScores({ D: 0, I: 0, S: 0, C: 0 });
+    setDiscDemoSelected(null);
+    setDiscDemoReaction(null);
+    setDiscDemoAutoMode(false);
+    setDiscDemoCurrentChoice(0);
+  };
+
+  // DISC Demo logic
+  useEffect(() => {
+    if (showDemo) {
+      setDiscDemoAutoMode(true);
+    }
+  }, [showDemo]);
+
+  useEffect(() => {
+    if (!showDemo || !discDemoAutoMode) return;
+
+    const timer = setTimeout(() => {
+      if (discDemoStep < discDemoScenarios.length) {
+        const currentScenario = discDemoScenarios[discDemoStep];
+        const randomChoice = Math.floor(Math.random() * currentScenario.options.length);
+        setDiscDemoCurrentChoice(randomChoice);
+        
+        setTimeout(() => {
+          setDiscDemoSelected(currentScenario.options[randomChoice].id);
+          setDiscDemoScores(prev => ({
+            ...prev,
+            [currentScenario.options[randomChoice].disc]: prev[currentScenario.options[randomChoice].disc] + 1
+          }));
+          
+          setDiscDemoReaction(`Your ${currentScenario.options[randomChoice].animal} spirit responds!`);
+          
+          setTimeout(() => {
+            setDiscDemoReaction(null);
+            setDiscDemoSelected(null);
+            setDiscDemoStep(prev => prev + 1);
+          }, 2000);
+        }, 1000);
+      } else {
+        setDiscDemoAutoMode(false);
+      }
+    }, discDemoStep === 0 ? 1000 : 3000);
+
+    return () => clearTimeout(timer);
+  }, [showDemo, discDemoAutoMode, discDemoStep, discDemoCurrentChoice, discDemoScenarios]);
 
   // Generate personalized questions using Claude API
   const generatePersonalizedQuestions = async (responses?: any[], scores?: any) => {
@@ -611,7 +969,7 @@ Focus on real BPO roles in the Philippines that match their personality and expe
 FINAL RESULTS:
 Primary Type: ${results.primaryType} (${results.scores[results.primaryType]}%)
 Secondary Type: ${results.secondaryType} (${results.scores[results.secondaryType]}%)
-All Scores: D=${results.scores.D}%, I=${results.scores.I}%, S=${results.scores.S}%, C=${results.scores.C}%
+All Scores: Dominance=${results.scores.D}%, Influence=${results.scores.I}%, Steadiness=${results.scores.S}%, Conscientiousness=${results.scores.C}%
 Confidence: ${results.confidence}%
 
 COMPLETE RESPONSE ANALYSIS (All ${allResponses.length} Questions):
@@ -623,6 +981,13 @@ Create a comprehensive 3-paragraph assessment that:
 3. Provides specific strengths, blind spots, and growth recommendations
 4. References notable response patterns or speed/consistency
 5. Uses encouraging but brutally honest tone
+6. IMPORTANT: Always use full DISC terms (Dominance, Influence, Steadiness, Conscientiousness) instead of just initials (D, I, S, C)
+
+Additionally, provide these specific sections:
+- CORE TRAITS: List 3-4 key personality traits based on their actual responses and patterns
+- CULTURAL STRENGTHS: Explain 2-3 specific Filipino cultural values they embody based on their choices
+
+IMPORTANT FORMATTING: For Filipino cultural terms, always provide English translations in parentheses for consistency (e.g., "pakikisama (ability to get along)", "malasakit (genuine care)", "bayanihan (community spirit)")
 
 Make it deeply personal and actionable based on their actual choices.`;
 
@@ -780,12 +1145,36 @@ Make it deeply personal and actionable based on their actual choices.`;
     const primaryType = sorted[0][0] as 'D' | 'I' | 'S' | 'C';
       const secondaryType = sorted[1][0] as 'D' | 'I' | 'S' | 'C';
 
+    // Calculate cultural alignment based on response patterns
+    const calculateCulturalAlignment = () => {
+      const culturalContexts = ['FAMILY', 'WORK', 'SOCIAL', 'TRAFFIC', 'MONEY', 'CRISIS'];
+      const contextScores = culturalContexts.map(context => {
+        const contextResponses = gameState.responses.filter(r => r.context === context);
+        if (contextResponses.length === 0) return 0;
+        
+        // Score based on culturally appropriate choices
+        const culturalScore = contextResponses.reduce((score, response) => {
+          // Higher score for choices that show Filipino values
+          if (response.discType === 'S' && (context === 'FAMILY' || context === 'SOCIAL')) return score + 1.5; // Steadiness in family/social
+          if (response.discType === 'I' && context === 'SOCIAL') return score + 1.3; // Influence in social
+          if (response.discType === 'D' && (context === 'WORK' || context === 'CRISIS')) return score + 1.2; // Dominance in work/crisis
+          if (response.discType === 'C' && context === 'MONEY') return score + 1.1; // Conscientiousness in money
+          return score + 1; // Base score for any response
+        }, 0);
+        
+        return culturalScore / contextResponses.length;
+      });
+      
+      const averageCulturalScore = contextScores.reduce((sum, score) => sum + score, 0) / contextScores.length;
+      return Math.min(95, Math.max(60, Math.round(averageCulturalScore * 20))); // Scale to 60-95%
+    };
+
     const results = {
       primaryType,
         secondaryType,
       scores: percentages,
         confidence: Math.min(95, 70 + (Math.max(...Object.values(percentages)) - Math.min(...Object.values(percentages)))),
-        culturalAlignment: 95, // High since questions are culturally designed
+        culturalAlignment: calculateCulturalAlignment(),
         authenticity: 90 // High for demo purposes
     };
 
@@ -931,16 +1320,11 @@ Make it deeply personal and actionable based on their actual choices.`;
     setShowReaction(null);
   };
 
-  // Show dramatic spirit reveal sequence
-  if (showSpiritReveal) {
-    const revealMessages = [
-      "The ancient spirits have been watching...",
-      "Your choices have awakened a power within...",
-      "Your true nature is about to be revealed..."
-    ];
 
+  // Show Spirit Reveal modal
+  if (showSpiritReveal) {
     return (
-			<div className="min-h-screen cyber-grid pb-40">
+      <div className="min-h-screen cyber-grid overflow-hidden">
         <Header />
         <div className="pt-16 relative z-10 flex items-center justify-center min-h-screen">
           <Card className="disc-game-screen max-w-2xl mx-auto">
@@ -963,7 +1347,9 @@ Make it deeply personal and actionable based on their actual choices.`;
                 transition={{ duration: 1 }}
               >
                 <h2 className="text-3xl font-bold gradient-text mb-6">
-                  {revealMessages[revealStep] || revealMessages[0]}
+                  {revealStep === 0 && "The ancient spirits have been watching..."}
+                  {revealStep === 1 && "Your choices have awakened a power within..."}
+                  {revealStep === 2 && "Your true nature is about to be revealed..."}
                 </h2>
               </motion.div>
               
@@ -1011,13 +1397,16 @@ Make it deeply personal and actionable based on their actual choices.`;
         <div className="pt-16 relative z-10 flex items-center justify-center min-h-screen">
           <Card className="disc-game-screen max-w-2xl mx-auto">
             <CardContent className="p-8 text-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="mb-6"
-              >
-                <Brain className="h-16 w-16 text-cyan-400 mx-auto" />
-              </motion.div>
+              <div className="mb-6">
+                <div className="flex justify-center">
+                  <PacmanLoader 
+                    color="#fbbf24" 
+                    size={60}
+                    margin={4}
+                    speedMultiplier={1.2}
+                  />
+                </div>
+              </div>
               <h2 className="text-2xl font-bold gradient-text mb-4">
                 🤖 AI Analyzing Your Personality, {user?.user_metadata?.first_name || 'Player'}...
               </h2>
@@ -1044,6 +1433,12 @@ Make it deeply personal and actionable based on their actual choices.`;
 
   // Results screen
   if (showResults && discResult) {
+    // Stop music when reaching results
+    if (backgroundMusic) {
+      backgroundMusic.pause();
+      backgroundMusic.currentTime = 0;
+    }
+    
     const personalityType = ANIMAL_PERSONALITIES[discResult.primaryType as keyof typeof ANIMAL_PERSONALITIES];
 
     return (
@@ -1074,38 +1469,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                 </div>
                 
               {/* Results Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Personality Scores */}
-                <Card className="disc-game-screen">
-                  <CardHeader>
-                    <CardTitle className="text-white">🎯 Your DISC Breakdown</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-						{Object.entries(discResult.scores as Record<string, number>).map(([type, score]: [string, number]) => {
-                        const animal = ANIMAL_PERSONALITIES[type as keyof typeof ANIMAL_PERSONALITIES];
-                      return (
-                          <div key={type} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl">{animal.animal.split(' ')[0]}</span>
-                              <span className="text-white font-medium">{type}-Type</span>
-                          </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-24 personality-score-bar">
-                                <div 
-                                  className={`personality-score-fill score-${type.toLowerCase()}`}
-										style={{ width: `${Number(score)}%` }}
-                                />
-                          </div>
-									<span className="text-white font-bold w-12">{Number(score)}%</span>
-                          </div>
-                          </div>
-                      );
-                      })}
-                  </div>
-                  </CardContent>
-                </Card>
-
+              <div className="grid grid-cols-1 gap-6 mb-8">
                 {/* Game Stats */}
                 <Card className="disc-game-screen">
                   <CardHeader>
@@ -1127,7 +1491,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                       </div>
                       <div className="text-center">
                         <div className="text-3xl font-bold text-purple-400">{Math.round(discResult.culturalAlignment)}%</div>
-                        <div className="text-sm text-gray-400">Filipino Fit</div>
+                        <div className="text-sm text-gray-400">Cultural Match</div>
                       </div>
                   </div>
                   </CardContent>
@@ -1143,21 +1507,49 @@ Make it deeply personal and actionable based on their actual choices.`;
                   <div className="bg-white/5 rounded-lg p-4">
                     <h4 className="text-lg font-semibold text-cyan-300 mb-2">Your Core Traits</h4>
                     <div className="flex flex-wrap gap-2">
-                      {personalityType.traits.map((trait, index) => (
-                        <span key={index} className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">
-                          {trait}
-                        </span>
-                      ))}
+                      {aiAssessment && aiAssessment.includes('CORE TRAITS:') ? (
+                        // Extract AI-generated core traits
+                        aiAssessment
+                          .split('CORE TRAITS:')[1]
+                          ?.split('CULTURAL STRENGTHS:')[0]
+                          ?.split('\n')
+                          .filter(line => line.trim() && !line.includes('CULTURAL STRENGTHS'))
+                          .map((trait, index) => (
+                            <span key={index} className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">
+                              {trait.trim().replace(/^[-•]\s*/, '')}
+                            </span>
+                          ))
+                      ) : (
+                        // Fallback to hardcoded traits
+                        personalityType.traits.map((trait, index) => (
+                          <span key={index} className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">
+                            {trait}
+                          </span>
+                        ))
+                      )}
                     </div>
                   </div>
                   
                   <div className="bg-white/5 rounded-lg p-4">
-                    <h4 className="text-lg font-semibold text-green-300 mb-2">Why This Fits Filipino Culture</h4>
+                    <h4 className="text-lg font-semibold text-green-300 mb-2">Your Cultural Strengths</h4>
                     <p className="text-gray-300">
-                      {personalityType.title === "The Sky Dominator" && "In Filipino culture, you're the natural 'tagapamuno' who takes charge during challenges. Your 'diskarte' mentality helps you find solutions where others see obstacles."}
-                      {personalityType.title === "The Social Star" && "You embody the Filipino spirit of 'pakikipagkapwa' - connecting with others naturally. Your warmth and enthusiasm make you perfect for building relationships in any setting."}
-                      {personalityType.title === "The Steady Guardian" && "You represent the Filipino value of 'malasakit' - caring for others consistently. Your reliability and patience make you the foundation that teams depend on."}
-                      {personalityType.title === "The Wise Analyst" && "You reflect the Filipino trait of being 'matalino' - not just smart, but wise. Your attention to detail and systematic approach ensures quality in everything you do."}
+                      {aiAssessment && aiAssessment.includes('CULTURAL STRENGTHS:') ? (
+                        // Extract AI-generated cultural strengths
+                        aiAssessment
+                          .split('CULTURAL STRENGTHS:')[1]
+                          ?.split('\n')
+                          .filter(line => line.trim())
+                          .join(' ')
+                          .trim()
+                      ) : (
+                        // Fallback to hardcoded cultural strengths
+                        <>
+                          {personalityType.title === "The Sky Dominator" && "You're the natural 'tagapamuno' who takes charge during challenges. Your 'diskarte' mentality helps you find solutions where others see obstacles."}
+                          {personalityType.title === "The Social Star" && "You embody the spirit of 'pakikipagkapwa' - connecting with others naturally. Your warmth and enthusiasm make you perfect for building relationships in any setting."}
+                          {personalityType.title === "The Steady Guardian" && "You represent the value of 'malasakit' - caring for others consistently. Your reliability and patience make you the foundation that teams depend on."}
+                          {personalityType.title === "The Wise Analyst" && "You reflect the trait of being 'matalino' - not just smart, but wise. Your attention to detail and systematic approach ensures quality in everything you do."}
+                        </>
+                      )}
                     </p>
                   </div>
 
@@ -1249,8 +1641,8 @@ Make it deeply personal and actionable based on their actual choices.`;
                         </div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-white text-sm">{item.type}</div>
-                        <div className="text-xs text-gray-400">{item.label}</div>
+                        <div className="font-bold text-white text-sm">{item.label}</div>
+                        <div className="text-lg font-bold text-gray-300">{item.type}</div>
                       </div>
                   </div>
                   );
@@ -1305,13 +1697,43 @@ Make it deeply personal and actionable based on their actual choices.`;
 
             {/* AI Analysis Text */}
             <div className="bg-black/30 rounded-lg p-4">
-              <h5 className="text-sm font-semibold text-purple-300 mb-3">🔮 Deep Personality Insights</h5>
-              <div className="text-gray-300 leading-relaxed text-sm space-y-3">
-							{aiAssessment.split('\n\n').map((paragraph: string, index: number) => (
-                  <p key={index}>{paragraph}</p>
-                ))}
-              </div>
-                    </div>
+              <button
+                onClick={() => setIsInsightsExpanded(!isInsightsExpanded)}
+                className="flex items-center justify-between w-full text-left mb-3 hover:bg-white/5 rounded-lg p-2 -m-2 transition-colors"
+              >
+                <h5 className="text-sm font-semibold text-purple-300">🔮 Deep Personality Insights</h5>
+                <ChevronDown 
+                  className={`h-4 w-4 text-purple-300 transition-transform duration-200 ${
+                    isInsightsExpanded ? 'rotate-180' : ''
+                  }`} 
+                />
+              </button>
+              
+               {isInsightsExpanded && (
+                 <div className="text-gray-300 leading-relaxed text-sm space-y-3">
+                   {aiAssessment.split('\n\n').filter((paragraph: string) => {
+                     // Filter out CORE TRAITS and CULTURAL STRENGTHS sections
+                     return !paragraph.toLowerCase().includes('core traits:') && 
+                            !paragraph.toLowerCase().includes('cultural strengths:');
+                   }).map((paragraph: string, index: number) => {
+                     // Highlight important phrases within the paragraph
+                     const highlightText = (text: string) => {
+                       return text
+                         .replace(/\b(strengths?|blind spots?|growth|recommendations?|patterns?|response|critical|essential|important|key|should|must|need to)\b/gi, 
+                           '<span class="text-cyan-400 font-semibold">$1</span>')
+                         .replace(/\b(dominance|influence|steadiness|conscientiousness)\b/gi, 
+                           '<span class="text-purple-400 font-medium">$1</span>')
+                         .replace(/\b(filipino|bpo|workplace|culture|cultural)\b/gi, 
+                           '<span class="text-yellow-400 font-medium">$1</span>');
+                     };
+                     
+                     return (
+                       <p key={index} dangerouslySetInnerHTML={{ __html: highlightText(paragraph) }} />
+                     );
+                   })}
+                 </div>
+               )}
+            </div>
 						</>
 					) : (
 						<div className="text-center py-6">
@@ -1413,15 +1835,280 @@ Make it deeply personal and actionable based on their actual choices.`;
     );
   }
 
-  // Welcome screen
-  if (!gameState.gameStarted) {
+  // Demo interface
+  if (showDemo) {
     return (
-		<div className="min-h-screen cyber-grid pb-40">
+      <div className="min-h-screen cyber-grid overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
         </div>
         
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <div className="max-w-5xl w-full">
+            <Card className="glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl">
+              <CardHeader className="text-center">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-2xl">🇵🇭</span>
+                  </div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    BPOC DISC - Interactive Demo
+                  </h1>
+                </div>
+                <p className="text-gray-300 text-lg">
+                  Experience authentic Filipino scenarios and discover your BPO animal spirit!
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="glass-card p-6 rounded-2xl relative overflow-hidden min-h-[500px]">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 rounded-t-2xl"></div>
+                  
+                  {/* Demo Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-white">🇵🇭 Filipino DISC Personality</h3>
+                      <p className="text-sm text-gray-400">Interactive Demo</p>
+                    </div>
+                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                      <Play className="w-3 h-3 mr-1" />
+                      Live Demo
+                    </Badge>
+                  </div>
+
+                  {/* Demo Content */}
+                  {discDemoStep < discDemoScenarios.length ? (
+                    <div className="space-y-6">
+                      {/* Auto Demo Indicator */}
+                      <div className="flex items-center justify-center gap-2 text-purple-300 text-sm">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        <span>Auto Demo in Progress</span>
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                      </div>
+
+                      {/* Current Scenario */}
+                      <motion.div 
+                        key={discDemoStep}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 rounded-lg p-4 border border-purple-500/30"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-2xl">
+                            {discDemoScenarios[discDemoStep].context === 'FAMILY' ? '👨‍👩‍👧‍👦' : 
+                             discDemoScenarios[discDemoStep].context === 'WORK' ? '💼' : '🎯'}
+                          </span>
+                          <span className="text-purple-300 font-semibold text-sm">
+                            {discDemoScenarios[discDemoStep].context} Context
+                          </span>
+                        </div>
+                        <h4 className="text-lg font-bold text-white mb-2">
+                          {discDemoScenarios[discDemoStep].title}
+                        </h4>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                          {discDemoScenarios[discDemoStep].scenario}
+                        </p>
+                      </motion.div>
+
+                      {/* Options Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {discDemoScenarios[discDemoStep].options.map((option, index) => {
+                          const isSelected = discDemoSelected === option.id;
+                          const isHighlighted = discDemoCurrentChoice === index && !discDemoSelected;
+                          const getDiscStyles = (disc: string) => {
+                            switch (disc) {
+                              case 'D':
+                                return {
+                                  bg: 'from-red-500/10 to-red-600/10',
+                                  border: 'border-red-500/40',
+                                  ring: 'ring-red-500/30',
+                                  text: 'text-red-300'
+                                };
+                              case 'I':
+                                return {
+                                  bg: 'from-yellow-500/10 to-yellow-600/10',
+                                  border: 'border-yellow-500/40',
+                                  ring: 'ring-yellow-500/30',
+                                  text: 'text-yellow-300'
+                                };
+                              case 'S':
+                                return {
+                                  bg: 'from-green-500/10 to-green-600/10',
+                                  border: 'border-green-500/40',
+                                  ring: 'ring-green-500/30',
+                                  text: 'text-green-300'
+                                };
+                              case 'C':
+                                return {
+                                  bg: 'from-blue-500/10 to-blue-600/10',
+                                  border: 'border-blue-500/40',
+                                  ring: 'ring-blue-500/30',
+                                  text: 'text-blue-300'
+                                };
+                              default:
+                                return {
+                                  bg: 'from-cyan-500/10 to-purple-600/10',
+                                  border: 'border-white/10',
+                                  ring: 'ring-white/10',
+                                  text: 'text-gray-300'
+                                };
+                            }
+                          };
+                          
+                          const styles = getDiscStyles(option.disc);
+                          
+                          return (
+                            <motion.div
+                              key={option.id}
+                              className={`text-left transition-all rounded-lg border ${styles.border} bg-gradient-to-br ${styles.bg} ${
+                                isSelected 
+                                  ? `ring-2 ${styles.ring} scale-[1.02] shadow-lg` 
+                                  : isHighlighted 
+                                  ? `ring-1 ${styles.ring} scale-[1.01] shadow-md` 
+                                  : 'hover:ring-1'
+                              } backdrop-blur-sm p-4 relative overflow-hidden`}
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ 
+                                opacity: 1, 
+                                y: 0,
+                                scale: isSelected ? 1.02 : isHighlighted ? 1.01 : 1
+                              }}
+                              transition={{ delay: index * 0.1 }}
+                            >
+                              {/* Selection indicator */}
+                              {isSelected && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
+                                >
+                                  <span className="text-white text-sm">✓</span>
+                                </motion.div>
+                              )}
+                              
+                              {/* Highlighting effect */}
+                              {isHighlighted && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12"
+                                />
+                              )}
+                              
+                              <div className="flex items-start gap-3">
+                                <div className="text-2xl select-none">
+                                  {option.animal.split(' ')[0]}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-white font-semibold leading-snug text-sm">
+                                    {option.text}
+                                  </div>
+                                  <div className={`mt-1 text-xs ${styles.text}`}>
+                                    {option.animal}
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Spirit Reaction */}
+                      {discDemoReaction && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0, y: 20 }}
+                          animate={{ scale: 1, opacity: 1, y: 0 }}
+                          exit={{ scale: 0, opacity: 0, y: -20 }}
+                          className="text-center p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30 relative overflow-hidden"
+                        >
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="text-2xl mb-2"
+                          >
+                            ✨
+                          </motion.div>
+                          <p className="text-purple-300 font-semibold">{discDemoReaction}</p>
+                          <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: "100%" }}
+                            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                          />
+                        </motion.div>
+                      )}
+
+                      {/* Progress Bar */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="text-gray-400">
+                            Question {discDemoStep + 1} of {discDemoScenarios.length}
+                          </div>
+                          <div className="text-purple-300 text-xs">
+                            Auto Demo • {discDemoAutoMode ? 'Running' : 'Paused'}
+                          </div>
+                        </div>
+                        
+                        <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 rounded-full"
+                            animate={{ width: `${((discDemoStep + 1) / discDemoScenarios.length) * 100}%` }}
+                            transition={{ duration: 0.5 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-6">
+                      <div className="text-6xl mb-4">🎉</div>
+                      <h3 className="text-2xl font-bold text-white">Demo Complete!</h3>
+                      <p className="text-gray-300">
+                        You've experienced how the Filipino DISC assessment works. Ready to discover your own BPO animal spirit?
+                      </p>
+                      <div className="flex gap-4 justify-center">
+                        <Button
+                          onClick={closeDemo}
+                          variant="outline"
+                          className="border-gray-500/50 text-gray-300 hover:bg-gray-500/10"
+                        >
+                          <span className="mr-2">←</span>
+                          Back to Menu
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            closeDemo();
+                            startGame();
+                          }}
+                          className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold"
+                        >
+                          <span className="mr-2">🚀</span>
+                          Start Assessment
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Welcome screen
+  if (!gameState.gameStarted) {
+    return (
+      <div className="min-h-screen cyber-grid overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl"></div>
+        </div>
+
         <Header />
         
         <div className="pt-16 relative z-10">
@@ -1470,6 +2157,92 @@ Make it deeply personal and actionable based on their actual choices.`;
                   </div>
                 </div>
               </div>
+            </motion.div>
+
+            {/* Big Title Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center mb-16"
+            >
+              <motion.h1
+                animate={{ 
+                  backgroundImage: [
+                    "linear-gradient(45deg, #a855f7, #ec4899, #06b6d4)",
+                    "linear-gradient(45deg, #ec4899, #06b6d4, #a855f7)",
+                    "linear-gradient(45deg, #06b6d4, #a855f7, #ec4899)",
+                    "linear-gradient(45deg, #a855f7, #ec4899, #06b6d4)"
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="text-6xl md:text-8xl font-bold text-transparent bg-clip-text mb-4"
+                style={{ backgroundSize: "200% 200%" }}
+              >
+                BPOC DISC
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="text-2xl text-gray-300 mb-8 max-w-4xl mx-auto"
+              >
+                Discover your <span className="text-purple-400 font-bold">Filipino BPO animal spirit</span> through authentic workplace scenarios and unlock your communication superpowers!
+              </motion.p>
+              
+              {/* Feature Pills */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="flex flex-wrap justify-center gap-3 mb-8"
+              >
+                <div className="flex items-center gap-2 bg-purple-500/20 rounded-full px-4 py-2 border border-purple-500/30">
+                  <Brain className="w-4 h-4 text-purple-400" />
+                  <span className="text-purple-300 text-sm font-semibold">AI-Powered Assessment</span>
+                </div>
+                <div className="flex items-center gap-2 bg-pink-500/20 rounded-full px-4 py-2 border border-pink-500/30">
+                  <Heart className="w-4 h-4 text-pink-400" />
+                  <span className="text-pink-300 text-sm font-semibold">Authentic Scenarios</span>
+                </div>
+                <div className="flex items-center gap-2 bg-cyan-500/20 rounded-full px-4 py-2 border border-cyan-500/30">
+                  <Trophy className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-300 text-sm font-semibold">Career Insights</span>
+                </div>
+              </motion.div>
+
+               {/* Feature Icons */}
+               <motion.div
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: 1.0 }}
+                 className="flex justify-center gap-8 mb-12"
+               >
+                 <div className="text-center">
+                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                     <Brain className="w-8 h-8 text-white" />
+                   </div>
+                   <div className="text-white font-bold text-sm">AI Powered</div>
+                 </div>
+                 <div className="text-center">
+                   <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                     <span className="text-white text-2xl">∞</span>
+                   </div>
+                   <div className="text-white font-bold text-sm">∞ Scenarios</div>
+                 </div>
+                 <div className="text-center">
+                   <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                     <span className="text-white text-2xl">4</span>
+                   </div>
+                   <div className="text-white font-bold text-sm">4 Types</div>
+                 </div>
+                 <div className="text-center">
+                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                     <span className="text-white text-2xl">🎵</span>
+                   </div>
+                   <div className="text-white font-bold text-sm">🎵 Music</div>
+                 </div>
+               </motion.div>
             </motion.div>
 
             {/* How to Play Section */}
@@ -1542,137 +2315,218 @@ Make it deeply personal and actionable based on their actual choices.`;
               </Card>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="max-w-4xl mx-auto text-center space-y-8"
-            >
-              <Card className="disc-game-screen glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl">
-                <CardHeader className="pb-6">
-                  <div className="flex items-center justify-center mb-6">
-                    <div className="text-6xl mr-4">🇵🇭</div>
-                    <div>
-                      <CardTitle className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-                        Filipino DISC Personality Game
-                      </CardTitle>
-                      <CardDescription className="text-gray-300 text-lg">
-                        Discover your BPO animal spirit through authentic Filipino scenarios!
-                      </CardDescription>
-                    </div>
-                  </div>
-                  
-                  <div className="text-gray-300 space-y-6 text-left max-w-3xl mx-auto">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-red-400" />
-                        What Makes This Special
-                      </h3>
-                      <ul className="space-y-3 text-sm">
-                        <li className="flex items-start">
-                          <span className="text-2xl mr-3 mt-0.5">🦅🦚🐢🦉</span>
-                          <span><strong>4 Filipino Animal Spirits:</strong> Eagle (Dominator), Peacock (Social Star), Turtle (Steady Guardian), Owl (Wise Analyst)</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-red-400 mr-3 mt-0.5 text-lg">🇵🇭</span>
-                          <span><strong>30 Real Filipino Scenarios + 5 AI Personalized:</strong> Family drama, OFW money issues, EDSA traffic, BGC encounters, barkada pressure, work politics, social media pressure</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-blue-400 mr-3 mt-0.5 text-lg">🤖</span>
-                          <span><strong>AI-Powered Personalization:</strong> Claude AI creates 5 custom questions using YOUR real name, location, and profile data</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-green-400 mr-3 mt-0.5 text-lg">💼</span>
-                          <span><strong>BPO Career Insights:</strong> Perfect role matches for Philippine call centers and outsourcing</span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-yellow-400 mr-3 mt-0.5 text-lg">🎮</span>
-                          <span><strong>Gamified Experience:</strong> XP, achievements, streaks, and shareable results</span>
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-red-400 text-lg">⚡</span>
-                          <h4 className="text-white font-semibold">Real Filipino Context</h4>
-                        </div>
-                        <p className="text-gray-300 text-sm">Every scenario uses authentic Filipino situations with real peso amounts and cultural references.</p>
+            {/* Interactive Game Setup */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 max-w-7xl mx-auto px-4 md:px-6">
+              
+              {/* What Makes Special */}
+              <motion.div
+                initial={{ x: -50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="xl:col-span-2"
+              >
+                <Card className="glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-xl h-full">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold text-white flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                        <Star className="w-4 h-4 text-white" />
                       </div>
-                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-blue-400 text-lg">🎯</span>
-                          <h4 className="text-white font-semibold">BPO-Focused Results</h4>
+                      What Makes Special
+                    </CardTitle>
+                    <p className="text-gray-300">Discover the unique features that make this DISC assessment special</p>
+                    <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3 mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-400 text-lg">💡</span>
+                        <span className="text-blue-300 font-semibold">How it works:</span>
+                      </div>
+                      <p className="text-blue-200 text-sm">This assessment uses authentic Filipino scenarios, AI personalization, and BPO-focused insights to reveal your true personality type!</p>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
+                        <div className="p-4 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl border border-purple-500/30">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-lg">🇵🇭</span>
+                            </div>
+                            <div>
+                              <h4 className="text-white font-bold">Filipino Context</h4>
+                              <p className="text-purple-300 text-sm">Authentic scenarios</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm">30 Filipino scenarios + 5 AI personalized questions using your real name and location</p>
                         </div>
-                        <p className="text-gray-300 text-sm">Get specific role recommendations for Philippine call centers and BPO companies.</p>
+                        
+                        <div className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl border border-blue-500/30">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-lg">🤖</span>
+                            </div>
+                            <div>
+                              <h4 className="text-white font-bold">AI Powered</h4>
+                              <p className="text-blue-300 text-sm">Personalized assessment</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm">Claude AI creates custom questions using your profile data for maximum personalization</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="p-4 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl border border-green-500/30">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-lg">💼</span>
+                            </div>
+                            <div>
+                              <h4 className="text-white font-bold">BPO Career</h4>
+                              <p className="text-green-300 text-sm">Role matching</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm">Perfect role matches for Philippine call centers and BPO companies</p>
+                        </div>
+                        
+                        <div className="p-4 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-xl border border-yellow-500/30">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-lg">🎮</span>
+                            </div>
+                            <div>
+                              <h4 className="text-white font-bold">Gamified</h4>
+                              <p className="text-yellow-300 text-sm">XP & achievements</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm">XP, achievements, streaks, and shareable results for engagement</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Music Selection */}
-                  <div className="mb-8 p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20 hover:border-purple-400/30 transition-all duration-300">
-                    <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Audio of BPOC DISC */}
+              <motion.div
+                initial={{ x: 50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 1.0 }}
+                className="space-y-6"
+              >
+                <Card className="glass-card border-white/10 bg-gradient-to-br from-pink-500/10 to-cyan-500/10 backdrop-blur-xl">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-cyan-500 rounded-lg flex items-center justify-center">
                         <span className="text-white text-lg">🎵</span>
                       </div>
-                      Choose Your Soundtrack
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      Music Style
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
                       <Button
-                        variant={musicLanguage === 'tagalog' ? 'default' : 'outline'}
-                        onClick={() => setMusicLanguage('tagalog')}
-                        className={`${musicLanguage === 'tagalog' 
+                        variant={musicLanguage === 'maledisc' ? 'default' : 'outline'}
+                        onClick={() => setMusicLanguage('maledisc')}
+                        className={`${musicLanguage === 'maledisc' 
                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/30' 
                           : 'border-purple-500/50 text-purple-300 hover:bg-purple-500/10 hover:border-purple-400/70'
-                        } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+                        } w-full h-16 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         <div className="text-center relative z-10">
                           <div className="text-lg font-bold flex items-center justify-center gap-2">
-                            <span className="text-2xl">🇵🇭</span>
-                            Tagalog
+                            <span className="text-xl">♂️</span>
+                            Male Vocals
                           </div>
-                          <div className="text-xs opacity-80 font-medium">AUTHENTIC FILIPINO EXPERIENCE</div>
+                          <div className="text-xs opacity-80">Who Are You</div>
                         </div>
                       </Button>
                       <Button
-                        variant={musicLanguage === 'english' ? 'default' : 'outline'}
-                        onClick={() => setMusicLanguage('english')}
-                        className={`${musicLanguage === 'english' 
+                        onClick={() => previewMusic('maledisc')}
+                        disabled={isPreviewing}
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-500/10 disabled:opacity-50"
+                      >
+                        {isPreviewing && previewingGender === 'maledisc' ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                            <span>Previewing... {previewCountdown}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span>🎵</span>
+                            <span>Preview (10s)</span>
+                          </div>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Button
+                        variant={musicLanguage === 'femaledisc' ? 'default' : 'outline'}
+                        onClick={() => setMusicLanguage('femaledisc')}
+                        className={`${musicLanguage === 'femaledisc' 
                           ? 'bg-gradient-to-r from-pink-500 to-cyan-500 hover:from-pink-600 hover:to-cyan-600 text-white shadow-lg shadow-pink-500/30' 
                           : 'border-pink-500/50 text-pink-300 hover:bg-pink-500/10 hover:border-pink-400/70'
-                        } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+                        } w-full h-16 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         <div className="text-center relative z-10">
                           <div className="text-lg font-bold flex items-center justify-center gap-2">
-                            <span className="text-2xl">🌍</span>
-                            English
+                            <span className="text-xl">♀️</span>
+                            Female Vocals
                           </div>
-                          <div className="text-xs opacity-80 font-medium">GLOBAL BPO PERSPECTIVE</div>
+                          <div className="text-xs opacity-80">Sino Ka Ba</div>
                         </div>
                       </Button>
+                      <Button
+                        onClick={() => previewMusic('femaledisc')}
+                        disabled={isPreviewing}
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-pink-500/30 text-pink-300 hover:bg-pink-500/10 disabled:opacity-50"
+                      >
+                        {isPreviewing && previewingGender === 'femaledisc' ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                            <span>Previewing... {previewCountdown}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span>🎵</span>
+                            <span>Preview (10s)</span>
+                          </div>
+                        )}
+                      </Button>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <Button
-                    onClick={startGame}
-                    className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold text-lg py-6 h-16 shadow-xl shadow-purple-500/30 transition-all duration-500 hover:scale-105 relative overflow-hidden"
-                  >
-                    {/* Button Background Animation */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                    
-                    <div className="relative z-10 flex items-center justify-center gap-3">
-                      <Play className="w-6 h-6" />
-                      <span>🚀 Discover My Filipino BPO Animal!</span>
-                      <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                    </div>
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+                {/* Start Playing */}
+                <Card className="glass-card border-white/10 bg-gradient-to-br from-green-500/10 to-cyan-500/10 backdrop-blur-xl">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                        <Play className="w-3 h-3 text-white" />
+                      </div>
+                      Ready to Play?
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={startGame}
+                      className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold text-lg py-4 h-14 shadow-xl shadow-purple-500/30 transition-all duration-500 hover:scale-105 relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                      <div className="relative z-10 flex items-center justify-center gap-3">
+                        <Play className="w-5 h-5" />
+                        <span>🚀 Discover My Filipino BPO Animal!</span>
+                        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                      </div>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
@@ -1681,6 +2535,18 @@ Make it deeply personal and actionable based on their actual choices.`;
 
   // Main game interface
   const ContextIcon = CONTEXT_ICONS[currentScenario?.context as keyof typeof CONTEXT_ICONS] || Brain;
+  
+  // Get current context colors
+  const getContextColors = () => {
+    const context = currentScenario?.context as keyof typeof CONTEXT_COLORS;
+    // For personalized questions (questions 31-35), use PERSONAL context
+    if (gameState.showPersonalized) {
+      return CONTEXT_COLORS.PERSONAL;
+    }
+    return CONTEXT_COLORS[context] || CONTEXT_COLORS.FAMILY;
+  };
+  
+  const contextColors = getContextColors();
   
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -1721,6 +2587,37 @@ Make it deeply personal and actionable based on their actual choices.`;
                   <p className="text-gray-400 text-sm">{currentScenario?.context} Context</p>
                 </div>
               </div>
+              
+            </div>
+            
+            {/* Music Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={toggleMute}
+                className="border-white/20 text-white hover:bg-white/10"
+                title="Volume Control"
+              >
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+              
+              {/* Volume Control */}
+              {showVolumeControl && (
+                <div className="flex items-center gap-2 bg-black/50 rounded-lg p-2">
+                  <span className="text-xs text-white">Volume:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className="w-20"
+                  />
+                  <span className="text-xs text-white">{Math.round(volume * 100)}%</span>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -1755,21 +2652,17 @@ Make it deeply personal and actionable based on their actual choices.`;
                       <div className="bg-black/20 rounded-lg p-3">
                         <div className="text-xs text-gray-400 mb-2">Emerging Traits</div>
                         <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="text-center">
-                            <div className="text-red-400 font-bold">{Math.round((gameState.scores.D / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
-                            <div className="text-red-300">Leader</div>
+                          <div className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-2 text-center">
+                            <div className="text-purple-400 font-bold">{Math.round((gameState.scores.D / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-yellow-400 font-bold">{Math.round((gameState.scores.I / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
-                            <div className="text-yellow-300">Social</div>
+                          <div className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-2 text-center">
+                            <div className="text-purple-400 font-bold">{Math.round((gameState.scores.I / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-green-400 font-bold">{Math.round((gameState.scores.S / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
-                            <div className="text-green-300">Steady</div>
+                          <div className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-2 text-center">
+                            <div className="text-purple-400 font-bold">{Math.round((gameState.scores.S / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-blue-400 font-bold">{Math.round((gameState.scores.C / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
-                            <div className="text-blue-300">Careful</div>
+                          <div className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-2 text-center">
+                            <div className="text-purple-400 font-bold">{Math.round((gameState.scores.C / Math.max(gameState.currentQuestion + 1, 1)) * 100)}%</div>
                           </div>
                         </div>
                       </div>
@@ -1899,16 +2792,18 @@ Make it deeply personal and actionable based on their actual choices.`;
                 animate={{ opacity: 1, x: 0 }}
                 className="h-full"
               >
-                <div className={`disc-game-screen h-full rounded-xl border border-white/10 bg-black/30 pt-2 pb-0 px-2 scenario-${currentScenario?.context.toLowerCase()} flex flex-col`}>
+                <div className={`disc-game-screen h-full rounded-xl border ${contextColors.border} ${contextColors.containerBg} pt-2 pb-0 px-2 scenario-${currentScenario?.context.toLowerCase()} flex flex-col`}>
                   {/* Compact top header with progress */}
                   <div className="flex items-center justify-between gap-3 mb-1">
                     <div className="flex items-center gap-2">
                       <ContextIcon className="h-5 w-5 text-cyan-400" />
-                      <span className="px-2 py-0.5 rounded-full bg-white/5 border border-cyan-400/30 text-cyan-300 text-[10px] tracking-wide uppercase">{currentScenario?.context}</span>
+                      <span className={`px-2 py-0.5 rounded-full bg-white/5 border ${contextColors.border} ${contextColors.text} text-[10px] tracking-wide uppercase`}>
+                        {gameState.showPersonalized ? 'PERSONAL' : currentScenario?.context}
+                      </span>
                       </div>
                     <div className="flex-1">
                       <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-cyan-500 to-purple-500" style={{ width: `${progressPercent}%` }} />
+                        <div className={`h-full bg-gradient-to-r from-${contextColors.primary}-500 to-${contextColors.primary}-400`} style={{ width: `${progressPercent}%` }} />
                     </div>
                        </div>
                     <div className="text-[10px] text-gray-400 whitespace-nowrap">{gameState.currentQuestion + 1}/{totalQuestions}</div>
@@ -1918,33 +2813,29 @@ Make it deeply personal and actionable based on their actual choices.`;
                   <h2 className="text-2xl font-extrabold text-center mb-2 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow">{currentScenario?.title}</h2>
 
                   {/* Scenario */}
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3 mb-1">
+                  <div className={`rounded-lg border ${contextColors.border} ${contextColors.bg} p-3 mb-1`}>
                     <p className="text-lg text-gray-200 leading-relaxed">{currentScenario?.scenario}</p>
                   </div>
 
                   {/* Choices grid - force 2x2 */}
-                  <div className="grid grid-cols-2 gap-2 flex-1">
+                  <div className="grid grid-cols-1 gap-2 flex-1">
                     {shuffledOptions.map((choice, index) => {
-                      const styles = getDiscStyles(choice.disc)
                       return (
                         <motion.button
                           key={choice.id}
                           onClick={() => handleOptionSelect(choice.id, choice.disc, choice.reaction)}
                           disabled={selectedOption !== null}
-                          className={`text-left transition-all rounded-lg border ${styles.border} bg-gradient-to-br ${styles.bg} ${selectedOption === choice.id ? `ring-2 ${styles.ring} scale-[1.005]` : 'hover:ring-1'} hover:translate-y-[-1px] hover:shadow-lg/30 backdrop-blur-sm`}
+                          className={`text-left transition-all rounded-lg border ${contextColors.border} ${contextColors.bg} ${selectedOption === choice.id ? `ring-2 ring-${contextColors.primary}-400 scale-[1.005]` : `hover:ring-1 hover:ring-${contextColors.primary}-400/50`} hover:translate-y-[-1px] hover:shadow-lg/30 backdrop-blur-sm`}
                           whileHover={{ scale: selectedOption === null ? 1.01 : 1 }}
                           whileTap={{ scale: 0.99 }}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
                         >
-                          <div className="flex items-start gap-4 p-4">
-                            <div className="text-2xl select-none">
-                              {choice.animal.split(' ')[0]}
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-white font-semibold leading-snug text-base">{choice.text}</div>
-                              <div className={`mt-1 text-xs ${styles.text}`}>{choice.animal}</div>
+                          <div className="p-4 h-24 flex items-center">
+                            <div className="text-white font-semibold leading-tight text-base flex items-center gap-2">
+                              <span className="text-2xl">🔮</span>
+                              {choice.text}
                             </div>
                           </div>
                         </motion.button>
@@ -1952,50 +2843,6 @@ Make it deeply personal and actionable based on their actual choices.`;
                     })}
                   </div>
 
-                  {/* Ancient Spirits Gathering moved below choices */}
-                  <div className="mt-2">
-                    <Card className="disc-game-screen py-1">
-                      <CardContent className="p-3">
-                        <div className="text-center mb-3">
-                          <div className="text-sm text-gray-300 mb-3">Ancient Spirits Gathering</div>
-                          <div className="flex justify-center gap-8 min-h-[128px] items-end">
-                            <motion.div 
-                              className="flex flex-col items-center"
-                              animate={{ scale: gameState.scores.D > 0 ? [1, 1.15, 1] : 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.D > 0 ? 1 : 0.3 }}>🦅</div>
-                              <div className="text-sm text-red-400 font-bold">{gameState.scores.D}</div>
-                            </motion.div>
-                            <motion.div 
-                              className="flex flex-col items-center"
-                              animate={{ scale: gameState.scores.I > 0 ? [1, 1.15, 1] : 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.I > 0 ? 1 : 0.3 }}>🦚</div>
-                              <div className="text-sm text-yellow-400 font-bold">{gameState.scores.I}</div>
-                            </motion.div>
-                            <motion.div 
-                              className="flex flex-col items-center"
-                              animate={{ scale: gameState.scores.S > 0 ? [1, 1.15, 1] : 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.S > 0 ? 1 : 0.3 }}>🐢</div>
-                              <div className="text-sm text-green-400 font-bold">{gameState.scores.S}</div>
-                            </motion.div>
-                            <motion.div 
-                              className="flex flex-col items-center"
-                              animate={{ scale: gameState.scores.C > 0 ? [1, 1.15, 1] : 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <div className="text-4xl mb-1" style={{ opacity: gameState.scores.C > 0 ? 1 : 0.3 }}>🦉</div>
-                              <div className="text-sm text-blue-400 font-bold">{gameState.scores.C}</div>
-                            </motion.div>
-                          </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                  </div>
                 </div>
               </motion.div>
             </div>
@@ -2024,7 +2871,6 @@ Make it deeply personal and actionable based on their actual choices.`;
               <CardContent className="p-6 text-center">
                   <div className="text-4xl mb-2">✨</div>
                 <p className="text-xl font-semibold text-white">{showReaction}</p>
-                <p className="text-sm text-gray-400 mt-2">Click anywhere to continue</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -2036,22 +2882,23 @@ Make it deeply personal and actionable based on their actual choices.`;
       <AnimatePresence>
       {showAchievement && (
         <motion.div
-            className="achievement-notification"
+          className="fixed top-4 right-4 z-50 bg-black/80 backdrop-blur-sm border border-green-500/30 rounded-lg p-4 shadow-xl"
           initial={{ opacity: 0, x: 300, scale: 0.8 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={{ opacity: 0, x: 300, scale: 0.8 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🏆</span>
-              <div>
-                <p className="text-green-400 font-bold">Achievement Unlocked!</p>
-                <p className="text-white text-sm">{showAchievement}</p>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🏆</span>
+            <div>
+              <p className="text-green-400 font-bold">Achievement Unlocked!</p>
+              <p className="text-white text-sm">{showAchievement}</p>
             </div>
           </div>
         </motion.div>
       )}
       </AnimatePresence>
+
 
       {/* Exit Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
