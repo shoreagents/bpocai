@@ -40,6 +40,7 @@ import {
   Eye,
   Sparkles
 } from 'lucide-react';
+import { storyGenerator, UserStoryProfile, GameProgressData, StoryChapter } from '@/lib/story-generator';
 
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
 // NEW: MUCH MORE VARIED AND INTELLIGENT VOCABULARY
@@ -63,6 +64,60 @@ const SMART_VOCABULARY = {
     words: ['customer', 'client', 'business', 'company', 'project', 'database', 'network', 'system', 'website', 'software', 'application', 'platform', 'interface', 'workflow', 'procedure', 'protocol', 'standard', 'quality', 'performance', 'efficiency', 'productivity', 'solution', 'strategy', 'implementation', 'optimization', 'analysis', 'reporting', 'documentation', 'training', 'development'],
     speed: 1.0,
     spawnRate: 1500
+  }
+};
+
+// Progressive Chapter-Based Difficulty System
+const getChapterDifficulty = (chapterNumber: number) => {
+  // Chapter 1-2: Very Easy (Learning) - Let players get comfortable
+  if (chapterNumber <= 2) {
+    return {
+      speed: 0.3, // Very slow falling speed
+      spawnRate: 3500, // 3.5 seconds between words - very relaxed
+      displayName: `📚 Chapter ${chapterNumber} (Learning)`,
+      bpm: 70,
+      difficultyLevel: 'learning'
+    };
+  }
+  // Chapter 3-5: Easy (Building Confidence)  
+  else if (chapterNumber <= 5) {
+    return {
+      speed: 0.4,
+      spawnRate: 2800, // 2.8 seconds between words
+      displayName: `🌱 Chapter ${chapterNumber} (Building)`,
+      bpm: 85,
+      difficultyLevel: 'building'
+    };
+  }
+  // Chapter 6-10: Medium (Getting Comfortable)
+  else if (chapterNumber <= 10) {
+    return {
+      speed: 0.5 + (chapterNumber - 6) * 0.05, // Gradually increase speed
+      spawnRate: 2400 - (chapterNumber - 6) * 80, // Gradually decrease spawn time
+      displayName: `🎯 Chapter ${chapterNumber} (Comfortable)`,
+      bpm: 95 + (chapterNumber - 6) * 3,
+      difficultyLevel: 'comfortable'
+    };
+  }
+  // Chapter 11-20: Challenging (Pushing Limits)
+  else if (chapterNumber <= 20) {
+    return {
+      speed: 0.7 + (chapterNumber - 11) * 0.03,
+      spawnRate: 1800 - (chapterNumber - 11) * 30,
+      displayName: `🚀 Chapter ${chapterNumber} (Challenging)`,
+      bpm: 110 + (chapterNumber - 11) * 2,
+      difficultyLevel: 'challenging'
+    };
+  }
+  // Chapter 21+: Expert (Mastery)
+  else {
+    return {
+      speed: 1.0 + Math.min((chapterNumber - 21) * 0.02, 0.5), // Cap at 1.5x speed
+      spawnRate: Math.max(1200 - (chapterNumber - 21) * 20, 800), // Cap at 0.8 seconds
+      displayName: `🏆 Chapter ${chapterNumber} (Mastery)`,
+      bpm: Math.min(130 + (chapterNumber - 21) * 1, 160), // Cap at 160 BPM
+      difficultyLevel: 'mastery'
+    };
   }
 };
 
@@ -107,6 +162,7 @@ interface FallingWord {
   speed: number;
   typed: boolean;
   missed: boolean;
+  sentenceIndex?: number; // Track which sentence this word belongs to
 }
 
 interface GameStats {
@@ -142,6 +198,15 @@ export default function TypingHeroPage() {
   // NEW: Music preference state
   const [musicGender, setMusicGender] = useState<'male' | 'female'>('male'); // Default to male
   
+  // NEW: Audio preview state
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewingGender, setPreviewingGender] = useState<'male' | 'female' | null>(null);
+  const [previewCountdown, setPreviewCountdown] = useState(0);
+  
+  // NEW: Volume control state
+  const [showVolumeControl, setShowVolumeControl] = useState(false);
+  const [volume, setVolume] = useState(0.6);
+  
   // Custom song paths
   const CUSTOM_SONGS = {
     male: '/typing hero songs/male.mp3',
@@ -149,7 +214,7 @@ export default function TypingHeroPage() {
   };
   
   // Game state
-  const [gameState, setGameState] = useState<'menu' | 'ready' | 'playing' | 'paused' | 'failed' | 'complete' | 'overwhelmed' | 'recovering'>('menu');
+  const [gameState, setGameState] = useState<'menu' | 'generating' | 'story-ready' | 'ready' | 'playing' | 'paused' | 'failed' | 'complete' | 'overwhelmed' | 'recovering' | 'chapter-transition'>('menu');
   const [recoveryCountdown, setRecoveryCountdown] = useState(5);
   const [recoveryGraceTime, setRecoveryGraceTime] = useState(0); // 30-second grace period after recovery
   const recoveryGraceRef = useRef(0); // Ref for accessing grace time in timer without causing re-renders
@@ -162,6 +227,19 @@ export default function TypingHeroPage() {
   });
   const [showInputGuide, setShowInputGuide] = useState(false);
   const [isInitialStart, setIsInitialStart] = useState(true);
+  
+  // NEW: Complete Story System State
+  const [completeStory, setCompleteStory] = useState<any>(null);
+  const [currentChapter, setCurrentChapter] = useState<number>(1);
+  const [currentStory, setCurrentStory] = useState<StoryChapter | null>(null);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [completedSentences, setCompletedSentences] = useState<string[]>([]);
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [storyError, setStoryError] = useState<string | null>(null);
+  const [storyReady, setStoryReady] = useState(false);
+  const [isChapterComplete, setIsChapterComplete] = useState(false);
+  const isChapterCompleteRef = useRef(false);
+  const [completedChapterNumber, setCompletedChapterNumber] = useState<number | null>(null);
   
   const [gameStats, setGameStats] = useState({
     score: 0,
@@ -200,7 +278,21 @@ export default function TypingHeroPage() {
   });
   
   // NEW: Hidden metrics collection (invisible to users)
-  const [hiddenMetrics, setHiddenMetrics] = useState({
+  const [hiddenMetrics, setHiddenMetrics] = useState<{
+    reactionTimes: number[];
+    errorPatterns: Array<{
+      type: string;
+      category: string;
+      timestamp: number;
+      stressLevel: string;
+      comboLevel: number;
+      word: string;
+    }>;
+    stressIndicators: any[];
+    vocabularyPerformance: Record<string, number>;
+    focusMetrics: any[];
+    sessionFlow: any[];
+  }>({
     reactionTimes: [],
     errorPatterns: [],
     stressIndicators: [],
@@ -308,11 +400,36 @@ export default function TypingHeroPage() {
   const wordSpawnRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const inputTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const currentWordIndexRef = useRef<number>(0);
+  const currentLaneRef = useRef<number>(0); // Track current lane for sequential spawning
+  const currentSentenceStartWordRef = useRef<number>(0); // Track where current sentence started
+  const currentSentenceIndexRef = useRef<number>(-1); // Track current sentence being spawned
+  const currentStoryRef = useRef<StoryChapter | null>(null); // Ref for story to avoid useEffect loops
+  const currentSentenceRef = useRef<number>(0); // Current sentence index (0-based)
+  const currentWordInSentenceRef = useRef<number>(0); // Current word within sentence (0-based)
+  const sentenceWordsSpawnedRef = useRef<number>(0); // How many words from current sentence have been spawned
+  const canStartNextSentenceRef = useRef<boolean>(true); // Can we start the next sentence?
 
   // Game configuration
   const LANES = 5;
   const TARGET_ZONE_Y = 85; // Percentage from top
   const TARGET_ZONE_TOLERANCE = 8; // Percentage tolerance
+  
+  // Sentence color system - vibrant, distinct colors
+  const getSentenceColor = (sentenceIndex: number) => {
+    const colors = [
+      'bg-blue-500/80 border-blue-400',      // Sentence 1: Blue
+      'bg-green-500/80 border-green-400',    // Sentence 2: Green  
+      'bg-purple-500/80 border-purple-400',  // Sentence 3: Purple
+      'bg-orange-500/80 border-orange-400',  // Sentence 4: Orange
+      'bg-pink-500/80 border-pink-400',      // Sentence 5: Pink
+      'bg-cyan-500/80 border-cyan-400',      // Sentence 6: Cyan
+      'bg-yellow-500/80 border-yellow-400',  // Sentence 7: Yellow
+      'bg-indigo-500/80 border-indigo-400',  // Sentence 8: Indigo
+    ];
+    return colors[sentenceIndex % colors.length] || 'bg-blue-500/80 border-blue-400';
+  };
+
   
   // Get current difficulty config
   const getCurrentConfig = () => BPO_VOCABULARY[currentDifficulty];
@@ -345,7 +462,14 @@ export default function TypingHeroPage() {
 
   // NEW: Play custom songs based on game state and gender preference
   const playMusic = useCallback((trackType: 'menu' | 'rookie' | 'rockstar' | 'virtuoso' | 'legend' | 'failure' | 'success') => {
-    if (isMuted || !musicAudioRef.current) return;
+    if (isMuted) return;
+    
+    // Wait for audio element to be ready
+    if (!musicAudioRef.current) {
+      console.log('🎵 Audio element not ready, retrying...');
+      setTimeout(() => playMusic(trackType), 100);
+      return;
+    }
     
     // Stop current music
     stopMusic();
@@ -355,12 +479,18 @@ export default function TypingHeroPage() {
     
     try {
       musicAudioRef.current.src = songPath;
-      musicAudioRef.current.volume = 0.6; // Adjust volume as needed
+      musicAudioRef.current.volume = isMuted ? 0 : volume; // Use volume state
       musicAudioRef.current.loop = true; // Loop the song
       
       // Play the song
       musicAudioRef.current.play().catch(error => {
         console.log('Music play failed:', error);
+        // Try again after a short delay
+        setTimeout(() => {
+          if (musicAudioRef.current) {
+            musicAudioRef.current.play().catch(console.error);
+          }
+        }, 500);
       });
       
       console.log(`🎵 Playing ${musicGender} song for ${trackType}: ${songPath}`);
@@ -522,64 +652,291 @@ export default function TypingHeroPage() {
     END OF OLD MUSIC CODE */
   }, [isMuted, stopMusic, musicGender]);
 
-  // Handle music changes based on game state
+  // Handle music changes based on game state - only start music when actually playing
   useEffect(() => {
+    // Always stop music first for any state change
+    stopMusic();
+    
     if (isMuted) return;
     
-    if (gameState === 'menu') {
-      playMusic('menu');
+    // Only start music when the game is actually playing
+    if (gameState === 'playing') {
+      const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
+      playMusic(musicTrack);
+    } else if (gameState === 'failed') {
+      playMusic('failure');
     }
-  }, [gameState, isMuted, playMusic]);
+    // For all other states (menu, generating, complete, etc.), music stays stopped
+  }, [gameState, isMuted, playMusic, currentDifficulty]);
 
-  // NEW: INTELLIGENT word generation based on assessment phase
-  const generateWord = useCallback(() => {
-    // Select vocabulary based on current assessment phase
-    let currentVocab;
-    
-    switch (adaptiveSettings.assessmentPhase) {
-      case 'baseline':
-        currentVocab = SMART_VOCABULARY.baseline;
-        break;
-      case 'finding_speed':
-        currentVocab = SMART_VOCABULARY.bpo_basics;
-        break;
-      case 'optimal':
-      case 'challenge':
-        currentVocab = SMART_VOCABULARY.professional;
-        break;
-      default:
-        currentVocab = getCurrentConfig();
+
+  // NEW: Generate personalized story for the user
+  // Helper function to reset all game tracking
+  const resetGameTracking = () => {
+    setCurrentWordIndex(0);
+    currentWordIndexRef.current = 0;
+    currentLaneRef.current = 0;
+    currentSentenceStartWordRef.current = 0;
+    currentSentenceIndexRef.current = -1;
+    currentSentenceRef.current = 0;
+    currentWordInSentenceRef.current = 0;
+    sentenceWordsSpawnedRef.current = 0;
+    canStartNextSentenceRef.current = true;
+    setCompletedSentences([]);
+    setIsChapterComplete(false);
+    isChapterCompleteRef.current = false;
+  };
+
+  // NEW: Load or generate complete 5-chapter story
+  const loadOrGenerateCompleteStory = useCallback(async () => {
+    console.log('🎬 loadOrGenerateCompleteStory called! User:', !!user);
+    if (!user) {
+      console.log('❌ No user found, returning null');
+      return null;
     }
+
+    setIsGeneratingStory(true);
+    setStoryError(null);
+    setStoryReady(false);
+    setGameState('generating');
     
-    // Smart word selection within the vocabulary
-    const vocabularyPerf = hiddenMetrics.vocabularyPerformance;
+    console.log('🎬 Starting complete story load/generation...');
     
-    if (Object.keys(vocabularyPerf).length > 3) {
-      // Find areas where player struggles
-      const strugglingAreas = Object.entries(vocabularyPerf)
-        .filter(([_, score]) => (score as number) < 1)
-        .map(([area, _]) => area);
+    try {
+      // First, try to load existing active story
+      console.log('📖 Checking for existing active story...');
+      const loadResult = await storyGenerator.loadUserActiveStory(user.id);
       
-      // 70% chance to give struggling words to help improve
-      const rand = Math.random();
-      
-      if (rand < 0.7 && strugglingAreas.length > 0) {
-        const targetArea = strugglingAreas[Math.floor(Math.random() * strugglingAreas.length)];
-        const categoryWords = getCategoryWords(targetArea, currentVocab.words);
-        if (categoryWords.length > 0) {
-          return categoryWords[Math.floor(Math.random() * categoryWords.length)];
-        }
+      if (loadResult.hasStory && loadResult.story) {
+        console.log('✅ Found existing complete story:', loadResult.story.title);
+        setCompleteStory(loadResult.story);
+        
+        // Set current chapter to Chapter 1
+        setCurrentChapter(1);
+        const chapter1 = loadResult.story.chapters[0];
+        setCurrentStory(chapter1);
+        currentStoryRef.current = chapter1;
+        
+        // Reset all tracking
+        resetGameTracking();
+        
+        // Update spawn rate for Chapter 1
+        const chapterConfig = getChapterDifficulty(1);
+        setCurrentSpawnRate(chapterConfig.spawnRate);
+        console.log('🎯 Chapter 1 difficulty:', chapterConfig.displayName, 'spawn rate:', chapterConfig.spawnRate);
+        
+        setStoryReady(true);
+        setGameState('story-ready');
+        console.log('✅ Existing story loaded and ready');
+        return loadResult.story;
       }
-    }
-    
-    // Default random selection from current vocabulary
-    return currentVocab.words[Math.floor(Math.random() * currentVocab.words.length)];
-  }, [adaptiveSettings.assessmentPhase, hiddenMetrics.vocabularyPerformance]);
 
-  // Check if difficulty is unlocked (all unlocked for testing)
+      // No existing story, generate complete 5-chapter story
+      console.log('📝 No existing story found, generating complete 5-chapter story...');
+      
+      // Create user profile for story generation
+      const userProfile: UserStoryProfile = {
+        userId: user.id,
+        name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.user_metadata?.full_name || 'Professional',
+        position: user.user_metadata?.position || 'Career Professional',
+        skills: [], // TODO: Get from user profile
+        careerGoals: [], // TODO: Get from user profile
+        currentEmployer: user.user_metadata?.company || '',
+        workStatus: user.user_metadata?.work_status || 'professional',
+        location: user.user_metadata?.location || 'Global'
+      };
+
+      const gameProgress: GameProgressData = {
+        currentChapter: 1, // Always start with 1 for complete story generation
+        difficulty: currentDifficulty,
+        currentWPM: gameStats.wpm,
+        accuracy: gameStats.accuracy,
+        completedStories: Math.floor(gameStats.correctWords / 50),
+        totalWordsTyped: gameStats.correctWords,
+        averageSessionTime: gameStats.elapsedTime,
+        strongWordTypes: [],
+        weakWordTypes: []
+      };
+
+      console.log('🎬 Generating complete story for:', userProfile.name, 'Difficulty:', currentDifficulty);
+      
+      const completeStoryResult = await storyGenerator.generateCompleteStory(userProfile, gameProgress);
+      setCompleteStory(completeStoryResult);
+      
+      // Set current chapter to Chapter 1
+      setCurrentChapter(1);
+      const chapter1 = completeStoryResult.chapters[0];
+      setCurrentStory(chapter1);
+      currentStoryRef.current = chapter1;
+      
+      // Reset all tracking
+      resetGameTracking();
+      
+      // Update spawn rate for Chapter 1
+      const chapterConfig = getChapterDifficulty(1);
+      setCurrentSpawnRate(chapterConfig.spawnRate);
+      console.log('🎯 Chapter 1 difficulty:', chapterConfig.displayName, 'spawn rate:', chapterConfig.spawnRate);
+      
+      setStoryReady(true);
+      setGameState('story-ready');
+      console.log('✅ Complete 5-chapter story generated and ready:', completeStoryResult.title);
+      return completeStoryResult;
+      
+    } catch (error) {
+      console.error('❌ Complete story generation failed:', error);
+      setStoryError('Failed to generate personalized story. Please try again.');
+      setStoryReady(false);
+      return null;
+    } finally {
+      setIsGeneratingStory(false);
+    }
+  }, [user, currentDifficulty, gameStats.correctWords, gameStats.wpm, gameStats.accuracy, gameStats.elapsedTime]);
+
+  // NEW: Load next chapter from pre-generated complete story
+  const loadNextChapter = (chapterNumber: number) => {
+    if (!completeStory || !completeStory.chapters) {
+      console.error('❌ No complete story available to load next chapter');
+      return;
+    }
+
+    if (chapterNumber > completeStory.chapters.length) {
+      console.error('❌ Requested chapter', chapterNumber, 'exceeds available chapters:', completeStory.chapters.length);
+      return;
+    }
+
+    console.log('📖 Loading pre-generated chapter:', chapterNumber);
+    
+    const nextChapter = completeStory.chapters[chapterNumber - 1]; // Array is 0-indexed
+    setCurrentChapter(chapterNumber);
+    setCurrentStory(nextChapter);
+    currentStoryRef.current = nextChapter;
+    
+    // Reset all tracking for new chapter
+    resetGameTracking();
+    
+    // Update spawn rate for new chapter
+    const chapterConfig = getChapterDifficulty(chapterNumber);
+    setCurrentSpawnRate(chapterConfig.spawnRate);
+    console.log('🎯 Chapter', chapterNumber, 'difficulty:', chapterConfig.displayName, 'spawn rate:', chapterConfig.spawnRate);
+    
+    // Transition to story-ready state
+    setStoryReady(true);
+    setGameState('story-ready');
+    console.log('✅ Chapter', chapterNumber, 'loaded and ready:', nextChapter.title);
+  };
+
+  // NEW: Regenerate complete story (for "Regenerate Story" button)
+  const regenerateCompleteStory = async () => {
+    console.log('🔄 Regenerating complete story...');
+    
+    if (!user) {
+      console.log('❌ No user found for story regeneration');
+      return;
+    }
+
+    setIsGeneratingStory(true);
+    setStoryError(null);
+    setStoryReady(false);
+    setGameState('generating');
+    
+    try {
+      // Create user profile for story generation
+      const userProfile: UserStoryProfile = {
+        userId: user.id,
+        name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.user_metadata?.full_name || 'Professional',
+        position: user.user_metadata?.position || 'Career Professional',
+        skills: [],
+        careerGoals: [],
+        currentEmployer: user.user_metadata?.company || '',
+        workStatus: user.user_metadata?.work_status || 'professional',
+        location: user.user_metadata?.location || 'Global'
+      };
+
+      const gameProgress: GameProgressData = {
+        currentChapter: 1,
+        difficulty: currentDifficulty,
+        currentWPM: gameStats.wpm,
+        accuracy: gameStats.accuracy,
+        completedStories: Math.floor(gameStats.correctWords / 50),
+        totalWordsTyped: gameStats.correctWords,
+        averageSessionTime: gameStats.elapsedTime,
+        strongWordTypes: [],
+        weakWordTypes: []
+      };
+
+      console.log('🎬 Regenerating complete story for:', userProfile.name);
+      
+      const completeStoryResult = await storyGenerator.generateCompleteStory(userProfile, gameProgress);
+      setCompleteStory(completeStoryResult);
+      
+      // Set current chapter to Chapter 1
+      setCurrentChapter(1);
+      const chapter1 = completeStoryResult.chapters[0];
+      setCurrentStory(chapter1);
+      currentStoryRef.current = chapter1;
+      
+      // Reset all tracking
+      resetGameTracking();
+      
+      // Update spawn rate for Chapter 1
+      const chapterConfig = getChapterDifficulty(1);
+      setCurrentSpawnRate(chapterConfig.spawnRate);
+      
+      setStoryReady(true);
+      setGameState('story-ready');
+      console.log('✅ Complete story regenerated:', completeStoryResult.title);
+      
+    } catch (error) {
+      console.error('❌ Story regeneration failed:', error);
+      setStoryError('Failed to regenerate story. Please try again.');
+      setStoryReady(false);
+    } finally {
+      setIsGeneratingStory(false);
+    }
+  };
+
+  // NEW: Get next sequential word from story
+  const getNextSequentialWord = useCallback(() => {
+    if (!user || !currentStory) return null;
+    
+    const nextWord = storyGenerator.getNextSequentialWord(user.id, currentWordIndex);
+    return nextWord?.text || null;
+  }, [user, currentStory, currentWordIndex]);
+
+  // NEW: Handle "I'm Ready" button click after story is generated
+  const handleImReady = () => {
+    if (gameState === 'story-ready' && storyReady) {
+      setGameState('ready');
+      console.log('🎮 Player clicked "I\'m Ready", starting countdown...');
+      
+      // Start countdown immediately
+      setTimeout(() => {
+        handleReadyClick();
+      }, 500); // Small delay to show the ready state briefly
+    }
+  };
+
+  // Check if difficulty is unlocked based on user progress
   const isDifficultyUnlocked = (difficulty: DifficultyLevel): boolean => {
-    // All difficulties unlocked for testing
+    // For now, keep all unlocked for testing, but show visual progression
+    // TODO: Implement real progression based on user performance
+    const progressionOrder: DifficultyLevel[] = ['rookie', 'rockstar', 'virtuoso', 'legend'];
+    const currentIndex = progressionOrder.indexOf(currentDifficulty);
+    const targetIndex = progressionOrder.indexOf(difficulty);
+    
+    // For testing: all unlocked, but show "recommended" vs "advanced"
     return true;
+  };
+
+  // Get difficulty recommendation status
+  const getDifficultyStatus = (difficulty: DifficultyLevel): 'recommended' | 'available' | 'advanced' => {
+    const progressionOrder: DifficultyLevel[] = ['rookie', 'rockstar', 'virtuoso', 'legend'];
+    const currentIndex = progressionOrder.indexOf(currentDifficulty);
+    const targetIndex = progressionOrder.indexOf(difficulty);
+    
+    if (targetIndex === currentIndex) return 'recommended';
+    if (targetIndex < currentIndex) return 'available';
+    return 'advanced';
   };
 
   // AI-based performance level calculation
@@ -697,54 +1054,13 @@ export default function TypingHeroPage() {
     }
   };
 
-  // Spawn new falling word
-  const spawnWord = useCallback(() => {
-    if (gameState !== 'playing') return;
-    
-    const config = getCurrentConfig();
-    
-    // Use functional update to access current fallingWords without dependency
-    setFallingWords(currentWords => {
-      // Find available lanes (lanes without words too close to the top)
-      const availableLanes = [];
-      for (let lane = 0; lane < LANES; lane++) {
-        const wordsInLane = currentWords.filter(w => w.lane === lane && !w.typed && !w.missed);
-        const hasRecentWord = wordsInLane.some(w => w.y < 100); // Check if any word is within 100px from top
-        if (!hasRecentWord) {
-          availableLanes.push(lane);
-        }
-      }
-      
-      // If no lanes available, use a random lane anyway (but this should be rare)
-      const selectedLane = availableLanes.length > 0 
-        ? availableLanes[Math.floor(Math.random() * availableLanes.length)]
-        : Math.floor(Math.random() * LANES);
-    
-    const newWord: FallingWord = {
-      id: `word-${Date.now()}-${Math.random()}`,
-      word: generateWord(),
-        lane: selectedLane,
-      y: -10, // Start above screen
-      speed: config.speed,
-      typed: false,
-      missed: false
-    };
-    
-    // NEW: Apply adaptive speed adjustment
-    const adaptedWord = {
-      ...newWord,
-      speed: config.speed * adaptiveSettings.currentSpeedMultiplier
-    };
-    
-      return [...currentWords, adaptedWord];
-    });
-    
-    // NEW: Track when word appears for reaction time calculation
-    setLastWordAppearTime(performance.now());
-  }, [gameState, generateWord, currentDifficulty]); // Removed fallingWords to prevent infinite loop!
+  // OLD spawnWord function removed - now using spawnWordInterval in useEffect
 
   // Start game with selected difficulty
   const startGame = (difficulty: DifficultyLevel = 'rockstar') => {
+    // Stop any preview music that might be playing
+    stopPreview();
+    
     // Trigger header SignUp dialog if user is not logged in
     if (!user) {
       if (typeof window !== 'undefined') {
@@ -757,15 +1073,22 @@ export default function TypingHeroPage() {
     if (!isDifficultyUnlocked(difficulty)) return;
     
     setCurrentDifficulty(difficulty);
-    setGameState('ready'); // Go to ready state first
+    setGameState('generating'); // NEW: Show story generation state
     setIsInitialStart(true); // Reset for new game
     endCalledRef.current = false;
     sessionSavedRef.current = false;
     setRecoveryGraceTime(0); // Reset grace period for new game
     recoveryGraceRef.current = 0; // Reset ref as well
     
-    const config = BPO_VOCABULARY[difficulty];
-    setCurrentSpawnRate(config.spawnRate); // Initialize spawn rate based on difficulty
+    // NEW: Load or generate complete 5-chapter story for the session
+    loadOrGenerateCompleteStory().then(() => {
+      console.log('✅ Complete story ready, state transition handled by loadOrGenerateCompleteStory');
+      // Note: setGameState('story-ready') is handled inside loadOrGenerateCompleteStory
+    });
+    
+        // Use chapter-based difficulty for spawn rate
+        const chapterConfig = getChapterDifficulty(1); // Start with Chapter 1
+        setCurrentSpawnRate(chapterConfig.spawnRate);
     setGameStats({
       score: 0,
       fires: 0,
@@ -906,6 +1229,9 @@ export default function TypingHeroPage() {
   const endGame = async (success: boolean, finalMetrics?: { wpm?: number; accuracy?: number }) => {
     if (endCalledRef.current) return;
     endCalledRef.current = true;
+    
+    // Stop music immediately when game ends
+    stopMusic();
     
     // Check if user is logged in before saving
     if (!user?.id) {
@@ -1143,11 +1469,11 @@ export default function TypingHeroPage() {
   // Simulate realistic typing errors based on difficulty and speed
   const simulateTypingError = (word: string, difficulty: DifficultyLevel): boolean => {
     // Base error rate increases with difficulty
-    const baseErrorRates = {
-      easy: 0.02,    // 2% error rate
-      medium: 0.05,  // 5% error rate  
-      hard: 0.08,    // 8% error rate
-      expert: 0.12   // 12% error rate
+    const baseErrorRates: Record<string, number> = {
+      rookie: 0.02,    // 2% error rate
+      rockstar: 0.05,  // 5% error rate  
+      virtuoso: 0.08,   // 8% error rate
+      legend: 0.12      // 12% error rate
     };
     
     // Error rate increases with word length
@@ -1278,6 +1604,59 @@ export default function TypingHeroPage() {
     // If we get here, the input doesn't match any visible word and can't be a partial match
     return true;
   };
+
+  // NEW: Handle sequential word completion
+  const handleSequentialWordCompletion = useCallback((word: string) => {
+    if (!user || !currentStory) return;
+    
+    // Update word index
+    setCurrentWordIndex(prev => prev + 1);
+    
+    // Check if sentence is complete
+    const sentenceCompletion = storyGenerator.isSentenceComplete(user.id, currentWordIndex);
+    if (sentenceCompletion.isComplete && sentenceCompletion.completedText) {
+      setCompletedSentences(prev => [...prev, sentenceCompletion.completedText!]);
+      console.log('✅ Sentence completed:', sentenceCompletion.completedText);
+      
+      // Sentence completion bonus
+      setGameStats(prev => ({
+        ...prev,
+        score: prev.score + 200 // Bonus for completing sentence
+      }));
+    }
+    
+    // Check if chapter is complete  
+    const chapterCompletion = storyGenerator.isChapterComplete(user.id, currentWordIndex);
+    if (chapterCompletion.isComplete && !isChapterCompleteRef.current && !isGeneratingStory) {
+      console.log('🎉 Chapter completed! Starting transition...');
+      isChapterCompleteRef.current = true;
+      setIsChapterComplete(true);
+      
+      // Store completed chapter number and trigger transition state
+      const chapterNum = currentStory?.chapterNumber || 1;
+      setCompletedChapterNumber(chapterNum);
+      setGameState('chapter-transition');
+      
+      // Check if this is the final chapter (5 chapters total)
+      if (chapterNum >= 5) {
+        console.log('🏆 GAME COMPLETED! All 5 chapters finished!');
+        // Delay to show celebration, then go to complete state
+        setTimeout(() => {
+          setGameState('complete');
+          isChapterCompleteRef.current = false; // Reset flag
+          setIsChapterComplete(false); // Reset flag
+        }, 3000); // 3 second celebration for game completion
+      } else {
+        // Continue to next chapter
+        setTimeout(() => {
+          console.log('🎯 Chapter transition timeout fired. Loading chapter:', chapterNum + 1);
+          loadNextChapter(chapterNum + 1); // Load pre-generated next chapter
+          isChapterCompleteRef.current = false; // Reset flag
+          setIsChapterComplete(false); // Reset flag
+        }, 2000); // 2 second delay to show celebration
+      }
+    }
+  }, [user, currentStory, currentWordIndex, completeStory, isChapterComplete, isGeneratingStory]);
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1516,6 +1895,9 @@ export default function TypingHeroPage() {
         // No error - proceed normally
         handleWordType(matchingWord, true);
         
+        // NEW: Handle sequential story progression
+        handleSequentialWordCompletion(matchingWord.word);
+        
         // Enhanced visual feedback for high-speed typing
         if (gameStats.wpm > 80) {
           createBonusEffect('🚀 SPEED DEMON!', matchingWord.lane, matchingWord.y - 20);
@@ -1689,14 +2071,8 @@ export default function TypingHeroPage() {
              current.map(word => ({ ...word, speed: newSpeed }))
            );
           
-          // Update spawn rate and restart spawn timer
+          // Update spawn rate for new interval (handled by useEffect)
           setCurrentSpawnRate(newSpawnRate);
-          
-          // Restart word spawning with new rate
-          if (wordSpawnRef.current) {
-            clearInterval(wordSpawnRef.current);
-            wordSpawnRef.current = setInterval(spawnWord, newSpawnRate);
-          }
           
           console.log(`🎮 Difficulty increased! Speed: ${newSpeed.toFixed(1)}, Spawn Rate: ${newSpawnRate}ms`);
         }
@@ -1860,16 +2236,166 @@ export default function TypingHeroPage() {
     };
   }, [gameState, fallingWords]);
 
-  // Word spawning
+  // Word spawning - one by one in left-to-right sentence flow
+  useEffect(() => {
+    console.log('🎮 Word spawning useEffect triggered. gameState:', gameState);
+    if (gameState !== 'playing') return;
+    
+    console.log('🎮 Starting word spawning. Spawn rate:', currentSpawnRate);
+    console.log('🔍 Current story available:', !!currentStoryRef.current);
+    console.log('🔍 Current sentence:', currentSentenceRef.current);
+    console.log('🔍 Current word in sentence:', currentWordInSentenceRef.current);
+    
+    const spawnWordInterval = () => {
+      console.log('🎮 Interval triggered, spawning next word');
+      
+      // Check if story is available using ref
+      const story = currentStoryRef.current;
+      if (!story || !story.sentences || story.sentences.length === 0) {
+        console.log('🎮 No story available in interval, waiting...');
+        return;
+      }
+      
+      // PERFECT SENTENCE COMPLETION LOGIC
+      const sentenceIndex = currentSentenceRef.current;
+      const wordIndex = currentWordInSentenceRef.current;
+      
+      // Check if we're done with all sentences
+      if (sentenceIndex >= story.sentences.length) {
+        console.log('🎉 All sentences completed! Chapter finished.');
+        // Stop the interval to prevent overwhelming the game
+        if (wordSpawnRef.current) {
+          clearInterval(wordSpawnRef.current);
+          wordSpawnRef.current = undefined;
+        }
+        
+        // Trigger chapter completion logic
+        if (!isChapterCompleteRef.current && !isGeneratingStory) {
+          console.log('🎉 Chapter completed! Starting transition...');
+          isChapterCompleteRef.current = true;
+          setIsChapterComplete(true);
+          
+          // Update completed chapter number for UI
+          setCompletedChapterNumber(currentChapter);
+          
+          // Set game state for chapter transition celebration
+          setGameState('chapter-transition');
+          
+          // Check if this is the final chapter (5 chapters total)
+          const chapterNum = currentChapter;
+          if (chapterNum >= 5) {
+            // Game complete! Final celebration
+            setTimeout(() => {
+              console.log('🏆 All 5 chapters completed! Game finished!');
+              setGameState('complete');
+              isChapterCompleteRef.current = false; // Reset flag
+              setIsChapterComplete(false); // Reset flag
+            }, 3000); // 3 second celebration for game completion
+          } else {
+            // Continue to next chapter
+            setTimeout(() => {
+              console.log('🎯 Chapter transition timeout fired. Loading chapter:', chapterNum + 1);
+              loadNextChapter(chapterNum + 1); // Load pre-generated next chapter
+              isChapterCompleteRef.current = false; // Reset flag
+              setIsChapterComplete(false); // Reset flag
+            }, 2000); // 2 second delay to show celebration
+          }
+        }
+        return;
+      }
+      
+      const currentSentence = story.sentences[sentenceIndex];
+      if (!currentSentence || !currentSentence.words) {
+        console.log('🚫 Invalid sentence');
+        return;
+      }
+      
+      // Check if we can start the next sentence
+      if (!canStartNextSentenceRef.current) {
+        console.log('⏳ Waiting for current sentence to complete before spawning more words...');
+        return;
+      }
+      
+      // Check if current sentence is fully spawned
+      if (wordIndex >= currentSentence.words.length) {
+        console.log('📝 All words from sentence', sentenceIndex + 1, 'have been spawned. Waiting for completion...');
+        canStartNextSentenceRef.current = false; // Block further spawning until sentence completes
+        
+        // We'll check sentence completion in a separate effect that monitors fallingWords
+        return;
+      }
+      
+      // Get the actual word from the sentence
+      const actualWord = currentSentence.words[wordIndex];
+      
+      console.log(`📝 SENTENCE ${sentenceIndex + 1}: Word ${wordIndex + 1}/${currentSentence.words.length} - "${actualWord}"`);
+      
+      // Use chapter-based difficulty
+      const chapterNumber = story.chapterNumber || 1;
+      const config = getChapterDifficulty(chapterNumber);
+      
+      // PERFECT LEFT-TO-RIGHT LANE ASSIGNMENT
+      const selectedLane = wordIndex % LANES;
+      
+      console.log(`🎯 LANE ASSIGNMENT: Sentence ${sentenceIndex + 1}, Word ${wordIndex + 1} → Lane ${selectedLane}`);
+      
+      // Create the falling word
+      const newWord = {
+        id: `word-${Date.now()}-${Math.random()}`,
+        word: actualWord,
+        lane: selectedLane,
+        y: -10,
+        speed: config.speed,
+        typed: false,
+        missed: false,
+        sentenceIndex: sentenceIndex
+      };
+      
+      console.log('🎮 SPAWNING:', actualWord, 'in lane', selectedLane, '| Sentence:', sentenceIndex + 1, '| Word', wordIndex + 1, '/', currentSentence.words.length);
+      
+      setFallingWords(currentWords => [...currentWords, newWord]);
+      
+      // ADVANCE TO NEXT WORD IN SENTENCE
+      currentWordInSentenceRef.current += 1;
+      sentenceWordsSpawnedRef.current += 1;
+      
+      // Update global word index for stats
+      currentWordIndexRef.current += 1;
+      setCurrentWordIndex(currentWordIndexRef.current);
+      
+      setLastWordAppearTime(performance.now());
+    };
+    
+    const intervalId = setInterval(spawnWordInterval, currentSpawnRate);
+    wordSpawnRef.current = intervalId;
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [gameState, currentSpawnRate]); // Stable dependencies only
+
+  // Monitor sentence completion - check if all words from current sentence are done
   useEffect(() => {
     if (gameState !== 'playing') return;
     
-    wordSpawnRef.current = setInterval(spawnWord, currentSpawnRate);
+    const currentSentenceIndex = currentSentenceRef.current;
+    const story = currentStoryRef.current;
     
-    return () => {
-      if (wordSpawnRef.current) clearInterval(wordSpawnRef.current);
-    };
-  }, [gameState, currentDifficulty, spawnWord, currentSpawnRate]);
+    if (!story || currentSentenceIndex >= story.sentences.length) return;
+    
+    // Check if all words from current sentence are typed or missed
+    const currentSentenceWords = fallingWords.filter(w => 
+      w.sentenceIndex === currentSentenceIndex && !w.typed && !w.missed
+    );
+    
+    if (currentSentenceWords.length === 0 && !canStartNextSentenceRef.current) {
+      console.log('✅ SENTENCE', currentSentenceIndex + 1, 'FULLY COMPLETED! Enabling next sentence...');
+      currentSentenceRef.current += 1; // Move to next sentence
+      currentWordInSentenceRef.current = 0; // Reset word index
+      sentenceWordsSpawnedRef.current = 0; // Reset spawned counter
+      canStartNextSentenceRef.current = true; // Allow next sentence
+    }
+  }, [fallingWords, gameState]);
 
   // Toggle mute
   const toggleMute = () => {
@@ -1881,20 +2407,87 @@ export default function TypingHeroPage() {
       if (gameState === 'playing') {
         const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
         playMusic(musicTrack);
-      } else if (gameState === 'menu') {
-        playMusic('menu');
       } else if (gameState === 'failed') {
         playMusic('failure');
-      } else if (gameState === 'complete') {
-        playMusic('success'); // Add success music for completed sessions
       }
+      // Don't start music for menu, complete, or other states
     } else {
       // Was unmuted, now muting - stop music
       stopMusic();
     }
   };
 
+  // NEW: Preview music function with countdown
+  const previewMusic = async (type: 'male' | 'female') => {
+    if (isPreviewing) return;
+    
+    setIsPreviewing(true);
+    setPreviewingGender(type);
+    setPreviewCountdown(10);
+    const previewAudio = new Audio(`/bpoc-disc-songs/${type === 'male' ? 'maledisc' : 'femaledisc'}.mp3`);
+    previewAudio.volume = 0.3;
+    
+    try {
+      await previewAudio.play();
+      
+      // Countdown from 10 to 0
+      const countdownInterval = setInterval(() => {
+        setPreviewCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            previewAudio.pause();
+            previewAudio.currentTime = 0;
+            setIsPreviewing(false);
+            setPreviewingGender(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Preview error:', error);
+      setIsPreviewing(false);
+      setPreviewingGender(null);
+      setPreviewCountdown(0);
+    }
+  };
 
+  // Stop preview function
+  const stopPreview = () => {
+    setIsPreviewing(false);
+    setPreviewingGender(null);
+    setPreviewCountdown(0);
+    // Stop any playing preview audio
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+      if (audio.src.includes('bpoc-disc-songs')) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+  };
+
+  // NEW: Volume control functions
+  const toggleVolumeControl = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    
+    // Only toggle the volume control visibility, don't change mute state
+    setShowVolumeControl(!showVolumeControl);
+  };
+
+  // Handle volume change
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0); // Set mute state based on volume
+    
+    // Update music volume if playing
+    if (musicAudioRef.current) {
+      musicAudioRef.current.volume = newVolume;
+    }
+  };
 
   // Keep input focused during gameplay
   useEffect(() => {
@@ -2188,7 +2781,17 @@ export default function TypingHeroPage() {
   // NEW: Visual effects functions
   const createParticleExplosion = (x: number, y: number, color: string, count: number = 8) => {
     console.log('🎆 Creating particle explosion:', { x, y, color, count }); // DEBUG
-    const newParticles = [];
+    const newParticles: Array<{
+      id: string;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      color: string;
+      size: number;
+      life: number;
+      maxLife: number;
+    }> = [];
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count;
       const speed = 2 + Math.random() * 3;
@@ -2478,34 +3081,140 @@ export default function TypingHeroPage() {
                     {countdown !== null ? (countdown === 0 ? 'GO!' : `Resuming in ${countdown}...`) : 'Resume'}
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={toggleMute}
-                  className="border-white/20 text-white hover:bg-white/10"
-                >
-                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </Button>
-                
-                {/* NEW: Music Gender Toggle */}
-                <Button
-                  variant="outline"
-                  onClick={() => setMusicGender(musicGender === 'male' ? 'female' : 'male')}
-                  className="border-white/20 text-white hover:bg-white/10 text-xs"
-                  title={`Switch to ${musicGender === 'male' ? 'Female' : 'Male'} Vocals`}
-                >
-                  🎵 {musicGender === 'male' ? '♂️' : '♀️'}
-                </Button>
+                {/* Volume Control */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={toggleVolumeControl}
+                    className="border-white/20 text-white hover:bg-white/10 bg-black/50 backdrop-blur-sm"
+                    title="Volume Control"
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </Button>
+                  
+                  {/* Volume Control Slider */}
+                  {showVolumeControl && (
+                    <div className="flex items-center gap-2 bg-black/50 rounded-lg p-2 backdrop-blur-sm">
+                      <span className="text-xs text-white">Volume:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={volume}
+                        onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                        className="w-20"
+                      />
+                      <span className="text-xs text-white">{Math.round(volume * 100)}%</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>
 
-          {/* Game Menu */}
+          {/* Enhanced Game Menu */}
           {gameState === 'menu' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="space-y-8"
             >
+              {/* Hero Section */}
+              <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-center space-y-6 mb-12"
+              >
+                <div className="relative">
+                  <motion.h1
+                    animate={{ 
+                      backgroundImage: [
+                        "linear-gradient(45deg, #10b981, #06b6d4)",
+                        "linear-gradient(45deg, #06b6d4, #8b5cf6)",
+                        "linear-gradient(45deg, #8b5cf6, #f59e0b)",
+                        "linear-gradient(45deg, #f59e0b, #10b981)"
+                      ]
+                    }}
+                    transition={{ duration: 4, repeat: Infinity }}
+                    className="text-6xl md:text-8xl font-bold bg-clip-text text-transparent mb-4"
+                    style={{
+                      backgroundImage: "linear-gradient(45deg, #10b981, #06b6d4)",
+                    }}
+                  >
+                    TYPING HERO
+                  </motion.h1>
+                </div>
+                
+                <motion.p
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto"
+                >
+                  Master your typing skills through <span className="text-green-400 font-semibold">personalized AI-generated stories</span> that adapt to your career journey
+                </motion.p>
+
+                {/* Additional Banner Info */}
+                <motion.div
+                  initial={{ y: 30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex flex-wrap justify-center items-center gap-6 mt-6 text-sm"
+                >
+                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <span className="text-green-300">AI-Powered Stories</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                    <span className="text-blue-300">4 Difficulty Levels</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2">
+                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
+                    <span className="text-purple-300">Real-time Analytics</span>
+                  </div>
+                </motion.div>
+
+                {/* Quick Stats */}
+                <motion.div
+                  initial={{ y: 30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="grid grid-cols-2 md:flex md:justify-center gap-6 md:gap-8 mt-8"
+                >
+                  <motion.div 
+                    whileHover={{ scale: 1.1 }}
+                    className="text-center p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 border border-cyan-500/20"
+                  >
+                    <div className="text-3xl font-bold text-cyan-400">AI</div>
+                    <div className="text-sm text-gray-400">Powered</div>
+                  </motion.div>
+                  <motion.div 
+                    whileHover={{ scale: 1.1 }}
+                    className="text-center p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20"
+                  >
+                    <div className="text-3xl font-bold text-green-400">∞</div>
+                    <div className="text-sm text-gray-400">Stories</div>
+                  </motion.div>
+                  <motion.div 
+                    whileHover={{ scale: 1.1 }}
+                    className="text-center p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20"
+                  >
+                    <div className="text-3xl font-bold text-purple-400">4</div>
+                    <div className="text-sm text-gray-400">Levels</div>
+                  </motion.div>
+                  <motion.div 
+                    whileHover={{ scale: 1.1 }}
+                    className="text-center p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20"
+                  >
+                    <div className="text-3xl font-bold text-orange-400">🎵</div>
+                    <div className="text-sm text-gray-400">Music</div>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
               {/* How to Play Card - Full width container */}
               <div className="w-full">
                 <Card className="glass-card border-white/10 bg-gradient-to-br from-green-500/10 to-cyan-500/10 backdrop-blur-xl">
@@ -2571,120 +3280,489 @@ export default function TypingHeroPage() {
               </Card>
               </div>
 
-              {/* Main Game Card */}
-              <div className="max-w-4xl mx-auto">
-                <Card className="glass-card border-white/10 bg-gradient-to-br from-green-500/10 to-cyan-500/10 backdrop-blur-xl relative overflow-hidden group hover:scale-105 transition-all duration-500">
-                  {/* Animated Background Effects */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-green-500/5 via-transparent to-cyan-500/5"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-r from-green-400/10 to-cyan-400/10 rounded-full blur-xl animate-pulse"></div>
+              {/* Interactive Game Setup */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 max-w-7xl mx-auto px-4 md:px-6">
+                
+                {/* Difficulty Selection */}
+                <motion.div
+                  initial={{ x: -50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="xl:col-span-2"
+                >
+                  <Card className="glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-xl h-full">
+                    <CardHeader>
+                      <CardTitle className="text-2xl font-bold text-white flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                          <Star className="w-4 h-4 text-white" />
                   </div>
-
-                  <CardHeader className="pb-6 relative z-10">
-                    <div className="text-center mb-6">
-                      <CardTitle className="text-4xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent mb-3 animate-pulse">
-                        🎵 Welcome to Typing Hero! 🎵
+                        Choose Your Challenge Level
                       </CardTitle>
-                      <CardDescription className="text-gray-300 text-xl font-medium">
-                        Click "Start Typing" to begin the <span className="text-green-400 font-bold">{BPO_VOCABULARY[currentDifficulty].displayName}</span> challenge!
-                      </CardDescription>
+                      <p className="text-gray-300">Each level has different word complexity, falling speed, and spawn rates</p>
+                      <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3 mt-3">
+                        <p className="text-blue-300 text-sm">
+                          <span className="font-semibold">💡 How it works:</span> Higher difficulties use more complex words, faster falling speeds, and quicker word spawning. Your performance automatically adapts the AI story generation!
+                        </p>
                     </div>
-
-                   {/* Enhanced Features Grid */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                     <div className="p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 hover:scale-105 group">
-                       <div className="flex items-center gap-3 mb-3">
-                         <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                           <span className="text-white text-lg">🎵</span>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(['rookie', 'rockstar', 'virtuoso', 'legend'] as DifficultyLevel[]).map((difficulty, index) => {
+                          const config = BPO_VOCABULARY[difficulty];
+                          const isSelected = currentDifficulty === difficulty;
+                          const isUnlocked = isDifficultyUnlocked(difficulty);
+                          const status = getDifficultyStatus(difficulty);
+                          
+                          const getDifficultyGradient = (diff: DifficultyLevel, selected: boolean) => {
+                            if (selected) return 'bg-gradient-to-r from-green-500 to-cyan-500 shadow-xl shadow-green-500/30 border-green-400';
+                            
+                            switch (diff) {
+                              case 'rookie': return 'border-green-400/30 hover:border-green-400/60 hover:bg-green-500/5';
+                              case 'rockstar': return 'border-blue-400/30 hover:border-blue-400/60 hover:bg-blue-500/5';
+                              case 'virtuoso': return 'border-purple-400/30 hover:border-purple-400/60 hover:bg-purple-500/5';
+                              case 'legend': return 'border-orange-400/30 hover:border-orange-400/60 hover:bg-orange-500/5';
+                              default: return 'border-white/20 hover:border-white/40';
+                            }
+                          };
+                          
+                          return (
+                            <motion.div
+                              key={difficulty}
+                              initial={{ y: 30, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              transition={{ delay: 1 + index * 0.1 }}
+                              whileHover={{ scale: isUnlocked ? 1.02 : 1 }}
+                              whileTap={{ scale: isUnlocked ? 0.98 : 1 }}
+                              className="relative"
+                            >
+                              {/* Status Badge */}
+                              {status === 'recommended' && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute -top-2 -right-2 z-20 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-1 rounded-full shadow-lg"
+                                >
+                                  ⭐ Recommended
+                                </motion.div>
+                              )}
+                              {status === 'advanced' && (
+                                <div className="absolute -top-2 -right-2 z-20 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                                  🚀 Advanced
                          </div>
-                         <h4 className="text-white font-bold text-lg">Dynamic Music</h4>
+                              )}
+                              
+                              <Button
+                                variant={isSelected ? 'default' : 'outline'}
+                                onClick={() => isUnlocked && setCurrentDifficulty(difficulty)}
+                                disabled={!isUnlocked}
+                                className={`
+                                  w-full h-28 p-4 relative overflow-hidden transition-all duration-300 text-white
+                                  ${getDifficultyGradient(difficulty, isSelected)}
+                                `}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                                <div className="flex items-center justify-between w-full relative z-10">
+                                  <div className="text-left flex-1">
+                                    <div className="font-bold text-lg flex items-center gap-2 mb-1">
+                                      <span className="text-3xl">🎵</span>
+                                      <div>
+                                        <div>{config.displayName}</div>
+                                        <div className="text-xs opacity-70 font-normal">
+                                          {difficulty === 'rookie' && 'Perfect for beginners'}
+                                          {difficulty === 'rockstar' && 'Balanced challenge'}
+                                          {difficulty === 'virtuoso' && 'For experienced typists'}
+                                          {difficulty === 'legend' && 'Ultimate challenge'}
                        </div>
-                       <p className="text-purple-200 text-sm leading-relaxed">Each difficulty has unique music and challenge levels that adapt to your typing rhythm!</p>
                      </div>
-                     <div className="p-6 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-xl border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:scale-105 group">
-                       <div className="flex items-center gap-3 mb-3">
-                         <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                           <span className="text-white text-lg">📈</span>
                          </div>
-                         <h4 className="text-white font-bold text-lg">Progressive Challenge</h4>
+                                    <div className="text-xs opacity-80 bg-black/20 rounded px-2 py-1 inline-block">
+                                      Speed: {config.speed}x • Words every {config.spawnRate/1000}s • {config.bpm} BPM
                        </div>
-                       <p className="text-cyan-200 text-sm leading-relaxed">Start with Easy and work your way up to Expert! Master each level to unlock the next!</p>
                      </div>
+                                  {!isUnlocked && (
+                                    <Lock className="w-5 h-5 opacity-50 ml-2" />
+                                  )}
+                                  {isSelected && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="w-7 h-7 bg-white rounded-full flex items-center justify-center ml-2"
+                                    >
+                                      <CheckCircle className="w-5 h-5 text-green-500" />
+                                    </motion.div>
+                                  )}
                    </div>
-                </CardHeader>
-                                 <CardContent>
-                   {/* Enhanced Music Selection */}
-                   <div className="mb-8 p-6 bg-gradient-to-br from-green-500/10 to-cyan-500/10 rounded-xl border border-green-500/20 hover:border-green-400/30 transition-all duration-300">
-                     <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-3">
-                       <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                              </Button>
+                            </motion.div>
+                          );
+                        })}
+                       </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Music & Quick Start */}
+                <motion.div
+                  initial={{ x: 50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 1.2 }}
+                  className="space-y-6"
+                >
+                  {/* Music Selection Card */}
+                  <Card className="glass-card border-white/10 bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-xl">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
                          <span className="text-white text-lg">🎵</span>
                        </div>
-                       Choose Your Soundtrack
-                     </h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <Button
-                         variant={musicGender === 'male' ? 'default' : 'outline'}
-                         onClick={() => setMusicGender('male')}
-                         className={`${musicGender === 'male' 
-                           ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30' 
-                           : 'border-blue-500/50 text-blue-300 hover:bg-blue-500/10 hover:border-blue-400/70'
-                         } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
-                       >
-                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                         <div className="text-center relative z-10">
-                           <div className="text-lg font-bold flex items-center justify-center gap-2">
-                             <span className="text-2xl">♂️</span>
-                             Male Vocals
+                        Music Style
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                     <div className="grid grid-cols-1 gap-3">
+                       <div className="space-y-2">
+                         <Button
+                           variant={musicGender === 'male' ? 'default' : 'outline'}
+                           onClick={() => setMusicGender('male')}
+                           className={`${musicGender === 'male' 
+                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30' 
+                             : 'border-blue-500/50 text-blue-300 hover:bg-blue-500/10 hover:border-blue-400/70'
+                           } w-full h-16 md:h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+                         >
+                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                           <div className="text-center relative z-10">
+                             <div className="text-lg font-bold flex items-center justify-center gap-2">
+                               <span className="text-2xl">♂️</span>
+                               Male Vocals
+                             </div>
+                             <div className="text-xs opacity-80 font-medium">WORDS PER MINUTE WARRIOR</div>
                            </div>
-                           <div className="text-xs opacity-80 font-medium">WORDS PER MINUTE WARRIOR</div>
-                         </div>
-                       </Button>
-                       <Button
-                         variant={musicGender === 'female' ? 'default' : 'outline'}
-                         onClick={() => setMusicGender('female')}
-                         className={`${musicGender === 'female' 
-                           ? 'bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg shadow-pink-500/30' 
-                           : 'border-pink-500/50 text-pink-300 hover:bg-pink-500/10 hover:border-pink-400/70'
-                         } flex-1 h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
-                       >
-                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                         <div className="text-center relative z-10">
-                           <div className="text-lg font-bold flex items-center justify-center gap-2">
-                             <span className="text-2xl">♀️</span>
-                             Female Vocals
+                         </Button>
+                         <Button
+                           onClick={() => previewMusic('male')}
+                           disabled={isPreviewing}
+                           variant="outline"
+                           size="sm"
+                           className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/10 disabled:opacity-50"
+                         >
+                           {isPreviewing && previewingGender === 'male' ? (
+                             <div className="flex items-center gap-2">
+                               <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                               <span>Previewing... {previewCountdown}</span>
+                             </div>
+                           ) : (
+                             <div className="flex items-center gap-2">
+                               <span>🎵</span>
+                               <span>Preview (10s)</span>
+                             </div>
+                           )}
+                         </Button>
+                       </div>
+                       
+                       <div className="space-y-2">
+                         <Button
+                           variant={musicGender === 'female' ? 'default' : 'outline'}
+                           onClick={() => setMusicGender('female')}
+                           className={`${musicGender === 'female' 
+                             ? 'bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white shadow-lg shadow-pink-500/30' 
+                             : 'border-pink-500/50 text-pink-300 hover:bg-pink-500/10 hover:border-pink-400/70'
+                           } w-full h-16 md:h-20 transition-all duration-300 hover:scale-105 relative overflow-hidden group`}
+                         >
+                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                           <div className="text-center relative z-10">
+                             <div className="text-lg font-bold flex items-center justify-center gap-2">
+                               <span className="text-2xl">♀️</span>
+                               Female Vocals
+                             </div>
+                             <div className="text-xs opacity-80 font-medium">Keys to My Dreams</div>
                            </div>
-                           <div className="text-xs opacity-80 font-medium">Keys to My Dreams</div>
-                         </div>
-                       </Button>
+                         </Button>
+                         <Button
+                           onClick={() => previewMusic('female')}
+                           disabled={isPreviewing}
+                           variant="outline"
+                           size="sm"
+                           className="w-full border-pink-500/30 text-pink-300 hover:bg-pink-500/10 disabled:opacity-50"
+                         >
+                           {isPreviewing && previewingGender === 'female' ? (
+                             <div className="flex items-center gap-2">
+                               <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                               <span>Previewing... {previewCountdown}</span>
+                             </div>
+                           ) : (
+                             <div className="flex items-center gap-2">
+                               <span>🎵</span>
+                               <span>Preview (10s)</span>
+                             </div>
+                           )}
+                         </Button>
+                       </div>
                      </div>
-                   </div>
+                    </CardContent>
+                  </Card>
 
-                   <div className="flex gap-6">
+                  {/* Quick Actions */}
+                  <Card className="glass-card border-white/10 bg-gradient-to-br from-green-500/10 to-cyan-500/10 backdrop-blur-xl">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                          <Play className="w-4 h-4 text-white" />
+                   </div>
+                        Ready to Play?
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Start Game Button */}
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button
+                          className="w-full h-16 bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white font-bold text-xl shadow-xl shadow-green-500/30 relative overflow-hidden group"
+                          onClick={() => startGame(currentDifficulty)}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                          <div className="relative z-10 flex items-center justify-center gap-3">
+                            <Play className="h-6 w-6" />
+                            <span>🚀 START TYPING</span>
+                          </div>
+                        </Button>
+                      </motion.div>
+
+                      {/* Demo Button */}
                      <Button
                        variant="outline"
-                       className="flex-1 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400/70 font-bold text-lg py-6 h-16 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
+                        className="w-full border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400/70 font-bold py-3 h-12 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
                        onClick={() => setShowDemoModal(true)}
                      >
                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                        <div className="relative z-10 flex items-center justify-center gap-3">
-                         <Eye className="h-6 w-6" />
-                         <span>👁️ Live Demo</span>
+                          <Eye className="h-5 w-5" />
+                          <span>👁️ Watch Demo</span>
                        </div>
                      </Button>
+
+                     {/* Generate New Story Button - always visible */}
                      <Button
-                       className="flex-1 bg-gradient-to-r from-green-500 via-green-600 to-cyan-600 hover:from-green-600 hover:via-green-700 hover:to-cyan-700 text-white font-bold text-lg py-6 h-16 shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
-                       onClick={() => startGame('rockstar')}
+                       variant="outline"
+                       className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400/70 font-bold py-3 h-12 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
+                       onClick={regenerateCompleteStory}
+                       disabled={isGeneratingStory}
                      >
-                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                        <div className="relative z-10 flex items-center justify-center gap-3">
-                         <Play className="h-6 w-6" />
-                         <span>🚀 Start Typing</span>
-                         <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                         <RotateCcw className="h-5 w-5" />
+                         <span>{isGeneratingStory ? '🔄 Generating...' : completeStory ? '🔄 New Story' : '✨ Generate Story'}</span>
                        </div>
                      </Button>
-                   </div>
                  </CardContent>
               </Card>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+
+      {/* Story Generation State with Flashing Words */}
+      {gameState === 'generating' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center justify-center py-12 space-y-6"
+        >
+          <div className="text-center space-y-6">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl">🤖</span>
+                       </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white">
+              AI is generating your Typing Hero story...
+            </h3>
+            <p className="text-gray-400 max-w-md">
+              Creating a personalized career journey story based on your profile. This will take a few seconds.
+            </p>
+            
+            {/* Flashing Story Words Preview */}
+            <div className="mt-8 space-y-4">
+              <p className="text-sm text-cyan-400 uppercase tracking-wider">Preview Words</p>
+              <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+                {['success', 'ambition', 'growth', 'opportunity', 'excellence', 'achievement', 'progress', 'determination'].map((word, index) => (
+                  <motion.span
+                    key={word}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ 
+                      opacity: [0, 1, 1, 0],
+                      scale: [0.8, 1, 1, 0.8]
+                    }}
+                    transition={{
+                      duration: 2,
+                      delay: index * 0.3,
+                      repeat: Infinity,
+                      repeatDelay: 1
+                    }}
+                    className="px-3 py-1 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-full text-white text-sm border border-purple-400/30"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500">
+                These words might appear in your personalized story...
+              </p>
+            </div>
+            
+            {currentStory && (
+              <div className="text-sm text-cyan-400 bg-cyan-400/10 rounded-lg p-3 border border-cyan-400/20">
+                ✨ Story Title: "{currentStory.title}"
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Chapter Transition State */}
+      {gameState === 'chapter-transition' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center py-12 space-y-6"
+        >
+          {/* Chapter Complete Celebration */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: [0, 1.2, 1] }}
+            transition={{ duration: 0.6, times: [0, 0.6, 1] }}
+            className="text-center"
+          >
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
+              className="text-8xl mb-4"
+            >
+              🎉
+            </motion.div>
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-2">
+              Chapter {completedChapterNumber} Complete!
+            </h2>
+            <p className="text-xl text-gray-300 mb-4">
+              {completedChapterNumber && completedChapterNumber >= 5 
+                ? "🏆 INCREDIBLE! You've completed all 5 chapters! Calculating final results..." 
+                : "Excellent work! Preparing your next challenge..."
+              }
+            </p>
+            
+            {/* Quick Stats */}
+            <div className="flex space-x-6 text-center">
+              <div className="bg-green-500/20 rounded-lg p-3 border border-green-500/30">
+                <div className="text-2xl font-bold text-green-400">{gameStats.wpm}</div>
+                <div className="text-sm text-green-300">WPM</div>
+              </div>
+              <div className="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
+                <div className="text-2xl font-bold text-blue-400">{gameStats.accuracy.toFixed(0)}%</div>
+                <div className="text-sm text-blue-300">Accuracy</div>
+              </div>
+              <div className="bg-purple-500/20 rounded-lg p-3 border border-purple-500/30">
+                <div className="text-2xl font-bold text-purple-400">{gameStats.correctWords}</div>
+                <div className="text-sm text-purple-300">Words</div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Progress Animation */}
+          <motion.div
+            className="flex space-x-2"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-3 h-3 bg-blue-500 rounded-full"
+                animate={{ scale: [1, 1.5, 1] }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  delay: i * 0.2 
+                }}
+              />
+            ))}
+          </motion.div>
+
+          <motion.p
+            className="text-lg text-gray-400 text-center max-w-md"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            {completedChapterNumber && completedChapterNumber >= 5 
+              ? "🏆 Preparing your final victory celebration..." 
+              : "🤖 AI is crafting your next personalized story chapter..."
+            }
+          </motion.p>
+          
+          {/* Chapter Progress */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-2">Chapter Progress</p>
+            <div className="flex space-x-2 justify-center">
+              {[1, 2, 3, 4, 5].map((chapterNum) => (
+                <div
+                  key={chapterNum}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    chapterNum <= (completedChapterNumber || 0)
+                      ? 'bg-green-500 text-white' 
+                      : chapterNum === (completedChapterNumber || 0) + 1
+                      ? 'bg-blue-500 text-white animate-pulse'
+                      : 'bg-gray-600 text-gray-400'
+                  }`}
+                >
+                  {chapterNum}
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+          {/* Story Ready State */}
+          {gameState === 'story-ready' && storyReady && currentStory && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-12 space-y-8"
+            >
+              <div className="text-center space-y-6">
+                <div className="space-y-4">
+                  <div className="text-6xl">📚</div>
+                  <h3 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+                    Your Story is Ready!
+                  </h3>
+                  <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
+                    From your past experiences... are you ready to <span className="text-cyan-400 font-bold">type the past</span> to <span className="text-green-400 font-bold">change your future</span>?
+                  </p>
+                  <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg p-6 border border-cyan-400/20">
+                    <h4 className="text-xl font-bold text-cyan-400 mb-3">
+                      📖 "{currentStory.title}"
+                    </h4>
+                    <p className="text-gray-300 mb-3">
+                      Chapter {currentStory.chapterNumber} • {currentStory.sentences.length} sentences • {currentStory.sentences.reduce((sum, s) => sum + s.words.length, 0)} words
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Words will fall from above in story order. Type each word as it reaches the target zone to continue your career narrative.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Prominent Ready Button */}
+                <div className="space-y-4">
+                  <Button
+                    onClick={handleImReady}
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-12 py-6 text-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                    size="lg"
+                  >
+                    <Play className="w-6 h-6 mr-3" />
+                    I'm Ready to Type My Future!
+                     </Button>
+                  <p className="text-xs text-gray-500">
+                    Click when you're ready to start the typing challenge
+                  </p>
+                   </div>
               </div>
             </motion.div>
           )}
@@ -2844,24 +3922,6 @@ export default function TypingHeroPage() {
                        backgroundPulse.color === 'green' ? '#00ff00' : '#ff0000'}` : 'none'
                   }}
                 >
-                  {/* Ready State Overlay */}
-                  {gameState === 'ready' && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="absolute inset-0 bg-black/80 flex items-center justify-center z-40"
-                    >
-                      <div className="text-center">
-                        <h2 className="text-4xl font-bold text-white mb-4">Get Ready!</h2>
-                        <p className="text-gray-300 mb-6">
-                          Words will start falling when you click Ready below.
-                        </p>
-                        <div className="text-cyan-400 text-lg">
-                          ⬇️ Click Ready in the input area below ⬇️
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
 
                   {/* Pause Overlay */}
                   {gameState === 'paused' && !countdown && (
@@ -2961,8 +4021,9 @@ export default function TypingHeroPage() {
                         data-word-id={word.id}
                         initial={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.5 }}
-                        className={`absolute text-white font-bold text-sm px-2 py-1 rounded ${
-                          word.missed ? 'bg-red-500/80' : 'bg-blue-500/80'
+                        className={`absolute text-white font-bold text-sm px-2 py-1 rounded border-2 ${
+                          word.missed ? 'bg-red-500/80 border-red-400' : 
+                          getSentenceColor(word.sentenceIndex || 0)
                         }`}
                         style={{
                           left: `${(word.lane / LANES) * 100 + (1 / LANES) * 50}%`,
@@ -3075,50 +4136,124 @@ export default function TypingHeroPage() {
                 </div>
               </Card>
 
+              {/* Story words now fall from above - no display box needed */}
+              {false && currentStory && (
+                <Card className="glass-card border-white/10 bg-gradient-to-r from-purple-900/20 to-blue-900/20">
+                  <CardContent className="p-4">
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-bold text-cyan-400 mb-2">
+                        📖 {currentStory?.title}
+                      </h3>
+                      <div className="text-xs text-gray-400 mb-3">
+                        Your Personalized Story • Chapter {currentStory?.chapterNumber}
+                      </div>
+                    </div>
+                    
+                    {/* Completed Sentences */}
+                    <div className="space-y-2 mb-4">
+                      {completedSentences.map((sentence, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-sm text-green-400 bg-green-400/10 rounded-lg p-3 border border-green-400/20"
+                        >
+                          ✅ {sentence}
+                        </motion.div>
+                      ))}
+                    </div>
+                    
+                    {/* Current Sentence Progress */}
+                    {user && currentStory && (
+                      <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-600/30">
+                        <div className="text-xs text-gray-400 mb-1">Currently typing:</div>
+                        <div className="text-sm">
+                          {(() => {
+                            const progress = storyGenerator.getCurrentSentenceProgress(user?.id || '', currentWordIndex);
+                            return (
+                              <span>
+                                <span className="text-gray-500">
+                                  {progress.completedWords.join(' ')}
+                                </span>
+                                {progress.completedWords.length > 0 && ' '}
+                                <span className="text-yellow-400 font-bold bg-yellow-400/20 px-1 rounded">
+                                  {progress.nextWord}
+                                </span>
+                                {progress.remainingWords.length > 0 && ' '}
+                                <span className="text-gray-600">
+                                  {progress.remainingWords.join(' ')}
+                                </span>
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Story Generation Status */}
+                    {isGeneratingStory && (
+                      <div className="text-center py-2">
+                        <div className="text-cyan-400 text-sm">
+                          🎬 Generating your next chapter...
+                        </div>
+                      </div>
+                    )}
+                    
+                    {storyError && (
+                      <div className="text-center py-2">
+                        <div className="text-red-400 text-xs">
+                          ⚠️ {storyError}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Input Area */}
               <Card className="glass-card border-white/10 relative">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
                     <div className="flex-1 relative">
-                      {/* Floating Input Guide - Positioned directly over input */}
-                      <AnimatePresence>
-                        {showInputGuide && gameState === 'ready' && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3 }}
-                            className="absolute inset-0 z-50 flex items-center justify-center"
-                          >
-                            <div className="bg-gradient-to-r from-cyan-500/95 to-blue-500/95 text-white px-6 py-4 rounded-lg shadow-2xl border border-cyan-400/50 backdrop-blur-sm">
-                              <div className="text-center space-y-3">
-                                <div className="flex items-center justify-center gap-2">
-                                  <span className="text-2xl">⌨️</span>
-                                  <span className="font-bold text-lg">Ready to Type?</span>
-                                </div>
-                                <p className="text-sm text-cyan-100">
-                                  Focus is set! Click Ready when you're prepared to start.
-                                </p>
+                      {/* Ready State - Focus on Typing Box */}
+                      {gameState === 'ready' && (
+                        <div className="text-center space-y-6 mb-8 p-6 bg-gradient-to-r from-cyan-900/20 to-blue-900/20 rounded-xl border-2 border-cyan-400/50">
+                          <div className="space-y-3">
+                            <h3 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-green-400 bg-clip-text text-transparent">
+                              🎯 Focus Here!
+                            </h3>
+                            <p className="text-lg text-gray-300">
+                              This is where you'll type the falling words
+                            </p>
+                            <div className="flex items-center justify-center gap-2 text-cyan-400">
+                              <span className="animate-bounce">⬇️</span>
+                              <span className="text-sm">Click Ready to start</span>
+                              <span className="animate-bounce">⬇️</span>
+                            </div>
+                          </div>
                                 <Button
                                   onClick={handleReadyClick}
-                                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-6 py-2 shadow-lg"
+                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-12 py-4 text-xl shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
                                 >
-                                  <span className="text-lg mr-2">🚀</span>
-                                  Ready!
+                            <span className="text-2xl mr-3">🚀</span>
+                            Start Typing Challenge!
                                 </Button>
                               </div>
-                            </div>
-                          </motion.div>
                         )}
-                      </AnimatePresence>
                       
                                              <Input
                          ref={inputRef}
                          value={currentInput}
                          onChange={handleInputChange}
                          onKeyPress={handleKeyPress}
-                         
-                         className="bg-gray-800/50 border-white/20 text-white text-xl font-mono focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/20 h-16 px-6"
+                        placeholder={gameState === 'playing' ? "Type the falling words here..." : gameState === 'ready' ? "Click Ready above to start typing..." : "Get ready to type..."}
+                        className={`text-2xl font-mono h-24 px-8 rounded-xl transition-all duration-500 ${
+                          gameState === 'ready' 
+                            ? 'bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border-4 border-cyan-400 shadow-2xl shadow-cyan-400/30 text-white placeholder-cyan-200 animate-pulse ring-4 ring-cyan-400/20' 
+                            : gameState === 'playing'
+                            ? 'bg-gray-800/70 border-3 border-green-400/70 focus:border-green-400 focus:ring-4 focus:ring-green-400/30 text-white placeholder-gray-400'
+                            : 'bg-gray-800/50 border-2 border-gray-600 text-gray-400 placeholder-gray-500'
+                        }`}
                          disabled={gameState !== 'playing'}
                          autoComplete="off"
                          autoCorrect="off"
@@ -3260,73 +4395,182 @@ export default function TypingHeroPage() {
             </motion.div>
           )}
 
-          {/* Game Complete */}
+          {/* Enhanced Interactive Game Complete */}
           {(gameState === 'failed' || gameState === 'complete') && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-2xl mx-auto space-y-6"
+              className="max-w-5xl mx-auto space-y-8"
             >
-              <Card className="glass-card border-white/10">
-                <CardHeader>
-                  <CardTitle className={`text-3xl text-center mb-4 ${gameState === 'complete' ? 'text-green-400' : 'text-red-400'}`}>
-                    {gameState === 'complete' ? 'Session Complete! 🎉' : 'Challenge Failed'}
+              {/* Hero Section with Animated Background */}
+              <div className="relative overflow-hidden rounded-2xl">
+                <div className={`absolute inset-0 bg-gradient-to-br ${
+                  gameState === 'complete' 
+                    ? 'from-green-500/20 via-cyan-500/20 to-blue-500/20' 
+                    : 'from-red-500/20 via-orange-500/20 to-yellow-500/20'
+                } animate-pulse`} />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
+                
+                <Card className="glass-card border-white/20 relative z-10">
+                  <CardHeader className="text-center space-y-6 pb-8">
+                    {/* Celebration Animation */}
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+                      className="text-8xl"
+                    >
+                      {gameState === 'complete' ? '🏆' : '📊'}
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <CardTitle className={`text-5xl font-bold mb-4 bg-gradient-to-r ${
+                        gameState === 'complete' 
+                          ? 'from-green-400 via-cyan-400 to-blue-400' 
+                          : 'from-red-400 via-orange-400 to-yellow-400'
+                      } bg-clip-text text-transparent`}>
+                        {gameState === 'complete' ? 'LEGENDARY SESSION!' : 'SESSION COMPLETE!'}
                   </CardTitle>
-                  <div className="text-center">
-                    <Badge className={gameState === 'complete' 
-                      ? "bg-green-500/20 text-green-300 border-green-400/30"
-                      : "bg-red-500/20 text-red-300 border-red-400/30"
-                    }>
-                      {gameState === 'complete' ? 'COMPLETED' : 'FAILED'}
+                      
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.6, type: "spring" }}
+                      >
+                        <Badge className={`text-lg px-6 py-2 ${gameState === 'complete' 
+                          ? "bg-gradient-to-r from-green-500/30 to-cyan-500/30 text-green-300 border-green-400/50 shadow-lg shadow-green-400/20"
+                          : "bg-gradient-to-r from-red-500/30 to-orange-500/30 text-red-300 border-red-400/50 shadow-lg shadow-red-400/20"
+                        }`}>
+                          ✨ {gameState === 'complete' ? 'MISSION ACCOMPLISHED' : 'PROGRESS MADE'} ✨
                     </Badge>
-                  </div>
+                      </motion.div>
+                    </motion.div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Final Stats */}
-                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-yellow-400">{gameStats.score.toLocaleString()}</div>
-                      <div className="text-sm text-gray-400">Score</div>
-                    </div>
-                     <div className="text-center relative">
-                      <div className="text-3xl font-bold text-cyan-400">{gameStats.wpm}</div>
-                       <div className="text-sm text-gray-400">WPM (Adjusted)</div>
+                  
+                  <CardContent className="space-y-8 px-8 pb-8">
+                    {/* Animated Statistics Grid */}
+                    <motion.div
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.8 }}
+                      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+                    >
+                      {/* Score */}
+                      <motion.div
+                        whileHover={{ scale: 1.05, rotateY: 5 }}
+                        className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl p-6 border border-yellow-400/30 text-center group hover:shadow-xl hover:shadow-yellow-400/20 transition-all duration-300"
+                      >
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: 1, type: "spring", bounce: 0.6 }}
+                          className="text-5xl font-bold text-yellow-400 mb-2"
+                        >
+                          {gameStats.score.toLocaleString()}
+                        </motion.div>
+                        <div className="text-sm text-gray-400 group-hover:text-yellow-300 transition-colors">🏆 Total Score</div>
+                      </motion.div>
+
+                      {/* WPM */}
+                      <motion.div
+                        whileHover={{ scale: 1.05, rotateY: 5 }}
+                        className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-xl p-6 border border-cyan-400/30 text-center group hover:shadow-xl hover:shadow-cyan-400/20 transition-all duration-300"
+                      >
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: 1.2, type: "spring", bounce: 0.6 }}
+                          className="text-5xl font-bold text-cyan-400 mb-2"
+                        >
+                          {gameStats.wpm}
+                        </motion.div>
+                        <div className="text-sm text-gray-400 group-hover:text-cyan-300 transition-colors">⚡ WPM (Adjusted)</div>
                        {gameStats.burstWPM > gameStats.wpm && (
-                         <div className="text-xs text-green-400 mt-1">
-                           🚀 Peak Speed: {gameStats.burstWPM} WPM
+                          <div className="text-xs text-green-400 mt-1 opacity-75 group-hover:opacity-100 transition-opacity">
+                            🚀 Peak: {gameStats.burstWPM} WPM
                          </div>
                        )}
-                       {gameStats.sustainedWPM !== gameStats.wpm && (
-                         <div className="text-xs text-orange-400">
-                           📊 Raw: {gameStats.sustainedWPM} WPM
-                         </div>
-                       )}
-                    </div>
-                    <div className="text-center">
-                       <div className="text-3xl font-bold text-purple-400">{gameStats.longestStreak}</div>
-                       <div className="text-sm text-gray-400">Longest Streak</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-400">{gameStats.fires}</div>
-                      <div className="text-xs text-gray-400">🔥 Correct Words</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-400">{gameStats.poos}</div>
-                      <div className="text-xs text-gray-400">💩 Wrong Words</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-400">
+                      </motion.div>
+
+                      {/* Longest Streak */}
+                      <motion.div
+                        whileHover={{ scale: 1.05, rotateY: 5 }}
+                        className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl p-6 border border-orange-400/30 text-center group hover:shadow-xl hover:shadow-orange-400/20 transition-all duration-300"
+                      >
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: 1.4, type: "spring", bounce: 0.6 }}
+                          className="text-5xl font-bold text-orange-400 mb-2"
+                        >
+                          {gameStats.longestStreak}
+                        </motion.div>
+                        <div className="text-sm text-gray-400 group-hover:text-orange-300 transition-colors">🔥 Longest Streak</div>
+                      </motion.div>
+
+                      {/* Accuracy - Featured */}
+                      <motion.div
+                        whileHover={{ scale: 1.05, rotateY: 5 }}
+                        className={`bg-gradient-to-br ${gameStats.accuracy >= 70 
+                          ? 'from-green-500/20 to-emerald-500/20 border-green-400/30 hover:shadow-green-400/20' 
+                          : 'from-red-500/20 to-pink-500/20 border-red-400/30 hover:shadow-red-400/20'
+                        } rounded-xl p-6 border text-center group hover:shadow-xl transition-all duration-300`}
+                      >
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: 1.6, type: "spring", bounce: 0.6 }}
+                          className={`text-5xl font-bold mb-2 ${gameStats.accuracy >= 70 ? 'text-green-400' : 'text-red-400'}`}
+                        >
+                          {Math.round(gameStats.accuracy)}%
+                        </motion.div>
+                        <div className={`text-sm transition-colors ${gameStats.accuracy >= 70 
+                          ? 'text-gray-400 group-hover:text-green-300' 
+                          : 'text-gray-400 group-hover:text-red-300'
+                        }`}>🎯 Accuracy</div>
+                      </motion.div>
+                    </motion.div>
+
+                    {/* Secondary Stats Row */}
+                    <motion.div
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 1.8 }}
+                      className="grid grid-cols-3 gap-4 mt-6"
+                    >
+                      {/* Correct Words */}
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-400/20 text-center group hover:shadow-lg hover:shadow-green-400/10 transition-all"
+                      >
+                        <div className="text-3xl font-bold text-green-400 mb-1">{gameStats.fires}</div>
+                        <div className="text-xs text-gray-400 group-hover:text-green-300 transition-colors">🔥 Correct Words</div>
+                      </motion.div>
+
+                      {/* Wrong Words */}
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        className="bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-lg p-4 border border-red-400/20 text-center group hover:shadow-lg hover:shadow-red-400/10 transition-all"
+                      >
+                        <div className="text-3xl font-bold text-red-400 mb-1">{gameStats.poos}</div>
+                        <div className="text-xs text-gray-400 group-hover:text-red-300 transition-colors">💩 Wrong Words</div>
+                      </motion.div>
+
+                      {/* Elapsed Time */}
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-400/20 text-center group hover:shadow-lg hover:shadow-purple-400/10 transition-all"
+                      >
+                        <div className="text-3xl font-bold text-purple-400 mb-1">
                         {Math.floor(gameStats.elapsedTime / 60)}:{(gameStats.elapsedTime % 60).toString().padStart(2, '0')}
                       </div>
-                      <div className="text-xs text-gray-400">⏱️ Elapsed Time</div>
-                    </div>
-                    <div className="text-center col-span-3">
-                      <div className={`text-3xl font-bold ${gameStats.accuracy >= 70 ? 'text-green-400' : 'text-red-400'}`}>
-                        {Math.round(gameStats.accuracy)}%
-                      </div>
-                      <div className="text-sm text-gray-400">Overall Accuracy</div>
-                    </div>
-                  </div>
+                        <div className="text-xs text-gray-400 group-hover:text-purple-300 transition-colors">⏱️ Elapsed Time</div>
+                      </motion.div>
+                    </motion.div>
 
                   {/* Word-Level Tracking Display */}
                   <div className="bg-gray-800/30 border border-gray-600/30 rounded-lg p-4">
@@ -3391,42 +4635,108 @@ export default function TypingHeroPage() {
                     )}
                   </div>
 
-                   {/* Enhanced Challenge Results with AI Analysis */}
-                   <div className={`bg-gradient-to-r ${gameState === 'complete' 
-                     ? 'from-green-500/10 to-cyan-500/10 border-green-500/30' 
-                     : 'from-red-500/10 to-orange-500/10 border-red-500/30'
-                   } border rounded-lg p-4 text-center`}>
-                     <p className={`font-medium mb-2 ${gameState === 'complete' ? 'text-green-400' : 'text-red-400'}`}>
-                       {gameState === 'complete' ? 'Session Complete! 🎉' : 'Session Ended! 📊'}
-                     </p>
-                     <div className="space-y-2">
-                    <p className="text-gray-300 text-sm">
-                         {gameState === 'complete' 
-                           ? 'Great job! You successfully completed your typing session.' 
-                           : 'Here are your results from this typing session.'}
-                       </p>
-                       
-                       {/* AI Performance Analysis */}
-                       <div className="bg-black/20 rounded p-3 mt-3">
-                         <p className="text-cyan-400 font-semibold text-sm mb-2">🤖 AI Performance Analysis</p>
-                         <div className="text-xs text-gray-300 space-y-1">
+                    {/* AI Performance Analysis - Enhanced */}
+                    <motion.div
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 2.0 }}
+                      className="bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-cyan-400/30 rounded-xl p-6"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 2.2, type: "spring" }}
+                        className="flex items-center space-x-3 mb-6"
+                      >
+                        <div className="text-4xl animate-pulse">🤖</div>
+                        <div>
+                          <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                            AI Performance Analysis
+                          </h3>
+                          <p className="text-sm text-gray-400">Advanced pattern recognition complete</p>
+                        </div>
+                      </motion.div>
+
+                      {/* AI Insights Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                            {gameStats.burstWPM > 60 && (
-                             <p>⚡ <span className="text-green-400">Excellent burst speed detected!</span> Your peak typing shows great potential.</p>
-                           )}
+                          <motion.div
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 2.4 }}
+                            className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 rounded-lg p-4"
+                          >
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-2xl">⚡</span>
+                              <span className="text-green-400 font-semibold">Speed Burst Detected</span>
+                            </div>
+                            <p className="text-gray-300 text-sm">Your peak typing shows excellent potential for speed development.</p>
+                          </motion.div>
+                        )}
+
                            {gameStats.wpm > gameStats.sustainedWPM * 1.2 && (
-                             <p>🎯 <span className="text-blue-400">Game adaptation successful!</span> Your rhythm improved during gameplay.</p>
-                           )}
+                          <motion.div
+                            initial={{ x: 20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 2.6 }}
+                            className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 rounded-lg p-4"
+                          >
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-2xl">🎯</span>
+                              <span className="text-blue-400 font-semibold">Adaptation Success</span>
+                            </div>
+                            <p className="text-gray-300 text-sm">Your rhythm improved during gameplay - excellent flow state!</p>
+                          </motion.div>
+                        )}
+
                            {gameStats.longestStreak > 10 && (
-                             <p>🔥 <span className="text-orange-400">Strong focus pattern!</span> You maintain concentration well under pressure.</p>
-                           )}
+                          <motion.div
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 2.8 }}
+                            className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-400/30 rounded-lg p-4"
+                          >
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-2xl">🔥</span>
+                              <span className="text-orange-400 font-semibold">Focus Master</span>
+                            </div>
+                            <p className="text-gray-300 text-sm">Strong concentration patterns - you handle pressure well!</p>
+                          </motion.div>
+                        )}
+
                            {gameStats.accuracy > 80 && (
-                             <p>🎪 <span className="text-purple-400">High precision typing!</span> Excellent accuracy for a rhythm-based game.</p>
-                           )}
-                           <p className="text-yellow-400 mt-2">
-                             💡 <strong>Estimated Real WPM:</strong> {Math.round(gameStats.burstWPM * 1.15)}-{Math.round(gameStats.wpm * 1.3)} WPM on standard tests
-                           </p>
+                          <motion.div
+                            initial={{ x: 20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 3.0 }}
+                            className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-lg p-4"
+                          >
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-2xl">🎯</span>
+                              <span className="text-purple-400 font-semibold">Precision Expert</span>
+                            </div>
+                            <p className="text-gray-300 text-sm">High accuracy in rhythm-based typing - exceptional skill!</p>
+                          </motion.div>
+                        )}
                          </div>
+
+                      {/* Estimated Real WPM */}
+                      <motion.div
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 3.2 }}
+                        className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 rounded-lg p-4 text-center"
+                      >
+                        <div className="flex items-center justify-center space-x-2 mb-2">
+                          <span className="text-3xl">💡</span>
+                          <span className="text-yellow-400 font-bold text-lg">Real-World Estimate</span>
                        </div>
+                        <p className="text-2xl font-bold text-yellow-300 mb-1">
+                          {Math.round(gameStats.burstWPM * 0.8)}-{Math.round(gameStats.wpm * 1.2)} WPM
+                        </p>
+                        <p className="text-gray-400 text-sm">Expected performance on standard typing tests</p>
+                      </motion.div>
+                    </motion.div>
 
                        {/* AI Personalized Assessment */}
                        {loadingAssessment && (
@@ -3493,47 +4803,131 @@ export default function TypingHeroPage() {
                            </div>
                          </div>
                        )}
-                     </div>
-                  </div>
                 </CardContent>
               </Card>
+              </div>
 
-              {/* Actions */}
-              <div className="flex gap-4">
+              {/* Achievement Badges */}
+                    <motion.div
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 3.4 }}
+                      className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-400/30 rounded-xl p-6"
+                    >
+                <h3 className="text-lg font-bold text-center mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  🏅 Session Achievements
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {/* Speed Achievement */}
+                  {gameStats.wpm >= 40 && (
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-3 text-center border border-cyan-400/30"
+                    >
+                      <div className="text-2xl mb-1">🚀</div>
+                      <div className="text-xs text-cyan-400 font-semibold">Speed Demon</div>
+                      <div className="text-xs text-gray-400">40+ WPM</div>
+                    </motion.div>
+                  )}
+                  
+                  {/* Accuracy Achievement */}
+                  {gameStats.accuracy >= 70 && (
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-3 text-center border border-green-400/30"
+                    >
+                      <div className="text-2xl mb-1">🎯</div>
+                      <div className="text-xs text-green-400 font-semibold">Sharp Shooter</div>
+                      <div className="text-xs text-gray-400">70%+ Accuracy</div>
+                    </motion.div>
+                  )}
+                  
+                  {/* Streak Achievement */}
+                  {gameStats.longestStreak >= 10 && (
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg p-3 text-center border border-orange-400/30"
+                    >
+                      <div className="text-2xl mb-1">🔥</div>
+                      <div className="text-xs text-orange-400 font-semibold">On Fire</div>
+                      <div className="text-xs text-gray-400">{gameStats.longestStreak} Streak</div>
+                    </motion.div>
+                  )}
+                  
+                  {/* Completion Achievement */}
+                  {gameState === 'complete' && (
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-3 text-center border border-purple-400/30"
+                    >
+                      <div className="text-2xl mb-1">👑</div>
+                      <div className="text-xs text-purple-400 font-semibold">Champion</div>
+                      <div className="text-xs text-gray-400">Completed</div>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Enhanced Action Buttons */}
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 3.6 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4"
+              >
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   onClick={() => router.push('/career-tools/games')}
-                  className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Main Menu
+                    className="w-full h-14 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                    <div className="text-left">
+                      <div className="font-semibold">Back to Games</div>
+                      <div className="text-xs opacity-75">More challenges await</div>
+                    </div>
                 </Button>
+                </motion.div>
+
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   onClick={() => {
-                    // Share functionality
+                      // Enhanced share functionality
+                      const shareText = `🎮 Just crushed Typing Hero!\n\n🏆 ${gameStats.score.toLocaleString()} points\n⚡ ${gameStats.wpm} WPM\n🎯 ${Math.round(gameStats.accuracy)}% accuracy\n🔥 ${gameStats.longestStreak} streak\n\nCan you beat my score? 🚀`;
+                      
                     if (navigator.share) {
                       navigator.share({
-                        title: 'My Typing Hero Game Results',
-                        text: `I achieved ${gameStats.score.toLocaleString()} points with ${gameStats.wpm} WPM and ${Math.round(gameStats.accuracy)}% accuracy!`,
+                          title: 'My Typing Hero Achievement!',
+                          text: shareText,
                         url: window.location.href
                       });
                     } else {
-                      // Fallback: copy to clipboard
-                      navigator.clipboard.writeText(`My Typing Hero Game Results: ${gameStats.score.toLocaleString()} points with ${gameStats.wpm} WPM and ${Math.round(gameStats.accuracy)}% accuracy!`);
-                    }
-                  }}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                >
-                  <Share className="w-4 h-4 mr-2" />
-                  Share
+                        navigator.clipboard.writeText(shareText + '\n' + window.location.href);
+                        // Could add a toast notification here
+                      }
+                    }}
+                    className="w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl hover:shadow-blue-400/20 transition-all duration-300"
+                  >
+                    <Share className="w-5 h-5 mr-2" />
+                    <div className="text-left">
+                      <div className="font-semibold">Share Results</div>
+                      <div className="text-xs opacity-75">Show off your skills</div>
+                    </div>
                 </Button>
+                </motion.div>
+
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
-                  className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white"
+                    className="w-full h-14 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl hover:shadow-cyan-400/20 transition-all duration-300"
                   onClick={() => startGame(currentDifficulty)}
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  Take Again
-                </Button>
+                    <Play className="w-5 h-5 mr-2" />
+                    <div className="text-left">
+                      <div className="font-semibold">Play Again</div>
+                      <div className="text-xs opacity-75">Beat your record</div>
               </div>
+                  </Button>
+                </motion.div>
+              </motion.div>
             </motion.div>
           )}
         </div>
