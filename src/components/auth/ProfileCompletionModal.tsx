@@ -32,8 +32,18 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle,
-  Loader2
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  X,
+  Info
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 
 interface ProfileCompletionData {
   // Step 1: Profile Information
@@ -91,6 +101,8 @@ export default function ProfileCompletionModal({
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [stepErrorBanner, setStepErrorBanner] = useState<string | null>(null)
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
   
   const [formData, setFormData] = useState<ProfileCompletionData>({
     // Step 1: Profile Information
@@ -270,9 +282,9 @@ export default function ProfileCompletionModal({
   }
 
   const getFieldClassName = (field: string) => {
-    const baseClass = "h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-    return isFieldDisabled(field) 
-      ? `${baseClass} opacity-60 cursor-not-allowed` 
+    const baseClass = "h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0"
+    return isFieldDisabled(field)
+      ? `${baseClass} opacity-60 cursor-not-allowed`
       : baseClass
   }
 
@@ -441,15 +453,7 @@ export default function ProfileCompletionModal({
          if (!formData.workStatus.trim()) {
            newErrors.workStatus = 'Work status is required'
          }
-         if (!formData.currentMood.trim()) {
-           newErrors.currentMood = 'Current mood is required'
-         }
-         
          // Only validate fields that are not disabled based on work status
-         if (!isFieldDisabled('currentEmployer') && !formData.currentEmployer.trim()) {
-           newErrors.currentEmployer = 'Current employer is required'
-         }
-        // Removed currentPosition validation - it will use position from Step 1
          if (!isFieldDisabled('currentSalary') && !formData.currentSalary.trim()) {
            newErrors.currentSalary = 'Current salary is required'
          }
@@ -483,12 +487,14 @@ export default function ProfileCompletionModal({
     const stepErrors = validateStep(currentStep)
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors)
+      setStepErrorBanner('Please fill in all required fields before moving forward.')
       return
     }
 
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1)
       setErrors({})
+      setStepErrorBanner(null)
       
       // Scroll to top of the content area when transitioning to next step
       setTimeout(() => {
@@ -506,6 +512,7 @@ export default function ProfileCompletionModal({
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
       setErrors({})
+      setStepErrorBanner(null)
       
       // Scroll to top of the content area when transitioning to previous step
       setTimeout(() => {
@@ -523,6 +530,7 @@ export default function ProfileCompletionModal({
     const stepErrors = validateStep(currentStep)
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors)
+      setStepErrorBanner('Please fill in all required fields before submitting.')
       return
     }
 
@@ -530,12 +538,14 @@ export default function ProfileCompletionModal({
     if (!user?.id) {
       console.error('User not available:', { user, userId: user?.id })
       setErrors({ general: 'User not authenticated. Please refresh the page and try again.' })
+      setStepErrorBanner('Unable to submit because the user is not authenticated.')
       return
     }
 
     console.log('Submitting profile completion for user:', user.id)
 
     setIsLoading(true)
+    setStepErrorBanner(null)
 
     try {
       // Update user profile with the additional information
@@ -613,10 +623,12 @@ export default function ProfileCompletionModal({
 
       onComplete()
       onOpenChange(false)
+      setShowCompletionModal(true)
     } catch (error) {
       console.error('Error updating profile:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile. Please try again.'
       setErrors({ general: errorMessage })
+      setStepErrorBanner('Something went wrong while saving your profile. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -655,33 +667,31 @@ export default function ProfileCompletionModal({
     switch (currentStep) {
                   case 1: // Profile Information
               return (
-                <div className="space-y-4 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3 pb-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Username field */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium text-white block">
                   Username <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="e.g., john_doe123"
-                    value={formData.username}
-                    onChange={(e) => {
-                      handleInputChange('username', e.target.value)
-                      // Clear previous timeout
-                      if (usernameTimeout) {
-                        clearTimeout(usernameTimeout)
-                      }
-                      // Set new timeout for username checking
-                      const timeoutId = setTimeout(() => {
-                        checkUsernameAvailability(e.target.value)
-                      }, 500)
-                      setUsernameTimeout(timeoutId)
-                    }}
-                    className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                  />
+                <Input
+                  type="text"
+                  placeholder="e.g., john_doe123"
+                  value={formData.username}
+                  onChange={(e) => {
+                    handleInputChange('username', e.target.value)
+                    if (usernameTimeout) {
+                      clearTimeout(usernameTimeout)
+                    }
+                    const timeoutId = setTimeout(() => {
+                      checkUsernameAvailability(e.target.value)
+                    }, 500)
+                    setUsernameTimeout(timeoutId)
+                  }}
+                  className="pl-10 h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                />
                   {usernameChecking && (
                     <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
                   )}
@@ -692,7 +702,7 @@ export default function ProfileCompletionModal({
                     <X className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-400" />
                   )}
                 </div>
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center justify-between text-[11px]">
                   <span className="text-gray-400">
                     {formData.username.length}/20 characters (minimum 3 required)
                   </span>
@@ -706,12 +716,12 @@ export default function ProfileCompletionModal({
                 {errors.username && <p className="text-red-400 text-xs">{errors.username}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
                   Gender <span className="text-red-400">*</span>
                 </label>
                 <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                  <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                  <SelectTrigger className="h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
                     <SelectValue placeholder="Select your gender" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
@@ -730,19 +740,19 @@ export default function ProfileCompletionModal({
                        placeholder="Please specify your gender"
                        value={formData.genderCustom}
                        onChange={(e) => handleInputChange('genderCustom', e.target.value)}
-                       className="h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                       className="h-9 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
                      />
                     {errors.genderCustom && <p className="text-red-400 text-xs mt-1">{errors.genderCustom}</p>}
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
                   Location <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <PlacesAutocomplete
                     value={formData.location}
                     placeholder="Type city, province, municipality, or barangay"
@@ -766,99 +776,109 @@ export default function ProfileCompletionModal({
                 {errors.location && <p className="text-red-400 text-xs">{errors.location}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
-                  Phone Number <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                     <Input
-                     type="tel"
-                     placeholder="e.g., +63 912 345 6789"
-                     value={formData.phone}
-                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                     className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                   />
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span>
+                    Phone Number <span className="text-red-400">*</span>
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center" className="max-w-xs text-xs">
+                      Enter a reachable mobile number with country code (e.g., +63 912 345 6789) so employers can contact you.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                {errors.phone && <p className="text-red-400 text-xs">{errors.phone}</p>}
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="tel"
+                    placeholder="e.g., +63 912 345 6789"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    className="pl-10 h-9 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
+                </div>
+                {errors.phone && <p className="text-xs text-red-400">{errors.phone}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
                   Job Title <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                     <Input
-                     type="text"
-                     placeholder="e.g., Customer Service Representative"
-                     value={formData.position}
-                     onChange={(e) => handleInputChange('position', e.target.value)}
-                     className="pl-10 h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                   />
+                  <Briefcase className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="e.g., Customer Service Representative"
+                    value={formData.position}
+                    onChange={(e) => handleInputChange('position', e.target.value)}
+                    className="pl-10 h-9 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
                 </div>
-                {errors.position && <p className="text-red-400 text-xs">{errors.position}</p>}
+                {errors.position && <p className="text-xs text-red-400">{errors.position}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
                   Birthday <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                     <Input
-                     type="date"
-                     value={formData.birthday}
-                     onChange={(e) => handleInputChange('birthday', e.target.value)}
-                     className="pl-10 h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                   />
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="date"
+                    value={formData.birthday}
+                    onChange={(e) => handleInputChange('birthday', e.target.value)}
+                    className="pl-10 h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
                 </div>
-                {errors.birthday && <p className="text-red-400 text-xs">{errors.birthday}</p>}
-                {age !== null && <p className="text-cyan-400 text-sm">Age: {age} years old</p>}
+                {errors.birthday && <p className="text-xs text-red-400">{errors.birthday}</p>}
+                {age !== null && <p className="text-xs text-cyan-400">Age: {age} years old</p>}
               </div>
             </div>
-            
+
             {/* Bio field - full width */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white block">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-white">
                 Bio <span className="text-red-400">*</span>
               </label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                 <Textarea
-                   placeholder="Tell us about yourself, your experience, and career goals..."
-                   value={formData.bio}
-                   onChange={(e) => handleInputChange('bio', e.target.value)}
-                   className="pl-10 min-h-[100px] bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none resize-none"
-                 />
+                <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Textarea
+                  placeholder="Tell us about yourself, your experience, and career goals..."
+                  value={formData.bio}
+                  onChange={(e) => handleInputChange('bio', e.target.value)}
+                  className="min-h-[90px] border-white/20 bg-white/5 pl-10 text-white placeholder:text-gray-400 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0 resize-none"
+                />
               </div>
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex items-center justify-between text-[11px]">
                 <span className="text-gray-400">
                   {formData.bio.length}/500 characters (minimum 10 required)
                 </span>
                 {formData.bio.length < 10 && formData.bio.length > 0 && (
-                  <span className="text-red-400">
-                    At least 10 characters required
-                  </span>
+                  <span className="text-red-400">At least 10 characters required</span>
                 )}
               </div>
-              {errors.bio && <p className="text-red-400 text-xs">{errors.bio}</p>}
+              {errors.bio && <p className="text-xs text-red-400">{errors.bio}</p>}
             </div>
           </div>
         )
 
                   case 2: // Work Status Information
               return (
-                <div className="space-y-4 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
+                <div className="space-y-3 pb-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
                   Work Status <span className="text-red-400">*</span>
                 </label>
-                                 <Select value={formData.workStatus} onValueChange={(value) => handleInputChange('workStatus', value)}>
-                   <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
-                     <SelectValue placeholder="Select your work status" />
-                   </SelectTrigger>
+                <Select value={formData.workStatus} onValueChange={(value) => handleInputChange('workStatus', value)}>
+                  <SelectTrigger className="h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                    <SelectValue placeholder="Select your work status" />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
                     {WORK_STATUS_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
@@ -867,17 +887,17 @@ export default function ProfileCompletionModal({
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.workStatus && <p className="text-red-400 text-xs">{errors.workStatus}</p>}
+                {errors.workStatus && <p className="text-xs text-red-400">{errors.workStatus}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-white block">
-                  Current Mood <span className="text-red-400">*</span>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
+                  Current Mood
                 </label>
-                                 <Select value={formData.currentMood} onValueChange={(value) => handleInputChange('currentMood', value)}>
-                   <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
-                     <SelectValue placeholder="How are you feeling?" />
-                   </SelectTrigger>
+                <Select value={formData.currentMood} onValueChange={(value) => handleInputChange('currentMood', value)}>
+                  <SelectTrigger className="h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                    <SelectValue placeholder="How are you feeling?" />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
                     {MOOD_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
@@ -886,219 +906,253 @@ export default function ProfileCompletionModal({
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.currentMood && <p className="text-red-400 text-xs">{errors.currentMood}</p>}
               </div>
 
-                             <div className="space-y-2">
-                 <label className="text-sm font-medium text-white block">
-                   Current Employer {!isFieldDisabled('currentEmployer') && <span className="text-red-400">*</span>}
-                 </label>
-                                   <Input
-                    type="text"
-                    placeholder={getFieldPlaceholder('currentEmployer')}
-                    value={formData.currentEmployer}
-                    onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
-                    disabled={isFieldDisabled('currentEmployer')}
-                    className={getFieldClassName('currentEmployer')}
-                  />
-                 {errors.currentEmployer && <p className="text-red-400 text-xs">{errors.currentEmployer}</p>}
-               </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
+                  Current Employer
+                </label>
+                <Input
+                  type="text"
+                  placeholder={getFieldPlaceholder('currentEmployer')}
+                  value={formData.currentEmployer}
+                  onChange={(e) => handleInputChange('currentEmployer', e.target.value)}
+                  disabled={isFieldDisabled('currentEmployer')}
+                  className={getFieldClassName('currentEmployer')}
+                />
+              </div>
 
-                             <div className="space-y-2">
-                 <label className="text-sm font-medium text-white block">
-                   Job Title <span className="text-red-400">*</span>
-                 </label>
-                                   <Input
-                    type="text"
-                    placeholder="e.g., Senior Developer"
-                    value={formData.position}  // Use position from Step 1
-                    disabled={true}  // Disable the input
-                    className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none opacity-60 cursor-not-allowed"
-                  />
-                 {errors.currentPosition && <p className="text-red-400 text-xs">{errors.currentPosition}</p>}
-               </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
+                  Job Title <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g., Senior Developer"
+                  value={formData.position}
+                  disabled={true}
+                  className="h-9 border border-green-400 bg-gradient-to-r from-green-500/40 via-green-500/30 to-green-500/20 text-green-50 placeholder:text-green-100 cursor-not-allowed shadow-[0_0_20px_rgba(34,197,94,0.35)] focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0"
+                />
+                {errors.currentPosition && <p className="text-xs text-red-400">{errors.currentPosition}</p>}
+              </div>
 
-                             <div className="space-y-2">
-                 <label className="text-sm font-medium text-white block">
-                   Current Salary {!isFieldDisabled('currentSalary') && <span className="text-red-400">*</span>}
-                 </label>
-                                   <Input
-                    type="text"
-                    placeholder={getFieldPlaceholder('currentSalary')}
-                    value={formData.currentSalary}
-                    onChange={(e) => handleInputChange('currentSalary', e.target.value)}
-                    disabled={isFieldDisabled('currentSalary')}
-                    className={getFieldClassName('currentSalary')}
-                  />
-                 {errors.currentSalary && <p className="text-red-400 text-xs">{errors.currentSalary}</p>}
-               </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span>
+                    Current Salary {!isFieldDisabled('currentSalary') && <span className="text-red-400">*</span>}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center" className="max-w-xs text-xs">
+                      Share your current monthly salary (or best estimate). It helps employers understand your experience level.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Input
+                  type="text"
+                  placeholder={getFieldPlaceholder('currentSalary')}
+                  value={formData.currentSalary}
+                  onChange={(e) => handleInputChange('currentSalary', e.target.value)}
+                  disabled={isFieldDisabled('currentSalary')}
+                  className={getFieldClassName('currentSalary')}
+                />
+                {errors.currentSalary && <p className="text-xs text-red-400">{errors.currentSalary}</p>}
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-white block">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span>
                     Expected Salary Range <span className="text-red-400">*</span>
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-1">
-                                             <Input
-                         type="text"
-                         placeholder="₱60,000"
-                         value={formData.expectedSalaryMin}
-                         onChange={(e) => handleInputChange('expectedSalaryMin', e.target.value)}
-                         className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                       />
-                    </div>
-                    <span className="text-white font-medium">-</span>
-                    <div className="flex-1">
-                                             <Input
-                         type="text"
-                         placeholder="₱80,000"
-                         value={formData.expectedSalaryMax}
-                         onChange={(e) => handleInputChange('expectedSalaryMax', e.target.value)}
-                         className="h-11 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                       />
-                    </div>
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center" className="max-w-xs text-xs">
+                      Add the minimum and maximum monthly salary you’re aiming for. We’ll use it to match you with the right roles.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      placeholder="₱60,000"
+                      value={formData.expectedSalaryMin}
+                      onChange={(e) => handleInputChange('expectedSalaryMin', e.target.value)}
+                      className="h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0"
+                    />
                   </div>
-                  {errors.expectedSalary && <p className="text-red-400 text-xs">{errors.expectedSalary}</p>}
+                  <span className="text-white font-medium">-</span>
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      placeholder="₱80,000"
+                      value={formData.expectedSalaryMax}
+                      onChange={(e) => handleInputChange('expectedSalaryMax', e.target.value)}
+                      className="h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0"
+                    />
+                  </div>
                 </div>
+                {errors.expectedSalary && <p className="text-xs text-red-400">{errors.expectedSalary}</p>}
+              </div>
 
-                             <div className="space-y-2">
-                 <label className="text-sm font-medium text-white block">
-                   Notice Period (Days) {!isFieldDisabled('noticePeriod') && <span className="text-red-400">*</span>}
-                 </label>
-                                   <Input
-                    type="number"
-                    placeholder={getFieldPlaceholder('noticePeriod')}
-                    value={formData.noticePeriod}
-                    onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
-                    disabled={isFieldDisabled('noticePeriod')}
-                    className={getFieldClassName('noticePeriod')}
-                  />
-                 {errors.noticePeriod && <p className="text-red-400 text-xs">{errors.noticePeriod}</p>}
-               </div>
-
-                                                           <div className="space-y-2">
-                  <label className="text-sm font-medium text-white block">
-                    Preferred Shift <span className="text-red-400">*</span>
-                  </label>
-                                     <Select value={formData.preferredShift} onValueChange={(value) => handleInputChange('preferredShift', value)}>
-                     <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
-                       <SelectValue placeholder="Select preferred shift" />
-                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-white/20">
-                      {SHIFT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.preferredShift && <p className="text-red-400 text-xs">{errors.preferredShift}</p>}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-sm font-medium text-white">
+                  <span>
+                    Notice Period (Days) {!isFieldDisabled('noticePeriod') && <span className="text-red-400">*</span>}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center" className="max-w-xs text-xs">
+                      Tell us how many days’ notice you need to give your current employer. If you’re not employed, enter 0.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
+                <Input
+                  type="number"
+                  placeholder={getFieldPlaceholder('noticePeriod')}
+                  value={formData.noticePeriod}
+                  onChange={(e) => handleInputChange('noticePeriod', e.target.value)}
+                  disabled={isFieldDisabled('noticePeriod')}
+                  className={getFieldClassName('noticePeriod')}
+                />
+                {errors.noticePeriod && <p className="text-xs text-red-400">{errors.noticePeriod}</p>}
+              </div>
 
-                               <div className="space-y-2">
-                  <label className="text-sm font-medium text-white block">
-                    Work Setup <span className="text-red-400">*</span>
-                  </label>
-                                     <Select value={formData.workSetup} onValueChange={(value) => handleInputChange('workSetup', value)}>
-                     <SelectTrigger className="h-11 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
-                       <SelectValue placeholder="Select work setup preference" />
-                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-white/20">
-                      {WORK_SETUP_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.workSetup && <p className="text-red-400 text-xs">{errors.workSetup}</p>}
-                </div>
-             </div>
-           </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
+                  Preferred Shift <span className="text-red-400">*</span>
+                </label>
+                <Select value={formData.preferredShift} onValueChange={(value) => handleInputChange('preferredShift', value)}>
+                  <SelectTrigger className="h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                    <SelectValue placeholder="Select preferred shift" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-white/20">
+                    {SHIFT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.preferredShift && <p className="text-xs text-red-400">{errors.preferredShift}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-white">
+                  Preferred Work Setup <span className="text-red-400">*</span>
+                </label>
+                <Select value={formData.workSetup} onValueChange={(value) => handleInputChange('workSetup', value)}>
+                  <SelectTrigger className="h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
+                    <SelectValue placeholder="Select work setup preference" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-white/20">
+                    {WORK_SETUP_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.workSetup && <p className="text-xs text-red-400">{errors.workSetup}</p>}
+              </div>
+            </div>
+          </div>
          )
 
       case 3: // Confirmation
         return (
-          <div className="space-y-6 pb-6">
-            <div className="bg-white/5 rounded-lg p-6 border border-white/10">
-              <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-cyan-400" />
+          <div className="space-y-4 pb-4">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+              <h4 className="mb-3 flex items-center text-base font-semibold text-white">
+                <User className="mr-2 h-5 w-5 text-cyan-400" />
                 Personal Information
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                 <div>
                   <span className="text-gray-400">Gender:</span>
-                  <span className="text-white ml-2">{formData.gender || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.gender || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Location:</span>
-                  <span className="text-white ml-2">{formData.location || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.location || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Phone:</span>
-                  <span className="text-white ml-2">{formData.phone || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.phone || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Job Title:</span>
-                  <span className="text-white ml-2">{formData.position || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.position || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Birthday:</span>
-                  <span className="text-white ml-2">{formData.birthday || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.birthday || 'Not specified'}</span>
                 </div>
                 <div className="md:col-span-2">
                   <span className="text-gray-400">Bio:</span>
-                  <p className="text-white mt-1">{formData.bio || 'Not specified'}</p>
+                  <p className="mt-1 text-white">{formData.bio || 'Not specified'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white/5 rounded-lg p-6 border border-white/10">
-              <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-                <Briefcase className="w-5 h-5 mr-2 text-cyan-400" />
+            <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+              <h4 className="mb-3 flex items-center text-base font-semibold text-white">
+                <Briefcase className="mr-2 h-5 w-5 text-cyan-400" />
                 Work Status Information
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                 <div>
                   <span className="text-gray-400">Work Status:</span>
-                  <span className="text-white ml-2">{formData.workStatus || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.workStatus || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Current Mood:</span>
-                  <span className="text-white ml-2">{formData.currentMood || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.currentMood || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Current Employer:</span>
-                  <span className="text-white ml-2">{formData.currentEmployer || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.currentEmployer || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Job Title:</span>
-                  <span className="text-white ml-2">{formData.position || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.position || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Current Salary:</span>
-                  <span className="text-white ml-2">{formData.currentSalary || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.currentSalary || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Expected Salary:</span>
-                  <span className="text-white ml-2">{formData.expectedSalary || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.expectedSalary || 'Not specified'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Notice Period:</span>
-                  <span className="text-white ml-2">{formData.noticePeriod ? `${formData.noticePeriod} days` : 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formData.noticePeriod ? `${formData.noticePeriod} days` : 'Not specified'}</span>
                 </div>
-                                 <div>
-                   <span className="text-gray-400">Preferred Shift:</span>
-                   <span className="text-white ml-2">{formData.preferredShift || 'Not specified'}</span>
-                 </div>
-                 <div>
-                   <span className="text-gray-400">Work Setup:</span>
-                   <span className="text-white ml-2">{formData.workSetup || 'Not specified'}</span>
-                 </div>
-               </div>
-             </div>
-           </div>
-         )
+                <div>
+                  <span className="text-gray-400">Preferred Shift:</span>
+                  <span className="ml-2 text-white">{formData.preferredShift || 'Not specified'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Work Setup:</span>
+                  <span className="ml-2 text-white">{formData.workSetup || 'Not specified'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
 
       default:
         return null
@@ -1106,19 +1160,25 @@ export default function ProfileCompletionModal({
   }
 
   return (
+    <TooltipProvider delayDuration={150}>
          <Dialog open={open} onOpenChange={() => {}}>
-       <DialogContent className="glass-card border-white/20 !max-w-[60vw] w-full mx-4 sm:mx-auto h-[700px] overflow-hidden flex flex-col" showCloseButton={false} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-        <DialogHeader className="text-center space-y-3 pb-4 flex-shrink-0">
+      <DialogContent className="glass-card border-white/20 !max-w-[60vw] w-full mx-4 sm:mx-auto h-[820px] max-h-[90vh] overflow-hidden flex flex-col" showCloseButton={false} onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogHeader className="text-center space-y-2.5 pb-3 flex-shrink-0">
           <DialogTitle className="text-2xl font-bold gradient-text">
             Complete Your Profile
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
-            Help us personalize your experience by providing some additional information
-          </DialogDescription>
+          <div className="mx-auto mt-2 w-full max-w-[640px] rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-4 py-2.5 text-sm text-cyan-50 shadow-[0_10px_30px_rgba(14,165,233,0.2)]">
+            <div className="flex items-center justify-center gap-2 font-semibold text-center">
+              <Sparkles className="h-4 w-4 flex-shrink-0 text-cyan-200" />
+              <span className="whitespace-normal">
+                Completing this profile form is your backstage pass to better job matches and the salary you deserve—give us the details and we’ll do the matchmaking.
+              </span>
+            </div>
+          </div>
         </DialogHeader>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8 flex-shrink-0">
+        <div className="flex items-center justify-center mb-5 flex-shrink-0">
           {steps.map((step, index) => {
             const Icon = step.icon
             const isActive = currentStep === step.id
@@ -1127,28 +1187,28 @@ export default function ProfileCompletionModal({
             return (
               <div key={step.id} className="flex items-center">
                 <div className="flex flex-col items-center">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-200 ${
-                    isCompleted 
-                      ? 'bg-green-500 border-green-500 text-white' 
-                      : isActive 
-                      ? 'bg-cyan-500 border-cyan-500 text-white' 
-                      : 'border-white/20 text-gray-400'
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border border-white/40 transition-all duration-200 ${
+                    isCompleted
+                      ? 'bg-green-500 border-green-400 text-white'
+                      : isActive
+                      ? 'bg-cyan-500 border-cyan-400 text-white'
+                      : 'text-gray-400'
                   }`}>
                     {isCompleted ? (
-                      <CheckCircle className="w-6 h-6" />
+                      <CheckCircle className="h-4 w-4" />
                     ) : (
-                      <Icon className="w-6 h-6" />
+                      <Icon className="h-4 w-4" />
                     )}
                   </div>
-                  <span className={`text-xs mt-2 transition-all duration-200 ${
-                    isActive ? 'text-cyan-400 font-medium' : 'text-gray-400'
+                  <span className={`mt-1.5 text-[11px] transition-all duration-200 ${
+                    isActive ? 'text-cyan-300 font-medium' : 'text-gray-400'
                   }`}>
                     {step.title}
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-24 h-0.5 mx-4 mt-6 transition-all duration-200 ${
-                    isCompleted ? 'bg-green-500' : 'bg-white/20'
+                  <div className={`mx-3 mt-5 h-0.5 w-12 transition-all duration-200 ${
+                    isCompleted ? 'bg-green-500' : 'bg-white/15'
                   }`} />
                 )}
               </div>
@@ -1157,24 +1217,31 @@ export default function ProfileCompletionModal({
         </div>
 
         {/* Step Content */}
-        <div ref={scrollContainerRef} className="flex-1 min-h-0 flex flex-col px-6 overflow-y-auto profile-modal-scroll">
+        <div ref={scrollContainerRef} className="profile-modal-scroll flex min-h-0 flex-1 flex-col overflow-y-auto px-5">
           {/* Step Description */}
-          <div className="text-center mb-6 flex-shrink-0">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              {currentStep === 1 
-                ? 'Additional Personal Information' 
-                : currentStep === 2 
+          {stepErrorBanner && (
+            <div className="mb-3 rounded-lg border border-red-500/40 bg-red-500/15 px-4 py-2.5 text-sm text-red-200">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{stepErrorBanner}</span>
+              </p>
+            </div>
+          )}
+
+          <div className="mb-4 flex-shrink-0 text-center">
+            <h3 className="mb-1 text-sm font-semibold text-white">
+              {currentStep === 1
+                ? 'Additional Personal Information'
+                : currentStep === 2
                 ? 'Work Status Information'
-                : 'Confirm Your Information'
-              }
+                : 'Confirm Your Information'}
             </h3>
-            <p className="text-sm text-gray-400">
-              {currentStep === 1 
+            <p className="text-[11px] text-gray-400">
+              {currentStep === 1
                 ? 'Please provide your basic personal details to complete your profile'
                 : currentStep === 2
                 ? 'Share your current work situation and preferences'
-                : 'Please review and confirm all your information before submitting'
-              }
+                : 'Please review and confirm all your information before submitting'}
             </p>
           </div>
           
@@ -1193,11 +1260,16 @@ export default function ProfileCompletionModal({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex-shrink-0 px-6 pt-4 border-t border-white/10">
+        <div className="flex-shrink-0 px-6 pt-3 border-t border-white/10">
           {/* Error Message */}
           {errors.general && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
               <p className="text-red-400 text-sm text-center">{errors.general}</p>
+            </div>
+          )}
+          {stepErrorBanner && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+              <p className="text-red-400 text-sm text-center">{stepErrorBanner}</p>
             </div>
           )}
           
@@ -1250,5 +1322,53 @@ export default function ProfileCompletionModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showCompletionModal} onOpenChange={setShowCompletionModal}>
+      <DialogContent className="glass-card border-white/20 max-w-xl w-full mx-4 sm:mx-auto" aria-label="Profile completion success">
+        <DialogHeader className="space-y-2 text-center">
+          <DialogTitle className="text-2xl font-bold text-white">Profile Completed!</DialogTitle>
+          <DialogDescription className="text-gray-300">
+            Thank you for finishing your profile and work status information. Welcome to bpoc.io!
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-gray-300 text-center">
+            Here are the best next steps to make the most of your new account:
+          </p>
+
+          <ol className="space-y-3 text-sm text-gray-100">
+            <li className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-200 font-semibold">1</span>
+              <div>
+                <p className="font-semibold">Build your standout resume</p>
+                <p className="text-gray-300">Use our Resume Builder to tailor resumes for every role you want.</p>
+              </div>
+            </li>
+            <li className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-200 font-semibold">2</span>
+              <div>
+                <p className="font-semibold">Sharpen skills with our games</p>
+                <p className="text-gray-300">Play BPoc career games to practice scenarios and show employers what you can do.</p>
+              </div>
+            </li>
+            <li className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-200 font-semibold">3</span>
+              <div>
+                <p className="font-semibold">Find your perfect job match</p>
+                <p className="text-gray-300">Head over to Job Matching to discover opportunities aligned with your goals.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <Button onClick={() => setShowCompletionModal(false)} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
+            Got it, let’s go!
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </TooltipProvider>
   )
 }
