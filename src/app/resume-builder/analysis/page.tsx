@@ -794,7 +794,7 @@ export default function AnalysisPage() {
 
 
   return (
-    <div className="min-h-screen cyber-grid overflow-hidden">
+    <div className="min-h-screen cyber-grid">
       <Header />
       
       {/* Background Effects */}
@@ -1021,8 +1021,8 @@ export default function AnalysisPage() {
 
               {/* Analysis Layout with Sidebar */}
               <div className="flex flex-col lg:flex-row gap-8">
-                {/* Sidebar Navigation */}
-                <div className="lg:w-64 flex-shrink-0 lg:sticky lg:top-24 lg:self-start">
+                {/* Left Sidebar - Navigation */}
+                <div className="lg:w-64 flex-shrink-0">
                   {/* Mobile Menu Button */}
                   <div className="lg:hidden mb-4">
                     <Button
@@ -1036,7 +1036,7 @@ export default function AnalysisPage() {
                   </div>
 
                   {/* Sidebar Menu */}
-                  <div className={`glass-card p-6 border-white/20 ${isMobileMenuOpen ? 'block' : 'hidden lg:block'}`}>
+                  <div className={`glass-card p-6 border-white/20 sticky top-20 lg:top-24 z-40 ${isMobileMenuOpen ? 'block' : 'hidden lg:block'}`}>
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
                       <BarChart3 className="h-5 w-5 mr-2 text-cyan-400" />
                       Analysis
@@ -1067,51 +1067,6 @@ export default function AnalysisPage() {
                       ))}
                     </nav>
                   </div>
-
-                  {/* Next Steps Card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="mt-6"
-                  >
-                    <Card className="glass-card border-purple-500/30 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5 h-auto flex flex-col">
-                      <CardHeader className="pb-4 flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-500/20 rounded-lg">
-                            <Sparkles className="h-5 w-5 text-purple-400" />
-                          </div>
-                          <CardTitle className="text-purple-400 text-lg">Next Steps (Step 3)</CardTitle>
-                        </div>
-                        <CardDescription className="text-gray-300 text-sm">
-                          Ready to take your career to the next level?
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-1 space-y-4">
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.7 }}
-                        >
-                          <Button 
-                            variant="outline" 
-                            className="w-full border-purple-400/30 text-purple-400 hover:bg-purple-400/10 h-auto p-3 flex-col transition-all duration-300 hover:scale-105"
-                            onClick={() => {
-                              if (resumeData) {
-                                localStorage.setItem('resumeData', JSON.stringify(resumeData));
-                                cleanupWorkflowData();
-                                router.push('/resume-builder/build');
-                              }
-                            }}
-                          >
-                            <FileText className="h-5 w-5 mb-2" />
-                            <span className="font-semibold text-xs leading-tight text-center px-1">Generate New Improved Resume</span>
-                            <span className="text-xs opacity-80 mt-1 text-center">AI-powered resume builder</span>
-                          </Button>
-                        </motion.div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
                 </div>
 
                 {/* Main Content Area */}
@@ -1369,26 +1324,6 @@ export default function AnalysisPage() {
                                 </div>
                                 <CardTitle className="text-purple-400 text-lg">Professional Summary</CardTitle>
                               </div>
-                              {mappedResumeData?.summary && (
-                                <Button
-                                  onClick={improveSummary}
-                                  disabled={isImprovingSummary}
-                                  size="sm"
-                                  className="bg-purple-500 hover:bg-purple-600 text-white"
-                                >
-                                  {isImprovingSummary ? (
-                                    <>
-                                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                                      Improving...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Sparkles className="h-4 w-4 mr-2" />
-                                      Improve with AI
-                                    </>
-                                  )}
-                                </Button>
-                              )}
                             </div>
                           </CardHeader>
                           <CardContent className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(168, 85, 247, 0.3) transparent' }}>
@@ -2442,6 +2377,110 @@ export default function AnalysisPage() {
             </motion.div>
           )}
         </div>
+
+        {/* Floating Footer - Full Width */}
+        <motion.div
+          initial={{ opacity: 0, y: 100 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.5 }}
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-pink-900/95 backdrop-blur-xl border-t-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
+        >
+          {/* Animated background glow */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 animate-pulse"></div>
+          
+          <div className="relative max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
+              {/* Left side - Progress and Status */}
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                    <Sparkles className="h-6 w-6 text-white animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      🚀 Ready for Step 3
+                      <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse"></div>
+                    </h3>
+                    <p className="text-purple-200 text-sm font-medium">Transform your analysis into a job-winning resume!</p>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="hidden md:flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-purple-200">Progress:</span>
+                    <span className="text-xs text-green-400 font-bold">67% Complete</span>
+                  </div>
+                  <div className="w-48 bg-purple-700/50 rounded-full h-2 overflow-hidden">
+                    <motion.div 
+                      className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: '67%' }}
+                      transition={{ delay: 1.5, duration: 1 }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-purple-300">
+                    <span>✅ Upload</span>
+                    <span>✅ Analysis</span>
+                    <span className="text-green-400 font-bold">→ Build</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side - Action Button */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+                
+                <Button 
+                  className="relative bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold px-12 py-6 rounded-2xl shadow-2xl shadow-purple-500/50 border-2 border-purple-300/30 transition-all duration-300 text-lg"
+                  onClick={() => {
+                    if (resumeData) {
+                      localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                      cleanupWorkflowData();
+                      router.push('/resume-builder/build');
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-7 w-7" />
+                      <span className="text-2xl">✨</span>
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-lg font-bold leading-tight">Generate New Resume</span>
+                      <span className="text-sm opacity-90 leading-tight">🤖 AI-powered • 📈 Optimized • 🎯 Job-ready</span>
+                    </div>
+                    <motion.div
+                      animate={{ x: [0, 8, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="text-2xl"
+                    >
+                      →
+                    </motion.div>
+                  </div>
+                </Button>
+
+                {/* Floating badge */}
+                <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-400 to-cyan-400 text-green-900 text-sm font-bold px-3 py-1 rounded-full shadow-xl border-2 border-white/20 animate-bounce">
+                  NEXT STEP
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Mobile version - simplified layout */}
+            <div className="md:hidden mt-4 pt-4 border-t border-purple-400/30">
+              <div className="flex items-center justify-center gap-4 text-xs text-purple-200">
+                <span>✅ Upload Complete</span>
+                <span>✅ Analysis Done</span>
+                <span className="text-green-400 font-bold">→ Ready to Build</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

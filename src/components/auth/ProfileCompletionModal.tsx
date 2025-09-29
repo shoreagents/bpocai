@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Loader as GoogleMapsLoader } from '@googlemaps/js-api-loader'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
@@ -36,7 +37,12 @@ import {
   Sparkles,
   AlertCircle,
   X,
-  Info
+  Info,
+  Trophy,
+  Gamepad2,
+  Search,
+  Star,
+  Zap
 } from 'lucide-react'
 import {
   Tooltip,
@@ -98,6 +104,7 @@ export default function ProfileCompletionModal({
   onComplete 
 }: ProfileCompletionModalProps) {
   const { user, updateProfile } = useAuth()
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -948,7 +955,7 @@ export default function ProfileCompletionModal({
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="center" className="max-w-xs text-xs">
-                      Share your current monthly salary (or best estimate). It helps employers understand your experience level.
+                      Share your current monthly salary (or best estimate). It helps employers understand your experience level. Please enter full numbers (e.g., 60000, 10000) instead of abbreviated forms like 100k or 10k.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -975,7 +982,7 @@ export default function ProfileCompletionModal({
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="center" className="max-w-xs text-xs">
-                      Add the minimum and maximum monthly salary you’re aiming for. We’ll use it to match you with the right roles.
+                      Add the minimum and maximum monthly salary you're aiming for. We'll use it to match you with the right roles. Please enter full numbers (e.g., 60000, 10000) instead of abbreviated forms like 100k or 10k.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -1167,11 +1174,11 @@ export default function ProfileCompletionModal({
           <DialogTitle className="text-2xl font-bold gradient-text">
             Complete Your Profile
           </DialogTitle>
-          <div className="mx-auto mt-2 w-full max-w-[640px] rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-4 py-2.5 text-sm text-cyan-50 shadow-[0_10px_30px_rgba(14,165,233,0.2)]">
-            <div className="flex items-center justify-center gap-2 font-semibold text-center">
-              <Sparkles className="h-4 w-4 flex-shrink-0 text-cyan-200" />
+          <div className="mx-auto mt-2 w-full max-w-[800px] rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-6 py-4 text-lg text-cyan-50 shadow-[0_10px_30px_rgba(14,165,233,0.2)]">
+            <div className="flex items-center justify-center gap-3 font-semibold text-center">
+              <Sparkles className="h-5 w-5 flex-shrink-0 text-cyan-200" />
               <span className="whitespace-normal">
-                Completing this profile form is your backstage pass to better job matches and the salary you deserve—give us the details and we’ll do the matchmaking.
+                Completing this profile form is your backstage pass to better job matches and the salary you deserve—give us the details and we'll do the matchmaking.
               </span>
             </div>
           </div>
@@ -1324,47 +1331,156 @@ export default function ProfileCompletionModal({
     </Dialog>
 
     <Dialog open={showCompletionModal} onOpenChange={setShowCompletionModal}>
-      <DialogContent className="glass-card border-white/20 max-w-xl w-full mx-4 sm:mx-auto" aria-label="Profile completion success">
-        <DialogHeader className="space-y-2 text-center">
-          <DialogTitle className="text-2xl font-bold text-white">Profile Completed!</DialogTitle>
-          <DialogDescription className="text-gray-300">
-            Thank you for finishing your profile and work status information. Welcome to bpoc.io!
-          </DialogDescription>
+      <DialogContent 
+        className="glass-card border-white/20 mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto !max-w-none" 
+        style={{ width: '95vw', maxWidth: '95vw' }}
+        aria-label="Profile completion success"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="space-y-6 text-center pb-6">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center space-y-4"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-full blur-xl opacity-30 animate-pulse"></div>
+              <div className="relative bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full p-6">
+                <Trophy className="h-12 w-12 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+              Welcome to BPOC!
+            </DialogTitle>
+            <div className="flex items-center space-x-2">
+              <Sparkles className="h-5 w-5 text-yellow-400" />
+              <DialogDescription className="text-xl text-gray-300 font-medium">
+                Your profile is complete! You're ready to unlock amazing opportunities.
+              </DialogDescription>
+              <Sparkles className="h-5 w-5 text-yellow-400" />
+            </div>
+          </motion.div>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4">
-          <p className="text-sm text-gray-300 text-center">
-            Here are the best next steps to make the most of your new account:
-          </p>
+        <div className="mt-8 space-y-6">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-white mb-2">What's Next?</h3>
+            <p className="text-lg text-gray-300">
+              Take these powerful steps to maximize your career potential:
+            </p>
+          </div>
 
-          <ol className="space-y-3 text-sm text-gray-100">
-            <li className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-200 font-semibold">1</span>
-              <div>
-                <p className="font-semibold">Build your standout resume</p>
-                <p className="text-gray-300">Use our Resume Builder to tailor resumes for every role you want.</p>
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="group relative overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-cyan-500/10 to-blue-600/10 p-6 hover:border-cyan-400/50 transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg p-3">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white">Build Your Resume</h4>
+                    <span className="text-sm text-cyan-400 font-medium">Step 1</span>
+                  </div>
+                </div>
+                <p className="text-gray-300">
+                  Create a standout resume with our AI-powered builder. Tailor it for every role you want.
+                </p>
+                <Button 
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold"
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                    router.push('/resume-builder')
+                  }}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Start Building
+                </Button>
               </div>
-            </li>
-            <li className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-200 font-semibold">2</span>
-              <div>
-                <p className="font-semibold">Sharpen skills with our games</p>
-                <p className="text-gray-300">Play BPoc career games to practice scenarios and show employers what you can do.</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="group relative overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-purple-500/10 to-pink-600/10 p-6 hover:border-purple-400/50 transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg p-3">
+                    <Gamepad2 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white">Play Career Games</h4>
+                    <span className="text-sm text-purple-400 font-medium">Step 2</span>
+                  </div>
+                </div>
+                <p className="text-gray-300">
+                  Sharpen your skills with interactive games. Show employers what you can do!
+                </p>
+                <Button 
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold"
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                    router.push('/career-tools/games')
+                  }}
+                >
+                  <Star className="h-4 w-4 mr-2" />
+                  Play Games
+                </Button>
               </div>
-            </li>
-            <li className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-200 font-semibold">3</span>
-              <div>
-                <p className="font-semibold">Find your perfect job match</p>
-                <p className="text-gray-300">Head over to Job Matching to discover opportunities aligned with your goals.</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="group relative overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-green-500/10 to-emerald-600/10 p-6 hover:border-green-400/50 transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg p-3">
+                    <Search className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white">Find Job Matches</h4>
+                    <span className="text-sm text-green-400 font-medium">Step 3</span>
+                  </div>
+                </div>
+                <p className="text-gray-300">
+                  Discover opportunities perfectly aligned with your goals and preferences.
+                </p>
+                <Button 
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold"
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                    router.push('/jobs/job-matching')
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4 mr-2" />
+                  Explore Jobs
+                </Button>
               </div>
-            </li>
-          </ol>
+            </motion.div>
+          </div>
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <Button onClick={() => setShowCompletionModal(false)} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white">
-            Got it, let’s go!
+        <div className="mt-8 pt-6 border-t border-white/10 flex justify-center">
+          <Button 
+            onClick={() => setShowCompletionModal(false)} 
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg font-medium"
+          >
+            I'll explore on my own
           </Button>
         </div>
       </DialogContent>
