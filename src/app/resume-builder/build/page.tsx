@@ -1668,7 +1668,7 @@ export default function ResumeBuilderPage() {
       
       <Header />
       
-      <div className="pt-16 relative z-10">
+      <div className="pt-16 pb-32 relative z-10">
       <div className="container mx-auto px-4 py-8">
           {/* Enhanced Header */}
           <motion.div
@@ -1718,13 +1718,11 @@ export default function ResumeBuilderPage() {
           
             <div className="flex gap-3">
               <Button
-
-
-                onClick={saveResumeToProfile}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
+                onClick={exportToPDF}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25"
               >
-                <Save className="h-4 w-4 mr-2" />
-                Save to Profile to Share Link
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
               </Button>
             </div>
           </motion.div>
@@ -2026,48 +2024,87 @@ export default function ResumeBuilderPage() {
             </div>
           </motion.div>
 
-          {/* Save Success Modal */}
+          {/* Save Success Modal - Enhanced Step 1 Complete */}
         <Dialog open={showSaveSuccessModal}>
-          <DialogContent className="bg-[#0b0b0d] border border-white/10 text-white max-w-md [&>button]:hidden">
-            <DialogHeader>
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-green-400" />
+          <DialogContent className="bg-gradient-to-br from-gray-900 via-purple-900/50 to-cyan-900/50 border-2 border-white/20 text-white max-w-2xl [&>button]:hidden backdrop-blur-xl">
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-cyan-500/10 animate-pulse rounded-lg"></div>
+            
+            <DialogHeader className="relative z-10">
+              {/* Success Badge */}
+              <div className="flex items-center justify-center mb-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-cyan-400 rounded-full blur-xl animate-pulse"></div>
+                  <div className="relative w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20">
+                    <CheckCircle className="h-12 w-12 text-white animate-bounce" />
+                  </div>
                 </div>
               </div>
-              <DialogTitle className="text-xl font-bold text-center text-white">
-                Resume Saved Successfully!
+
+              {/* Step 1 Complete Badge */}
+              <div className="flex items-center justify-center mb-4">
+                <div className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 px-6 py-2 rounded-full shadow-lg">
+                  <p className="text-sm font-bold text-white">✨ STEP 1 COMPLETE ✨</p>
+                </div>
+              </div>
+
+              <DialogTitle className="text-4xl font-black text-center mb-4">
+                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Resume Built Successfully!
+                </span>
               </DialogTitle>
-              <DialogDescription className="text-center text-gray-300">
-                Your resume has been saved to your profile and is now available for sharing.
+              
+              <DialogDescription className="text-center text-gray-200 text-lg mb-2">
+                🎉 Your resume has been saved to your profile and is now ready to share!
               </DialogDescription>
+              
+              <div className="text-center text-sm text-gray-300 bg-white/5 rounded-lg p-3 border border-white/10">
+                <p className="font-semibold text-cyan-400 mb-1">What's Next?</p>
+                <p>Continue your journey by exploring career games or start applying to jobs!</p>
+              </div>
             </DialogHeader>
             
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3 mt-8 relative z-10">
               <Button
                 onClick={() => handleSuccessModalAction('career-tools')}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                size="lg"
+                className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-600 hover:via-blue-600 hover:to-purple-700 text-white shadow-2xl shadow-cyan-500/30 hover:shadow-purple-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
               >
-                <Wrench className="h-4 w-4 mr-2" />
-                Go to Career Tools
+                <Wrench className="h-6 w-6 mr-3" />
+                <div className="text-left">
+                  <div>Go to Career Games</div>
+                  <div className="text-xs font-normal opacity-90">Discover your strengths & skills</div>
+                </div>
               </Button>
               
               <Button
                 onClick={() => handleSuccessModalAction('jobs')}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                size="lg"
+                className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-2xl shadow-green-500/30 hover:shadow-teal-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
               >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Go to Jobs
+                <Briefcase className="h-6 w-6 mr-3" />
+                <div className="text-left">
+                  <div>Browse Job Opportunities</div>
+                  <div className="text-xs font-normal opacity-90">Start applying with your new resume</div>
+                </div>
               </Button>
               
               <Button
                 onClick={() => handleSuccessModalAction('view-resume')}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+                size="lg"
+                className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-rose-600 hover:from-purple-600 hover:via-pink-600 hover:to-rose-700 text-white shadow-2xl shadow-purple-500/30 hover:shadow-pink-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
               >
-                <FileText className="h-4 w-4 mr-2" />
-                View Saved Resume
+                <FileText className="h-6 w-6 mr-3" />
+                <div className="text-left">
+                  <div>View Your Resume</div>
+                  <div className="text-xs font-normal opacity-90">See your profile page & share link</div>
+                </div>
               </Button>
             </div>
+
+            {/* Decorative Elements */}
+            <div className="absolute top-4 left-4 w-20 h-20 bg-cyan-500/20 rounded-full blur-2xl"></div>
+            <div className="absolute bottom-4 right-4 w-20 h-20 bg-pink-500/20 rounded-full blur-2xl"></div>
           </DialogContent>
         </Dialog>
 
@@ -2166,6 +2203,29 @@ export default function ResumeBuilderPage() {
           </DialogContent>
         </Dialog>
         </div>
+        </div>
+      </div>
+
+      {/* Sticky Footer with Save Resume Button - Colorful Version */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-900/95 via-pink-900/95 to-cyan-900/95 border-t border-white/20 backdrop-blur-xl shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-cyan-500/10 animate-pulse"></div>
+        <div className="container mx-auto px-4 py-4 relative z-10">
+          <div className="flex items-center justify-between">
+            <div className="text-white">
+              <p className="font-bold text-lg bg-gradient-to-r from-cyan-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+                Ready to save your resume?
+              </p>
+              <p className="text-sm text-gray-200">Save your resume to your profile and get a shareable link ✨</p>
+            </div>
+            <Button
+              onClick={saveResumeToProfile}
+              size="lg"
+              className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-600 hover:from-cyan-600 hover:via-purple-600 hover:to-pink-700 text-white shadow-2xl shadow-purple-500/50 hover:shadow-cyan-500/50 px-8 py-3 font-bold transition-all duration-300 hover:scale-105"
+            >
+              <Save className="h-5 w-5 mr-2" />
+              Save Resume
+            </Button>
+          </div>
         </div>
       </div>
     </div>

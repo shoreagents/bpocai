@@ -1330,11 +1330,12 @@ export default function JobMatchingPage() {
                               body: JSON.stringify({ jobId: selectedJobData.originalId, resumeId: j.id || j.resumeId, resumeSlug: j.resumeSlug })
                             })
                             if (!resp.ok) throw new Error('Failed to submit application')
-                                                          setApplicationMessage('Application submitted successfully!');
-                              setApplicationType('success');
-                              setShowApplicationDialog(true);
-                              // Update local state to reflect application
-                              setAppliedMap(prev => ({ ...prev, [selectedJobData.id]: true }));
+                            // Update local state to reflect application before redirect
+                            setAppliedMap(prev => ({ ...prev, [selectedJobData.id]: true }));
+                            setSelectedJob(null);
+                            setSelectedJobDetails(null);
+                            router.push('/jobs?application=success');
+                            return;
                           } catch (err) {
                             console.error(err)
                             setApplicationMessage('Could not apply. Please try again.');

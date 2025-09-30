@@ -306,6 +306,14 @@ export default function ResumeBuilderPage() {
         ...prev,
         [fileName]: [...logs]
       }));
+      
+      // Auto-scroll console to bottom
+      setTimeout(() => {
+        const consoleEl = document.querySelector('.console-output-container');
+        if (consoleEl) {
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+      }, 100);
     };
     
     return { log, getLogs: () => logs };
@@ -333,27 +341,97 @@ export default function ResumeBuilderPage() {
     });
     setFileProgress(initialFileProgress);
 
+    // Intercept console.log to capture all logs and track progress
+    const originalConsoleLog = console.log;
+    let currentProcessingFile = '';
+    
+    // Progress mapping based on actual console logs from utils.ts
+    const progressMap: Record<string, { progress: number; step: number }> = {
+      '🚀 Starting CloudConvert + GPT OCR pipeline': { progress: 5, step: 1 },
+      '📋 New Process: File → CloudConvert': { progress: 7, step: 1 },
+      '🎯 CloudConvert handles document conversion': { progress: 8, step: 1 },
+      '💰 Token tracking initialized': { progress: 10, step: 1 },
+      '📤 Step 1: Converting file to JPEG format': { progress: 15, step: 1 },
+      '🔍 Determining conversion method': { progress: 18, step: 1 },
+      '✅ Step 1 Complete: File converted to JPEG format': { progress: 30, step: 1 },
+      '🤖 Step 2: Performing GPT Vision OCR': { progress: 35, step: 2 },
+      '✅ Step 2 Complete: Text extracted via GPT OCR': { progress: 55, step: 2 },
+      '🧪 DOCX/DOC detected': { progress: 57, step: 2 },
+      '📄 Step 3: Creating organized DOCX': { progress: 60, step: 3 },
+      '✅ Step 3 Complete: Organized DOCX created': { progress: 70, step: 3 },
+      '🔄 Step 4: Converting DOCX content to structured JSON': { progress: 75, step: 3 },
+      '✅ Step 4 Complete: JSON extracted from DOCX content': { progress: 85, step: 4 },
+      '🏗️ Step 5: Building final resume': { progress: 90, step: 4 },
+      '✅ Pipeline Complete: CloudConvert + GPT OCR processing successful': { progress: 95, step: 4 },
+      '💰 FINAL SESSION SUMMARY': { progress: 100, step: 4 },
+    };
+    
+    console.log = (...args: any[]) => {
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' ');
+      originalConsoleLog(...args); // Still log to actual console
+      
+      // Add to processing logs for current file
+      if (currentProcessingFile) {
+        setProcessingLogs(prev => {
+          const existingLogs = prev[currentProcessingFile] || [];
+          return {
+            ...prev,
+            [currentProcessingFile]: [...existingLogs, message]
+          };
+        });
+        setLatestActivity(message);
+        
+        // Update progress based on console log patterns
+        for (const [pattern, { progress, step }] of Object.entries(progressMap)) {
+          if (message.includes(pattern)) {
+            setFileProgress(prev => ({ ...prev, [currentProcessingFile]: progress }));
+            setAnalysisProgress(progress);
+            setModalStep(step);
+            
+            // Special message at 90%
+            if (progress === 90) {
+              setTimeout(() => {
+                setProcessingLogs(prev => {
+                  const existingLogs = prev[currentProcessingFile] || [];
+                  return {
+                    ...prev,
+                    [currentProcessingFile]: [...existingLogs, '⏳ Please wait a minute - This step takes a while as we finalize your data...']
+                  };
+                });
+              }, 500);
+            }
+            break;
+          }
+        }
+      }
+    };
+
     const processedResults: ProcessedResume[] = [];
     
     for (let i = 0; i < uploadedFiles.length; i++) {
       const file = uploadedFiles[i];
+      currentProcessingFile = file.name; // Track current file
       const { log } = createFileLogger(file.name);
       setProcessingStatus(prev => ({ ...prev, [file.name]: 'processing' }));
       
       try {
-        log(`🚀 Starting resume processing for: ${file.name}`);
-        setFileProgress(prev => ({ ...prev, [file.name]: 5 }));
-        
-        // Process with server-side API (this will handle all the step logging)
+        // Process with server-side API (this will handle all the step logging and progress)
+        // Progress is automatically tracked by console log interceptor above
         const processedResume = await processFileWithAPI(file, log);
         processedResults.push(processedResume);
         
         setProcessingStatus(prev => ({ ...prev, [file.name]: 'completed' }));
         setFileProgress(prev => ({ ...prev, [file.name]: 100 }));
         
-        // Update overall progress based on completed files
-        const overallProgress = ((i + 1) / uploadedFiles.length) * 100;
-        setAnalysisProgress(overallProgress);
+        log(`✅ File ${i + 1}/${uploadedFiles.length} completed`);
+        
+        // If there are multiple files, ensure overall progress reflects completion
+        if (uploadedFiles.length > 1) {
+          const overallProgress = ((i + 1) / uploadedFiles.length) * 100;
+          setAnalysisProgress(overallProgress);
+        }
         
       } catch (error) {
         console.error(`❌ Error processing ${file.name}:`, error);
@@ -369,61 +447,22 @@ export default function ResumeBuilderPage() {
     
     setProcessedResumes(processedResults);
     
+    // Restore original console.log
+    console.log = originalConsoleLog;
+    
     // Keep modal open to show completion + CTA
     setIsAnalyzingWithClaude(false);
     setAnalysisProgress(100);
   };
 
-  // Process a single resume file with logs
+  // Process a single resume file - Progress is now tracked automatically via console log interception
   const processResumeFileWithLogs = async (file: File, openaiApiKey: string, cloudConvertApiKey: string, log: (message: string) => void): Promise<ProcessedResume> => {
     // Get session token for database storage
     const sessionToken = await getSessionToken();
+    
     try {
-      const fileType = file.type.toLowerCase();
-      const needsCloudConvert = fileType.includes('pdf') || fileType.includes('wordprocessingml') || fileType.includes('msword');
-      
-      // Step 1: Document Conversion (if needed)
-      if (needsCloudConvert) {
-        setModalStep(1);
-        log(`📄 Step 1: Converting document to image format...`);
-        setFileProgress(prev => ({ ...prev, [file.name]: 20 }));
-        // Add delay to simulate actual processing time
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } else {
-        setModalStep(1);
-        log(`📄 Step 1: Preparing document for processing...`);
-        setFileProgress(prev => ({ ...prev, [file.name]: 20 }));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      // Step 2: Text Extraction
-      setModalStep(2);
-      log(`🤖 Step 2: Extracting text from document pages...`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 45 }));
-      // Add delay to simulate OCR processing time
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Step 3: Document Creation
-      setModalStep(3);
-      log(`📝 Step 3: Creating organized document structure...`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 70 }));
-      // Add delay to simulate document creation time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 4: JSON Conversion
-      setModalStep(3);
-      log(`🔄 Step 4: Converting to structured data format...`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 85 }));
-      // Add delay to simulate JSON conversion time
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Call the actual processing function directly with API keys (no circular calls)
+      // Call the actual processing function - progress is tracked automatically by console log interceptor
       const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey, sessionToken ?? undefined);
-      
-      // Complete
-      log(`✅ Processing complete: Resume data extracted successfully!`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 95 }));
-      setModalStep(4);
       
       return result;
     } catch (error) {
@@ -516,24 +555,7 @@ export default function ResumeBuilderPage() {
     return type;
   };
 
-  // Simulate analysis progress
-  useEffect(() => {
-    if (isAnalyzingWithClaude) {
-      const interval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 95) {
-            clearInterval(interval);
-            return prev;
-          }
-          return Math.min(prev + Math.random() * 5, 95);
-        });
-      }, 500);
-      
-      return () => clearInterval(interval);
-    } else {
-      setAnalysisProgress(0);
-    }
-  }, [isAnalyzingWithClaude]);
+  // Progress is now tracked by actual processing steps, not simulated
 
 
 
@@ -582,7 +604,7 @@ export default function ResumeBuilderPage() {
       }}>
         <DialogContent 
           showCloseButton={false}
-          className="max-w-md w-full"
+          className="max-w-3xl w-full"
           onInteractOutside={(e) => {
             // Prevent closing during processing
             e.preventDefault();
@@ -609,7 +631,7 @@ export default function ResumeBuilderPage() {
                     speedMultiplier={1.2}
                   />
                 </div>
-                <div className="max-w-md mx-auto space-y-2 w-full">
+                <div className="max-w-2xl mx-auto space-y-2 w-full">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Progress</span>
                     <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
@@ -639,12 +661,59 @@ export default function ResumeBuilderPage() {
                       <span>Saving extracted data</span>
                     </div>
                   </div>
-                  {/* Latest compact activity */}
-                  {latestActivity && (
-                    <div className="text-xs text-gray-300 font-mono bg-black/20 rounded p-2 mt-2 truncate">
-                      {latestActivity}
+                  
+                  {/* Live Console Output Display */}
+                  <div className="mt-4">
+                    <div className="bg-black/60 border border-gray-700 rounded-lg overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900/80 border-b border-gray-700">
+                        <div className="flex gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        </div>
+                        <div className="text-xs font-bold text-gray-400 ml-2">Console Output</div>
+                      </div>
+                      <div className="console-output-container p-3 max-h-64 overflow-y-auto scroll-smooth">
+                        <div className="space-y-1 text-left font-mono text-xs">
+                          {Object.entries(processingLogs).map(([fileName, logs]) => (
+                            <div key={fileName}>
+                              {logs.map((log, idx) => {
+                                // Parse emoji and message
+                                const isError = log.includes('❌');
+                                const isSuccess = log.includes('✅');
+                                const isWarning = log.includes('⏳');
+                                const isInfo = log.includes('🚀') || log.includes('📤') || log.includes('🤖') || log.includes('📝') || log.includes('🔄') || log.includes('📊') || log.includes('🏗️') || log.includes('📖') || log.includes('💰');
+                                
+                                let textColor = 'text-gray-300';
+                                let bgColor = '';
+                                if (isError) {
+                                  textColor = 'text-red-400';
+                                  bgColor = 'bg-red-500/5';
+                                } else if (isSuccess) {
+                                  textColor = 'text-green-400';
+                                  bgColor = 'bg-green-500/5';
+                                } else if (isWarning) {
+                                  textColor = 'text-yellow-400';
+                                  bgColor = 'bg-yellow-500/5';
+                                } else if (isInfo) {
+                                  textColor = 'text-cyan-400';
+                                }
+                                
+                                return (
+                                  <div key={idx} className={`${textColor} ${bgColor} leading-relaxed py-0.5 px-1 rounded`}>
+                                    {log}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                          {Object.keys(processingLogs).length === 0 && (
+                            <div className="text-gray-500 italic">Waiting for processing to start...</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </>
             )}
