@@ -1835,7 +1835,7 @@ export default function AnalysisPage() {
                             <CardTitle className="text-cyan-400 text-lg">Market Advantages</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
-                            Specific advantages for the BPO industry
+                            {finalAnalysisResults?.strengthsAnalysis?.marketAdvantageDescription || 'Specific advantages for the BPO industry'}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -2246,9 +2246,10 @@ export default function AnalysisPage() {
                                 </Badge>
                               </div>
                               <p className="text-gray-300 text-sm">
-                                {finalAnalysisResults.salaryAnalysis.currentLevel === 'entry' ? 'Entry-level professional' :
-                                 finalAnalysisResults.salaryAnalysis.currentLevel === 'senior' ? 'Senior professional with extensive experience' :
-                                 'Experienced professional with 3+ years in BPO'}
+                                {finalAnalysisResults.salaryAnalysis.currentLevelDescription || 
+                                 (finalAnalysisResults.salaryAnalysis.currentLevel === 'entry' ? 'Entry-level professional' :
+                                  finalAnalysisResults.salaryAnalysis.currentLevel === 'senior' ? 'Senior professional with extensive experience' :
+                                  'Experienced professional with 3+ years in BPO')}
                               </p>
                             </motion.div>
                           )}
@@ -2334,7 +2335,7 @@ export default function AnalysisPage() {
                             <CardTitle className="text-blue-400 text-lg">Career Path</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
-                            Your career progression roadmap
+                            {finalAnalysisResults?.careerPath?.roadmapDescription || 'Your career progression roadmap'}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(59, 130, 246, 0.3) transparent' }}>
@@ -2396,7 +2397,7 @@ export default function AnalysisPage() {
                             <CardTitle className="text-orange-400 text-lg">Skill Gaps to Address</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
-                            Skills needed for career advancement
+                            {finalAnalysisResults?.careerPath?.skillGapsDescription || 'Skills needed for career advancement'}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(249, 115, 22, 0.3) transparent' }}>
@@ -2444,7 +2445,7 @@ export default function AnalysisPage() {
                             <CardTitle className="text-green-400 text-lg">Career Timeline</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
-                            Expected timeline for career progression
+                            {finalAnalysisResults?.careerPath?.timelineCardDescription || 'Expected timeline for career progression'}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -2460,7 +2461,7 @@ export default function AnalysisPage() {
                                   {finalAnalysisResults.careerPath.timeline}
                                 </div>
                                 <p className="text-gray-300 text-sm">
-                                  for promotion with skill development
+                                  {finalAnalysisResults.careerPath.timelineDescription || 'for promotion with skill development'}
                                 </p>
                               </div>
                             </motion.div>
@@ -2498,33 +2499,52 @@ export default function AnalysisPage() {
                             <CardTitle className="text-cyan-400 text-lg">Market Position</CardTitle>
                           </div>
                           <CardDescription className="text-gray-300 text-sm">
-                            Your competitive position in the job market
+                            {finalAnalysisResults?.salaryAnalysis?.marketPositionCardDescription || 'Your competitive position in the job market'}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.7 }}
-                            className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
-                          >
-                            <h4 className="font-semibold text-white mb-2 text-sm">Competitive Analysis</h4>
-                            <p className="text-gray-300 text-sm">
-                              Based on your skills, experience, and market demand, you are positioned as a competitive candidate in the BPO industry.
-                            </p>
-                          </motion.div>
+                          {finalAnalysisResults?.salaryAnalysis?.marketPosition && (
+                            <motion.div
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.7 }}
+                              className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                            >
+                              <h4 className="font-semibold text-white mb-2 text-sm">Competitive Analysis</h4>
+                              <p className="text-gray-300 text-sm">
+                                {finalAnalysisResults.salaryAnalysis.marketPosition}
+                              </p>
+                            </motion.div>
+                          )}
                           
-                          <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.8 }}
-                            className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
-                          >
-                            <h4 className="font-semibold text-white mb-2 text-sm">Growth Potential</h4>
-                            <p className="text-gray-300 text-sm">
-                              With continued skill development and experience, you have strong potential for career advancement and salary growth.
-                            </p>
-                          </motion.div>
+                          {finalAnalysisResults?.salaryAnalysis?.growthPotential && (
+                            <motion.div
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.8 }}
+                              className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                            >
+                              <h4 className="font-semibold text-white mb-2 text-sm">Growth Potential</h4>
+                              <p className="text-gray-300 text-sm">
+                                {finalAnalysisResults.salaryAnalysis.growthPotential}
+                              </p>
+                            </motion.div>
+                          )}
+
+                          {/* Fallback content if AI data is not available */}
+                          {(!finalAnalysisResults?.salaryAnalysis?.marketPosition && !finalAnalysisResults?.salaryAnalysis?.growthPotential) && (
+                            <motion.div
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.7 }}
+                              className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/20"
+                            >
+                              <h4 className="font-semibold text-white mb-2 text-sm">Market Position</h4>
+                              <p className="text-gray-300 text-sm">
+                                AI analysis is being processed. Please wait for the complete analysis to view your market position insights.
+                              </p>
+                            </motion.div>
+                          )}
                         </CardContent>
                       </Card>
                     </motion.div>

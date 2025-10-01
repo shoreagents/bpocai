@@ -274,7 +274,13 @@ export default function ResumeSlugPage() {
           console.log('Full API response:', data);
           console.log('Resume object:', data.resume);
           console.log('Resume data:', data.resume.data);
-          console.log('Resume template:', data.resume.template);
+          console.log('Resume template from data.template:', data.resume.template);
+          console.log('Resume template from data.data.template:', data.resume.data.template);
+          console.log('Template colors:', {
+            primary: data.resume.data.template?.primaryColor,
+            secondary: data.resume.data.template?.secondaryColor,
+            font: data.resume.data.template?.fontFamily
+          });
           console.log('User info from API:', data.resume.user);
           console.log('========================');
           setResume(data.resume);
@@ -805,7 +811,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.summary && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -813,7 +822,10 @@ export default function ResumeSlugPage() {
                            Professional Summary
                          </h2>
                        </div>
-                       <p className="text-gray-700 leading-relaxed pl-3 border-l-2 border-gray-200">{resume.data.content.summary}</p>
+                       <p 
+                         className="text-gray-700 leading-relaxed pl-3 border-l-2"
+                         style={{ borderColor: resume.data.template?.secondaryColor || '#d1d5db' }}
+                       >{resume.data.content.summary}</p>
                      </div>
                    )}
 
@@ -821,7 +833,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.experience && resume.data.content.experience.length > 0 && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-blue-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -831,7 +846,7 @@ export default function ResumeSlugPage() {
                        </div>
                        <div className="space-y-4">
                          {resume.data.content.experience.map((exp: any, index: number) => (
-                           <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-purple-500 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
+                           <div key={index} className="border-l-4 pl-4 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
                              <div className="flex justify-between items-start mb-2">
                                <h3 className="font-semibold text-gray-900">{exp.title || exp.position}</h3>
                                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{exp.duration}</span>
@@ -857,7 +872,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.education && resume.data.content.education.length > 0 && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -867,7 +885,7 @@ export default function ResumeSlugPage() {
                        </div>
                        <div className="space-y-4">
                          {resume.data.content.education.map((edu: any, index: number) => (
-                           <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-indigo-500 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
+                           <div key={index} className="border-l-4 pl-4 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
                              <div className="flex justify-between items-start mb-2">
                                <h3 className="font-semibold text-gray-900">{edu.degree}</h3>
                                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{edu.year}</span>
@@ -891,7 +909,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.skills && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-yellow-500 to-orange-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -972,7 +993,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.certifications && resume.data.content.certifications.length > 0 && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -982,7 +1006,7 @@ export default function ResumeSlugPage() {
                        </div>
                        <div className="space-y-3">
                          {resume.data.content.certifications.map((cert: string, index: number) => (
-                           <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-emerald-500 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
+                           <div key={index} className="border-l-4 pl-4 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
                              <div className="flex items-center gap-2">
                                <Award className="h-4 w-4 text-emerald-600" />
                                <span className="text-gray-700 font-medium">{cert}</span>
@@ -997,7 +1021,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.projects && resume.data.content.projects.length > 0 && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-violet-500 to-purple-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -1007,7 +1034,7 @@ export default function ResumeSlugPage() {
                        </div>
                        <div className="space-y-4">
                          {resume.data.content.projects.map((project: any, index: number) => (
-                           <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-violet-500 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
+                           <div key={index} className="border-l-4 pl-4 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
                              <h3 className="font-semibold text-gray-900 mb-2">{project.title}</h3>
                              {project.description && (
                                <p className="text-gray-700 text-sm mb-2">{project.description}</p>
@@ -1044,7 +1071,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.achievements && resume.data.content.achievements.length > 0 && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
@@ -1054,7 +1084,7 @@ export default function ResumeSlugPage() {
                        </div>
                        <div className="space-y-3">
                          {resume.data.content.achievements.map((achievement: string, index: number) => (
-                           <div key={index} className="border-l-4 pl-4 hover:border-l-4 hover:border-amber-500 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
+                           <div key={index} className="border-l-4 pl-4 transition-all duration-200" style={{ borderColor: resume.data.template?.secondaryColor || '#6b7280' }}>
                              <div className="flex items-center gap-2">
                                <Trophy className="h-4 w-4 text-amber-600" />
                                <span className="text-gray-700">{achievement}</span>
@@ -1069,7 +1099,10 @@ export default function ResumeSlugPage() {
                    {resume.data.content?.organizations && resume.data.content.organizations.length > 0 && (
                      <div className="mb-6">
                        <div className="flex items-center gap-2 mb-3">
-                         <div className="w-1 h-6 bg-gradient-to-b from-pink-500 to-red-500 rounded-full"></div>
+                         <div 
+                           className="w-1 h-6 rounded-full"
+                           style={{ backgroundColor: resume.data.template?.primaryColor || '#6366f1' }}
+                         ></div>
                          <h2 
                            className="text-lg font-semibold text-gray-900"
                            style={{ color: resume.data.template?.primaryColor || '#1f2937' }}
