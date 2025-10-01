@@ -1,13 +1,16 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+
 import { Suspense } from 'react';
+
 import Header from '@/components/layout/Header';
 import JobsCards from '@/components/sections/JobsCards';
 import { Briefcase, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
 
 function JobsContent() {
   const router = useRouter();
@@ -30,6 +33,8 @@ function JobsContent() {
     const timeout = setTimeout(() => setShowSuccessBanner(false), 7000);
     return () => clearTimeout(timeout);
   }, [showSuccessBanner]);
+
+
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
