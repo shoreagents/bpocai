@@ -253,51 +253,6 @@ export default function FilipinoDiscGame() {
     isGeneratingPersonalized: false
   });
   
-  // Demo state
-  const [showDemo, setShowDemo] = useState(false);
-  const [discDemoStep, setDiscDemoStep] = useState(0);
-  const [discDemoScores, setDiscDemoScores] = useState({ D: 0, I: 0, S: 0, C: 0 });
-  const [discDemoSelected, setDiscDemoSelected] = useState<string | null>(null);
-  const [discDemoReaction, setDiscDemoReaction] = useState<string | null>(null);
-  const [discDemoAutoMode, setDiscDemoAutoMode] = useState(false);
-  const [discDemoCurrentChoice, setDiscDemoCurrentChoice] = useState(0);
-  
-  // DISC Demo scenarios (sample from actual game)
-  const discDemoScenarios = [
-    {
-      context: 'FAMILY',
-      title: 'Family Emergency',
-      scenario: 'Your lola (grandmother) suddenly needs to be hospitalized. Your family is panicking and needs someone to take charge. How do you respond?',
-      options: [
-        { id: 'd1', text: 'I\'ll call the hospital, arrange transport, and coordinate with everyone immediately.', animal: '🦁 Lion Leader', disc: 'D' },
-        { id: 'i1', text: 'Let me comfort everyone first, then we\'ll figure out the best way to handle this together.', animal: '🦜 Parrot Motivator', disc: 'I' },
-        { id: 's1', text: 'I\'ll stay calm and support whoever needs help most right now.', animal: '🐘 Elephant Supporter', disc: 'S' },
-        { id: 'c1', text: 'Let me gather all the medical information and insurance details first.', animal: '🦉 Owl Analyst', disc: 'C' }
-      ]
-    },
-    {
-      context: 'WORK',
-      title: 'Team Conflict',
-      scenario: 'Two of your teammates are having a heated argument during a client call. The client is waiting. How do you handle this?',
-      options: [
-        { id: 'd2', text: 'I\'ll step in immediately, take control of the call, and address this privately later.', animal: '🦁 Lion Leader', disc: 'D' },
-        { id: 'i2', text: 'Let me quickly lighten the mood and get everyone focused on the client.', animal: '🦜 Parrot Motivator', disc: 'I' },
-        { id: 's2', text: 'I\'ll quietly help mediate and ensure the client gets the support they need.', animal: '🐘 Elephant Supporter', disc: 'S' },
-        { id: 'c2', text: 'I need to analyze what went wrong and implement a process to prevent this.', animal: '🦉 Owl Analyst', disc: 'C' }
-      ]
-    },
-    {
-      context: 'SOCIAL',
-      title: 'Barkada Pressure',
-      scenario: 'Your friends are pressuring you to join an expensive trip to Boracay, but you\'re saving for your family. How do you respond?',
-      options: [
-        { id: 'd3', text: 'I\'ll be direct about my priorities and suggest a more affordable alternative.', animal: '🦁 Lion Leader', disc: 'D' },
-        { id: 'i3', text: 'Let me find a way to make this work for everyone - maybe we can plan something cheaper!', animal: '🦜 Parrot Motivator', disc: 'I' },
-        { id: 's3', text: 'I\'ll explain my situation gently and hope they understand.', animal: '🐘 Elephant Supporter', disc: 'S' },
-        { id: 'c3', text: 'Let me calculate the costs and present a detailed budget analysis.', animal: '🦉 Owl Analyst', disc: 'C' }
-      ]
-    }
-  ];
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -326,6 +281,7 @@ export default function FilipinoDiscGame() {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewingGender, setPreviewingGender] = useState<'maledisc' | 'femaledisc' | null>(null);
   const [previewCountdown, setPreviewCountdown] = useState(0);
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
 
   // Initialize background music
   useEffect(() => {
@@ -388,24 +344,32 @@ export default function FilipinoDiscGame() {
   const previewMusic = async (type: 'maledisc' | 'femaledisc') => {
     if (isPreviewing) return;
     
+    // Stop any existing preview audio first
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+    }
+    
     setIsPreviewing(true);
     setPreviewingGender(type);
     setPreviewCountdown(10);
-    const previewAudio = new Audio(`/bpoc-disc-songs/${type}.mp3`);
-    previewAudio.volume = 0.3;
+    const newPreviewAudio = new Audio(`/bpoc-disc-songs/${type}.mp3`);
+    newPreviewAudio.volume = 0.3;
+    setPreviewAudio(newPreviewAudio);
     
     try {
-      await previewAudio.play();
+      await newPreviewAudio.play();
       
       // Countdown from 10 to 0
       const countdownInterval = setInterval(() => {
         setPreviewCountdown(prev => {
           if (prev <= 1) {
             clearInterval(countdownInterval);
-            previewAudio.pause();
-            previewAudio.currentTime = 0;
+            newPreviewAudio.pause();
+            newPreviewAudio.currentTime = 0;
             setIsPreviewing(false);
             setPreviewingGender(null);
+            setPreviewAudio(null);
             return 0;
           }
           return prev - 1;
@@ -425,14 +389,12 @@ export default function FilipinoDiscGame() {
     setIsPreviewing(false);
     setPreviewingGender(null);
     setPreviewCountdown(0);
-    // Stop any playing preview audio
-    const audioElements = document.querySelectorAll('audio');
-    audioElements.forEach(audio => {
-      if (audio.src.includes('bpoc-disc-songs')) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    });
+    // Stop the stored preview audio
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+      setPreviewAudio(null);
+    }
   };
 
   // Toggle music function
@@ -672,65 +634,7 @@ export default function FilipinoDiscGame() {
     }));
   };
 
-  // Demo functions
-  const startDemo = () => {
-    setShowDemo(true);
-    setDiscDemoStep(0);
-    setDiscDemoScores({ D: 0, I: 0, S: 0, C: 0 });
-    setDiscDemoSelected(null);
-    setDiscDemoReaction(null);
-    setDiscDemoAutoMode(true);
-    setDiscDemoCurrentChoice(0);
-  };
 
-  const closeDemo = () => {
-    setShowDemo(false);
-    setDiscDemoStep(0);
-    setDiscDemoScores({ D: 0, I: 0, S: 0, C: 0 });
-    setDiscDemoSelected(null);
-    setDiscDemoReaction(null);
-    setDiscDemoAutoMode(false);
-    setDiscDemoCurrentChoice(0);
-  };
-
-  // DISC Demo logic
-  useEffect(() => {
-    if (showDemo) {
-      setDiscDemoAutoMode(true);
-    }
-  }, [showDemo]);
-
-  useEffect(() => {
-    if (!showDemo || !discDemoAutoMode) return;
-
-    const timer = setTimeout(() => {
-      if (discDemoStep < discDemoScenarios.length) {
-        const currentScenario = discDemoScenarios[discDemoStep];
-        const randomChoice = Math.floor(Math.random() * currentScenario.options.length);
-        setDiscDemoCurrentChoice(randomChoice);
-        
-        setTimeout(() => {
-          setDiscDemoSelected(currentScenario.options[randomChoice].id);
-          setDiscDemoScores(prev => ({
-            ...prev,
-            [currentScenario.options[randomChoice].disc]: prev[currentScenario.options[randomChoice].disc] + 1
-          }));
-          
-          setDiscDemoReaction(`Your ${currentScenario.options[randomChoice].animal} spirit responds!`);
-          
-          setTimeout(() => {
-            setDiscDemoReaction(null);
-            setDiscDemoSelected(null);
-            setDiscDemoStep(prev => prev + 1);
-          }, 2000);
-        }, 1000);
-      } else {
-        setDiscDemoAutoMode(false);
-      }
-    }, discDemoStep === 0 ? 1000 : 3000);
-
-    return () => clearTimeout(timer);
-  }, [showDemo, discDemoAutoMode, discDemoStep, discDemoCurrentChoice, discDemoScenarios]);
 
   // Generate personalized questions using Claude API
   const generatePersonalizedQuestions = async (responses?: any[], scores?: any) => {
@@ -964,7 +868,7 @@ Focus on real BPO roles in the Philippines that match their personality and expe
     try {
       console.log('🧠 Generating AI assessment with ALL', allResponses.length, 'responses');
       
-      const assessmentPrompt = `Analyze this complete Filipino DISC personality assessment for ${user.user_metadata?.first_name || user.email || 'this person'}:
+      const assessmentPrompt = `Analyze this complete BPOC DISC personality assessment for ${user.user_metadata?.first_name || user.email || 'this person'}:
 
 FINAL RESULTS:
 Primary Type: ${results.primaryType} (${results.scores[results.primaryType]}%)
@@ -1033,10 +937,10 @@ Make it deeply personal and actionable based on their actual choices.`;
     
     // Show mysterious spirit collection instead of reaction
     const spiritMessages = {
-      'D': '🦅 A fierce spirit stirs within...',
-      'I': '🦚 A vibrant energy awakens...',
-      'S': '🐢 A steady presence grows...',
-      'C': '🦉 Ancient wisdom gathers...'
+      'D': 'A fierce spirit stirs within...',
+      'I': 'A vibrant energy awakens...',
+      'S': 'A steady presence grows...',
+      'C': 'Ancient wisdom gathers...'
     };
     setShowReaction(spiritMessages[disc as keyof typeof spiritMessages] || 'A mysterious force awakens...');
     
@@ -1149,7 +1053,10 @@ Make it deeply personal and actionable based on their actual choices.`;
     const calculateCulturalAlignment = () => {
       const culturalContexts = ['FAMILY', 'WORK', 'SOCIAL', 'TRAFFIC', 'MONEY', 'CRISIS'];
       const contextScores = culturalContexts.map(context => {
-        const contextResponses = gameState.responses.filter(r => r.context === context);
+        const contextResponses = gameState.responses.filter((r, index) => {
+          const scenario = index < FILIPINO_DISC_SCENARIOS.length ? FILIPINO_DISC_SCENARIOS[index] : null;
+          return scenario?.context === context;
+        });
         if (contextResponses.length === 0) return 0;
         
         // Score based on culturally appropriate choices
@@ -1220,6 +1127,12 @@ Make it deeply personal and actionable based on their actual choices.`;
     setDiscResult(results);
       setShowSpiritReveal(false);
     setShowResults(true);
+    
+    // Stop music when results are shown
+    if (backgroundMusic) {
+      backgroundMusic.pause();
+      backgroundMusic.currentTime = 0;
+    }
 
       // Save complete session to database (AI data should now be available)
       console.log('💾 Saving complete DISC session to database');
@@ -1296,6 +1209,13 @@ Make it deeply personal and actionable based on their actual choices.`;
   };
 
   const resetGame = () => {
+    // Stop any playing music
+    if (backgroundMusic) {
+      backgroundMusic.pause();
+      backgroundMusic.currentTime = 0;
+    }
+    setIsMusicPlaying(false);
+    
     setGameState({
       currentQuestion: 0,
       scores: { D: 0, I: 0, S: 0, C: 0 },
@@ -1329,16 +1249,16 @@ Make it deeply personal and actionable based on their actual choices.`;
         <div className="pt-16 relative z-10 flex items-center justify-center min-h-screen">
           <Card className="disc-game-screen max-w-2xl mx-auto">
             <CardContent className="p-12 text-center">
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 360, 0]
-                }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="mb-8"
-              >
-                <div className="text-8xl">🔮</div>
-              </motion.div>
+              <div className="mb-8">
+                <div className="flex justify-center">
+                  <PacmanLoader 
+                    color="#fbbf24" 
+                    size={60}
+                    margin={4}
+                    speedMultiplier={1.2}
+                  />
+                </div>
+              </div>
               
               <motion.div
                 key={revealStep}
@@ -1560,7 +1480,12 @@ Make it deeply personal and actionable based on their actual choices.`;
               <h4 className="text-xl font-semibold text-purple-300">🧠 AI Personal Assessment</h4>
 						{isGeneratingAIAssessment && (
 							<div className="flex items-center gap-2 ml-auto">
-								<div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent"></div>
+								<PacmanLoader 
+									color="#a855f7" 
+									size={16}
+									margin={2}
+									speedMultiplier={1.2}
+								/>
 								<span className="text-xs text-purple-300">Analyzing...</span>
 							</div>
 						)}
@@ -1568,7 +1493,14 @@ Make it deeply personal and actionable based on their actual choices.`;
             
 					{isGeneratingAIAssessment ? (
 						<div className="text-center py-8">
-							<div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+							<div className="flex justify-center mb-4">
+								<PacmanLoader 
+									color="#a855f7" 
+									size={48}
+									margin={4}
+									speedMultiplier={1.2}
+								/>
+							</div>
 							<p className="text-purple-300 text-lg font-medium">AI is analyzing your personality...</p>
 							<p className="text-gray-400 text-sm mt-2">Examining your response patterns and cultural alignment</p>
 						</div>
@@ -1751,7 +1683,12 @@ Make it deeply personal and actionable based on their actual choices.`;
                   <CardTitle className="text-white">💼 Perfect BPO Roles for You</CardTitle>
                     {isGeneratingBpoRoles && (
                       <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-cyan-400 border-t-transparent"></div>
+                        <PacmanLoader 
+                          color="#06b6d4" 
+                          size={16}
+                          margin={2}
+                          speedMultiplier={1.2}
+                        />
                         <span className="text-xs text-cyan-300">AI Analyzing...</span>
                       </div>
                     )}
@@ -1760,7 +1697,14 @@ Make it deeply personal and actionable based on their actual choices.`;
                 <CardContent>
                   {isGeneratingBpoRoles ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent mx-auto mb-4"></div>
+                      <div className="flex justify-center mb-4">
+                        <PacmanLoader 
+                          color="#06b6d4" 
+                          size={48}
+                          margin={4}
+                          speedMultiplier={1.2}
+                        />
+                      </div>
                       <p className="text-cyan-300 text-lg font-medium">AI is finding your perfect BPO roles...</p>
                       <p className="text-gray-400 text-sm mt-2">Analyzing your personality against {user?.user_metadata?.position || 'your background'}</p>
                     </div>
@@ -1799,7 +1743,10 @@ Make it deeply personal and actionable based on their actual choices.`;
               {/* Action Buttons */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button
-                  onClick={() => router.push('/career-tools/games')}
+                  onClick={() => {
+                    stopPreview();
+                    router.push('/career-tools/games');
+                  }}
                   className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg w-full"
                 >
                   <ChevronLeft className="w-4 h-4 mr-2" />
@@ -1835,268 +1782,7 @@ Make it deeply personal and actionable based on their actual choices.`;
     );
   }
 
-  // Demo interface
-  if (showDemo) {
-    return (
-      <div className="min-h-screen cyber-grid overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
-        </div>
-        
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-5xl w-full">
-            <Card className="glass-card border-white/10 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl">
-              <CardHeader className="text-center">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-2xl">🇵🇭</span>
-                  </div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    BPOC DISC - Interactive Demo
-                  </h1>
-                </div>
-                <p className="text-gray-300 text-lg">
-                  Experience authentic Filipino scenarios and discover your BPO animal spirit!
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="glass-card p-6 rounded-2xl relative overflow-hidden min-h-[500px]">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 rounded-t-2xl"></div>
-                  
-                  {/* Demo Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-white">🇵🇭 Filipino DISC Personality</h3>
-                      <p className="text-sm text-gray-400">Interactive Demo</p>
-                    </div>
-                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                      <Play className="w-3 h-3 mr-1" />
-                      Live Demo
-                    </Badge>
-                  </div>
-
-                  {/* Demo Content */}
-                  {discDemoStep < discDemoScenarios.length ? (
-                    <div className="space-y-6">
-                      {/* Auto Demo Indicator */}
-                      <div className="flex items-center justify-center gap-2 text-purple-300 text-sm">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                        <span>Auto Demo in Progress</span>
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                      </div>
-
-                      {/* Current Scenario */}
-                      <motion.div 
-                        key={discDemoStep}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 rounded-lg p-4 border border-purple-500/30"
-                      >
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl">
-                            {discDemoScenarios[discDemoStep].context === 'FAMILY' ? '👨‍👩‍👧‍👦' : 
-                             discDemoScenarios[discDemoStep].context === 'WORK' ? '💼' : '🎯'}
-                          </span>
-                          <span className="text-purple-300 font-semibold text-sm">
-                            {discDemoScenarios[discDemoStep].context} Context
-                          </span>
-                        </div>
-                        <h4 className="text-lg font-bold text-white mb-2">
-                          {discDemoScenarios[discDemoStep].title}
-                        </h4>
-                        <p className="text-gray-300 text-sm leading-relaxed">
-                          {discDemoScenarios[discDemoStep].scenario}
-                        </p>
-                      </motion.div>
-
-                      {/* Options Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {discDemoScenarios[discDemoStep].options.map((option, index) => {
-                          const isSelected = discDemoSelected === option.id;
-                          const isHighlighted = discDemoCurrentChoice === index && !discDemoSelected;
-                          const getDiscStyles = (disc: string) => {
-                            switch (disc) {
-                              case 'D':
-                                return {
-                                  bg: 'from-red-500/10 to-red-600/10',
-                                  border: 'border-red-500/40',
-                                  ring: 'ring-red-500/30',
-                                  text: 'text-red-300'
-                                };
-                              case 'I':
-                                return {
-                                  bg: 'from-yellow-500/10 to-yellow-600/10',
-                                  border: 'border-yellow-500/40',
-                                  ring: 'ring-yellow-500/30',
-                                  text: 'text-yellow-300'
-                                };
-                              case 'S':
-                                return {
-                                  bg: 'from-green-500/10 to-green-600/10',
-                                  border: 'border-green-500/40',
-                                  ring: 'ring-green-500/30',
-                                  text: 'text-green-300'
-                                };
-                              case 'C':
-                                return {
-                                  bg: 'from-blue-500/10 to-blue-600/10',
-                                  border: 'border-blue-500/40',
-                                  ring: 'ring-blue-500/30',
-                                  text: 'text-blue-300'
-                                };
-                              default:
-                                return {
-                                  bg: 'from-cyan-500/10 to-purple-600/10',
-                                  border: 'border-white/10',
-                                  ring: 'ring-white/10',
-                                  text: 'text-gray-300'
-                                };
-                            }
-                          };
-                          
-                          const styles = getDiscStyles(option.disc);
-                          
-                          return (
-                            <motion.div
-                              key={option.id}
-                              className={`text-left transition-all rounded-lg border ${styles.border} bg-gradient-to-br ${styles.bg} ${
-                                isSelected 
-                                  ? `ring-2 ${styles.ring} scale-[1.02] shadow-lg` 
-                                  : isHighlighted 
-                                  ? `ring-1 ${styles.ring} scale-[1.01] shadow-md` 
-                                  : 'hover:ring-1'
-                              } backdrop-blur-sm p-4 relative overflow-hidden`}
-                              initial={{ opacity: 0, y: 12 }}
-                              animate={{ 
-                                opacity: 1, 
-                                y: 0,
-                                scale: isSelected ? 1.02 : isHighlighted ? 1.01 : 1
-                              }}
-                              transition={{ delay: index * 0.1 }}
-                            >
-                              {/* Selection indicator */}
-                              {isSelected && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-                                >
-                                  <span className="text-white text-sm">✓</span>
-                                </motion.div>
-                              )}
-                              
-                              {/* Highlighting effect */}
-                              {isHighlighted && (
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12"
-                                />
-                              )}
-                              
-                              <div className="flex items-start gap-3">
-                                <div className="text-2xl select-none">
-                                  {option.animal.split(' ')[0]}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="text-white font-semibold leading-snug text-sm">
-                                    {option.text}
-                                  </div>
-                                  <div className={`mt-1 text-xs ${styles.text}`}>
-                                    {option.animal}
-                                  </div>
-                                </div>
-                              </div>
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Spirit Reaction */}
-                      {discDemoReaction && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0, y: 20 }}
-                          animate={{ scale: 1, opacity: 1, y: 0 }}
-                          exit={{ scale: 0, opacity: 0, y: -20 }}
-                          className="text-center p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30 relative overflow-hidden"
-                        >
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            className="text-2xl mb-2"
-                          >
-                            ✨
-                          </motion.div>
-                          <p className="text-purple-300 font-semibold">{discDemoReaction}</p>
-                          <motion.div
-                            initial={{ x: "-100%" }}
-                            animate={{ x: "100%" }}
-                            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
-                            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                          />
-                        </motion.div>
-                      )}
-
-                      {/* Progress Bar */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="text-gray-400">
-                            Question {discDemoStep + 1} of {discDemoScenarios.length}
-                          </div>
-                          <div className="text-purple-300 text-xs">
-                            Auto Demo • {discDemoAutoMode ? 'Running' : 'Paused'}
-                          </div>
-                        </div>
-                        
-                        <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                          <motion.div
-                            className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 rounded-full"
-                            animate={{ width: `${((discDemoStep + 1) / discDemoScenarios.length) * 100}%` }}
-                            transition={{ duration: 0.5 }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-6">
-                      <div className="text-6xl mb-4">🎉</div>
-                      <h3 className="text-2xl font-bold text-white">Demo Complete!</h3>
-                      <p className="text-gray-300">
-                        You've experienced how the Filipino DISC assessment works. Ready to discover your own BPO animal spirit?
-                      </p>
-                      <div className="flex gap-4 justify-center">
-                        <Button
-                          onClick={closeDemo}
-                          variant="outline"
-                          className="border-gray-500/50 text-gray-300 hover:bg-gray-500/10"
-                        >
-                          <span className="mr-2">←</span>
-                          Back to Menu
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            closeDemo();
-                            startGame();
-                          }}
-                          className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold"
-                        >
-                          <span className="mr-2">🚀</span>
-                          Start Assessment
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Demo interface removed - now using AlertDialog modal
 
   // Welcome screen
   if (!gameState.gameStarted) {
@@ -2122,7 +1808,10 @@ Make it deeply personal and actionable based on their actual choices.`;
               <div className="flex items-center">
                 <Button
                   variant="ghost"
-                  onClick={() => router.push('/career-tools/games')}
+                  onClick={() => {
+                    stopPreview();
+                    router.push('/career-tools/games');
+                  }}
                   className="mr-6 text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
                 >
                   <ArrowLeft className="h-5 w-5 mr-2" />
@@ -2187,7 +1876,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                 transition={{ delay: 0.6 }}
                 className="text-2xl text-gray-300 mb-8 max-w-4xl mx-auto"
               >
-                Discover your <span className="text-purple-400 font-bold">Filipino BPO animal spirit</span> through authentic workplace scenarios and unlock your communication superpowers!
+                Discover your <span className="text-purple-400 font-bold">BPO animal spirit</span> through authentic workplace scenarios and unlock your communication superpowers!
               </motion.p>
               
               {/* Feature Pills */}
@@ -2218,29 +1907,21 @@ Make it deeply personal and actionable based on their actual choices.`;
                  transition={{ delay: 1.0 }}
                  className="flex justify-center gap-8 mb-12"
                >
-                 <div className="text-center">
-                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                     <Brain className="w-8 h-8 text-white" />
-                   </div>
-                   <div className="text-white font-bold text-sm">AI Powered</div>
+                 <div className="glass-card p-6 rounded-xl text-center bg-cyan-500/10 border border-cyan-400/30">
+                   <div className="text-4xl font-bold text-cyan-400 mb-2">AI</div>
+                   <div className="text-gray-300 text-sm">Powered</div>
                  </div>
-                 <div className="text-center">
-                   <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                     <span className="text-white text-2xl">∞</span>
-                   </div>
-                   <div className="text-white font-bold text-sm">∞ Scenarios</div>
+                 <div className="glass-card p-6 rounded-xl text-center bg-green-500/10 border border-green-400/30">
+                   <div className="text-4xl font-bold text-green-400 mb-2">∞</div>
+                   <div className="text-gray-300 text-sm">Scenarios</div>
                  </div>
-                 <div className="text-center">
-                   <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                     <span className="text-white text-2xl">4</span>
-                   </div>
-                   <div className="text-white font-bold text-sm">4 Types</div>
+                 <div className="glass-card p-6 rounded-xl text-center bg-purple-500/10 border border-purple-400/30">
+                   <div className="text-4xl font-bold text-purple-400 mb-2">6</div>
+                   <div className="text-gray-300 text-sm">Contexts</div>
                  </div>
-                 <div className="text-center">
-                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-2 mx-auto">
-                     <span className="text-white text-2xl">🎵</span>
-                   </div>
-                   <div className="text-white font-bold text-sm">🎵 Music</div>
+                 <div className="glass-card p-6 rounded-xl text-center bg-orange-500/10 border border-orange-400/30">
+                   <div className="text-4xl font-bold text-orange-400 mb-2">🎵</div>
+                   <div className="text-gray-300 text-sm">Music</div>
                  </div>
                </motion.div>
             </motion.div>
@@ -2290,7 +1971,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                         </div>
                         <div>
                           <h4 className="text-lg font-semibold text-white mb-2">🎭 Discover Your Type</h4>
-                          <p className="text-gray-300 text-sm">Get your personality type (D, I, S, or C) and learn about your unique communication style.</p>
+                          <p className="text-gray-300 text-sm">Get your personality type (Dominance, Influence, Steadiness, or Conscientiousness) and learn about your unique communication style.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-4">
@@ -2512,17 +2193,20 @@ Make it deeply personal and actionable based on their actual choices.`;
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      onClick={startGame}
-                      className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold text-lg py-4 h-14 shadow-xl shadow-purple-500/30 transition-all duration-500 hover:scale-105 relative overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                      <div className="relative z-10 flex items-center justify-center gap-3">
-                        <Play className="w-5 h-5" />
-                        <span>🚀 Discover My Filipino BPO Animal!</span>
-                        <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                      </div>
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={startGame}
+                        className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600 text-white font-bold text-lg py-4 h-14 shadow-xl shadow-purple-500/30 transition-all duration-500 hover:scale-105 relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                          <Play className="w-5 h-5" />
+                          <span>🚀 Discover My Filipino BPO Animal!</span>
+                          <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                        </div>
+                      </Button>
+                      
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -2583,7 +2267,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                   <ContextIcon className="h-8 w-8 text-green-400 mr-3" />
                 </motion.div>
                 <div>
-                  <h1 className="text-2xl font-bold gradient-text">Filipino DISC 🇵🇭</h1>
+                  <h1 className="text-2xl font-bold gradient-text">BPOC DISC 🇵🇭</h1>
                   <p className="text-gray-400 text-sm">{currentScenario?.context} Context</p>
                 </div>
               </div>
@@ -2638,12 +2322,12 @@ Make it deeply personal and actionable based on their actual choices.`;
                       <div className="bg-black/20 rounded-lg p-3">
                         <div className="text-xs text-gray-400 mb-1">Current Context</div>
                         <div className="text-sm font-semibold text-white">
-                          {gameState.currentQuestion < 8 ? '👨‍👩‍👧‍👦 Family Dynamics' :
-                           gameState.currentQuestion < 14 ? '💼 Professional Workplace' :
-                           gameState.currentQuestion < 20 ? '🎉 Social Interactions' :
-                           gameState.currentQuestion < 24 ? '🚗 Traffic & Stress' :
-                           gameState.currentQuestion < 29 ? '💰 Money & Values' :
-                           gameState.currentQuestion < 30 ? '⚡ Crisis Response' :
+                          {currentScenario?.context === 'FAMILY' ? '👨‍👩‍👧‍👦 Family Dynamics' :
+                           currentScenario?.context === 'WORK' ? '💼 Professional Workplace' :
+                           currentScenario?.context === 'SOCIAL' ? '🎉 Social Interactions' :
+                           currentScenario?.context === 'TRAFFIC' ? '🚗 Traffic & Stress' :
+                           currentScenario?.context === 'MONEY' ? '💰 Money & Values' :
+                           currentScenario?.context === 'CRISIS' ? '⚡ Crisis Response' :
                            gameState.showPersonalized ? '🎯 Personal Challenges' : '🔮 Final Assessment'}
                       </div>
                       </div>
@@ -2671,9 +2355,13 @@ Make it deeply personal and actionable based on their actual choices.`;
                       <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-lg p-3">
                         <div className="text-xs text-cyan-300 mb-1">Filipino Values Focus</div>
                         <div className="text-xs text-gray-300">
-                          {gameState.currentQuestion < 10 ? 'Testing your "malasakit" (caring) in family situations' :
-                           gameState.currentQuestion < 20 ? 'Exploring "pakikipagkapwa" (shared identity) at work' :
-                           gameState.currentQuestion < 30 ? 'Revealing your "diskarte" (resourcefulness) under pressure' :
+                          {currentScenario?.context === 'FAMILY' ? 'Testing your "malasakit" (caring) in family situations' :
+                           currentScenario?.context === 'WORK' ? 'Exploring "pakikipagkapwa" (shared identity) at work' :
+                           currentScenario?.context === 'SOCIAL' ? 'Revealing your "pakikisama" (harmony) in social interactions' :
+                           currentScenario?.context === 'TRAFFIC' ? 'Testing your "diskarte" (resourcefulness) under pressure' :
+                           currentScenario?.context === 'MONEY' ? 'Exploring your "utang na loob" (debt of gratitude) and financial values' :
+                           currentScenario?.context === 'CRISIS' ? 'Revealing your "bayanihan" (community spirit) in emergencies' :
+                           gameState.showPersonalized ? 'Discovering your authentic Filipino leadership style' :
                            'Discovering your authentic Filipino leadership style'}
                         </div>
                       </div>
@@ -2904,7 +2592,7 @@ Make it deeply personal and actionable based on their actual choices.`;
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent className="bg-black border-gray-800 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave Filipino DISC Game?</AlertDialogTitle>
+            <AlertDialogTitle>Leave BPOC DISC Game?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
               Your progress will be lost if you leave now. Are you sure you want to exit?
             </AlertDialogDescription>
@@ -2914,7 +2602,10 @@ Make it deeply personal and actionable based on their actual choices.`;
               Continue Playing
             </AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => router.push('/career-tools/games')} 
+              onClick={() => {
+                stopPreview();
+                router.push('/career-tools/games');
+              }} 
               className="bg-red-600 hover:bg-red-700"
             >
               Exit Game
@@ -2922,6 +2613,7 @@ Make it deeply personal and actionable based on their actual choices.`;
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
     </div>
   );
 }

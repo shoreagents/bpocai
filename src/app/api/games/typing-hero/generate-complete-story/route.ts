@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveCompleteStory, createCompleteStory, type StoryChapter } from '@/lib/story-storage';
+import { createCompleteStory, type StoryChapter } from '@/lib/story-storage';
 
 interface UserProfile {
   userId: string;
@@ -113,13 +113,7 @@ export async function POST(request: NextRequest) {
       chapters
     );
 
-    // Save to JSON storage
-    const saved = saveCompleteStory(completeStory);
-    if (!saved) {
-      throw new Error('Failed to save complete story');
-    }
-
-    console.log('✅ Complete 5-chapter story generated and saved:', {
+    console.log('✅ Complete 5-chapter story generated:', {
       storyId: completeStory.id,
       title: completeStory.title,
       chapters: completeStory.chapters.map(c => ({ 

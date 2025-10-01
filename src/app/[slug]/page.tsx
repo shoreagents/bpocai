@@ -83,6 +83,7 @@ interface UserProfile {
   minimum_salary_range?: number;
   maximum_salary_range?: number;
   work_setup?: string;
+  completed_data?: boolean;
   ats_compatibility_score?: number;
   content_quality_score?: number;
   professional_presentation_score?: number;
@@ -100,6 +101,7 @@ interface UserProfile {
     ultimate_stats?: any;
     bpoc_cultural_results?: any;
   };
+  work_status_completed_data?: boolean;
 }
 
 export default function ProfilePage() {
@@ -129,8 +131,8 @@ export default function ProfilePage() {
     gender_custom: '',
     birthday: '',
     location_place_id: '',
-    location_lat: null,
-    location_lng: null,
+    location_lat: null as number | null,
+    location_lng: null as number | null,
     location_city: '',
     location_province: '',
     location_country: ''
@@ -326,7 +328,13 @@ export default function ProfilePage() {
       position: '',
       gender: '',
       gender_custom: '',
-      birthday: ''
+      birthday: '',
+      location_place_id: '',
+      location_lat: null,
+      location_lng: null,
+      location_city: '',
+      location_province: '',
+      location_country: ''
     });
   };
 
@@ -629,6 +637,48 @@ export default function ProfilePage() {
   if (!isProfileMode) {
     return null;
   }
+
+  // Refetch profile data when returning from stepper modal
+  useEffect(() => {
+    const handleFocus = async () => {
+      // Only refetch if we have an existing profile and we're not in the middle of initial loading
+      if (userProfile?.id && !loading) {
+        try {
+          const { data: { user: currentUser } } = await supabase.auth.getUser()
+          const viewerUserId = currentUser?.id || null
+          
+          const res = await fetch(`/api/public/user-by-slug?slug=${encodeURIComponent(slug)}${viewerUserId ? `&viewerUserId=${viewerUserId}` : ''}`, { 
+            cache: 'no-store'
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            const user = data.user || {};
+            setUserProfile(user);
+          }
+        } catch (error) {
+          console.log('Failed to refetch profile:', error);
+        }
+      }
+    };
+
+    // Listen for when the user returns to the page (from stepper modal)
+    window.addEventListener('focus', handleFocus);
+    
+    // Also refetch when the component becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        handleFocus();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [userProfile?.id, loading, slug]);
 
   // Fetch user profile data
   useEffect(() => {
@@ -1042,6 +1092,210 @@ export default function ProfilePage() {
               >
                 {activeSection === 'overview' && (
                   <div className="space-y-8">
+                    {/* Profile Completion Section */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-blue-500/20 backdrop-blur-sm">
+                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                          <div className="p-2 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-lg">
+                            <Target className="w-6 h-6 text-white" />
+                          </div>
+                          <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+                            Profile Completion
+                          </span>
+                        </h3>
+                        
+                        {/* Profile Completion Percentage */}
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white font-semibold text-lg">Overall Progress</span>
+                            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent">
+                              {(() => {
+                                const hasPersonalData = userProfile.completed_data === true;
+                                const hasWorkStatusData = userProfile.work_status_completed_data === true;
+                                const hasResume = userProfile.resume_score !== undefined && userProfile.resume_score > 0;
+                                const hasTypingHero = userProfile.game_stats?.typing_hero_stats !== undefined;
+                                const hasDisc = userProfile.game_stats?.disc_personality_stats !== undefined;
+                                const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
+                                return Math.round((completedSteps / 5) * 100);
+                              })()}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-4">
+                            <div 
+                              className="bg-gradient-to-r from-blue-400 to-cyan-500 h-4 rounded-full transition-all duration-1000 ease-out"
+                              style={{ 
+                                width: `${(() => {
+                                  const hasPersonalData = userProfile.completed_data === true;
+                                  const hasWorkStatusData = userProfile.work_status_completed_data === true;
+                                  const hasResume = userProfile.resume_score !== undefined && userProfile.resume_score > 0;
+                                  const hasTypingHero = userProfile.game_stats?.typing_hero_stats !== undefined;
+                                  const hasDisc = userProfile.game_stats?.disc_personality_stats !== undefined;
+                                  const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
+                                  return (completedSteps / 5) * 100;
+                                })()}%` 
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Profile Completion Steps */}
+                        <div className="space-y-4">
+                          <h4 className="text-lg font-semibold text-white mb-4">Complete Your Profile</h4>
+                          
+                          {/* Step 1: Personal Information */}
+                          <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              userProfile.completed_data === true
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-600 text-gray-400'
+                            }`}>
+                              {userProfile.completed_data === true ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-bold">1</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h5 className="text-white font-semibold">Personal Information</h5>
+                              <p className="text-gray-400 text-sm">Complete your basic profile information</p>
+                            </div>
+                            {userProfile.completed_data === true ? (
+                              <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => router.push('/?step=1')}
+                                size="sm"
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30"
+                              >
+                                Complete
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Step 2: Work Status */}
+                          <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              userProfile.work_status_completed_data === true
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-600 text-gray-400'
+                            }`}>
+                              {userProfile.work_status_completed_data === true ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-bold">2</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h5 className="text-white font-semibold">Work Status</h5>
+                              <p className="text-gray-400 text-sm">Provide your current work information</p>
+                            </div>
+                            {userProfile.work_status_completed_data === true ? (
+                              <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => router.push('/?step=2')}
+                                size="sm"
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30"
+                              >
+                                Complete
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Step 3: Resume Builder */}
+                          <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              userProfile.resume_score !== undefined && userProfile.resume_score > 0
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-600 text-gray-400'
+                            }`}>
+                              {userProfile.resume_score !== undefined && userProfile.resume_score > 0 ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-bold">3</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h5 className="text-white font-semibold">Resume Builder</h5>
+                              <p className="text-gray-400 text-sm">Upload and analyze your resume</p>
+                            </div>
+                            {userProfile.resume_score !== undefined && userProfile.resume_score > 0 ? (
+                              <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => router.push('/resume-builder')}
+                                size="sm"
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30"
+                              >
+                                Start
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Step 4: Typing Hero */}
+                          <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              userProfile.game_stats?.typing_hero_stats !== undefined
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-600 text-gray-400'
+                            }`}>
+                              {userProfile.game_stats?.typing_hero_stats !== undefined ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-bold">4</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h5 className="text-white font-semibold">Typing Hero</h5>
+                              <p className="text-gray-400 text-sm">Improve your typing skills and speed</p>
+                            </div>
+                            {userProfile.game_stats?.typing_hero_stats !== undefined ? (
+                              <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => router.push('/career-tools/games/typing-hero')}
+                                size="sm"
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30"
+                              >
+                                Start
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Step 5: BPOC DISC */}
+                          <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              userProfile.game_stats?.disc_personality_stats !== undefined
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-600 text-gray-400'
+                            }`}>
+                              {userProfile.game_stats?.disc_personality_stats !== undefined ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-bold">5</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h5 className="text-white font-semibold">BPOC DISC</h5>
+                              <p className="text-gray-400 text-sm">Discover your personality type and communication style</p>
+                            </div>
+                            {userProfile.game_stats?.disc_personality_stats !== undefined ? (
+                              <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => router.push('/career-tools/games/disc-personality')}
+                                size="sm"
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30"
+                              >
+                                Start
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Personal Information Section */}
                     <div className="relative z-[99999]">
                       <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
@@ -1205,18 +1459,18 @@ export default function ProfilePage() {
                                         value={editedPersonalInfo.location}
                                         placeholder="Type city, province, municipality, or barangay"
                                         onChange={(val) => setEditedPersonalInfo(prev => ({ ...prev, location: val }))}
-                                        onSelect={(place) => {
-                                          setEditedPersonalInfo(prev => ({
-                                            ...prev,
-                                            location: place.description,
-                                            location_place_id: place.place_id,
-                                            location_lat: place.lat,
-                                            location_lng: place.lng,
-                                            location_city: place.city,
-                                            location_province: place.province,
-                                            location_country: place.country
-                                          }))
-                                        }}
+                        onSelect={(place) => {
+                          setEditedPersonalInfo(prev => ({
+                            ...prev,
+                            location: place.description,
+                            location_place_id: place.place_id,
+                            location_lat: place.lat as number | null,
+                            location_lng: place.lng as number | null,
+                            location_city: place.city || '',
+                            location_province: place.province || '',
+                            location_country: place.country || ''
+                          }))
+                        }}
                                       />
                                       <p className="text-xs text-green-400/70 mt-1">Start typing to see location suggestions</p>
                                     </div>
@@ -1341,20 +1595,20 @@ export default function ProfilePage() {
                               <div className="relative">
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-lg opacity-50"></div>
                                 <div className="relative text-6xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                                  {userProfile.completed_games}/{userProfile.total_games}
+                                  {userProfile.completed_games || 0}/2
                                 </div>
                               </div>
                               <div className="flex-1">
                                 <p className="text-white font-semibold text-xl mb-2">Career Games Completed</p>
                                 <p className="text-gray-300 text-base mb-4">
-                                  {userProfile.completed_games === userProfile.total_games 
+                                  {userProfile.completed_games === 2 
                                     ? "All games completed! 🎉" 
-                                    : `${(userProfile.total_games || 4) - (userProfile.completed_games || 0)} games remaining`}
+                                    : `${2 - (userProfile.completed_games || 0)} games remaining`}
                                 </p>
                                 <div className="w-full bg-gray-700 rounded-full h-3">
                                   <div 
                                     className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-1000 ease-out"
-                                    style={{ width: `${((userProfile.completed_games || 0) / (userProfile.total_games || 4)) * 100}%` }}
+                                    style={{ width: `${((userProfile.completed_games || 0) / 2) * 100}%` }}
                                   ></div>
                                 </div>
                               </div>
@@ -1445,29 +1699,6 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     )}
-
-
-                    {/* BPOC.AI Verification Card */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-blue-500/20 backdrop-blur-sm">
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-bold text-white mb-2">BPOC.IO Verification</h3>
-                            <p className="text-gray-300 text-sm leading-relaxed">
-                              This user has gained a verification badge because they have completed all required activities: <span className="text-cyan-400 font-bold">completed their profile and work status information</span>, <span className="text-green-400 font-bold">uploaded their resume</span>, <span className="text-purple-400 font-bold">had their resume AI-analyzed</span>, <span className="text-blue-400 font-bold">saved their AI-generated resume to their profile</span>, and <span className="text-yellow-400 font-bold">completed all career assessment games</span>. This verification badge demonstrates their commitment to professional development and career excellence.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
 
                   </div>
                 )}
@@ -2386,290 +2617,39 @@ export default function ProfilePage() {
 
                 {activeSection === 'game-results' && (
                   <div className="space-y-8">
-                    {/* Typing Hero Game Stats */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
-                            <Gamepad2 className="w-6 h-6 text-white" />
+                    {/* Game Results Cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Typing Hero Card */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                              <Gamepad2 className="w-5 h-5 text-green-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">Typing Hero</h3>
                           </div>
-                          <span className="bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent">
-                            Typing Hero Game
-                          </span>
-                        </h3>
-                        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-6 border border-green-400/30">
-                          {userProfile.game_stats?.typing_hero_stats ? (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Best WPM</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.best_wpm ?? '—'} WPM
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Best Accuracy</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.best_accuracy != null
-                                      ? `${userProfile.game_stats.typing_hero_stats.best_accuracy}%`
-                                      : '—'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Average WPM</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.avg_wpm ?? '—'} WPM
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Average Accuracy</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.avg_accuracy != null
-                                      ? `${userProfile.game_stats.typing_hero_stats.avg_accuracy}%`
-                                      : '—'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Total Sessions</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.total_sessions ?? 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Completed Sessions</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.completed_sessions ?? 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-green-300 mb-2 block">Total Play Time</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.typing_hero_stats.total_play_time
-                                      ? `${Math.round(userProfile.game_stats.typing_hero_stats.total_play_time / 60)} mins`
-                                      : '—'}
-                                  </p>
-                                </div>
-                                {isOwner && (
-                                  <>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Latest WPM</label>
-                                      <p className="text-white text-lg font-semibold">
-                                        {userProfile.game_stats.typing_hero_stats.latest_wpm ?? '—'} WPM
-                                      </p>
-                                    </div>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Latest Accuracy</label>
-                                      <p className="text-white text-lg font-semibold">
-                                        {userProfile.game_stats.typing_hero_stats.latest_accuracy != null
-                                          ? `${userProfile.game_stats.typing_hero_stats.latest_accuracy}%`
-                                          : '—'}
-                                      </p>
-                                    </div>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Latest Difficulty</label>
-                                      <p className="text-white text-lg font-semibold">
-                                        {userProfile.game_stats.typing_hero_stats.latest_difficulty || '—'}
-                                      </p>
-                                    </div>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Last Played</label>
-                                      <p className="text-white mt-1 text-sm font-medium">
-                                        {userProfile.game_stats.typing_hero_stats.last_played_at
-                                          ? new Date(userProfile.game_stats.typing_hero_stats.last_played_at).toLocaleDateString()
-                                          : 'Never played'}
-                                      </p>
-                                    </div>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Best Score</label>
-                                      <p className="text-white text-lg font-semibold">
-                                        {userProfile.game_stats.typing_hero_stats.best_score ?? '—'}
-                                      </p>
-                                    </div>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Latest Score</label>
-                                      <p className="text-white text-lg font-semibold">
-                                        {userProfile.game_stats.typing_hero_stats.latest_score ?? '—'}
-                                      </p>
-                                    </div>
-                                    <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                      <label className="text-sm font-medium text-green-300 mb-2 block">Words Typed</label>
-                                      <p className="text-white text-lg font-semibold">
-                                        {userProfile.game_stats.typing_hero_stats.total_words_correct ?? 0} correct · {userProfile.game_stats.typing_hero_stats.total_words_incorrect ?? 0} incorrect
-                                      </p>
-                                    </div>
-                                    {userProfile.game_stats.typing_hero_stats.ai_analysis && (
-                                      <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
-                                        <label className="text-sm font-medium text-green-300 mb-2 block">AI Insight</label>
-                                        <p className="text-white text-sm leading-relaxed">
-                                          {typeof userProfile.game_stats.typing_hero_stats.ai_analysis === 'string'
-                                            ? userProfile.game_stats.typing_hero_stats.ai_analysis
-                                            : userProfile.game_stats.typing_hero_stats.ai_analysis?.summary || '—'}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Gamepad2 className="w-8 h-8 text-gray-500" />
-                              </div>
-                              <p className="text-gray-400 text-lg mb-4">No Typing Hero game data found</p>
-                              {isOwner && (
-                                <Button
-                                  onClick={() => router.push('/career-tools/games/typing-hero')}
-                                  className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 text-green-300 hover:from-green-500/40 hover:to-emerald-500/40 hover:border-green-400/70 hover:text-green-200 transition-all duration-300 hover:scale-105"
-                                >
-                                  <Gamepad2 className="w-4 h-4 mr-2" />
-                                  Play Typing Hero Game
-                                </Button>
-                              )}
-                            </div>
-                          )}
+                          <p className="text-gray-400 mb-4">Test your typing speed and accuracy</p>
+                          <div className="text-center py-8">
+                            <p className="text-gray-500">No content available yet</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* DISC Personality Game Stats */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-blue-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-lg">
-                            <Gamepad2 className="w-6 h-6 text-white" />
+                      {/* BPOC DISC Card */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-indigo-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                              <Gamepad2 className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white">BPOC DISC</h3>
                           </div>
-                          <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
-                            BPOC DISC
-                          </span>
-                        </h3>
-                        <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-xl p-6 border border-blue-400/30">
-                          {userProfile.game_stats?.disc_personality_stats ? (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Dominance (D)</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.d || 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover-border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Influence (I)</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.i || 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover-border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Steadiness (S)</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.s || 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover-border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Conscientiousness (C)</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.c || 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover-border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Primary Style</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.primary_style || 'No data'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover-border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Secondary Style</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.secondary_style || 'No data'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Consistency Index</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.consistency_index ?? '—'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Avg Completion Time</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.average_completion_time != null
-                                      ? `${Math.round(userProfile.game_stats.disc_personality_stats.average_completion_time / 60)} mins`
-                                      : '—'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Total XP</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.total_xp ?? 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Latest Session XP</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.latest_session_xp ?? 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Badges Earned</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.badges_earned ?? 0}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Confidence Score</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.confidence != null
-                                      ? `${userProfile.game_stats.disc_personality_stats.confidence}%`
-                                      : '—'}
-                                  </p>
-                                </div>
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Cultural Alignment</label>
-                                  <p className="text-white text-lg font-semibold">
-                                    {userProfile.game_stats.disc_personality_stats.cultural_alignment != null
-                                      ? `${userProfile.game_stats.disc_personality_stats.cultural_alignment}%`
-                                      : '—'}
-                                  </p>
-                                </div>
-                                {Array.isArray(userProfile.game_stats.disc_personality_stats.latest_bpo_roles) && (
-                                  <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                    <label className="text-sm font-medium text-blue-300 mb-2 block">AI Suggested Roles</label>
-                                    <p className="text-white text-lg font-semibold">
-                                      {userProfile.game_stats.disc_personality_stats.latest_bpo_roles.length} roles
-                                    </p>
-                                  </div>
-                                )}
-                                {isOwner && userProfile.game_stats.disc_personality_stats.latest_ai_assessment && (
-                                  <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105 col-span-full">
-                                    <label className="text-sm font-medium text-blue-300 mb-2 block">Latest AI Assessment</label>
-                                    <p className="text-white text-sm leading-relaxed">
-                                      {typeof userProfile.game_stats.disc_personality_stats.latest_ai_assessment === 'string'
-                                        ? userProfile.game_stats.disc_personality_stats.latest_ai_assessment
-                                        : userProfile.game_stats.disc_personality_stats.latest_ai_assessment?.summary || '—'}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Gamepad2 className="w-8 h-8 text-gray-500" />
-                              </div>
-                              <p className="text-gray-400 text-lg mb-4">No DISC Personality game data found</p>
-                              {isOwner && (
-                                <Button
-                                  onClick={() => router.push('/career-tools/games/disc-personality')}
-                                  className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 text-blue-300 hover:from-blue-500/40 hover:to-cyan-500/40 hover:border-blue-400/70 hover:text-blue-200 transition-all duration-300 hover:scale-105"
-                                >
-                                  <Gamepad2 className="w-4 h-4 mr-2" />
-                                  Play DISC Personality Game
-                                </Button>
-                              )}
-                            </div>
-                          )}
+                          <p className="text-gray-400 mb-4">Discover your personality type and work style</p>
+                          <div className="text-center py-8">
+                            <p className="text-gray-500">No content available yet</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2898,6 +2878,123 @@ export default function ProfilePage() {
                     )}
                   </div>
                 )}
+
+                {/* Power Stats Tab */}
+                {activeSection === 'power-stats' && (
+                  <div className="space-y-8">
+                    {/* Power Stats Section */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
+                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-red-500/20 backdrop-blur-sm">
+                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                          <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                            <Zap className="w-6 h-6 text-white" />
+                          </div>
+                          <span className="bg-gradient-to-r from-red-300 to-pink-300 bg-clip-text text-transparent">
+                            Power Stats
+                          </span>
+                        </h3>
+                        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* Sample Power Stats */}
+                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                                  <Zap className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-lg font-semibold text-red-300">Speed Demon</h4>
+                              </div>
+                              <div className="text-3xl font-bold text-white mb-2">45 WPM</div>
+                              <p className="text-gray-300 text-sm">Average typing speed</p>
+                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                              </div>
+                            </div>
+
+                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                                  <Target className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-lg font-semibold text-red-300">Accuracy Master</h4>
+                              </div>
+                              <div className="text-3xl font-bold text-white mb-2">94%</div>
+                              <p className="text-gray-300 text-sm">Average accuracy rate</p>
+                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '94%' }}></div>
+                              </div>
+                            </div>
+
+                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                                  <Star className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-lg font-semibold text-red-300">Problem Solver</h4>
+                              </div>
+                              <div className="text-3xl font-bold text-white mb-2">87</div>
+                              <p className="text-gray-300 text-sm">Logical reasoning score</p>
+                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '87%' }}></div>
+                              </div>
+                            </div>
+
+                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                                  <Heart className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-lg font-semibold text-red-300">Cultural Fit</h4>
+                              </div>
+                              <div className="text-3xl font-bold text-white mb-2">92</div>
+                              <p className="text-gray-300 text-sm">Cultural assessment score</p>
+                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                              </div>
+                            </div>
+
+                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                                  <TrendingUp className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-lg font-semibold text-red-300">Growth Mindset</h4>
+                              </div>
+                              <div className="text-3xl font-bold text-white mb-2">78</div>
+                              <p className="text-gray-300 text-sm">Learning potential score</p>
+                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '78%' }}></div>
+                              </div>
+                            </div>
+
+                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
+                                  <Medal className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-lg font-semibold text-red-300">Overall Power</h4>
+                              </div>
+                              <div className="text-3xl font-bold text-white mb-2">85</div>
+                              <p className="text-gray-300 text-sm">Combined performance score</p>
+                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sign-up CTA for anonymous users */}
+                    {isAnonymous && (
+                      <SignUpCTA
+                        title="View Other Power Stats"
+                        description="Sign up to unlock detailed power statistics, compare your performance with other users, and track your professional growth over time."
+                        icon={Zap}
+                      />
+                    )}
+                  </div>
+                )}
               </motion.div>
             </div>
           </Card>
@@ -2906,3 +3003,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

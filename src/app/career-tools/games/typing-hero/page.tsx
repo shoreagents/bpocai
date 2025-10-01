@@ -38,9 +38,12 @@ import {
   Star,
   Share,
   Eye,
-  Sparkles
+  Sparkles,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { storyGenerator, UserStoryProfile, GameProgressData, StoryChapter } from '@/lib/story-generator';
+import { PacmanLoader } from 'react-spinners';
 
 // Progressive Vocabulary by difficulty level (varying lengths and complexity)
 // NEW: MUCH MORE VARIED AND INTELLIGENT VOCABULARY
@@ -202,6 +205,7 @@ export default function TypingHeroPage() {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewingGender, setPreviewingGender] = useState<'male' | 'female' | null>(null);
   const [previewCountdown, setPreviewCountdown] = useState(0);
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   
   // NEW: Volume control state
   const [showVolumeControl, setShowVolumeControl] = useState(false);
@@ -340,6 +344,8 @@ export default function TypingHeroPage() {
   // NEW: AI Assessment state
   const [aiAssessment, setAiAssessment] = useState<any>(null);
   const [loadingAssessment, setLoadingAssessment] = useState(false);
+  const [isAiAssessmentExpanded, setIsAiAssessmentExpanded] = useState(false);
+  const [isAiPerformanceExpanded, setIsAiPerformanceExpanded] = useState(false);
   // NEW: Stats snapshot returned by save API (aggregated top words, totals)
   const [statsSnapshot, setStatsSnapshot] = useState<any>(null);
   // NEW: Saving session spinner
@@ -452,6 +458,29 @@ export default function TypingHeroPage() {
     };
   }, []);
 
+  // Check for existing story when user is loaded
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkExistingStory = async () => {
+      try {
+        console.log('📖 Checking for existing story on page load...');
+        const loadResult = await storyGenerator.loadUserActiveStory(user.id);
+        
+        if (loadResult.hasStory && loadResult.story) {
+          console.log('✅ Found existing story:', loadResult.story.title);
+          setCompleteStory(loadResult.story);
+        } else {
+          console.log('📝 No existing story found');
+        }
+      } catch (error) {
+        console.error('❌ Error checking for existing story:', error);
+      }
+    };
+    
+    checkExistingStory();
+  }, [user]);
+
   // NEW: Stop current music (simplified for custom songs)
   const stopMusic = useCallback(() => {
     if (musicAudioRef.current) {
@@ -459,6 +488,22 @@ export default function TypingHeroPage() {
       musicAudioRef.current.currentTime = 0;
     }
   }, []);
+
+  // NEW: Pause music without resetting position
+  const pauseMusic = useCallback(() => {
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+    }
+  }, []);
+
+  // NEW: Resume music from current position
+  const resumeMusic = useCallback(() => {
+    if (musicAudioRef.current && !isMuted) {
+      musicAudioRef.current.play().catch(error => {
+        console.log('Music resume failed:', error);
+      });
+    }
+  }, [isMuted]);
 
   // NEW: Play custom songs based on game state and gender preference
   const playMusic = useCallback((trackType: 'menu' | 'rookie' | 'rockstar' | 'virtuoso' | 'legend' | 'failure' | 'success') => {
@@ -654,20 +699,25 @@ export default function TypingHeroPage() {
 
   // Handle music changes based on game state - only start music when actually playing
   useEffect(() => {
-    // Always stop music first for any state change
-    stopMusic();
-    
     if (isMuted) return;
     
-    // Only start music when the game is actually playing
+    // Handle different game states
     if (gameState === 'playing') {
-      const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
-      playMusic(musicTrack);
+      // Only start music if not already playing
+      if (musicAudioRef.current && musicAudioRef.current.paused) {
+        const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
+        playMusic(musicTrack);
+      }
     } else if (gameState === 'failed') {
       playMusic('failure');
+    } else if (gameState === 'paused') {
+      // Keep music paused - don't restart it
+      pauseMusic();
+    } else {
+      // For all other states (menu, generating, complete, etc.), stop music
+      stopMusic();
     }
-    // For all other states (menu, generating, complete, etc.), music stays stopped
-  }, [gameState, isMuted, playMusic, currentDifficulty]);
+  }, [gameState, isMuted, playMusic, pauseMusic, stopMusic, currentDifficulty]);
 
 
   // NEW: Generate personalized story for the user
@@ -907,12 +957,7 @@ export default function TypingHeroPage() {
   const handleImReady = () => {
     if (gameState === 'story-ready' && storyReady) {
       setGameState('ready');
-      console.log('🎮 Player clicked "I\'m Ready", starting countdown...');
-      
-      // Start countdown immediately
-      setTimeout(() => {
-        handleReadyClick();
-      }, 500); // Small delay to show the ready state briefly
+      console.log('🎮 Player clicked "I\'m Ready", now waiting for Start Typing button...');
     }
   };
 
@@ -1170,7 +1215,7 @@ export default function TypingHeroPage() {
   const togglePause = () => {
     if (gameState === 'playing') {
       setGameState('paused');
-      stopMusic();
+      pauseMusic();
     } else if (gameState === 'paused') {
       // Start countdown before resuming
       setCountdown(3);
@@ -1191,8 +1236,7 @@ export default function TypingHeroPage() {
               clearInterval(countdownInterval);
               setCountdown(null);
               setGameState('playing');
-              const musicTrack = currentDifficulty as 'rookie' | 'rockstar' | 'virtuoso' | 'legend';
-              playMusic(musicTrack);
+              resumeMusic();
               if (inputRef.current) {
                 inputRef.current.focus();
               }
@@ -1246,6 +1290,9 @@ export default function TypingHeroPage() {
     // Set appropriate game state based on success and minimum time
     if (success || gameStats.elapsedTime >= 60) {
       setGameState('complete'); // Player completed session or reached minimum time
+      // Ensure music is stopped when game completes
+      console.log('🎵 Game completed - stopping music');
+      stopMusic();
     } else {
       setGameState('failed'); // Game ended prematurely (overwhelmed, quit early, etc.)
     }
@@ -1257,11 +1304,14 @@ export default function TypingHeroPage() {
     // Clear countdown if active
     setCountdown(null);
     
-    // Stop gameplay music and play result music
+    // Stop gameplay music and play result music only for failed games
     stopMusic();
-    setTimeout(() => {
-      playMusic('failure'); // Always play failure music
-    }, 500);
+    if (!success && gameStats.elapsedTime < 60) {
+      // Only play failure music for actual failures, not successful completions
+      setTimeout(() => {
+        playMusic('failure');
+      }, 500);
+    }
     
     // No progress updates since all challenges "fail to complete"
 
@@ -1358,6 +1408,9 @@ export default function TypingHeroPage() {
             // NEW: Word-level tracking for detailed analysis
             words_correct: gameStats.wordsCorrect,
             words_incorrect: gameStats.wordsIncorrect,
+            
+            // Generated story
+            generated_story: completeStory ? JSON.stringify(completeStory) : null,
             
             // Optional metadata
             difficulty_level: currentDifficulty,
@@ -2421,24 +2474,32 @@ export default function TypingHeroPage() {
   const previewMusic = async (type: 'male' | 'female') => {
     if (isPreviewing) return;
     
+    // Stop any existing preview audio first
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+    }
+    
     setIsPreviewing(true);
     setPreviewingGender(type);
     setPreviewCountdown(10);
-    const previewAudio = new Audio(`/bpoc-disc-songs/${type === 'male' ? 'maledisc' : 'femaledisc'}.mp3`);
-    previewAudio.volume = 0.3;
+    const newPreviewAudio = new Audio(`/typing hero songs/${type === 'male' ? 'male' : 'female'}.mp3`);
+    newPreviewAudio.volume = 0.3;
+    setPreviewAudio(newPreviewAudio);
     
     try {
-      await previewAudio.play();
+      await newPreviewAudio.play();
       
       // Countdown from 10 to 0
       const countdownInterval = setInterval(() => {
         setPreviewCountdown(prev => {
           if (prev <= 1) {
             clearInterval(countdownInterval);
-            previewAudio.pause();
-            previewAudio.currentTime = 0;
+            newPreviewAudio.pause();
+            newPreviewAudio.currentTime = 0;
             setIsPreviewing(false);
             setPreviewingGender(null);
+            setPreviewAudio(null);
             return 0;
           }
           return prev - 1;
@@ -2458,14 +2519,12 @@ export default function TypingHeroPage() {
     setIsPreviewing(false);
     setPreviewingGender(null);
     setPreviewCountdown(0);
-    // Stop any playing preview audio
-    const audioElements = document.querySelectorAll('audio');
-    audioElements.forEach(audio => {
-      if (audio.src.includes('bpoc-disc-songs')) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    });
+    // Stop the stored preview audio
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+      setPreviewAudio(null);
+    }
   };
 
   // NEW: Volume control functions
@@ -2481,7 +2540,6 @@ export default function TypingHeroPage() {
   // Handle volume change
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
-    setIsMuted(newVolume === 0); // Set mute state based on volume
     
     // Update music volume if playing
     if (musicAudioRef.current) {
@@ -3016,6 +3074,7 @@ export default function TypingHeroPage() {
               <Button
                 variant="ghost"
                 onClick={() => {
+                  stopPreview();
                   if (gameState === 'playing' || gameState === 'paused' || gameState === 'ready') {
                     setShowExitDialog(true);
                   } else {
@@ -3539,19 +3598,45 @@ export default function TypingHeroPage() {
                        </div>
                      </Button>
 
-                     {/* Generate New Story Button - always visible */}
+                     {/* Generate New Story Button - disabled if story exists */}
                      <Button
                        variant="outline"
-                       className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400/70 font-bold py-3 h-12 transition-all duration-300 hover:scale-105 relative overflow-hidden group"
+                       className={`w-full font-bold py-3 h-12 transition-all duration-300 relative overflow-hidden group ${
+                         completeStory 
+                           ? 'border-gray-500/30 text-gray-500 cursor-not-allowed opacity-60' 
+                           : 'border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400/70 hover:scale-105'
+                       }`}
                        onClick={regenerateCompleteStory}
-                       disabled={isGeneratingStory}
+                       disabled={isGeneratingStory || completeStory}
                      >
-                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                       {!completeStory && (
+                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/10 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                       )}
                        <div className="relative z-10 flex items-center justify-center gap-3">
                          <RotateCcw className="h-5 w-5" />
-                         <span>{isGeneratingStory ? '🔄 Generating...' : completeStory ? '🔄 New Story' : '✨ Generate Story'}</span>
+                         <span>
+                           {isGeneratingStory 
+                             ? '🔄 Generating...' 
+                             : completeStory 
+                               ? '✅ Story Ready' 
+                               : '✨ Generate Story'
+                           }
+                         </span>
                        </div>
                      </Button>
+                     
+                     {/* Note when story exists */}
+                     {completeStory && (
+                       <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                         <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
+                           <CheckCircle className="h-4 w-4" />
+                           <span>You already have your story generated!</span>
+                         </div>
+                         <p className="text-green-300 text-xs mt-1">
+                           Click "Start Typing" to play with your personalized story.
+                         </p>
+                       </div>
+                     )}
                  </CardContent>
               </Card>
                 </motion.div>
@@ -3567,11 +3652,12 @@ export default function TypingHeroPage() {
           className="flex flex-col items-center justify-center py-12 space-y-6"
         >
           <div className="text-center space-y-6">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl">🤖</span>
-                       </div>
+            <div className="flex justify-center mb-4">
+              <PacmanLoader 
+                color="#fbbf24" 
+                size={60}
+                margin={4}
+              />
             </div>
             <h3 className="text-2xl font-bold text-white">
               AI is generating your Typing Hero story...
@@ -3704,13 +3790,11 @@ export default function TypingHeroPage() {
               {[1, 2, 3, 4, 5].map((chapterNum) => (
                 <div
                   key={chapterNum}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    chapterNum <= (completedChapterNumber || 0)
-                      ? 'bg-green-500 text-white' 
-                      : chapterNum === (completedChapterNumber || 0) + 1
-                      ? 'bg-blue-500 text-white animate-pulse'
-                      : 'bg-gray-600 text-gray-400'
-                  }`}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                chapterNum <= (completedChapterNumber || 0)
+                                  ? 'bg-green-500 text-white' 
+                                  : 'bg-gray-600 text-gray-400'
+                              }`}
                 >
                   {chapterNum}
                 </div>
@@ -3776,6 +3860,7 @@ export default function TypingHeroPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
               >
+
                 {/* Time Progress Bar */}
                 <div className="bg-gray-800/50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -3858,11 +3943,19 @@ export default function TypingHeroPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">Level:</span>
-                      <span className="text-sm font-bold" style={{ color: getDifficultyColor(getActualPerformanceLevel()).split(' ')[0].split('-')[1] }}>
-                        {BPO_VOCABULARY[getActualPerformanceLevel()].displayName}
-                      </span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">Level:</span>
+                        <span className="text-sm font-bold" style={{ color: getDifficultyColor(getActualPerformanceLevel()).split(' ')[0].split('-')[1] }}>
+                          {BPO_VOCABULARY[getActualPerformanceLevel()].displayName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">Chapter:</span>
+                        <span className="text-sm font-bold text-purple-400">
+                          {currentChapter}: {currentStory?.title || 'Loading...'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -3922,6 +4015,33 @@ export default function TypingHeroPage() {
                        backgroundPulse.color === 'green' ? '#00ff00' : '#ff0000'}` : 'none'
                   }}
                 >
+                  {/* Start Game Modal - Only show when ready */}
+                  {gameState === 'ready' && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-600 rounded-2xl p-8 text-center shadow-2xl max-w-md mx-4"
+                      >
+                        <div className="mb-6">
+                          <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">⌨️</span>
+                          </div>
+                          <h3 className="text-2xl font-bold text-white mb-2">Ready to Start?</h3>
+                          <p className="text-gray-300">
+                            Click the "Start Typing Challenge" button below to begin your typing adventure!
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                          <span className="animate-bounce">⬇️</span>
+                          <span>Look for the green button below</span>
+                          <span className="animate-bounce">⬇️</span>
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
 
                   {/* Pause Overlay */}
                   {gameState === 'paused' && !countdown && (
@@ -3930,34 +4050,39 @@ export default function TypingHeroPage() {
                       animate={{ opacity: 1 }}
                       className="absolute inset-0 bg-black/80 flex items-center justify-center z-50"
                     >
-                      <div className="text-center space-y-6">
-                        <h2 className="text-4xl font-bold text-white mb-4">Game Paused</h2>
+                      <div className="bg-gray-900/95 border border-white/10 rounded-xl p-6 max-w-sm w-full mx-4 text-center">
+                        <div className="mb-6">
+                          <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Pause className="h-6 w-6 text-white" />
+                          </div>
+                          <h2 className="text-2xl font-bold text-white mb-2">Game Paused</h2>
+                          <p className="text-gray-400 text-sm">Take a break or continue</p>
+                        </div>
                         
-                        {/* Pause Menu Options */}
-                        <div className="flex flex-col gap-4 min-w-[300px]">
-                        <Button
-                          onClick={togglePause}
-                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                        >
-                          <Play className="h-4 w-4 mr-2" />
+                        <div className="space-y-3">
+                          <Button
+                            onClick={togglePause}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Play className="h-4 w-4 mr-2" />
                             Resume Game
-                        </Button>
+                          </Button>
                           
                           {canEndSession() ? (
                             <Button 
                               onClick={() => endGame(true, { wpm: gameStats.wpm, accuracy: gameStats.accuracy })}
-                              className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                              className="w-full bg-gray-600 hover:bg-gray-700 text-white"
                             >
                               <Trophy className="h-4 w-4 mr-2" />
                               End Session
                             </Button>
                           ) : (
-                            <div className="text-center p-3 bg-gray-800/50 rounded border border-gray-600/50">
+                            <div className="bg-gray-800/50 rounded-lg p-3">
                               <p className="text-sm text-gray-400">
                                 Complete 1 minute to end session
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {60 - gameStats.elapsedTime} seconds remaining
+                                {60 - Math.round(gameStats.elapsedTime)} seconds remaining
                               </p>
                             </div>
                           )}
@@ -4192,7 +4317,14 @@ export default function TypingHeroPage() {
                     
                     {/* Story Generation Status */}
                     {isGeneratingStory && (
-                      <div className="text-center py-2">
+                      <div className="text-center py-4">
+                        <div className="flex justify-center mb-2">
+                          <PacmanLoader 
+                            color="#fbbf24" 
+                            size={28}
+                            margin={3}
+                          />
+                        </div>
                         <div className="text-cyan-400 text-sm">
                           🎬 Generating your next chapter...
                         </div>
@@ -4540,7 +4672,7 @@ export default function TypingHeroPage() {
                       initial={{ y: 30, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 1.8 }}
-                      className="grid grid-cols-3 gap-4 mt-6"
+                      className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6"
                     >
                       {/* Correct Words */}
                       <motion.div
@@ -4570,12 +4702,23 @@ export default function TypingHeroPage() {
                       </div>
                         <div className="text-xs text-gray-400 group-hover:text-purple-300 transition-colors">⏱️ Elapsed Time</div>
                       </motion.div>
+
+                      {/* Chapters Completed */}
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-4 border border-cyan-400/20 text-center group hover:shadow-lg hover:shadow-cyan-400/10 transition-all"
+                      >
+                        <div className="text-3xl font-bold text-cyan-400 mb-1">
+                          {completedChapterNumber || 0} / 5
+                        </div>
+                        <div className="text-xs text-gray-400 group-hover:text-cyan-300 transition-colors">📚 Chapters Completed</div>
+                      </motion.div>
                     </motion.div>
 
-                  {/* Word-Level Tracking Display */}
+                  {/* Current Session Word Tracking */}
                   <div className="bg-gray-800/30 border border-gray-600/30 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                      📊 Word-Level Tracking
+                      📊 This Session
                     </h3>
                     {savingSession && (
                       <div className="mb-3 flex items-center justify-center space-x-2">
@@ -4583,30 +4726,69 @@ export default function TypingHeroPage() {
                         <p className="text-cyan-400 text-xs">Saving session...</p>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-400">{gameStats.wordsCorrect.length}</div>
-                        <div className="text-sm text-gray-400">Correct Words Tracked</div>
-                        {gameStats.wordsCorrect.length > 0 && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Sample: {gameStats.wordsCorrect.slice(0, 3).map(w => w.word).join(', ')}
-                            {gameStats.wordsCorrect.length > 3 && '...'}
-                          </div>
-                        )}
+                    {gameStats.wordsCorrect.length === 0 && gameStats.wordsIncorrect.length === 0 ? (
+                      <div className="text-center text-yellow-400 text-sm">
+                        ⚠️ No words typed in this session
                       </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-400">{gameStats.wordsIncorrect.length}</div>
-                        <div className="text-sm text-gray-400">Incorrect Words Tracked</div>
-                        {gameStats.wordsIncorrect.length > 0 && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Sample: {gameStats.wordsIncorrect.slice(0, 3).map(w => w.word).join(', ')}
-                            {gameStats.wordsIncorrect.length > 3 && '...'}
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-green-400 font-semibold mb-1">Correct Words ({gameStats.wordsCorrect.length})</p>
+                          <div 
+                            className="max-h-32 overflow-y-auto"
+                            style={{
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#4B5563 #1F2937'
+                            }}
+                          >
+                            <ul className="text-xs text-gray-300 space-y-1">
+                              {gameStats.wordsCorrect.length > 0 ? (
+                                gameStats.wordsCorrect.map((word: any, i: number) => (
+                                  <li key={`correct-${i}`} className="flex justify-between">
+                                    <span>{word.word}</span>
+                                    <span className="text-green-500">✓</span>
+                                  </li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500 italic">No correct words</li>
+                              )}
+                            </ul>
                           </div>
-                        )}
+                        </div>
+                        <div>
+                          <p className="text-sm text-red-400 font-semibold mb-1">Incorrect Words ({gameStats.wordsIncorrect.length})</p>
+                          <div 
+                            className="max-h-32 overflow-y-auto"
+                            style={{
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#4B5563 #1F2937'
+                            }}
+                          >
+                            <ul className="text-xs text-gray-300 space-y-1">
+                              {gameStats.wordsIncorrect.length > 0 ? (
+                                gameStats.wordsIncorrect.map((word: any, i: number) => (
+                                  <li key={`incorrect-${i}`} className="flex justify-between">
+                                    <span>{word.word}</span>
+                                    <span className="text-red-500">✗</span>
+                                  </li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500 italic">No incorrect words</li>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    {statsSnapshot && (
-                      <div className="mt-4 grid grid-cols-2 gap-4">
+                    )}
+                  </div>
+
+                  {/* All-Time Historical Stats */}
+                  {statsSnapshot && (
+                    <div className="bg-gray-800/30 border border-gray-600/30 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                        📈 All-Time Stats
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-green-400 font-semibold mb-1">Top Correct Words</p>
                           <ul className="text-xs text-gray-300 space-y-1">
@@ -4624,16 +4806,8 @@ export default function TypingHeroPage() {
                           </ul>
                         </div>
                       </div>
-                    )}
-                    {gameStats.wordsCorrect.length === 0 && gameStats.wordsIncorrect.length === 0 && (
-                      <div className="text-center text-yellow-400 text-sm mt-2">
-                        ⚠️ No word-level data tracked - check console for debugging info
-                        <div className="text-xs text-gray-500 mt-1">
-                          Debug: Fires: {gameStats.fires}, Poos: {gameStats.poos}, Total Words: {gameStats.totalWords}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                     {/* AI Performance Analysis - Enhanced */}
                     <motion.div
@@ -4642,20 +4816,40 @@ export default function TypingHeroPage() {
                       transition={{ delay: 2.0 }}
                       className="bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-cyan-400/30 rounded-xl p-6"
                     >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 2.2, type: "spring" }}
-                        className="flex items-center space-x-3 mb-6"
+                      <button
+                        onClick={() => setIsAiPerformanceExpanded(!isAiPerformanceExpanded)}
+                        className="flex items-center justify-between w-full mb-6 hover:bg-cyan-500/20 rounded p-2 -m-2 transition-colors"
                       >
-                        <div className="text-4xl animate-pulse">🤖</div>
-                        <div>
-                          <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                            AI Performance Analysis
-                          </h3>
-                          <p className="text-sm text-gray-400">Advanced pattern recognition complete</p>
-                        </div>
-                      </motion.div>
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 2.2, type: "spring" }}
+                          className="flex items-center space-x-3"
+                        >
+                          <div className="text-4xl animate-pulse">🤖</div>
+                          <div>
+                            <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                              AI Performance Analysis
+                            </h3>
+                            <p className="text-sm text-gray-400">Advanced pattern recognition complete</p>
+                          </div>
+                        </motion.div>
+                        {isAiPerformanceExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-cyan-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-cyan-400" />
+                        )}
+                      </button>
+                      
+                      <AnimatePresence>
+                        {isAiPerformanceExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
 
                       {/* AI Insights Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -4736,6 +4930,9 @@ export default function TypingHeroPage() {
                         </p>
                         <p className="text-gray-400 text-sm">Expected performance on standard typing tests</p>
                       </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
 
                        {/* AI Personalized Assessment */}
@@ -4749,16 +4946,35 @@ export default function TypingHeroPage() {
                        )}
 
                        {aiAssessment && (
-                         <div className="bg-purple-500/10 border border-purple-500/30 rounded p-4 mt-4 space-y-3">
-                           <div className="flex items-center space-x-2 mb-3">
-                             <span className="text-2xl">🧠</span>
-                             <div>
-                               <p className="text-purple-400 font-semibold text-sm">AI Typing Coach Assessment</p>
-                               <p className="text-xs text-gray-400">Performance Level: {aiAssessment.performanceLevel}</p>
+                         <div className="bg-purple-500/10 border border-purple-500/30 rounded p-4 mt-4">
+                           <button
+                             onClick={() => setIsAiAssessmentExpanded(!isAiAssessmentExpanded)}
+                             className="flex items-center justify-between w-full mb-3 hover:bg-purple-500/20 rounded p-2 -m-2 transition-colors"
+                           >
+                             <div className="flex items-center space-x-2">
+                               <span className="text-2xl">🧠</span>
+                               <div>
+                                 <p className="text-purple-400 font-semibold text-sm">AI Typing Coach Assessment</p>
+                                 <p className="text-xs text-gray-400">Performance Level: {aiAssessment.performanceLevel}</p>
+                               </div>
                              </div>
-                           </div>
+                             {isAiAssessmentExpanded ? (
+                               <ChevronUp className="w-5 h-5 text-purple-400" />
+                             ) : (
+                               <ChevronDown className="w-5 h-5 text-purple-400" />
+                             )}
+                           </button>
                            
-                           <div className="space-y-3 text-xs">
+                           <AnimatePresence>
+                             {isAiAssessmentExpanded && (
+                               <motion.div
+                                 initial={{ height: 0, opacity: 0 }}
+                                 animate={{ height: "auto", opacity: 1 }}
+                                 exit={{ height: 0, opacity: 0 }}
+                                 transition={{ duration: 0.3, ease: "easeInOut" }}
+                                 className="overflow-hidden"
+                               >
+                                 <div className="space-y-3 text-xs">
                              <div>
                                <p className="text-gray-200 leading-relaxed">{aiAssessment.overallAssessment}</p>
                              </div>
@@ -4800,7 +5016,10 @@ export default function TypingHeroPage() {
                              <div className="text-center pt-2">
                                <p className="text-purple-300 text-xs italic">{aiAssessment.encouragement}</p>
                              </div>
-                           </div>
+                                 </div>
+                               </motion.div>
+                             )}
+                           </AnimatePresence>
                          </div>
                        )}
                 </CardContent>
@@ -4877,7 +5096,10 @@ export default function TypingHeroPage() {
               >
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
-                  onClick={() => router.push('/career-tools/games')}
+                  onClick={() => {
+                    stopPreview();
+                    router.push('/career-tools/games');
+                  }}
                     className="w-full h-14 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     <ArrowLeft className="w-5 h-5 mr-2" />
@@ -4918,7 +5140,15 @@ export default function TypingHeroPage() {
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                     className="w-full h-14 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl hover:shadow-cyan-400/20 transition-all duration-300"
-                  onClick={() => startGame(currentDifficulty)}
+                  onClick={() => {
+                    // Reset game state to menu
+                    setGameState('menu');
+                    setCurrentStory(null);
+                    currentStoryRef.current = null;
+                    resetGameTracking();
+                    // Force a page refresh to ensure clean state
+                    window.location.href = '/career-tools/games/typing-hero';
+                  }}
                 >
                     <Play className="w-5 h-5 mr-2" />
                     <div className="text-left">
@@ -5134,7 +5364,10 @@ export default function TypingHeroPage() {
                Continue Playing
              </AlertDialogCancel>
              <AlertDialogAction 
-               onClick={() => router.back()}
+               onClick={() => {
+                 stopPreview();
+                 router.back();
+               }}
                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
              >
                Exit Game

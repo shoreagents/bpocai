@@ -32,30 +32,10 @@ export async function GET(request: NextRequest) {
         UNION ALL
         
         SELECT 
-          'bpoc-cultural' as game_type,
-          COUNT(DISTINCT user_id) as user_count,
-          'BPOC Cultural' as display_name,
-          'Users playing cultural awareness game' as description
-        FROM bpoc_cultural_sessions
-        WHERE user_id IS NOT NULL
-        
-        UNION ALL
-        
-        SELECT 
-          'ultimate' as game_type,
-          COUNT(DISTINCT user_id) as user_count,
-          'Ultimate' as display_name,
-          'Users playing ultimate challenge game' as description
-        FROM ultimate_sessions
-        WHERE user_id IS NOT NULL
-        
-        UNION ALL
-        
-        SELECT 
           'disc-personality' as game_type,
           COUNT(DISTINCT user_id) as user_count,
-          'DISC Personality' as display_name,
-          'Users taking DISC assessment' as description
+          'BPOC DISC' as display_name,
+          'Users taking DISC personality assessment' as description
         FROM disc_personality_sessions
         WHERE user_id IS NOT NULL
         

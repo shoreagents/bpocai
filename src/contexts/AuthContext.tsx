@@ -210,7 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   last_name: lastName,
                   full_name: fullName,
                   location: session.user.user_metadata?.location || '',
-                  avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
+                  avatar_url: existingUserData?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
                   phone: session.user.user_metadata?.phone || '',
                   bio: session.user.user_metadata?.bio || '',
                   position: session.user.user_metadata?.position || '',

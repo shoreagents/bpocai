@@ -54,6 +54,9 @@ function getCategoryEmoji(c: string) {
   if (c === 'game') return '🎮'
   if (c === 'applicants') return '📄'
   if (c === 'engagement') return '✨'
+  if (c === 'top-resume') return '📝'
+  if (c === 'top-typing-hero') return '⌨️'
+  if (c === 'top-disc-players') return '🧠'
   return '⭐'
 }
 
@@ -63,7 +66,7 @@ function getPeriodLabel(p: string) {
   return 'All‑time'
 }
 
-type Category = 'overall' | 'game' | 'applicants' | 'engagement'
+type Category = 'overall' | 'game' | 'applicants' | 'engagement' | 'top-resume' | 'top-typing-hero' | 'top-disc-players'
 type Period = 'weekly' | 'monthly' | 'all'
 
 interface UserInfo { full_name: string | null; avatar_url: string | null; slug: string | null }
@@ -125,6 +128,12 @@ export default function LeaderboardsPage() {
 					params.set('gameId', gameId)
 					// Use live computations for game leaderboards
 					params.set('source', 'live')
+				} else if (['top-resume', 'top-typing-hero', 'top-disc-players'].includes(category)) {
+					// For new categories, return empty results for now (frontend only)
+					setTotal(0)
+					setResults([])
+					setLoading(false)
+					return
 				} else {
 					// Use precomputed tables for applicants/engagement/overall to avoid heavy/unsupported live queries
 					params.set('source', 'tables')
@@ -272,6 +281,10 @@ export default function LeaderboardsPage() {
 		if (category === 'overall' || category === 'applicants' || category === 'engagement') {
 			return (results as SimpleResult[]).filter(r => (r?.score ?? 0) > 0)
 		}
+		// For new categories, show placeholder data for now (frontend only)
+		if (category === 'top-resume' || category === 'top-typing-hero' || category === 'top-disc-players') {
+			return [] // Empty for now - will be populated when backend is ready
+		}
 		return results
 	}, [results, category])
 
@@ -364,6 +377,9 @@ export default function LeaderboardsPage() {
 									{category === 'applicants' && `Score: ${row.score}`}
 									{category === 'engagement' && `Score: ${row.score}`}
 									{category === 'overall' && `Overall: ${row.score}`}
+									{category === 'top-resume' && `Resume Score: ${row.score || 'N/A'}`}
+									{category === 'top-typing-hero' && `WPM: ${row.score || 'N/A'}`}
+									{category === 'top-disc-players' && `DISC Score: ${row.score || 'N/A'}`}
 								</div>
 								{/* Breakdown */}
 								{category === 'overall' && (
@@ -589,6 +605,9 @@ export default function LeaderboardsPage() {
                     <SelectItem value="game">Games</SelectItem>
                     <SelectItem value="applicants">Applications</SelectItem>
                     <SelectItem value="engagement">Engagement</SelectItem>
+                    <SelectItem value="top-resume">Top Resume</SelectItem>
+                    <SelectItem value="top-typing-hero">Top Typing Hero Players</SelectItem>
+                    <SelectItem value="top-disc-players">Top DISC Players</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -652,6 +671,15 @@ export default function LeaderboardsPage() {
                         {category === 'engagement' && (
                           <TableHead className="text-right text-gray-300">Engagement</TableHead>
                         )}
+                        {category === 'top-resume' && (
+                          <TableHead className="text-right text-gray-300">Resume Score</TableHead>
+                        )}
+                        {category === 'top-typing-hero' && (
+                          <TableHead className="text-right text-gray-300">WPM</TableHead>
+                        )}
+                        {category === 'top-disc-players' && (
+                          <TableHead className="text-right text-gray-300">DISC Score</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -673,7 +701,14 @@ export default function LeaderboardsPage() {
                         <TableRow><TableCell colSpan={7} className="text-red-400">{error}</TableCell></TableRow>
                       )}
                       {!loading && !error && filteredResults.length === 0 && (
-                        <TableRow><TableCell colSpan={7} className="text-gray-400">No results</TableCell></TableRow>
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-gray-400">
+                            {category === 'top-resume' && 'Top Resume leaderboard coming soon! 📝'}
+                            {category === 'top-typing-hero' && 'Top Typing Hero Players leaderboard coming soon! ⌨️'}
+                            {category === 'top-disc-players' && 'Top DISC Players leaderboard coming soon! 🧠'}
+                            {!['top-resume', 'top-typing-hero', 'top-disc-players'].includes(category) && 'No results'}
+                          </TableCell>
+                        </TableRow>
                       )}
                       {!loading && !error && filteredResults.map((row: any) => {
                         const getRowStyling = (rank: number) => {
@@ -710,6 +745,15 @@ export default function LeaderboardsPage() {
                           )}
                           {category === 'engagement' && (
                             <TableCell className="text-right">{row.score}</TableCell>
+                          )}
+                          {category === 'top-resume' && (
+                            <TableCell className="text-right">{row.score || 'N/A'}</TableCell>
+                          )}
+                          {category === 'top-typing-hero' && (
+                            <TableCell className="text-right">{row.score || 'N/A'}</TableCell>
+                          )}
+                          {category === 'top-disc-players' && (
+                            <TableCell className="text-right">{row.score || 'N/A'}</TableCell>
                           )}
                           </motion.tr>
                         )

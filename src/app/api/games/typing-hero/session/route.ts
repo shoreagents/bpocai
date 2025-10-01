@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
       words_correct,
       words_incorrect,
       
+      // Generated story
+      generated_story,
+      
       // Optional metadata
       difficulty_level = 'rockstar',
       session_status = 'completed'
@@ -58,13 +61,16 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate word arrays
-      if (words_correct && !Array.isArray(words_correct)) {
+      let validatedWordsCorrect = words_correct;
+      let validatedWordsIncorrect = words_incorrect;
+      
+      if (validatedWordsCorrect && !Array.isArray(validatedWordsCorrect)) {
         console.warn('words_correct is not an array, converting to empty array');
-        words_correct = [];
+        validatedWordsCorrect = [];
       }
-      if (words_incorrect && !Array.isArray(words_incorrect)) {
+      if (validatedWordsIncorrect && !Array.isArray(validatedWordsIncorrect)) {
         console.warn('words_incorrect is not an array, converting to empty array');
-        words_incorrect = [];
+        validatedWordsIncorrect = [];
       }
 
       const insertSql = `
@@ -89,8 +95,8 @@ export async function POST(request: NextRequest) {
         Math.round(elapsed_time),
         Math.round(overall_accuracy * 100) / 100, // Round to 2 decimal places
         ai_analysis ? JSON.stringify(ai_analysis) : '{}',
-        words_correct ? JSON.stringify(words_correct) : '[]',
-        words_incorrect ? JSON.stringify(words_incorrect) : '[]',
+        validatedWordsCorrect ? JSON.stringify(validatedWordsCorrect) : '[]',
+        validatedWordsIncorrect ? JSON.stringify(validatedWordsIncorrect) : '[]',
         difficulty_level,
         session_status
       ]
@@ -129,7 +135,7 @@ export async function POST(request: NextRequest) {
           best_score, best_wpm, best_accuracy, best_streak,
           latest_score, latest_wpm, latest_accuracy, latest_difficulty,
           avg_wpm, avg_accuracy, total_play_time, ai_analysis,
-          total_words_correct, total_words_incorrect,
+          total_words_correct, total_words_incorrect, generated_story,
           created_at, updated_at
         )
         SELECT 
@@ -139,6 +145,7 @@ export async function POST(request: NextRequest) {
           agg.avg_wpm, agg.avg_accuracy, agg.total_play_time,
           COALESCE($2::jsonb, NULL), 
           agg.total_words_correct, agg.total_words_incorrect,
+          $3,
           NOW(), NOW()
         FROM agg, latest
         ON CONFLICT (user_id) DO UPDATE SET
@@ -159,10 +166,11 @@ export async function POST(request: NextRequest) {
           ai_analysis = COALESCE(EXCLUDED.ai_analysis, typing_hero_stats.ai_analysis),
           total_words_correct = EXCLUDED.total_words_correct,
           total_words_incorrect = EXCLUDED.total_words_incorrect,
+          generated_story = EXCLUDED.generated_story,
           updated_at = NOW()
       `
 
-      await client.query(upsertStatsSql, [userId, ai_analysis ? JSON.stringify(ai_analysis) : null])
+      await client.query(upsertStatsSql, [userId, ai_analysis ? JSON.stringify(ai_analysis) : null, generated_story || null])
 
       // Compute most common correct/incorrect words and update stats
       const commonWordsSql = `
@@ -249,8 +257,8 @@ export async function POST(request: NextRequest) {
       await client.query('ROLLBACK')
       console.error('Failed to save typing hero session', e)
       console.error('Error details:', {
-        message: e.message,
-        stack: e.stack,
+        message: (e as Error).message,
+        stack: (e as Error).stack,
         receivedData: {
           score, wpm, longest_streak, correct_words, wrong_words,
           elapsed_time, overall_accuracy, difficulty_level, session_status,

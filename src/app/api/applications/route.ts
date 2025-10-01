@@ -127,7 +127,8 @@ export async function GET(request: NextRequest) {
               p.industry,
               p.department,
               p.application_deadline,
-              m.company as company_name
+              m.company as company_name,
+              (SELECT COUNT(*) FROM applications WHERE job_id = p.id) as candidate_count
              FROM processed_job_requests p
              LEFT JOIN members m ON p.company_id = m.company_id
              WHERE p.id = ANY($1)`,
@@ -154,7 +155,9 @@ export async function GET(request: NextRequest) {
               rj.industry,
               rj.department,
               rj.application_deadline,
-              COALESCE(rj.company_id, u.company) as company_name
+              COALESCE(rj.company_id, u.company) as company_name,
+              u.location as recruiter_location,
+              (SELECT COUNT(*) FROM recruiter_applications WHERE job_id = rj.id) as candidate_count
              FROM recruiter_jobs rj
              LEFT JOIN users u ON u.id = rj.recruiter_id
              WHERE rj.id = ANY($1)`,
@@ -226,7 +229,7 @@ export async function GET(request: NextRequest) {
             resumeSlug: appRow.resumeSlug,
             jobTitle: jobDetails?.job_title || 'Unknown Position',
             companyName: jobDetails?.company_name || (appRow.jobType === 'processed' ? 'ShoreAgents' : 'Unknown Company'),
-            location: 'Location not specified', // Default since location column doesn't exist
+            location: jobDetails?.recruiter_location || 'Location not specified',
             salary,
             status: finalStatus,
             appliedDate: appRow.appliedDate,
@@ -239,7 +242,8 @@ export async function GET(request: NextRequest) {
             experienceLevel: jobDetails?.experience_level,
             industry: jobDetails?.industry,
             department: jobDetails?.department,
-            applicationDeadline: jobDetails?.application_deadline
+            applicationDeadline: jobDetails?.application_deadline,
+            candidateCount: jobDetails?.candidate_count || 0
           };
         });
 
