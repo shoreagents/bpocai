@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
 
-export default function JobMatchingPage() {
+function JobMatchingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -1631,5 +1631,20 @@ export default function JobMatchingPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function JobMatchingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen cyber-grid overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading job matching...</p>
+        </div>
+      </div>
+    }>
+      <JobMatchingContent />
+    </Suspense>
   );
 } 
