@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import JobsCards from '@/components/sections/JobsCards';
 import { Briefcase, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -8,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function JobsPage() {
+function JobsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
@@ -113,5 +114,20 @@ export default function JobsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen cyber-grid overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading jobs...</p>
+        </div>
+      </div>
+    }>
+      <JobsContent />
+    </Suspense>
   );
 } 
