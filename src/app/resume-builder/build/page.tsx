@@ -1038,13 +1038,13 @@ export default function ResumeBuilderPage() {
       let resumeSlug = '';
       if (user?.id) {
         // Use firstName and lastName from users table (more reliable than parsing resume name)
-        const firstName = user.firstName || 'user';
-        const lastName = user.lastName || 'profile';
+        const firstName = userProfile?.first_name || 'user';
+        const lastName = userProfile?.last_name || 'profile';
         
         resumeSlug = generateResumeSlug(firstName, lastName, user.id);
         console.log('Generated resume slug from user data:', resumeSlug, {
-          firstName: user.firstName,
-          lastName: user.lastName,
+          firstName: userProfile?.first_name,
+          lastName: userProfile?.last_name,
           uid: user.id
         });
       }
@@ -1987,7 +1987,7 @@ export default function ResumeBuilderPage() {
               {/* Step 1 Complete Badge */}
               <div className="flex items-center justify-center mb-4">
                 <div className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 px-6 py-2 rounded-full shadow-lg">
-                  <p className="text-sm font-bold text-white">✨ STEP 1 COMPLETE ✨</p>
+                  <p className="text-sm font-bold text-white">✨ Step 1 of Your Career Journey Complete ✨</p>
                 </div>
               </div>
 
@@ -2001,9 +2001,18 @@ export default function ResumeBuilderPage() {
                 🎉 Your resume has been saved to your profile and is now ready to share!
               </DialogDescription>
               
-              <div className="text-center text-sm text-gray-300 bg-white/5 rounded-lg p-3 border border-white/10">
-                <p className="font-semibold text-cyan-400 mb-1">What's Next?</p>
-                <p>Continue your journey by exploring career games or start applying to jobs!</p>
+              <div className="text-center text-sm text-gray-300 bg-white/5 rounded-lg p-4 border border-white/10">
+                <p className="font-bold text-cyan-400 mb-2 text-base">🚀 Next Steps in Your Journey</p>
+                <div className="space-y-1.5 text-left">
+                  <div className="flex items-start gap-2">
+                    <span className="text-purple-400 font-bold mt-0.5">Step 2:</span>
+                    <span>Play Career Games to discover your strengths and skills</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-400 font-bold mt-0.5">Step 3:</span>
+                    <span>Browse Jobs and start applying with your new resume</span>
+                  </div>
+                </div>
               </div>
             </DialogHeader>
             
@@ -2017,18 +2026,6 @@ export default function ResumeBuilderPage() {
                 <div className="text-left">
                   <div>Go to Career Games</div>
                   <div className="text-xs font-normal opacity-90">Discover your strengths & skills</div>
-                </div>
-              </Button>
-              
-              <Button
-                onClick={() => handleSuccessModalAction('jobs')}
-                size="lg"
-                className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-2xl shadow-green-500/30 hover:shadow-teal-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
-              >
-                <Briefcase className="h-6 w-6 mr-3" />
-                <div className="text-left">
-                  <div>Browse Job Opportunities</div>
-                  <div className="text-xs font-normal opacity-90">Start applying with your new resume</div>
                 </div>
               </Button>
               

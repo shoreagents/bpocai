@@ -432,9 +432,6 @@ export default function ProfileCompletionModal({
         } else if (!/^[+]?[^\D]?[\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
           newErrors.phone = 'Please enter a valid phone number'
         }
-        if (!formData.position.trim()) {
-          newErrors.position = 'Job position is required'
-        }
         if (!formData.bio.trim()) {
           newErrors.bio = 'Bio is required'
         } else if (formData.bio.length < 10) {
@@ -670,6 +667,20 @@ export default function ProfileCompletionModal({
     { value: 'Any', label: 'Any' }
   ]
 
+  // Helper function to format work status for display
+  const formatWorkStatus = (value: string | undefined) => {
+    if (!value) return 'Not specified'
+    const option = WORK_STATUS_OPTIONS.find(opt => opt.value === value)
+    return option ? option.label : value.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+  }
+
+  // Helper function to format mood for display
+  const formatMood = (value: string | undefined) => {
+    if (!value || value === 'none') return 'Not specified'
+    const option = MOOD_OPTIONS.find(opt => opt.value === value)
+    return option ? option.label : value.charAt(0).toUpperCase() + value.slice(1)
+  }
+
   const renderStepContent = () => {
     switch (currentStep) {
                   case 1: // Profile Information
@@ -812,22 +823,6 @@ export default function ProfileCompletionModal({
                 {errors.phone && <p className="text-xs text-red-400">{errors.phone}</p>}
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-white">
-                  Job Title <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="e.g., Customer Service Representative"
-                    value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                    className="pl-10 h-9 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
-                  />
-                </div>
-                {errors.position && <p className="text-xs text-red-400">{errors.position}</p>}
-              </div>
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-white">
@@ -903,9 +898,12 @@ export default function ProfileCompletionModal({
                 </label>
                 <Select value={formData.currentMood} onValueChange={(value) => handleInputChange('currentMood', value)}>
                   <SelectTrigger className="h-9 bg-white/5 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none">
-                    <SelectValue placeholder="How are you feeling?" />
+                    <SelectValue placeholder="Select your mood (optional)" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-white/20">
+                    <SelectItem value="none" className="text-gray-400 hover:bg-white/10">
+                      Prefer not to say
+                    </SelectItem>
                     {MOOD_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value} className="text-white hover:bg-white/10">
                         {option.icon} {option.label}
@@ -931,16 +929,18 @@ export default function ProfileCompletionModal({
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-white">
-                  Job Title <span className="text-red-400">*</span>
+                  Job Title
                 </label>
-                <Input
-                  type="text"
-                  placeholder="e.g., Senior Developer"
-                  value={formData.position}
-                  disabled={true}
-                  className="h-9 border border-green-400 bg-gradient-to-r from-green-500/40 via-green-500/30 to-green-500/20 text-green-50 placeholder:text-green-100 cursor-not-allowed shadow-[0_0_20px_rgba(34,197,94,0.35)] focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0"
-                />
-                {errors.currentPosition && <p className="text-xs text-red-400">{errors.currentPosition}</p>}
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="e.g., Customer Service Representative"
+                    value={formData.position}
+                    onChange={(e) => handleInputChange('position', e.target.value)}
+                    className="pl-10 h-9 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -1100,10 +1100,6 @@ export default function ProfileCompletionModal({
                   <span className="ml-2 text-white">{formData.phone || 'Not specified'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Job Title:</span>
-                  <span className="ml-2 text-white">{formData.position || 'Not specified'}</span>
-                </div>
-                <div>
                   <span className="text-gray-400">Birthday:</span>
                   <span className="ml-2 text-white">{formData.birthday || 'Not specified'}</span>
                 </div>
@@ -1122,11 +1118,11 @@ export default function ProfileCompletionModal({
               <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                 <div>
                   <span className="text-gray-400">Work Status:</span>
-                  <span className="ml-2 text-white">{formData.workStatus || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formatWorkStatus(formData.workStatus)}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Current Mood:</span>
-                  <span className="ml-2 text-white">{formData.currentMood || 'Not specified'}</span>
+                  <span className="ml-2 text-white">{formatMood(formData.currentMood)}</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Current Employer:</span>
@@ -1426,16 +1422,6 @@ export default function ProfileCompletionModal({
                 <p className="text-gray-300">
                   Sharpen your skills with interactive games. Show employers what you can do!
                 </p>
-                <Button 
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold"
-                  onClick={() => {
-                    setShowCompletionModal(false)
-                    router.push('/career-tools/games')
-                  }}
-                >
-                  <Star className="h-4 w-4 mr-2" />
-                  Play Games
-                </Button>
               </div>
             </motion.div>
 
@@ -1459,16 +1445,6 @@ export default function ProfileCompletionModal({
                 <p className="text-gray-300">
                   Discover opportunities perfectly aligned with your goals and preferences.
                 </p>
-                <Button 
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold"
-                  onClick={() => {
-                    setShowCompletionModal(false)
-                    router.push('/jobs/job-matching')
-                  }}
-                >
-                  <ChevronRight className="h-4 w-4 mr-2" />
-                  Explore Jobs
-                </Button>
               </div>
             </motion.div>
           </div>

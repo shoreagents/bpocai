@@ -62,7 +62,7 @@ export default function ResumeBuilderPage() {
       initial={{ opacity: 0, y: 100 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1, duration: 0.5 }}
-      className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-pink-900/95 backdrop-blur-xl border-t-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
+      className="fixed bottom-0 left-0 right-0 z-[100] p-4 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-pink-900/95 backdrop-blur-xl border-t-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
     >
       {/* Animated background glow */}
       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 animate-pulse"></div>
@@ -708,7 +708,7 @@ export default function ResumeBuilderPage() {
             0, 
             "Step 0: Checking Progress", 
             "Looking for existing resume data to continue your workflow...", 
-            5, 
+            0, 
             false
           )}
         </div>
@@ -727,7 +727,7 @@ export default function ResumeBuilderPage() {
       }}>
         <DialogContent 
           showCloseButton={false}
-          className="max-w-3xl w-full"
+          className="max-w-3xl w-full bg-gradient-to-br from-purple-900/95 via-purple-800/95 to-pink-900/95 border-purple-400/50"
           onInteractOutside={(e) => {
             // Prevent closing during processing
             e.preventDefault();
@@ -737,13 +737,19 @@ export default function ResumeBuilderPage() {
             e.preventDefault();
           }}
         >
-          <DialogHeader>
-            <DialogTitle>Extracting Resume Data…</DialogTitle>
-            <DialogDescription>
-              This usually takes about 2–3 minutes. We’ll keep you updated with each step.
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 animate-pulse rounded-lg"></div>
+          <DialogHeader className="relative">
+            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                <Sparkles className="h-5 w-5 text-white animate-pulse" />
+              </div>
+              Extracting Resume Data…
+            </DialogTitle>
+            <DialogDescription className="text-purple-200 text-base">
+              This usually takes about 2–3 minutes. We'll keep you updated with each step.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-center space-y-4 flex flex-col items-center">
+          <div className="text-center space-y-4 flex flex-col items-center relative">
             {processedResumes.length === 0 && (
               <>
                 <div className="flex justify-center">
@@ -756,12 +762,12 @@ export default function ResumeBuilderPage() {
                 </div>
                 <div className="max-w-2xl mx-auto space-y-2 w-full">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Progress</span>
-                    <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
+                    <span className="text-purple-200">Progress</span>
+                    <span className="text-green-400 font-bold">{Math.round(analysisProgress)}% Complete</span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-purple-700/50 rounded-full h-2">
                     <div 
-                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all duration-300 ease-out"
+                      className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${analysisProgress}%` }}
                     ></div>
                   </div>
@@ -787,14 +793,14 @@ export default function ResumeBuilderPage() {
                   
                   {/* Live Console Output Display */}
                   <div className="mt-4">
-                    <div className="bg-black/60 border border-gray-700 rounded-lg overflow-hidden">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900/80 border-b border-gray-700">
+                    <div className="bg-black/60 border border-purple-500/30 rounded-lg overflow-hidden shadow-lg shadow-purple-500/10">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-purple-900/80 border-b border-purple-500/30">
                         <div className="flex gap-1.5">
                           <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                           <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                           <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                         </div>
-                        <div className="text-xs font-bold text-gray-400 ml-2">Console Output</div>
+                        <div className="text-xs font-bold text-purple-200 ml-2">Console Output</div>
                       </div>
                       <div className="console-output-container p-3 max-h-64 overflow-y-auto scroll-smooth">
                         <div className="space-y-1 text-left font-mono text-xs">
@@ -844,27 +850,27 @@ export default function ResumeBuilderPage() {
 
           {/* Completion & CTA inside modal when extraction finishes */}
           {processedResumes.length > 0 && !isAnalyzingWithClaude && (
-            <div className="mt-6">
+            <div className="mt-6 relative">
               <div className="max-w-sm mx-auto mb-3">
-                <div className="glass-card border-green-500/30 bg-green-500/5 p-4 rounded-lg">
+                <div className="border border-green-400/30 bg-green-500/10 p-4 rounded-lg backdrop-blur-sm">
                   <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center">
-                      <svg className="h-3 w-3 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
+                      <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </div>
                     <div className="text-left">
-                      <h3 className="text-green-400 font-medium text-sm">Extraction Complete</h3>
-                      <p className="text-gray-300 text-xs">Your resume data has been extracted.</p>
+                      <h3 className="text-green-400 font-bold text-base">Extraction Complete</h3>
+                      <p className="text-purple-200 text-sm">Your resume data has been extracted.</p>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-gray-300 text-sm mb-3">Ready for Step 2: Analyze resume data</div>
+                <div className="text-purple-100 text-base font-medium mb-4">Ready for Step 2: Analyze resume data</div>
                 <Button
                   onClick={handleContinue}
                   disabled={!canContinue}
                   size="lg"
-                  className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-3 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-8 py-3 shadow-lg hover:shadow-purple-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                 >
                   <Sparkles className="mr-2 h-5 w-5" />
                   Analyze Extracted Data
@@ -1465,7 +1471,7 @@ export default function ResumeBuilderPage() {
           1, 
           "Step 1: Upload Files", 
           "Upload your resume and portfolio links to get started with AI analysis", 
-          canContinue ? (processedResumes.length > 0 ? 25 : 15) : 5, 
+          canContinue ? (processedResumes.length > 0 ? 25 : 15) : 0, 
           canContinue && processedResumes.length > 0,
           "Continue to Analysis",
           handleContinue
