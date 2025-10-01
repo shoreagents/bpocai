@@ -56,6 +56,120 @@ export default function ResumeBuilderPage() {
   const [isCheckingSavedResume, setIsCheckingSavedResume] = useState(true);
   const [checkpointCheckComplete, setCheckpointCheckComplete] = useState(false);
 
+  // Reusable sticky footer component for different steps
+  const renderStickyFooter = (stepNumber: number, stepTitle: string, stepDescription: string, progressPercentage: number, showButton: boolean = false, buttonText?: string, buttonAction?: () => void) => (
+    <motion.div
+      initial={{ opacity: 0, y: 100 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1, duration: 0.5 }}
+      className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-pink-900/95 backdrop-blur-xl border-t-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
+    >
+      {/* Animated background glow */}
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 animate-pulse"></div>
+      
+      <div className="relative max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          {/* Left side - Progress and Status */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                <Sparkles className="h-6 w-6 text-white animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  🚀 {stepTitle}
+                  <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse"></div>
+                </h3>
+                <p className="text-purple-200 text-sm font-medium">{stepDescription}</p>
+              </div>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="hidden md:flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-purple-200">Progress:</span>
+                <span className="text-xs text-green-400 font-bold">{progressPercentage}% Complete</span>
+              </div>
+              <div className="w-48 bg-purple-700/50 rounded-full h-2 overflow-hidden">
+                <motion.div 
+                  className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercentage}%` }}
+                  transition={{ delay: 1.5, duration: 1 }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-purple-300">
+                <span className={stepNumber >= 1 ? "text-green-400" : ""}>
+                  {stepNumber >= 1 ? "✅" : "⏳"} Upload
+                </span>
+                <span className={stepNumber >= 2 ? "text-green-400" : ""}>
+                  {stepNumber >= 2 ? "✅" : "⏳"} Analysis
+                </span>
+                <span className={stepNumber >= 3 ? "text-green-400 font-bold" : ""}>
+                  {stepNumber >= 3 ? "✅" : "→"} Build
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Action Button (if provided) */}
+          {showButton && buttonText && buttonAction && (
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+              
+              <Button 
+                className="relative bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold px-12 py-6 rounded-2xl shadow-2xl shadow-purple-500/50 border-2 border-purple-300/30 transition-all duration-300 text-lg"
+                onClick={buttonAction}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-7 w-7" />
+                    <span className="text-2xl">✨</span>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-lg font-bold leading-tight">{buttonText}</span>
+                    <span className="text-sm opacity-90 leading-tight">🤖 AI-powered • 📈 Optimized • 🎯 Job-ready</span>
+                  </div>
+                  <motion.div
+                    animate={{ x: [0, 8, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="text-2xl"
+                  >
+                    →
+                  </motion.div>
+                </div>
+              </Button>
+
+              {/* Floating badge */}
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-400 to-cyan-400 text-green-900 text-sm font-bold px-3 py-1 rounded-full shadow-xl border-2 border-white/20 animate-bounce">
+                NEXT STEP
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Mobile version - simplified layout */}
+        <div className="md:hidden mt-4 pt-4 border-t border-purple-400/30">
+          <div className="flex items-center justify-center gap-4 text-xs text-purple-200">
+            <span className={stepNumber >= 1 ? "text-green-400" : ""}>
+              {stepNumber >= 1 ? "✅" : "⏳"} Upload {stepNumber >= 1 ? "Complete" : ""}
+            </span>
+            <span className={stepNumber >= 2 ? "text-green-400" : ""}>
+              {stepNumber >= 2 ? "✅" : "⏳"} Analysis {stepNumber >= 2 ? "Done" : ""}
+            </span>
+            <span className={stepNumber >= 3 ? "text-green-400 font-bold" : ""}>
+              {stepNumber >= 3 ? "✅" : "→"} Ready to Build
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
   // Check checkpoints in priority order: saved_resumes -> resumes_generated -> ai_analysis_results -> resumes_extracted
   useEffect(() => {
     const checkCheckpoints = async () => {
@@ -306,6 +420,14 @@ export default function ResumeBuilderPage() {
         ...prev,
         [fileName]: [...logs]
       }));
+      
+      // Auto-scroll console to bottom
+      setTimeout(() => {
+        const consoleEl = document.querySelector('.console-output-container');
+        if (consoleEl) {
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+      }, 100);
     };
     
     return { log, getLogs: () => logs };
@@ -333,27 +455,97 @@ export default function ResumeBuilderPage() {
     });
     setFileProgress(initialFileProgress);
 
+    // Intercept console.log to capture all logs and track progress
+    const originalConsoleLog = console.log;
+    let currentProcessingFile = '';
+    
+    // Progress mapping based on actual console logs from utils.ts
+    const progressMap: Record<string, { progress: number; step: number }> = {
+      '🚀 Starting CloudConvert + GPT OCR pipeline': { progress: 5, step: 1 },
+      '📋 New Process: File → CloudConvert': { progress: 7, step: 1 },
+      '🎯 CloudConvert handles document conversion': { progress: 8, step: 1 },
+      '💰 Token tracking initialized': { progress: 10, step: 1 },
+      '📤 Step 1: Converting file to JPEG format': { progress: 15, step: 1 },
+      '🔍 Determining conversion method': { progress: 18, step: 1 },
+      '✅ Step 1 Complete: File converted to JPEG format': { progress: 30, step: 1 },
+      '🤖 Step 2: Performing GPT Vision OCR': { progress: 35, step: 2 },
+      '✅ Step 2 Complete: Text extracted via GPT OCR': { progress: 55, step: 2 },
+      '🧪 DOCX/DOC detected': { progress: 57, step: 2 },
+      '📄 Step 3: Creating organized DOCX': { progress: 60, step: 3 },
+      '✅ Step 3 Complete: Organized DOCX created': { progress: 70, step: 3 },
+      '🔄 Step 4: Converting DOCX content to structured JSON': { progress: 75, step: 3 },
+      '✅ Step 4 Complete: JSON extracted from DOCX content': { progress: 85, step: 4 },
+      '🏗️ Step 5: Building final resume': { progress: 90, step: 4 },
+      '✅ Pipeline Complete: CloudConvert + GPT OCR processing successful': { progress: 95, step: 4 },
+      '💰 FINAL SESSION SUMMARY': { progress: 100, step: 4 },
+    };
+    
+    console.log = (...args: any[]) => {
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' ');
+      originalConsoleLog(...args); // Still log to actual console
+      
+      // Add to processing logs for current file
+      if (currentProcessingFile) {
+        setProcessingLogs(prev => {
+          const existingLogs = prev[currentProcessingFile] || [];
+          return {
+            ...prev,
+            [currentProcessingFile]: [...existingLogs, message]
+          };
+        });
+        setLatestActivity(message);
+        
+        // Update progress based on console log patterns
+        for (const [pattern, { progress, step }] of Object.entries(progressMap)) {
+          if (message.includes(pattern)) {
+            setFileProgress(prev => ({ ...prev, [currentProcessingFile]: progress }));
+            setAnalysisProgress(progress);
+            setModalStep(step);
+            
+            // Special message at 90%
+            if (progress === 90) {
+              setTimeout(() => {
+                setProcessingLogs(prev => {
+                  const existingLogs = prev[currentProcessingFile] || [];
+                  return {
+                    ...prev,
+                    [currentProcessingFile]: [...existingLogs, '⏳ Please wait a minute - This step takes a while as we finalize your data...']
+                  };
+                });
+              }, 500);
+            }
+            break;
+          }
+        }
+      }
+    };
+
     const processedResults: ProcessedResume[] = [];
     
     for (let i = 0; i < uploadedFiles.length; i++) {
       const file = uploadedFiles[i];
+      currentProcessingFile = file.name; // Track current file
       const { log } = createFileLogger(file.name);
       setProcessingStatus(prev => ({ ...prev, [file.name]: 'processing' }));
       
       try {
-        log(`🚀 Starting resume processing for: ${file.name}`);
-        setFileProgress(prev => ({ ...prev, [file.name]: 5 }));
-        
-        // Process with server-side API (this will handle all the step logging)
+        // Process with server-side API (this will handle all the step logging and progress)
+        // Progress is automatically tracked by console log interceptor above
         const processedResume = await processFileWithAPI(file, log);
         processedResults.push(processedResume);
         
         setProcessingStatus(prev => ({ ...prev, [file.name]: 'completed' }));
         setFileProgress(prev => ({ ...prev, [file.name]: 100 }));
         
-        // Update overall progress based on completed files
-        const overallProgress = ((i + 1) / uploadedFiles.length) * 100;
-        setAnalysisProgress(overallProgress);
+        log(`✅ File ${i + 1}/${uploadedFiles.length} completed`);
+        
+        // If there are multiple files, ensure overall progress reflects completion
+        if (uploadedFiles.length > 1) {
+          const overallProgress = ((i + 1) / uploadedFiles.length) * 100;
+          setAnalysisProgress(overallProgress);
+        }
         
       } catch (error) {
         console.error(`❌ Error processing ${file.name}:`, error);
@@ -369,61 +561,22 @@ export default function ResumeBuilderPage() {
     
     setProcessedResumes(processedResults);
     
+    // Restore original console.log
+    console.log = originalConsoleLog;
+    
     // Keep modal open to show completion + CTA
     setIsAnalyzingWithClaude(false);
     setAnalysisProgress(100);
   };
 
-  // Process a single resume file with logs
+  // Process a single resume file - Progress is now tracked automatically via console log interception
   const processResumeFileWithLogs = async (file: File, openaiApiKey: string, cloudConvertApiKey: string, log: (message: string) => void): Promise<ProcessedResume> => {
     // Get session token for database storage
     const sessionToken = await getSessionToken();
+    
     try {
-      const fileType = file.type.toLowerCase();
-      const needsCloudConvert = fileType.includes('pdf') || fileType.includes('wordprocessingml') || fileType.includes('msword');
-      
-      // Step 1: Document Conversion (if needed)
-      if (needsCloudConvert) {
-        setModalStep(1);
-        log(`📄 Step 1: Converting document to image format...`);
-        setFileProgress(prev => ({ ...prev, [file.name]: 20 }));
-        // Add delay to simulate actual processing time
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } else {
-        setModalStep(1);
-        log(`📄 Step 1: Preparing document for processing...`);
-        setFileProgress(prev => ({ ...prev, [file.name]: 20 }));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      // Step 2: Text Extraction
-      setModalStep(2);
-      log(`🤖 Step 2: Extracting text from document pages...`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 45 }));
-      // Add delay to simulate OCR processing time
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Step 3: Document Creation
-      setModalStep(3);
-      log(`📝 Step 3: Creating organized document structure...`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 70 }));
-      // Add delay to simulate document creation time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 4: JSON Conversion
-      setModalStep(3);
-      log(`🔄 Step 4: Converting to structured data format...`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 85 }));
-      // Add delay to simulate JSON conversion time
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Call the actual processing function directly with API keys (no circular calls)
+      // Call the actual processing function - progress is tracked automatically by console log interceptor
       const result = await processResumeFile(file, openaiApiKey, cloudConvertApiKey, sessionToken ?? undefined);
-      
-      // Complete
-      log(`✅ Processing complete: Resume data extracted successfully!`);
-      setFileProgress(prev => ({ ...prev, [file.name]: 95 }));
-      setModalStep(4);
       
       return result;
     } catch (error) {
@@ -516,24 +669,7 @@ export default function ResumeBuilderPage() {
     return type;
   };
 
-  // Simulate analysis progress
-  useEffect(() => {
-    if (isAnalyzingWithClaude) {
-      const interval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 95) {
-            clearInterval(interval);
-            return prev;
-          }
-          return Math.min(prev + Math.random() * 5, 95);
-        });
-      }, 500);
-      
-      return () => clearInterval(interval);
-    } else {
-      setAnalysisProgress(0);
-    }
-  }, [isAnalyzingWithClaude]);
+  // Progress is now tracked by actual processing steps, not simulated
 
 
 
@@ -551,21 +687,30 @@ export default function ResumeBuilderPage() {
       
       {/* Checkpoint Loading Screen */}
       {!checkpointCheckComplete && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md mx-4 text-center">
-            <div className="flex justify-center mb-4">
-              <PacmanLoader 
-                color="#fbbf24" 
-                size={40}
-                margin={4}
-                speedMultiplier={1.2}
-              />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40">
+          <div className="flex items-center justify-center min-h-screen pb-32">
+            <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md mx-4 text-center">
+              <div className="flex justify-center mb-4">
+                <PacmanLoader 
+                  color="#fbbf24" 
+                  size={40}
+                  margin={4}
+                  speedMultiplier={1.2}
+                />
+              </div>
+              <h3 className="text-white text-lg font-medium mb-2">Checking Your Progress</h3>
+              <p className="text-gray-300 text-sm">
+                We're checking if you have any existing resume data to continue with...
+              </p>
             </div>
-            <h3 className="text-white text-lg font-medium mb-2">Checking Your Progress</h3>
-            <p className="text-gray-300 text-sm">
-              We're checking if you have any existing resume data to continue with...
-            </p>
           </div>
+          {renderStickyFooter(
+            0, 
+            "Step 0: Checking Progress", 
+            "Looking for existing resume data to continue your workflow...", 
+            5, 
+            false
+          )}
         </div>
       )}
       
@@ -582,7 +727,7 @@ export default function ResumeBuilderPage() {
       }}>
         <DialogContent 
           showCloseButton={false}
-          className="max-w-md w-full"
+          className="max-w-3xl w-full"
           onInteractOutside={(e) => {
             // Prevent closing during processing
             e.preventDefault();
@@ -609,7 +754,7 @@ export default function ResumeBuilderPage() {
                     speedMultiplier={1.2}
                   />
                 </div>
-                <div className="max-w-md mx-auto space-y-2 w-full">
+                <div className="max-w-2xl mx-auto space-y-2 w-full">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Progress</span>
                     <span className="text-cyan-400 font-medium">{Math.round(analysisProgress)}%</span>
@@ -639,12 +784,59 @@ export default function ResumeBuilderPage() {
                       <span>Saving extracted data</span>
                     </div>
                   </div>
-                  {/* Latest compact activity */}
-                  {latestActivity && (
-                    <div className="text-xs text-gray-300 font-mono bg-black/20 rounded p-2 mt-2 truncate">
-                      {latestActivity}
+                  
+                  {/* Live Console Output Display */}
+                  <div className="mt-4">
+                    <div className="bg-black/60 border border-gray-700 rounded-lg overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900/80 border-b border-gray-700">
+                        <div className="flex gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        </div>
+                        <div className="text-xs font-bold text-gray-400 ml-2">Console Output</div>
+                      </div>
+                      <div className="console-output-container p-3 max-h-64 overflow-y-auto scroll-smooth">
+                        <div className="space-y-1 text-left font-mono text-xs">
+                          {Object.entries(processingLogs).map(([fileName, logs]) => (
+                            <div key={fileName}>
+                              {logs.map((log, idx) => {
+                                // Parse emoji and message
+                                const isError = log.includes('❌');
+                                const isSuccess = log.includes('✅');
+                                const isWarning = log.includes('⏳');
+                                const isInfo = log.includes('🚀') || log.includes('📤') || log.includes('🤖') || log.includes('📝') || log.includes('🔄') || log.includes('📊') || log.includes('🏗️') || log.includes('📖') || log.includes('💰');
+                                
+                                let textColor = 'text-gray-300';
+                                let bgColor = '';
+                                if (isError) {
+                                  textColor = 'text-red-400';
+                                  bgColor = 'bg-red-500/5';
+                                } else if (isSuccess) {
+                                  textColor = 'text-green-400';
+                                  bgColor = 'bg-green-500/5';
+                                } else if (isWarning) {
+                                  textColor = 'text-yellow-400';
+                                  bgColor = 'bg-yellow-500/5';
+                                } else if (isInfo) {
+                                  textColor = 'text-cyan-400';
+                                }
+                                
+                                return (
+                                  <div key={idx} className={`${textColor} ${bgColor} leading-relaxed py-0.5 px-1 rounded`}>
+                                    {log}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                          {Object.keys(processingLogs).length === 0 && (
+                            <div className="text-gray-500 italic">Waiting for processing to start...</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </>
             )}
@@ -1258,7 +1450,7 @@ export default function ResumeBuilderPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-8 text-center"
+                className="mt-8 text-center pb-32"
               >
                 <p className="text-gray-400 text-sm">
                   Please upload at least one file, portfolio links are optional
@@ -1267,6 +1459,17 @@ export default function ResumeBuilderPage() {
             )}
           </div>
         </div>
+        
+        {/* Sticky Footer for Step 1 */}
+        {renderStickyFooter(
+          1, 
+          "Step 1: Upload Files", 
+          "Upload your resume and portfolio links to get started with AI analysis", 
+          canContinue ? (processedResumes.length > 0 ? 25 : 15) : 5, 
+          canContinue && processedResumes.length > 0,
+          "Continue to Analysis",
+          handleContinue
+        )}
       </div>
       </>
       )}

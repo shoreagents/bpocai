@@ -79,6 +79,120 @@ export default function AnalysisPage() {
   };
   const { user } = useAuth();
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+
+  // Reusable sticky footer component for different steps
+  const renderStickyFooter = (stepNumber: number, stepTitle: string, stepDescription: string, progressPercentage: number, showButton: boolean = false, buttonText?: string, buttonAction?: () => void) => (
+    <motion.div
+      initial={{ opacity: 0, y: 100 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1, duration: 0.5 }}
+      className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-pink-900/95 backdrop-blur-xl border-t-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
+    >
+      {/* Animated background glow */}
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 animate-pulse"></div>
+      
+      <div className="relative max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          {/* Left side - Progress and Status */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                <Sparkles className="h-6 w-6 text-white animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  🚀 {stepTitle}
+                  <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse"></div>
+                </h3>
+                <p className="text-purple-200 text-sm font-medium">{stepDescription}</p>
+              </div>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="hidden md:flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-purple-200">Progress:</span>
+                <span className="text-xs text-green-400 font-bold">{progressPercentage}% Complete</span>
+              </div>
+              <div className="w-48 bg-purple-700/50 rounded-full h-2 overflow-hidden">
+                <motion.div 
+                  className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercentage}%` }}
+                  transition={{ delay: 1.5, duration: 1 }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-purple-300">
+                <span className={stepNumber >= 1 ? "text-green-400" : ""}>
+                  {stepNumber >= 1 ? "✅" : "⏳"} Upload
+                </span>
+                <span className={stepNumber >= 2 ? "text-green-400" : ""}>
+                  {stepNumber >= 2 ? "✅" : "⏳"} Analysis
+                </span>
+                <span className={stepNumber >= 3 ? "text-green-400 font-bold" : ""}>
+                  {stepNumber >= 3 ? "✅" : "→"} Build
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Action Button (if provided) */}
+          {showButton && buttonText && buttonAction && (
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+              
+              <Button 
+                className="relative bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold px-12 py-6 rounded-2xl shadow-2xl shadow-purple-500/50 border-2 border-purple-300/30 transition-all duration-300 text-lg"
+                onClick={buttonAction}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-7 w-7" />
+                    <span className="text-2xl">✨</span>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-lg font-bold leading-tight">{buttonText}</span>
+                    <span className="text-sm opacity-90 leading-tight">🤖 AI-powered • 📈 Optimized • 🎯 Job-ready</span>
+                  </div>
+                  <motion.div
+                    animate={{ x: [0, 8, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="text-2xl"
+                  >
+                    →
+                  </motion.div>
+                </div>
+              </Button>
+
+              {/* Floating badge */}
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-400 to-cyan-400 text-green-900 text-sm font-bold px-3 py-1 rounded-full shadow-xl border-2 border-white/20 animate-bounce">
+                NEXT STEP
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Mobile version - simplified layout */}
+        <div className="md:hidden mt-4 pt-4 border-t border-purple-400/30">
+          <div className="flex items-center justify-center gap-4 text-xs text-purple-200">
+            <span className={stepNumber >= 1 ? "text-green-400" : ""}>
+              {stepNumber >= 1 ? "✅" : "⏳"} Upload {stepNumber >= 1 ? "Complete" : ""}
+            </span>
+            <span className={stepNumber >= 2 ? "text-green-400" : ""}>
+              {stepNumber >= 2 ? "✅" : "⏳"} Analysis {stepNumber >= 2 ? "Done" : ""}
+            </span>
+            <span className={stepNumber >= 3 ? "text-green-400 font-bold" : ""}>
+              {stepNumber >= 3 ? "✅" : "→"} Ready to Build
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
@@ -697,11 +811,23 @@ export default function AnalysisPage() {
 
   if (!analysisData) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading analysis data...</p>
+      <div className="min-h-screen bg-black">
+        <Header />
+        <div className="pt-16 pb-32">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin h-12 w-12 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading analysis data...</p>
+            </div>
+          </div>
         </div>
+        {renderStickyFooter(
+          1, 
+          "Step 1: Loading Data", 
+          "Preparing your resume data for analysis...", 
+          15, 
+          false
+        )}
       </div>
     );
   }
@@ -709,16 +835,25 @@ export default function AnalysisPage() {
   // Show loading state while analysis is in progress
   if (isAnalyzing) {
     return (
-      <>
+      <div className="min-h-screen bg-black">
         <Header />
-        <LoadingScreen 
-          title="Analyzing Your Resume"
-          subtitle="Claude AI is processing your resume data..."
-          progressValue={progressValue}
-          showProgress={true}
-          showStatusIndicators={true}
-        />
-      </>
+        <div className="pb-32">
+          <LoadingScreen 
+            title="Analyzing Your Resume"
+            subtitle="Claude AI is processing your resume data..."
+            progressValue={progressValue}
+            showProgress={true}
+            showStatusIndicators={true}
+          />
+        </div>
+        {renderStickyFooter(
+          2, 
+          "Step 2: AI Analysis", 
+          "Claude AI is analyzing your resume for optimization...", 
+          progressValue || 35, 
+          false
+        )}
+      </div>
     );
   }
 
@@ -727,7 +862,7 @@ export default function AnalysisPage() {
     return (
       <div className="min-h-screen bg-black">
         <Header />
-        <div className="pt-16">
+        <div className="pt-16 pb-32">
           <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center">
@@ -741,6 +876,15 @@ export default function AnalysisPage() {
             </div>
           </div>
         </div>
+        {renderStickyFooter(
+          2, 
+          "Step 2: Analysis Error", 
+          "Something went wrong during analysis. Please try again.", 
+          25, 
+          true,
+          "Try Again",
+          () => router.back()
+        )}
       </div>
     );
   }
@@ -750,7 +894,7 @@ export default function AnalysisPage() {
     return (
       <div className="min-h-screen bg-black">
         <Header />
-        <div className="pt-16">
+        <div className="pt-16 pb-32">
           <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center">
@@ -764,6 +908,15 @@ export default function AnalysisPage() {
             </div>
           </div>
         </div>
+        {renderStickyFooter(
+          2, 
+          "Step 2: Missing Results", 
+          "Analysis results not found. Please restart the process.", 
+          30, 
+          true,
+          "Go Back & Restart",
+          () => router.back()
+        )}
       </div>
     );
   }
@@ -773,7 +926,7 @@ export default function AnalysisPage() {
     return (
       <div className="min-h-screen bg-black">
         <Header />
-        <div className="pt-16">
+        <div className="pt-16 pb-32">
           <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center">
@@ -787,6 +940,15 @@ export default function AnalysisPage() {
             </div>
           </div>
         </div>
+        {renderStickyFooter(
+          2, 
+          "Step 2: Incomplete Analysis", 
+          "Claude AI analysis needs to be completed. Please try again.", 
+          40, 
+          true,
+          "Retry Analysis",
+          () => router.back()
+        )}
       </div>
     );
   }

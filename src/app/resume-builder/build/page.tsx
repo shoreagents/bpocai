@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Briefcase,
   Wrench,
-  FileText
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -979,94 +980,29 @@ export default function ResumeBuilderPage() {
     setDraggedSection(null);
   };
 
-  const exportToPDF = async () => {
-    const element = document.getElementById('resume-content');
-    if (!element) {
-      alert('Resume content not found. Please try again.');
-      return;
-    }
 
-    try {
-      console.log('Starting PDF export...');
-      
-      // Wait for any animations to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Wait for fonts to load
-      await document.fonts.ready;
-      
-      console.log('Capturing resume content...');
-      
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: element.offsetWidth,
-        height: element.offsetHeight,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: element.offsetWidth,
-        windowHeight: element.offsetHeight,
-        foreignObjectRendering: false,
-        removeContainer: false,
-        logging: true,
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.getElementById('resume-content');
-          if (clonedElement) {
-            // Ensure proper styling for PDF
-            clonedElement.style.transform = 'none';
-            clonedElement.style.position = 'static';
-            clonedElement.style.overflow = 'visible';
-            clonedElement.style.width = '100%';
-            clonedElement.style.height = 'auto';
-            clonedElement.style.boxShadow = 'none';
-            clonedElement.style.borderRadius = '0';
-            clonedElement.style.backgroundColor = '#ffffff';
-            
-            // Remove any animations or transforms from all child elements
-            const allElements = clonedElement.querySelectorAll('*');
-            allElements.forEach((el: any) => {
-              el.style.transform = 'none';
-              el.style.transition = 'none';
-              el.style.animation = 'none';
-            });
-          }
-        }
-      });
-
-      console.log('Canvas created:', canvas.width, 'x', canvas.height);
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      // Calculate dimensions
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      console.log('PDF dimensions:', imgWidth, 'x', imgHeight, 'mm');
-      
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      // Add additional pages if content is longer than one page
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      while (heightLeft >= pageHeight) {
-        position = heightLeft - pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, -position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save('improved-resume.pdf');
-      console.log('PDF saved successfully');
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Error generating PDF. Please try again. Error: ' + (error as Error).message);
-    }
+  // Helper function to generate resume slug from user data
+  const generateResumeSlug = (firstName: string, lastName: string, uid: string | number) => {
+    // Clean and normalize names
+    const cleanFirst = (firstName || 'user')
+      .toLowerCase()
+      .normalize('NFD') // Decompose accented characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove accent marks
+      .replace(/[^a-z0-9]/g, '') // Keep only alphanumeric
+      .slice(0, 20); // Limit length
+    
+    const cleanLast = (lastName || 'profile')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 20);
+    
+    // Get last 2 digits of UID
+    const uidStr = uid.toString();
+    const lastTwoDigits = uidStr.slice(-2).padStart(2, '0'); // Ensure 2 digits
+    
+    return `${cleanFirst}-${cleanLast}-${lastTwoDigits}`;
   };
 
   // Function to save resume to profile
@@ -1098,6 +1034,21 @@ export default function ResumeBuilderPage() {
       // Generate a title for the resume
       const resumeTitle = `${improvedResume.name || 'My'}'s Resume`;
       
+      // Generate the new slug format: first_name-last_name-last2digitsofuid
+      let resumeSlug = '';
+      if (user?.id) {
+        // Use firstName and lastName from users table (more reliable than parsing resume name)
+        const firstName = user.firstName || 'user';
+        const lastName = user.lastName || 'profile';
+        
+        resumeSlug = generateResumeSlug(firstName, lastName, user.id);
+        console.log('Generated resume slug from user data:', resumeSlug, {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          uid: user.id
+        });
+      }
+      
       const saveResponse = await fetch('/api/save-resume-to-profile', {
         method: 'POST',
         headers: {
@@ -1107,7 +1058,8 @@ export default function ResumeBuilderPage() {
         body: JSON.stringify({
           resumeData: completeResumeData,
           templateUsed: selectedTemplate.id,
-          resumeTitle: resumeTitle
+          resumeTitle: resumeTitle,
+          resumeSlug: resumeSlug // Add the new slug
         }),
       });
 
@@ -1137,10 +1089,10 @@ export default function ResumeBuilderPage() {
     
     switch (action) {
       case 'career-tools':
-        router.push('/career-tools');
+        router.push('/career-tools/games');
         break;
       case 'jobs':
-        router.push('/jobs');
+        router.push('/jobs/job-matching');
         break;
       case 'view-resume':
         if (savedResumeUrl) {
@@ -1668,7 +1620,7 @@ export default function ResumeBuilderPage() {
       
       <Header />
       
-      <div className="pt-16 relative z-10">
+      <div className="pt-16 pb-32 relative z-10">
       <div className="container mx-auto px-4 py-8">
           {/* Enhanced Header */}
           <motion.div
@@ -1716,17 +1668,6 @@ export default function ResumeBuilderPage() {
               </div>
           </div>
           
-            <div className="flex gap-3">
-              <Button
-
-
-                onClick={saveResumeToProfile}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save to Profile to Share Link
-              </Button>
-            </div>
           </motion.div>
 
         <div className="space-y-8">
@@ -2026,48 +1967,87 @@ export default function ResumeBuilderPage() {
             </div>
           </motion.div>
 
-          {/* Save Success Modal */}
+          {/* Save Success Modal - Enhanced Step 1 Complete */}
         <Dialog open={showSaveSuccessModal}>
-          <DialogContent className="bg-[#0b0b0d] border border-white/10 text-white max-w-md [&>button]:hidden">
-            <DialogHeader>
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-green-400" />
+          <DialogContent className="bg-gradient-to-br from-gray-900 via-purple-900/50 to-cyan-900/50 border-2 border-white/20 text-white max-w-2xl [&>button]:hidden backdrop-blur-xl">
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-cyan-500/10 animate-pulse rounded-lg"></div>
+            
+            <DialogHeader className="relative z-10">
+              {/* Success Badge */}
+              <div className="flex items-center justify-center mb-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-cyan-400 rounded-full blur-xl animate-pulse"></div>
+                  <div className="relative w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20">
+                    <CheckCircle className="h-12 w-12 text-white animate-bounce" />
+                  </div>
                 </div>
               </div>
-              <DialogTitle className="text-xl font-bold text-center text-white">
-                Resume Saved Successfully!
+
+              {/* Step 1 Complete Badge */}
+              <div className="flex items-center justify-center mb-4">
+                <div className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 px-6 py-2 rounded-full shadow-lg">
+                  <p className="text-sm font-bold text-white">✨ STEP 1 COMPLETE ✨</p>
+                </div>
+              </div>
+
+              <DialogTitle className="text-4xl font-black text-center mb-4">
+                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Resume Built Successfully!
+                </span>
               </DialogTitle>
-              <DialogDescription className="text-center text-gray-300">
-                Your resume has been saved to your profile and is now available for sharing.
+              
+              <DialogDescription className="text-center text-gray-200 text-lg mb-2">
+                🎉 Your resume has been saved to your profile and is now ready to share!
               </DialogDescription>
+              
+              <div className="text-center text-sm text-gray-300 bg-white/5 rounded-lg p-3 border border-white/10">
+                <p className="font-semibold text-cyan-400 mb-1">What's Next?</p>
+                <p>Continue your journey by exploring career games or start applying to jobs!</p>
+              </div>
             </DialogHeader>
             
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3 mt-8 relative z-10">
               <Button
                 onClick={() => handleSuccessModalAction('career-tools')}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                size="lg"
+                className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 hover:from-cyan-600 hover:via-blue-600 hover:to-purple-700 text-white shadow-2xl shadow-cyan-500/30 hover:shadow-purple-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
               >
-                <Wrench className="h-4 w-4 mr-2" />
-                Go to Career Tools
+                <Wrench className="h-6 w-6 mr-3" />
+                <div className="text-left">
+                  <div>Go to Career Games</div>
+                  <div className="text-xs font-normal opacity-90">Discover your strengths & skills</div>
+                </div>
               </Button>
               
               <Button
                 onClick={() => handleSuccessModalAction('jobs')}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                size="lg"
+                className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-2xl shadow-green-500/30 hover:shadow-teal-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
               >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Go to Jobs
+                <Briefcase className="h-6 w-6 mr-3" />
+                <div className="text-left">
+                  <div>Browse Job Opportunities</div>
+                  <div className="text-xs font-normal opacity-90">Start applying with your new resume</div>
+                </div>
               </Button>
               
               <Button
                 onClick={() => handleSuccessModalAction('view-resume')}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+                size="lg"
+                className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-rose-600 hover:from-purple-600 hover:via-pink-600 hover:to-rose-700 text-white shadow-2xl shadow-purple-500/30 hover:shadow-pink-500/30 py-6 text-lg font-bold transition-all duration-300 hover:scale-105"
               >
-                <FileText className="h-4 w-4 mr-2" />
-                View Saved Resume
+                <FileText className="h-6 w-6 mr-3" />
+                <div className="text-left">
+                  <div>View Your Resume</div>
+                  <div className="text-xs font-normal opacity-90">See your profile page & share link</div>
+                </div>
               </Button>
             </div>
+
+            {/* Decorative Elements */}
+            <div className="absolute top-4 left-4 w-20 h-20 bg-cyan-500/20 rounded-full blur-2xl"></div>
+            <div className="absolute bottom-4 right-4 w-20 h-20 bg-pink-500/20 rounded-full blur-2xl"></div>
           </DialogContent>
         </Dialog>
 
@@ -2168,6 +2148,99 @@ export default function ResumeBuilderPage() {
         </div>
         </div>
       </div>
+
+      {/* Sticky Footer - Matching Steps 1-3 Design */}
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1, duration: 0.5 }}
+        className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-r from-purple-900/95 via-purple-800/95 to-pink-900/95 backdrop-blur-xl border-t-2 border-purple-400/50 shadow-2xl shadow-purple-500/30"
+      >
+        {/* Animated background glow */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 animate-pulse"></div>
+        
+        <div className="relative max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            {/* Left side - Progress and Status */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                  <Sparkles className="h-6 w-6 text-white animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    🚀 Step 4: Ready to Save Resume
+                    <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse"></div>
+                  </h3>
+                  <p className="text-purple-200 text-sm font-medium">Save your resume to your profile and get a shareable link ✨</p>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="hidden md:flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-purple-200">Progress:</span>
+                  <span className="text-xs text-green-400 font-bold">90% Complete</span>
+                </div>
+                <div className="w-48 bg-purple-700/50 rounded-full h-2 overflow-hidden">
+                  <motion.div 
+                    className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: '90%' }}
+                    transition={{ delay: 1.5, duration: 1 }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-purple-300">
+                  <span className="text-green-400">✅ Upload</span>
+                  <span className="text-green-400">✅ Analysis</span>
+                  <span className="text-green-400 font-bold">✅ Build</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side - Action Button */}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl blur-lg opacity-50 animate-pulse"></div>
+              
+              <Button 
+                className="relative bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold px-8 py-4 rounded-2xl shadow-2xl shadow-purple-500/50 border-2 border-purple-300/30 transition-all duration-300 text-lg"
+                onClick={saveResumeToProfile}
+              >
+                <div className="flex items-center gap-3">
+                  <Save className="h-6 w-6" />
+                  <span className="text-lg font-bold">Save Resume</span>
+                  <span className="text-xl">✨</span>
+                  <motion.div
+                    animate={{ x: [0, 6, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="text-xl"
+                  >
+                    →
+                  </motion.div>
+                </div>
+              </Button>
+
+              {/* Floating badge */}
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-400 to-cyan-400 text-green-900 text-sm font-bold px-3 py-1 rounded-full shadow-xl border-2 border-white/20 animate-bounce">
+                FINAL STEP
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Mobile version - simplified layout */}
+          <div className="md:hidden mt-4 pt-4 border-t border-purple-400/30">
+            <div className="flex items-center justify-center gap-4 text-xs text-purple-200">
+              <span className="text-green-400">✅ Upload Complete</span>
+              <span className="text-green-400">✅ Analysis Done</span>
+              <span className="text-green-400 font-bold">✅ Resume Built</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
