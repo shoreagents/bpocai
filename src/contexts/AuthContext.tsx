@@ -183,13 +183,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 
                 // First, check existing user's admin_level to preserve it
                 let existingAdminLevel = 'user'
+                let profileData = null
                 try {
                   // Add a small delay to ensure recruiter sign-up has completed
                   await new Promise(resolve => setTimeout(resolve, 1000))
                   
                   const profileResponse = await fetch(`/api/user/profile?userId=${session.user.id}`)
                   if (profileResponse.ok) {
-                    const profileData = await profileResponse.json()
+                    profileData = await profileResponse.json()
                     existingAdminLevel = profileData.user?.admin_level || 'user'
                     console.log('🔍 Preserving existing admin_level:', existingAdminLevel)
                     
@@ -210,7 +211,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   last_name: lastName,
                   full_name: fullName,
                   location: session.user.user_metadata?.location || '',
-                  avatar_url: existingUserData?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
+                  avatar_url: profileData?.user?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
                   phone: session.user.user_metadata?.phone || '',
                   bio: session.user.user_metadata?.bio || '',
                   position: session.user.user_metadata?.position || '',

@@ -32,7 +32,8 @@ import {
   Share,
   Zap,
   Camera,
-  Info
+  Info,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,6 +156,8 @@ export default function ProfilePage() {
   const [editedBio, setEditedBio] = useState<string>('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [photoError, setPhotoError] = useState<string>('');
+  const [isAnimalReasonExpanded, setIsAnimalReasonExpanded] = useState<boolean>(false);
+  const [isTypingAnalysisExpanded, setIsTypingAnalysisExpanded] = useState<boolean>(false);
 
   // Function to determine rank based on overall score
   const getRank = (score: number) => {
@@ -163,6 +166,9 @@ export default function ProfilePage() {
     if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
     return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
   }
+
+  // Calculate rank based on overall score
+  const rank = getRank(overallScore);
 
   // Helper functions for work status field management (matching stepper modal logic)
   const isFieldDisabled = (field: string) => {
@@ -775,13 +781,42 @@ export default function ProfilePage() {
             <Button onClick={() => router.push('/home')} variant="outline">
               Go Home
             </Button>
-          </div>
         </div>
       </div>
-    );
-  }
-
-  const rank = getRank(overallScore);
+      
+      {/* Custom CSS for owl animations */}
+      <style jsx>{`
+        @keyframes owlWise {
+          0%, 100% { 
+            transform: rotate(0deg) scale(1);
+            filter: drop-shadow(0 0 10px #3b82f6);
+          }
+          25% { 
+            transform: rotate(-15deg) scale(1.1);
+            filter: drop-shadow(0 0 15px #3b82f6);
+          }
+          50% { 
+            transform: rotate(0deg) scale(1.2);
+            filter: drop-shadow(0 0 20px #3b82f6);
+          }
+          75% { 
+            transform: rotate(15deg) scale(1.1);
+            filter: drop-shadow(0 0 15px #3b82f6);
+          }
+        }
+        
+        @keyframes owlBlink {
+          0%, 90%, 100% { 
+            opacity: 1;
+          }
+          95% { 
+            opacity: 0.3;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
@@ -2620,36 +2655,360 @@ export default function ProfilePage() {
                     {/* Game Results Cards */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Typing Hero Card */}
-                      <div className="relative">
+                      <div className="relative flex flex-col">
                         <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
-                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm">
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm flex flex-col h-full">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
                               <Gamepad2 className="w-5 h-5 text-green-400" />
                             </div>
                             <h3 className="text-xl font-bold text-white">Typing Hero</h3>
                           </div>
-                          <p className="text-gray-400 mb-4">Test your typing speed and accuracy</p>
-                          <div className="text-center py-8">
-                            <p className="text-gray-500">No content available yet</p>
-                          </div>
+                          
+                          {userProfile.game_stats?.typing_hero_stats ? (
+                            <div className="space-y-4 flex-1">
+                              {/* Animated Typing Hero Display */}
+                              <div className="text-center mb-6">
+                                <div className="text-6xl mb-2">
+                                  <span 
+                                    className="inline-block"
+                                    style={{
+                                      animation: `
+                                        typingHero 2s ease-in-out infinite,
+                                        typingGlow 3s ease-in-out infinite
+                                      `,
+                                      transformOrigin: 'center',
+                                      filter: 'drop-shadow(0 0 10px rgba(34, 197, 94, 0.4))'
+                                    }}
+                                  >
+                                    ⌨️
+                                  </span>
+                                </div>
+                                <h4 className="text-xl font-bold text-white mb-2">
+                                  Typing Hero Performance
+                                </h4>
+                                <p className="text-sm text-gray-300">
+                                  Your keyboard mastery in action!
+                                </p>
+                              </div>
+
+                              {/* WPM Performance Metrics */}
+                              <div className="grid grid-cols-3 gap-4">
+                                {/* Best WPM */}
+                                <div className="group relative overflow-hidden bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
+                                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  <div className="relative p-4 text-center">
+                                    <div className="text-2xl mb-2">🏆</div>
+                                    <div className="text-green-400 font-bold text-2xl mb-1">{userProfile.game_stats.typing_hero_stats.best_wpm || 0}</div>
+                                    <div className="text-green-300 text-sm font-medium">Best WPM</div>
+                                    <div className="text-green-400/60 text-xs mt-1">Personal Record</div>
+                                  </div>
+                                </div>
+
+                                {/* Latest WPM */}
+                                <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
+                                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  <div className="relative p-4 text-center">
+                                    <div className="text-2xl mb-2">⚡</div>
+                                    <div className="text-blue-400 font-bold text-2xl mb-1">{userProfile.game_stats.typing_hero_stats.latest_wpm || 0}</div>
+                                    <div className="text-blue-300 text-sm font-medium">Latest WPM</div>
+                                    <div className="text-blue-400/60 text-xs mt-1">Most Recent</div>
+                                  </div>
+                                </div>
+
+                                {/* Average WPM */}
+                                <div className="group relative overflow-hidden bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-400/20 hover:border-purple-400/40 transition-all duration-300 hover:scale-105">
+                                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  <div className="relative p-4 text-center">
+                                    <div className="text-2xl mb-2">📊</div>
+                                    <div className="text-purple-400 font-bold text-2xl mb-1">{Math.round(userProfile.game_stats.typing_hero_stats.avg_wpm || 0)}</div>
+                                    <div className="text-purple-300 text-sm font-medium">Avg WPM</div>
+                                    <div className="text-purple-400/60 text-xs mt-1">Consistent</div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Performance Analysis */}
+                              {userProfile.game_stats.typing_hero_stats.ai_analysis && (
+                                <div className="mt-4 p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-400/30">
+                                  <button
+                                    onClick={() => setIsTypingAnalysisExpanded(!isTypingAnalysisExpanded)}
+                                    className="w-full flex items-center justify-between text-sm font-semibold text-green-300 mb-2 hover:text-green-200 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                                      Performance Analysis
+                                    </div>
+                                    <ChevronDown 
+                                      className={`w-4 h-4 transition-transform duration-200 ${
+                                        isTypingAnalysisExpanded ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  {isTypingAnalysisExpanded && (
+                                    <div className="text-gray-300 text-sm leading-relaxed">
+                                    {(() => {
+                                      try {
+                                        const analysis = typeof userProfile.game_stats.typing_hero_stats.ai_analysis === 'string' 
+                                          ? JSON.parse(userProfile.game_stats.typing_hero_stats.ai_analysis)
+                                          : userProfile.game_stats.typing_hero_stats.ai_analysis;
+                                        
+                                        if (analysis.aiAssessment) {
+                                          return (
+                                            <div className="space-y-4">
+                                              {/* Performance Level & Overall Assessment */}
+                                              <div className="grid grid-cols-1 gap-3">
+                                                {analysis.aiAssessment.performanceLevel && (
+                                                  <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded">
+                                                    <span className="text-green-400 font-semibold">Performance Level:</span>
+                                                    <span className="text-white font-bold">{analysis.aiAssessment.performanceLevel}</span>
+                                                  </div>
+                                                )}
+                                                
+                                                {analysis.aiAssessment.overallAssessment && (
+                                                  <div className="p-3 bg-gray-700/20 rounded">
+                                                    <span className="text-green-400 font-semibold">Assessment:</span>
+                                                    <p className="text-gray-300 mt-1">{analysis.aiAssessment.overallAssessment}</p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                              
+                                              {/* Real-World Estimate */}
+                                              <div className="p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-lg border border-orange-400/30">
+                                                <div className="flex items-center gap-3">
+                                                  <div className="text-2xl">💡</div>
+                                                  <div>
+                                                    <div className="text-yellow-400 font-semibold">Real-World Estimate</div>
+                                                    <div className="text-2xl font-bold text-yellow-400">
+                                                      {(() => {
+                                                        const latestWpm = userProfile.game_stats.typing_hero_stats.latest_wpm || 0;
+                                                        const avgWpm = userProfile.game_stats.typing_hero_stats.avg_wpm || 0;
+                                                        const bestWpm = userProfile.game_stats.typing_hero_stats.best_wpm || 0;
+                                                        
+                                                        // Calculate real-world estimate based on game performance
+                                                        // Game WPM is typically 20-30% higher than real-world due to simplified words
+                                                        const realWorldMin = Math.max(0, Math.round((latestWpm * 0.7) - 5));
+                                                        const realWorldMax = Math.round((latestWpm * 0.8) + 5);
+                                                        
+                                                        return `${realWorldMin}-${realWorldMax} WPM`;
+                                                      })()}
+                                                    </div>
+                                                    <div className="text-gray-400 text-xs">Expected performance on standard typing tests</div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Strengths */}
+                                              {analysis.aiAssessment.strengths && analysis.aiAssessment.strengths.length > 0 && (
+                                                <div>
+                                                  <span className="text-green-400 font-semibold">Strengths:</span>
+                                                  <ul className="mt-1 ml-4 space-y-1">
+                                                    {analysis.aiAssessment.strengths.map((strength: string, index: number) => (
+                                                      <li key={index} className="flex items-start gap-2">
+                                                        <span className="text-green-400 mt-1">•</span>
+                                                        <span>{strength}</span>
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              )}
+                                              
+                                            </div>
+                                          );
+                                        }
+                                        
+                                        // Fallback for other formats
+                                        return typeof userProfile.game_stats.typing_hero_stats.ai_analysis === 'string' 
+                                          ? userProfile.game_stats.typing_hero_stats.ai_analysis
+                                          : JSON.stringify(userProfile.game_stats.typing_hero_stats.ai_analysis);
+                                      } catch (error) {
+                                        return typeof userProfile.game_stats.typing_hero_stats.ai_analysis === 'string' 
+                                          ? userProfile.game_stats.typing_hero_stats.ai_analysis
+                                          : JSON.stringify(userProfile.game_stats.typing_hero_stats.ai_analysis);
+                                      }
+                                    })()}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 flex-1 flex flex-col justify-center">
+                              <div className="text-4xl mb-4">⌨️</div>
+                              <p className="text-gray-400 mb-4">No data found</p>
+                              <Button
+                                onClick={() => router.push('/career-tools/games/typing-hero')}
+                                className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30"
+                              >
+                                Play Typing Hero
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* BPOC DISC Card */}
-                      <div className="relative">
+                      <div className="relative flex flex-col">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-indigo-500/10 rounded-2xl blur-xl"></div>
-                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm">
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm flex flex-col h-full">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
                               <Gamepad2 className="w-5 h-5 text-blue-400" />
                             </div>
                             <h3 className="text-xl font-bold text-white">BPOC DISC</h3>
                           </div>
-                          <p className="text-gray-400 mb-4">Discover your personality type and work style</p>
-                          <div className="text-center py-8">
-                            <p className="text-gray-500">No content available yet</p>
-                          </div>
+                          
+                          {userProfile.game_stats?.disc_personality_stats ? (
+                            <div className="space-y-4 flex-1">
+                              {/* Animal Display */}
+                              <div className="text-center">
+                                <div className="text-6xl mb-2">
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'D' && (
+                                    <span className="inline-block animate-bounce">🦅</span>
+                                  )}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'I' && (
+                                    <span className="inline-block animate-pulse">🦚</span>
+                                  )}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'S' && (
+                                    <span className="inline-block animate-pulse">🐢</span>
+                                  )}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'C' && (
+                                    <span 
+                                      className="inline-block animate-spin"
+                                      style={{
+                                        animation: 'owlWise 3s ease-in-out infinite, owlBlink 4s ease-in-out infinite',
+                                        transformOrigin: 'center'
+                                      }}
+                                    >
+                                      🦉
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="text-xl font-bold text-white mb-2">
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'D' && '🦅 EAGLE'}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'I' && '🦚 PEACOCK'}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'S' && '🐢 TURTLE'}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'C' && '🦉 OWL'}
+                                </h4>
+                                <p className="text-sm text-gray-300">
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'D' && 'The Sky Dominator - You soar above challenges and lead from the front!'}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'I' && 'The Social Star - You light up rooms and connect with people effortlessly!'}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'S' && 'The Steady Guardian - You keep everything running smoothly and provide the foundation teams depend on!'}
+                                  {userProfile.game_stats.disc_personality_stats.primary_type === 'C' && 'The Wise Analyst - You spot what others miss and ensure everything meets the highest standards!'}
+                                </p>
+                              </div>
+                              
+                              {/* DISC Score - Influence Only */}
+                              <div className="flex justify-center">
+                                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-400/30 w-full max-w-xs">
+                                  <span className="text-yellow-400 font-semibold">🦚 Influence</span>
+                                  <span className="text-white font-bold text-xl">{userProfile.game_stats.disc_personality_stats.i || 0}%</span>
+                                </div>
+                              </div>
+
+                              {/* Animal Personality Reason */}
+                              {userProfile.game_stats.disc_personality_stats.latest_ai_assessment && (
+                                <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-lg border border-blue-400/30">
+                                  <button
+                                    onClick={() => setIsAnimalReasonExpanded(!isAnimalReasonExpanded)}
+                                    className="w-full flex items-center justify-between text-sm font-semibold text-blue-300 mb-2 hover:text-blue-200 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                      Why You're This Animal
+                                    </div>
+                                    <ChevronDown 
+                                      className={`w-4 h-4 transition-transform duration-200 ${
+                                        isAnimalReasonExpanded ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  {isAnimalReasonExpanded && (
+                                    <div className="text-gray-300 text-sm leading-relaxed">
+                                    {(() => {
+                                      const assessment = userProfile.game_stats.disc_personality_stats.latest_ai_assessment;
+                                      
+                                      // Extract the animal personality reason section
+                                      if (assessment.includes('ANIMAL PERSONALITY REASON')) {
+                                        const reasonSection = assessment
+                                          .split('ANIMAL PERSONALITY REASON')[1]
+                                          ?.split('\n\n')[0]
+                                          ?.trim();
+                                        
+                                        if (reasonSection) {
+                                          // Remove the animal name and colon from the beginning
+                                          const cleanReason = reasonSection
+                                            .replace(/^[^:]*:\s*/, '') // Remove everything before the first colon
+                                            .trim();
+                                          
+                                          if (cleanReason) {
+                                            // Split by bullet points and display each as a separate line
+                                            const bulletPoints = cleanReason
+                                              .split(/[•\-\*]/)
+                                              .map((point: string) => point.trim())
+                                              .filter((point: string) => point.length > 0)
+                                              .filter((point: string) => {
+                                                // Remove bullet points that are just personality type references
+                                                const lowerPoint = point.toLowerCase();
+                                                return !(lowerPoint.includes('(peacock') || 
+                                                        lowerPoint.includes('(eagle') ||
+                                                        lowerPoint.includes('(turtle') ||
+                                                        lowerPoint.includes('(owl') ||
+                                                        lowerPoint.includes('influence primary):') ||
+                                                        lowerPoint.includes('dominance primary):') ||
+                                                        lowerPoint.includes('steadiness primary):') ||
+                                                        lowerPoint.includes('conscientiousness primary):'));
+                                              });
+                                            
+                                            return (
+                                              <div className="space-y-2">
+                                                {bulletPoints.map((point: string, bulletIndex: number) => (
+                                                  <div key={bulletIndex} className="flex items-start gap-2">
+                                                    <span className="text-blue-400 mt-1">•</span>
+                                                    <span 
+                                                      className="text-gray-300"
+                                                      dangerouslySetInnerHTML={{
+                                                        __html: (point as string)
+                                                          .replace(/\b(Natural Instinct|Decision Pattern|Challenge Navigation|Key Insight|Growth Area)\b/gi, 
+                                                            '<span class="text-cyan-400 font-semibold">$1</span>')
+                                                          .replace(/\b(dominance|influence|steadiness|conscientiousness)\b/gi, 
+                                                            '<span class="text-purple-400 font-medium">$1</span>')
+                                                          .replace(/\b(peacock|eagle|turtle|owl)\b/gi, 
+                                                            '<span class="text-green-400 font-medium">$1</span>')
+                                                          .replace(/\b(strengths?|blind spots?|recommendations?|response|critical|essential|important|should|must|need to)\b/gi, 
+                                                            '<span class="text-yellow-400 font-semibold">$1</span>')
+                                                          .replace(/\b(high|low|equal|balanced|calculated|purposeful|strategic|harmony|accuracy|support|information|confronting|directly|firm|challenging|situations)\b/gi, 
+                                                            '<span class="text-orange-400 font-medium">$1</span>')
+                                                      }}
+                                                    />
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            );
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Fallback if no specific reason found
+                                      return 'Your unique personality traits make you naturally suited to this animal archetype.';
+                                    })()}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 flex-1 flex flex-col justify-center">
+                              <div className="text-4xl mb-4">🦚</div>
+                              <p className="text-gray-400 mb-4">No data found</p>
+                              <Button
+                                onClick={() => router.push('/career-tools/games/disc-personality')}
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30"
+                              >
+                                Take DISC Assessment
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3000,6 +3359,37 @@ export default function ProfilePage() {
           </Card>
         </motion.div>
       </div>
+      
+      {/* Custom CSS for owl animations */}
+      <style jsx>{`
+        @keyframes owlWise {
+          0%, 100% { 
+            transform: rotate(0deg) scale(1);
+            filter: drop-shadow(0 0 10px #3b82f6);
+          }
+          25% { 
+            transform: rotate(-15deg) scale(1.1);
+            filter: drop-shadow(0 0 15px #3b82f6);
+          }
+          50% { 
+            transform: rotate(0deg) scale(1.2);
+            filter: drop-shadow(0 0 20px #3b82f6);
+          }
+          75% { 
+            transform: rotate(15deg) scale(1.1);
+            filter: drop-shadow(0 0 15px #3b82f6);
+          }
+        }
+        
+        @keyframes owlBlink {
+          0%, 90%, 100% { 
+            opacity: 1;
+          }
+          95% { 
+            opacity: 0.3;
+          }
+        }
+      `}</style>
     </div>
   );
 }

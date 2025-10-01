@@ -1285,9 +1285,11 @@ export default function TypingHeroPage() {
     }
 
     console.log(`🎮 Game ended: ${success ? 'SUCCESS' : 'FAILED'}`);
-    console.log('📊 Final stats:', gameStats);
-    
-    // Set appropriate game state based on success and minimum time
+        console.log('📊 Final stats:', gameStats);
+        console.log('🔍 WordsIncorrect length:', gameStats.wordsIncorrect.length);
+        console.log('🔍 WordsIncorrect array:', gameStats.wordsIncorrect);
+        
+        // Set appropriate game state based on success and minimum time
     if (success || gameStats.elapsedTime >= 60) {
       setGameState('complete'); // Player completed session or reached minimum time
       // Ensure music is stopped when game completes
@@ -1385,6 +1387,9 @@ export default function TypingHeroPage() {
           wordsIncorrectSample: gameStats.wordsIncorrect.slice(0, 2)
         });
         
+        console.log('💾 About to save session - WordsIncorrect length:', gameStats.wordsIncorrect.length);
+        console.log('💾 About to save session - WordsIncorrect array:', gameStats.wordsIncorrect);
+        
         setSavingSession(true);
         const saveResponse = await fetch('/api/games/typing-hero/session', {
           method: 'POST',
@@ -1398,7 +1403,7 @@ export default function TypingHeroPage() {
             wpm: wpmToSave,
             longest_streak: gameStats.longestStreak,
             correct_words: gameStats.correctWords,
-            wrong_words: gameStats.poos,
+            wrong_words: gameStats.wordsIncorrect.length,
             elapsed_time: gameStats.elapsedTime,
             overall_accuracy: accToSave,
             
@@ -4688,7 +4693,7 @@ export default function TypingHeroPage() {
                         whileHover={{ scale: 1.03 }}
                         className="bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-lg p-4 border border-red-400/20 text-center group hover:shadow-lg hover:shadow-red-400/10 transition-all"
                       >
-                        <div className="text-3xl font-bold text-red-400 mb-1">{gameStats.poos}</div>
+                        <div className="text-3xl font-bold text-red-400 mb-1">{gameStats.wordsIncorrect.length}</div>
                         <div className="text-xs text-gray-400 group-hover:text-red-300 transition-colors">💩 Wrong Words</div>
                       </motion.div>
 
