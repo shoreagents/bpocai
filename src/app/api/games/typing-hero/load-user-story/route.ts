@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loadUserActiveStory } from '@/lib/story-storage';
+import pool from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,29 +13,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('📖 Loading active story for user:', userId);
+    console.log('📖 Loading story from database for user:', userId);
 
-    const story = loadUserActiveStory(userId);
-
-    if (!story) {
-      console.log('📖 No active story found for user:', userId);
-      return NextResponse.json(
-        { story: null, hasStory: false },
-        { status: 200 }
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT generated_story FROM typing_hero_stats WHERE user_id = $1',
+        [userId]
       );
+
+      if (result.rows.length === 0 || !result.rows[0].generated_story) {
+        console.log('📖 No story found in database for user:', userId);
+        return NextResponse.json(
+          { story: null, hasStory: false },
+          { status: 200 }
+        );
+      }
+
+      const story = JSON.parse(result.rows[0].generated_story);
+      
+      console.log('✅ Story loaded from database:', {
+        storyId: story.id,
+        title: story.title,
+        chapters: story.chapters.length,
+        createdAt: story.createdAt
+      });
+
+      return NextResponse.json({
+        story,
+        hasStory: true
+      });
+    } finally {
+      client.release();
     }
-
-    console.log('✅ Active story loaded:', {
-      storyId: story.id,
-      title: story.title,
-      chapters: story.chapters.length,
-      createdAt: story.createdAt
-    });
-
-    return NextResponse.json({
-      story,
-      hasStory: true
-    });
 
   } catch (error) {
     console.error('❌ Error loading user story:', error);
@@ -58,29 +68,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📖 Loading active story for user (POST):', userId);
+    console.log('📖 Loading story from database for user (POST):', userId);
 
-    const story = loadUserActiveStory(userId);
-
-    if (!story) {
-      console.log('📖 No active story found for user:', userId);
-      return NextResponse.json(
-        { story: null, hasStory: false },
-        { status: 200 }
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT generated_story FROM typing_hero_stats WHERE user_id = $1',
+        [userId]
       );
+
+      if (result.rows.length === 0 || !result.rows[0].generated_story) {
+        console.log('📖 No story found in database for user:', userId);
+        return NextResponse.json(
+          { story: null, hasStory: false },
+          { status: 200 }
+        );
+      }
+
+      const story = JSON.parse(result.rows[0].generated_story);
+      
+      console.log('✅ Story loaded from database:', {
+        storyId: story.id,
+        title: story.title,
+        chapters: story.chapters.length,
+        createdAt: story.createdAt
+      });
+
+      return NextResponse.json({
+        story,
+        hasStory: true
+      });
+    } finally {
+      client.release();
     }
-
-    console.log('✅ Active story loaded:', {
-      storyId: story.id,
-      title: story.title,
-      chapters: story.chapters.length,
-      createdAt: story.createdAt
-    });
-
-    return NextResponse.json({
-      story,
-      hasStory: true
-    });
 
   } catch (error) {
     console.error('❌ Error loading user story:', error);

@@ -609,6 +609,24 @@ export default function SignUpForm({ open, onOpenChange, onSwitchToLogin }: Sign
 
               {/* Terms and Conditions */}
               <div className="space-y-2">
+                {/* Note about reading terms first */}
+                <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-400/30 rounded-xl p-4 mb-4 shadow-lg shadow-cyan-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-cyan-300 font-semibold text-sm">📋 First Step Required</span>
+                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                      </div>
+                      <p className="text-gray-300 text-sm leading-relaxed">
+                        Please read the <span className="text-cyan-400 font-medium">Terms and Conditions</span> before proceeding with your account creation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="flex items-start space-x-3">
                   <button
                     type="button"
