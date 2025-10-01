@@ -576,8 +576,8 @@ Please provide a detailed analysis in the following JSON structure, using ONLY i
   "salaryAnalysis": {
     "currentLevel": "${experienceLevel}",
     "recommendedSalaryRange": "[Calculate based on experience level, location, and certifications - MUST be in PHP format like 'PHP 20,000 - 35,000' or 'PHP 25,000 - 40,000']",
-    "marketPosition": "[Describe the candidate's market position and competitiveness]",
-    "growthPotential": "[Describe the candidate's potential for salary growth and advancement]",
+    "marketPosition": "[Analyze the candidate's competitive position in the BPO job market based on their skills, experience, certifications, and location. Consider market demand, skill scarcity, and industry trends. Provide specific insights about their competitive advantages and market positioning. Include how their unique combination of skills and experience makes them stand out in the current job market.]",
+    "growthPotential": "[Assess the candidate's potential for career advancement and salary growth based on their current skills, experience level, certifications, and market trends. Include specific recommendations for skill development and career progression opportunities. Consider their current position, target roles, and the skills needed to advance. Provide actionable insights on how they can maximize their earning potential and career trajectory.]",
     "factorsAffectingSalary": [
       [List 3-4 factors based on actual resume content and certifications]
     ],

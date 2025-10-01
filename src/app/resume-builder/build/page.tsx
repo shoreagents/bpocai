@@ -1023,13 +1023,25 @@ export default function ResumeBuilderPage() {
 
       console.log('💾 Saving resume to profile...');
       
-      // Prepare the complete resume data (content + template)
+      // Prepare the complete resume data (content + template + colors)
       const completeResumeData = {
         content: improvedResume,
-        template: selectedTemplate,
+        template: {
+          ...selectedTemplate,
+          primaryColor: customColors.primary,
+          secondaryColor: customColors.secondary
+        },
         sections: sections,
         headerInfo: getHeaderInfo()
       };
+      
+      console.log('📦 Complete resume data being saved:', {
+        templateId: selectedTemplate.id,
+        templateName: selectedTemplate.name,
+        primaryColor: customColors.primary,
+        secondaryColor: customColors.secondary,
+        fullTemplate: completeResumeData.template
+      });
 
       // Generate a title for the resume
       const resumeTitle = `${improvedResume.name || 'My'}'s Resume`;
@@ -1096,7 +1108,13 @@ export default function ResumeBuilderPage() {
         break;
       case 'view-resume':
         if (savedResumeUrl) {
-          window.open(savedResumeUrl, '_blank');
+          // Extract the slug from the full URL or use it as-is if it's already a path
+          const slug = savedResumeUrl.includes('/resume/') 
+            ? savedResumeUrl.split('/resume/')[1] 
+            : savedResumeUrl;
+          router.push(`/resume/${slug}`);
+        } else {
+          toast.error('Resume URL not available');
         }
         break;
     }
@@ -1144,9 +1162,15 @@ export default function ResumeBuilderPage() {
       case 'experience':
         return (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
-              Work Experience
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-1 h-6 rounded-full"
+                style={{ backgroundColor: customColors.primary }}
+              ></div>
+              <h3 className="text-lg font-semibold" style={{ color: customColors.primary }}>
+                Work Experience
+              </h3>
+            </div>
             <div className="mb-3">
               <Button variant="outline" className="text-xs" onClick={() => addListItem('experience', { title: 'New Role', company: '', duration: '', achievements: [''] }, 'title')}>
                 + Add experience
@@ -1222,9 +1246,15 @@ export default function ResumeBuilderPage() {
       case 'skills':
         return (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
-              Skills
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-1 h-6 rounded-full"
+                style={{ backgroundColor: customColors.primary }}
+              ></div>
+              <h3 className="text-lg font-semibold" style={{ color: customColors.primary }}>
+                Skills
+              </h3>
+            </div>
             <div className="flex flex-wrap gap-2 mb-3">
               <Button variant="outline" className="text-xs" onClick={() => addListItem('skills.technical', '', '')}>+ Tech</Button>
               <Button variant="outline" className="text-xs" onClick={() => addListItem('skills.soft', '', '')}>+ Soft</Button>
@@ -1322,9 +1352,15 @@ export default function ResumeBuilderPage() {
       case 'education':
         return (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
-              Education
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-1 h-6 rounded-full"
+                style={{ backgroundColor: customColors.primary }}
+              ></div>
+              <h3 className="text-lg font-semibold" style={{ color: customColors.primary }}>
+                Education
+              </h3>
+            </div>
             <div className="mb-3">
               <Button variant="outline" className="text-xs" onClick={() => addListItem('education', { degree: 'New Degree', institution: '', year: '', highlights: [''] }, 'degree')}>
                 + Add education
@@ -1398,9 +1434,15 @@ export default function ResumeBuilderPage() {
       case 'certifications':
         return (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
-              Certifications
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-1 h-6 rounded-full"
+                style={{ backgroundColor: customColors.primary }}
+              ></div>
+              <h3 className="text-lg font-semibold" style={{ color: customColors.primary }}>
+                Certifications
+              </h3>
+            </div>
             <div className="mb-3">
               <Button variant="outline" className="text-xs" onClick={() => addListItem('certifications', '', '')}>+ Add certification</Button>
             </div>
@@ -1436,9 +1478,15 @@ export default function ResumeBuilderPage() {
       case 'projects':
         return (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
-              Projects
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-1 h-6 rounded-full"
+                style={{ backgroundColor: customColors.primary }}
+              ></div>
+              <h3 className="text-lg font-semibold" style={{ color: customColors.primary }}>
+                Projects
+              </h3>
+            </div>
             <div className="mb-3">
               <Button variant="outline" className="text-xs" onClick={() => addListItem('projects', { title: 'New Project', description: '', technologies: [''], impact: [''] }, 'title')}>+ Add project</Button>
             </div>
@@ -1533,9 +1581,15 @@ export default function ResumeBuilderPage() {
       case 'achievements':
         return (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3" style={{ color: customColors.primary }}>
-              Achievements
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <div 
+                className="w-1 h-6 rounded-full"
+                style={{ backgroundColor: customColors.primary }}
+              ></div>
+              <h3 className="text-lg font-semibold" style={{ color: customColors.primary }}>
+                Achievements
+              </h3>
+            </div>
             <div className="mb-3">
               <Button variant="outline" className="text-xs" onClick={() => addListItem('achievements', '', '')}>+ Add achievement</Button>
             </div>
