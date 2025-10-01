@@ -16,13 +16,15 @@ export async function POST(request: NextRequest) {
     let { 
       resumeData, 
       templateUsed, 
-      resumeTitle 
+      resumeTitle,
+      resumeSlug 
     } = await request.json()
     
     console.log('📥 Received data:', { 
       hasResumeData: !!resumeData, 
       templateUsed,
-      resumeTitle
+      resumeTitle,
+      resumeSlug
     })
 
     if (!resumeData || !templateUsed || !resumeTitle) {
@@ -146,22 +148,27 @@ export async function POST(request: NextRequest) {
       const user = userCheck.rows[0]
       console.log('✅ User found in database:', user.full_name)
 
-      // Generate a URL-friendly slug from the full name
-      const generateSlug = (fullName: string) => {
-        // Create slug directly from full name
-        let slug = fullName
+      // Helper function to generate slug in firstName-lastName-XX format
+      const generateSlugFromUser = (firstName: string, lastName: string, uid: string) => {
+        // Clean and normalize names
+        const cleanFirst = (firstName || 'user')
           .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-          .replace(/\s+/g, '-') // Replace spaces with hyphens
-          .replace(/-+/g, '-') // Replace multiple hyphens with single
-          .trim()
+          .normalize('NFD') // Decompose accented characters
+          .replace(/[\u0300-\u036f]/g, '') // Remove accent marks
+          .replace(/[^a-z0-9]/g, '') // Keep only alphanumeric
+          .slice(0, 20) // Limit length
         
-        // Add "-resume" suffix if not already present
-        if (!slug.endsWith('-resume')) {
-          slug += '-resume'
-        }
+        const cleanLast = (lastName || 'profile')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, '')
+          .slice(0, 20)
         
-        return slug
+        // Get last 2 digits of UID
+        const lastTwoDigits = uid.toString().slice(-2).padStart(2, '0')
+        
+        return `${cleanFirst}-${cleanLast}-${lastTwoDigits}`
       }
 
       // Get the most recent generated resume ID for this user
@@ -207,26 +214,44 @@ export async function POST(request: NextRequest) {
         console.log('✅ Existing resume updated successfully')
       } else {
         // User doesn't have a saved resume - create new one
-        const baseSlug = generateSlug(user.full_name)
-        let counter = 1
+        // Use provided slug from frontend, or generate one as fallback
+        const baseSlug = resumeSlug || generateSlugFromUser(user.first_name, user.last_name, userId)
+        
+        console.log('🔧 Generating slug:', {
+          providedSlug: resumeSlug,
+          generatedSlug: !resumeSlug ? baseSlug : null,
+          firstName: user.first_name,
+          lastName: user.last_name
+        })
 
-        // Check if slug already exists and generate a unique one
-        while (true) {
-          const slugCheck = await client.query(
-            'SELECT id FROM saved_resumes WHERE resume_slug = $1',
-            [baseSlug]
-          )
+        // Check if slug already exists
+        const slugCheck = await client.query(
+          'SELECT id FROM saved_resumes WHERE resume_slug = $1',
+          [baseSlug]
+        )
+        
+        if (slugCheck.rows.length > 0) {
+          // Slug already exists, add counter to make unique
+          let counter = 1
+          let uniqueSlug = baseSlug
           
-          if (slugCheck.rows.length === 0) {
-            break // Slug is unique
+          while (true) {
+            uniqueSlug = `${baseSlug}-${counter}`
+            const uniqueCheck = await client.query(
+              'SELECT id FROM saved_resumes WHERE resume_slug = $1',
+              [uniqueSlug]
+            )
+            
+            if (uniqueCheck.rows.length === 0) {
+              finalSlug = uniqueSlug
+              break
+            }
+            counter++
           }
-          
-          // Add counter to make it unique
-          finalSlug = `${baseSlug}-${counter}`
-          counter++
+        } else {
+          finalSlug = baseSlug
         }
 
-        finalSlug = baseSlug
         console.log('🆕 Creating new saved resume with slug:', finalSlug)
         
         // Insert new saved resume

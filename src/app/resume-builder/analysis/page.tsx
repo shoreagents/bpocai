@@ -110,10 +110,6 @@ export default function AnalysisPage() {
             
             {/* Progress Bar */}
             <div className="hidden md:flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-purple-200">Progress:</span>
-                <span className="text-xs text-green-400 font-bold">{progressPercentage}% Complete</span>
-              </div>
               <div className="w-48 bg-purple-700/50 rounded-full h-2 overflow-hidden">
                 <motion.div 
                   className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full"
@@ -206,6 +202,7 @@ export default function AnalysisPage() {
   const [serverProfile, setServerProfile] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isNavigatingToBuild, setIsNavigatingToBuild] = useState(false);
 
   // Smart mapping function to extract data from flexible JSON structure
   const mapResumeData = (rawData: any) => {
@@ -2599,30 +2596,66 @@ export default function AnalysisPage() {
                 
                 <Button 
                   className="relative bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold px-12 py-6 rounded-2xl shadow-2xl shadow-purple-500/50 border-2 border-purple-300/30 transition-all duration-300 text-lg"
-                  onClick={() => {
-                    if (resumeData) {
+                  disabled={isNavigatingToBuild}
+                  onClick={async () => {
+                    if (!resumeData) {
+                      toast.error('Resume data not ready. Please wait...');
+                      return;
+                    }
+                    
+                    setIsNavigatingToBuild(true);
+                    try {
+                      // Ensure data is saved to localStorage before navigating
                       localStorage.setItem('resumeData', JSON.stringify(resumeData));
+                      
+                      // Small delay to ensure localStorage write completes
+                      await new Promise(resolve => setTimeout(resolve, 100));
+                      
+                      // Verify data was saved
+                      const savedData = localStorage.getItem('resumeData');
+                      if (!savedData) {
+                        throw new Error('Failed to save resume data');
+                      }
+                      
                       cleanupWorkflowData();
                       router.push('/resume-builder/build');
+                    } catch (error) {
+                      console.error('Error saving resume data:', error);
+                      toast.error('Failed to save resume data. Please try again.');
+                      setIsNavigatingToBuild(false);
                     }
                   }}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-7 w-7" />
-                      <span className="text-2xl">✨</span>
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-lg font-bold leading-tight">Generate New Resume</span>
-                      <span className="text-sm opacity-90 leading-tight">🤖 AI-powered • 📈 Optimized • 🎯 Job-ready</span>
-                    </div>
-                    <motion.div
-                      animate={{ x: [0, 8, 0] }}
-                      transition={{ repeat: Infinity, duration: 1.5 }}
-                      className="text-2xl"
-                    >
-                      →
-                    </motion.div>
+                    {isNavigatingToBuild ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-lg font-bold leading-tight">Loading Resume Builder...</span>
+                          <span className="text-sm opacity-90 leading-tight">Preparing your data</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-7 w-7" />
+                          <span className="text-2xl">✨</span>
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-lg font-bold leading-tight">Generate New Resume</span>
+                          <span className="text-sm opacity-90 leading-tight">🤖 AI-powered • 📈 Optimized • 🎯 Job-ready</span>
+                        </div>
+                        <motion.div
+                          animate={{ x: [0, 8, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          className="text-2xl"
+                        >
+                          →
+                        </motion.div>
+                      </>
+                    )}
                   </div>
                 </Button>
 

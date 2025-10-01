@@ -78,6 +78,19 @@ export async function PUT(request: NextRequest) {
       [userId]
     )
 
+    // Helper function to convert empty strings to null for numeric fields
+    const toNumericOrNull = (value: any) => {
+      if (value === null || value === undefined || value === '') return null
+      const num = typeof value === 'number' ? value : parseFloat(String(value))
+      return isNaN(num) ? null : num
+    }
+
+    // Helper function to convert empty strings to null for text fields
+    const toTextOrNull = (value: any) => {
+      if (value === null || value === undefined || value === '') return null
+      return String(value).trim() || null
+    }
+
     // Normalize to allowed moods: Happy, Satisfied, Sad, Undecided
     const moodMap: Record<string, string> = {
       happy: 'Happy',
@@ -93,6 +106,7 @@ export async function PUT(request: NextRequest) {
       bored: 'Undecided',
       undecided: 'Undecided',
       unknown: 'Undecided',
+      none: 'Undecided',
     }
     const statusMap: Record<string, string> = {
       unemployed: 'unemployed-looking-for-work',
@@ -107,7 +121,7 @@ export async function PUT(request: NextRequest) {
       transitioning: 'transitioning',
       'remote-worker': 'remote-worker',
     }
-    const sanitizedMood = currentMood ? (moodMap[String(currentMood).toLowerCase()] || null) : null
+    const sanitizedMood = currentMood && currentMood !== 'none' ? (moodMap[String(currentMood).toLowerCase()] || null) : null
     const sanitizedStatus = workStatus ? (statusMap[String(workStatus)] || workStatus) : null
 
     if (existing.rows.length > 0) {
@@ -124,23 +138,23 @@ export async function PUT(request: NextRequest) {
              work_status = $10,
              preferred_shift = $11,
              work_setup = $12,
-                           completed_data = $13,
+                          completed_data = $13,
              updated_at = NOW()
          WHERE user_id = $1
          RETURNING *`,
         [
           userId,
-          currentEmployer ?? null,
-          currentPosition ?? null,
-          currentSalary ?? null,
-          typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null),
-          expectedSalary ?? null,
-          minimumSalaryRange ?? null,
-          maximumSalaryRange ?? null,
+          toTextOrNull(currentEmployer),
+          toTextOrNull(currentPosition),
+          toNumericOrNull(currentSalary),
+          toNumericOrNull(noticePeriod),
+          toTextOrNull(expectedSalary),
+          toNumericOrNull(minimumSalaryRange),
+          toNumericOrNull(maximumSalaryRange),
           sanitizedMood,
           sanitizedStatus,
-          preferredShift ?? null,
-          workSetup ?? null,
+          toTextOrNull(preferredShift),
+          toTextOrNull(workSetup),
           typeof (completedData || completed_data) === 'boolean' ? (completedData || completed_data) : null,
         ]
       )
@@ -170,17 +184,17 @@ export async function PUT(request: NextRequest) {
        ) RETURNING *`,
       [
         userId,
-        currentEmployer ?? null,
-        currentPosition ?? null,
-        currentSalary ?? null,
-        typeof noticePeriod === 'number' ? noticePeriod : (noticePeriod ? parseInt(String(noticePeriod)) : null),
-        expectedSalary ?? null,
-        minimumSalaryRange ?? null,
-        maximumSalaryRange ?? null,
+        toTextOrNull(currentEmployer),
+        toTextOrNull(currentPosition),
+        toNumericOrNull(currentSalary),
+        toNumericOrNull(noticePeriod),
+        toTextOrNull(expectedSalary),
+        toNumericOrNull(minimumSalaryRange),
+        toNumericOrNull(maximumSalaryRange),
         sanitizedMood,
         sanitizedStatus,
-        preferredShift ?? null,
-        workSetup ?? null,
+        toTextOrNull(preferredShift),
+        toTextOrNull(workSetup),
         typeof (completedData || completed_data) === 'boolean' ? (completedData || completed_data) : null,
       ]
     )
