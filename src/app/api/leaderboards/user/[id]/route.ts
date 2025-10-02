@@ -7,58 +7,62 @@ export async function GET(
 ) {
   try {
     const { id: userId } = await Promise.resolve(params)
-    const source = new URL(_request.url).searchParams.get('source') || 'tables'
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
-    // Overall components (live or tables)
-    let overallData: any = null
-    if (source === 'live') {
-      const gameNormRes = await pool.query(
-        `WITH per_game_max AS (
-           SELECT game_id, MAX(best_score) AS max_score
-           FROM leaderboard_game_scores
-           WHERE period = 'all'
-           GROUP BY game_id
-         ), per_user_game_norm AS (
-           SELECT l.user_id,
-                  AVG(100.0 * l.best_score / NULLIF(m.max_score,0)) AS game_norm
-           FROM leaderboard_game_scores l
-           JOIN per_game_max m ON m.game_id = l.game_id
-           WHERE l.period = 'all' AND l.user_id = $1
-           GROUP BY l.user_id
-         ), app AS (
-           SELECT score FROM leaderboard_applicant_scores WHERE period = 'all' AND user_id = $1
-         ), app_max AS (
-           SELECT MAX(score) AS max_app FROM leaderboard_applicant_scores WHERE period = 'all'
-         ), eng AS (
-           SELECT score FROM leaderboard_engagement_scores WHERE period = 'all' AND user_id = $1
-         ), eng_max AS (
-           SELECT MAX(score) AS max_eng FROM leaderboard_engagement_scores WHERE period = 'all'
-         )
-         SELECT 
-           COALESCE((SELECT game_norm FROM per_user_game_norm), 0) AS game_norm,
-           100.0 * COALESCE((SELECT score FROM app), 0) / NULLIF((SELECT max_app FROM app_max),0) AS applicant_norm,
-           100.0 * COALESCE((SELECT score FROM eng), 0) / NULLIF((SELECT max_eng FROM eng_max),0) AS engagement_norm`,
-        [userId]
-      )
-      const g = gameNormRes.rows[0] || { game_norm: 0, applicant_norm: 0, engagement_norm: 0 }
-      const overall = Math.round(0.6 * (g.game_norm || 0) + 0.3 * (g.applicant_norm || 0) + 0.1 * (g.engagement_norm || 0))
-      overallData = { overall_score: overall, game_norm: g.game_norm || 0, applicant_norm: g.applicant_norm || 0, engagement_norm: g.engagement_norm || 0 }
-    } else {
-      const overallRes = await pool.query(
-        `SELECT overall_score, game_norm, applicant_norm, engagement_norm
-         FROM leaderboard_overall_scores
-         WHERE user_id = $1`,
-        [userId]
-      )
-      overallData = overallRes.rows[0] || null
+    console.log('🔍 Fetching user breakdown for:', userId)
+
+    // Get user's leaderboard data from the new unified system
+    const leaderboardRes = await pool.query(`
+      SELECT 
+        user_id,
+        overall_score,
+        typing_hero_score,
+        disc_personality_score,
+        profile_completion_score,
+        resume_building_score,
+        application_activity_score,
+        tier,
+        rank_position,
+        metrics,
+        updated_at,
+        last_activity_at
+      FROM user_leaderboard_scores
+      WHERE user_id = $1
+    `, [userId])
+
+    if (leaderboardRes.rows.length === 0) {
+      return NextResponse.json({ error: 'User not found in leaderboard' }, { status: 404 })
     }
 
-    // Applications details (per job current status -> points)
-    const appsRes = await pool.query(
-      `SELECT job_id, status, created_at FROM applications WHERE user_id = $1`,
-      [userId]
-    )
+    const leaderboardData = leaderboardRes.rows[0]
+
+    // Get user's detailed game stats
+    const [typingStats, discStats] = await Promise.all([
+      pool.query(`
+        SELECT 
+          best_wpm, best_accuracy, total_sessions, total_time_spent,
+          created_at, updated_at
+        FROM typing_hero_stats 
+        WHERE user_id = $1
+      `, [userId]),
+      pool.query(`
+        SELECT 
+          best_confidence_score, completed_sessions, latest_primary_type,
+          created_at, updated_at
+        FROM disc_personality_stats 
+        WHERE user_id = $1
+      `, [userId])
+    ])
+
+    // Get user's application details
+    const applicationsRes = await pool.query(`
+      SELECT 
+        job_id, status, created_at, updated_at
+      FROM applications 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+    `, [userId])
+
     const statusPoints: Record<string, number> = {
       'submitted': 5,
       'qualified': 15,
@@ -69,64 +73,136 @@ export async function GET(
       'passed': 60,
       'hired': 100,
     }
-    const applicationItems = appsRes.rows.map((r: any) => ({
+
+    const applicationItems = applicationsRes.rows.map((r: any) => ({
       job_id: r.job_id,
       status: r.status,
       points: statusPoints[r.status] ?? 0,
-      updated_at: r.created_at,
+      created_at: r.created_at,
+      updated_at: r.updated_at
     }))
-    const applicationsTotal = applicationItems.reduce((a: number, b: any) => a + (b.points || 0), 0)
 
-    // Engagement score
-    const engScoreRes = await pool.query(
-      `SELECT score FROM leaderboard_engagement_scores WHERE period = 'all' AND user_id = $1`,
-      [userId]
-    )
-    // Engagement details
-    const [typing, bpoc, ultimate, disc, resumeCnt, userAvatar] = await Promise.all([
-      pool.query(`SELECT 1 FROM typing_hero_sessions WHERE user_id = $1 LIMIT 1`, [userId]),
-      pool.query(`SELECT 1 FROM bpoc_cultural_sessions WHERE user_id = $1 LIMIT 1`, [userId]),
-      pool.query(`SELECT 1 FROM ultimate_sessions WHERE user_id = $1 LIMIT 1`, [userId]),
-      pool.query(`SELECT 1 FROM disc_personality_sessions WHERE user_id = $1 LIMIT 1`, [userId]),
-      pool.query(`SELECT COUNT(*)::int AS cnt FROM saved_resumes WHERE user_id = $1`, [userId]),
-      pool.query(`SELECT avatar_url FROM users WHERE id = $1`, [userId]),
-    ])
-    const hasTyping = typing.rowCount > 0
-    const hasBpoc = bpoc.rowCount > 0
-    const hasUltimate = ultimate.rowCount > 0
-    const hasDisc = disc.rowCount > 0
-    const allGames = hasTyping && hasBpoc && hasUltimate && hasDisc
-    const hasAvatar = !!(userAvatar.rows[0]?.avatar_url && String(userAvatar.rows[0]?.avatar_url).trim())
-    const hasResume = Number(resumeCnt.rows[0]?.cnt || 0) > 0
-    const engagementItems = [
-      { label: 'Typing Hero Completed', points: hasTyping ? 5 : 0 },
-      { label: 'BPOC Cultural Completed', points: hasBpoc ? 5 : 0 },
-      { label: 'Ultimate Completed', points: hasUltimate ? 5 : 0 },
-      { label: 'DISC Personality Completed', points: hasDisc ? 5 : 0 },
-      { label: 'All 4 Games Completed', points: allGames ? 20 : 0 },
-      { label: 'Avatar Uploaded (first time)', points: hasAvatar ? 5 : 0 },
-      { label: 'First Resume Created', points: hasResume ? 10 : 0 },
+    // Get user's profile completion details
+    const userRes = await pool.query(`
+      SELECT 
+        first_name, last_name, username, email, phone, bio, 
+        avatar_url, location, birthday, gender, position,
+        completed_data, created_at, updated_at
+      FROM users 
+      WHERE id = $1
+    `, [userId])
+
+    const user = userRes.rows[0] || {}
+    
+    // Calculate profile completion breakdown
+    const profileItems = [
+      { label: 'First Name', completed: !!user.first_name, points: 10 },
+      { label: 'Last Name', completed: !!user.last_name, points: 10 },
+      { label: 'Username', completed: !!user.username, points: 10 },
+      { label: 'Email', completed: !!user.email, points: 10 },
+      { label: 'Phone', completed: !!user.phone, points: 10 },
+      { label: 'Bio (20+ chars)', completed: !!(user.bio && user.bio.length > 20), points: 10 },
+      { label: 'Avatar', completed: !!user.avatar_url, points: 10 },
+      { label: 'Location', completed: !!user.location, points: 10 },
+      { label: 'Birthday', completed: !!user.birthday, points: 10 },
+      { label: 'Work Status Completed', completed: !!user.completed_data, points: 20 }
     ]
-    const engagementTotal = engagementItems.reduce((a, b) => a + b.points, 0)
 
-    // Per-game bests (all-time) — already live enough from leaderboard table
-    const gamesRes = await pool.query(
-      `SELECT game_id, best_score, plays, last_played
-       FROM leaderboard_game_scores
-       WHERE period = 'all' AND user_id = $1
-       ORDER BY game_id`,
-      [userId]
-    )
+    // Get resume building details
+    const [resumeRes, aiAnalysisRes] = await Promise.all([
+      pool.query(`
+        SELECT COUNT(*) as resume_count, MAX(created_at) as last_created
+        FROM saved_resumes 
+        WHERE user_id = $1
+      `, [userId]),
+      pool.query(`
+        SELECT 
+          overall_score, ats_compatibility_score, content_quality_score,
+          professional_presentation_score, skills_alignment_score,
+          created_at, updated_at
+        FROM ai_analysis_results 
+        WHERE user_id = $1 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `, [userId])
+    ])
+
+    const resumeCount = Number(resumeRes.rows[0]?.resume_count || 0)
+    const aiAnalysis = aiAnalysisRes.rows[0] || {}
+
+    const resumeItems = [
+      { 
+        label: 'Resumes Created', 
+        completed: resumeCount > 0, 
+        points: resumeCount > 0 ? 20 : 0,
+        details: `${resumeCount} resume(s) created`
+      },
+      { 
+        label: 'AI Analysis Score', 
+        completed: !!aiAnalysis.overall_score, 
+        points: aiAnalysis.overall_score ? Math.round(aiAnalysis.overall_score * 0.8) : 0,
+        details: aiAnalysis.overall_score ? `${aiAnalysis.overall_score}% overall score` : 'No analysis'
+      }
+    ]
 
     return NextResponse.json({
-      overall: overallData,
-      applications: { total: applicationsTotal, items: applicationItems },
-      engagement: { total: engScoreRes.rows[0]?.score ?? engagementTotal, items: engagementItems },
-      games: gamesRes.rows || []
+      // Overall leaderboard data
+      overall: {
+        overall_score: leaderboardData.overall_score,
+        tier: leaderboardData.tier,
+        rank_position: leaderboardData.rank_position,
+        last_activity_at: leaderboardData.last_activity_at,
+        updated_at: leaderboardData.updated_at
+      },
+      
+      // Component scores
+      components: {
+        typing_hero: {
+          score: leaderboardData.typing_hero_score,
+          details: typingStats.rows[0] ? {
+            best_wpm: typingStats.rows[0].best_wpm,
+            best_accuracy: typingStats.rows[0].best_accuracy,
+            total_sessions: typingStats.rows[0].total_sessions,
+            total_time_spent: typingStats.rows[0].total_time_spent
+          } : null
+        },
+        disc_personality: {
+          score: leaderboardData.disc_personality_score,
+          details: discStats.rows[0] ? {
+            best_confidence_score: discStats.rows[0].best_confidence_score,
+            completed_sessions: discStats.rows[0].completed_sessions,
+            latest_primary_type: discStats.rows[0].latest_primary_type
+          } : null
+        },
+        profile_completion: {
+          score: leaderboardData.profile_completion_score,
+          items: profileItems
+        },
+        resume_building: {
+          score: leaderboardData.resume_building_score,
+          items: resumeItems,
+          ai_analysis: aiAnalysis
+        },
+        application_activity: {
+          score: leaderboardData.application_activity_score,
+          total_applications: applicationsRes.rows.length,
+          items: applicationItems
+        }
+      },
+
+      // Raw metrics from the database
+      metrics: leaderboardData.metrics,
+      
+      // System info
+      system: 'new_unified',
+      description: 'Unified leaderboard system with 5 weighted components'
     })
-  } catch (e) {
-    return NextResponse.json({ error: 'Failed to load user breakdown' }, { status: 500 })
+
+  } catch (error) {
+    console.error('❌ User breakdown error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to load user breakdown',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 })
   }
 }
-
-
