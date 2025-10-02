@@ -2565,6 +2565,29 @@ export default function TypingHeroPage() {
     }
   }, [gameState]);
 
+  // Force green border styling
+  useEffect(() => {
+    if (gameState === 'playing') {
+      const style = document.createElement('style');
+      style.textContent = `
+        input[data-typing-input="true"] {
+          border-color: #4ade80 !important;
+          border: 3px solid #4ade80 !important;
+        }
+        input[data-typing-input="true"]:focus {
+          border-color: #4ade80 !important;
+          border: 3px solid #4ade80 !important;
+          box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.3) !important;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, [gameState]);
+
   // Typing animation effect for demo
   useEffect(() => {
     if (!showDemoModal) return;
@@ -4384,13 +4407,19 @@ export default function TypingHeroPage() {
                          onChange={handleInputChange}
                          onKeyPress={handleKeyPress}
                         placeholder={gameState === 'playing' ? "Type the falling words here..." : gameState === 'ready' ? "Click Ready above to start typing..." : "Get ready to type..."}
-                        className={`text-2xl font-mono h-24 px-8 rounded-xl transition-all duration-500 ${
+                        className={`text-2xl font-mono h-24 px-8 rounded-xl transition-all duration-500 [&:not(:focus)]:border-green-400 [&:focus]:border-green-400 ${
                           gameState === 'ready' 
                             ? 'bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border-4 border-cyan-400 shadow-2xl shadow-cyan-400/30 text-white placeholder-cyan-200 animate-pulse ring-4 ring-cyan-400/20' 
                             : gameState === 'playing'
-                            ? 'bg-gray-800/70 border-3 border-green-400/70 focus:border-green-400 focus:ring-4 focus:ring-green-400/30 text-white placeholder-gray-400'
+                            ? 'bg-gray-800/70 border-3 border-green-400 focus:border-green-400 focus:ring-4 focus:ring-green-400/50 text-white placeholder-gray-400 shadow-lg shadow-green-400/20 !border-green-400 focus:!border-green-400 border-green-400 focus:border-green-400'
                             : 'bg-gray-800/50 border-2 border-gray-600 text-gray-400 placeholder-gray-500'
                         }`}
+                        style={{
+                          borderColor: gameState === 'playing' ? '#4ade80' : undefined,
+                          border: gameState === 'playing' ? '3px solid #4ade80' : undefined,
+                          boxShadow: gameState === 'playing' ? '0 0 0 3px rgba(74, 222, 128, 0.3)' : undefined
+                        }}
+                        data-typing-input="true"
                          disabled={gameState !== 'playing'}
                          autoComplete="off"
                          autoCorrect="off"
