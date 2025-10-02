@@ -66,7 +66,7 @@ function getPeriodLabel(p: string) {
   return 'All‑time'
 }
 
-type Category = 'overall' | 'game' | 'applicants' | 'engagement' | 'top-resume' | 'top-typing-hero' | 'top-disc-players'
+type Category = 'overall' | 'typing-hero' | 'disc-personality' | 'profile' | 'resume' | 'applications'
 type Period = 'weekly' | 'monthly' | 'all'
 
 interface UserInfo { full_name: string | null; avatar_url: string | null; slug: string | null }
@@ -78,8 +78,6 @@ interface OverallResult extends SimpleResult { components?: { game_norm: number;
 export default function LeaderboardsPage() {
 	const router = useRouter()
 	const [category, setCategory] = useState<Category>('overall')
-	const [period, setPeriod] = useState<Period>('weekly')
-	const [gameId, setGameId] = useState<string>('bpoc-cultural')
 	const [page, setPage] = useState<number>(1)
 	const [pageSize, setPageSize] = useState<number>(10)
 	const [loading, setLoading] = useState<boolean>(false)
@@ -114,7 +112,6 @@ export default function LeaderboardsPage() {
 
 
 	useEffect(() => {
-
 		const fetchData = async () => {
 			try {
 				setLoading(true)
@@ -123,21 +120,7 @@ export default function LeaderboardsPage() {
 				params.set('category', category)
 				params.set('limit', String(pageSize))
 				params.set('offset', String(offset))
-				if (category === 'game') {
-					params.set('period', period)
-					params.set('gameId', gameId)
-					// Use live computations for game leaderboards
-					params.set('source', 'live')
-				} else if (['top-resume', 'top-typing-hero', 'top-disc-players'].includes(category)) {
-					// For new categories, return empty results for now (frontend only)
-					setTotal(0)
-					setResults([])
-					setLoading(false)
-					return
-				} else {
-					// Use precomputed tables for applicants/engagement/overall to avoid heavy/unsupported live queries
-					params.set('source', 'tables')
-				}
+				
 				const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
 				if (!res.ok) throw new Error(`Failed: ${res.status}`)
 				const data = await res.json()
@@ -152,19 +135,19 @@ export default function LeaderboardsPage() {
 			}
 		}
 		fetchData()
-	}, [category, period, gameId, page, pageSize, offset, refreshNonce])
+	}, [category, page, pageSize, offset, refreshNonce])
 
-	useEffect(() => { setPage(1) }, [category, period, gameId])
+	useEffect(() => { setPage(1) }, [category])
 
 	useEffect(() => {
 		const load = async () => {
 			if (!openUserId) return
 			try {
 				setLoadingBreakdown(true)
-				const [bRes, rRes] = await Promise.all([
-					fetch(`/api/leaderboards/user/${openUserId}?source=live`, { cache: 'no-store' }),
-					fetch(`/api/users/${openUserId}/resume`, { cache: 'no-store' })
-				])
+			const [bRes, rRes] = await Promise.all([
+				fetch(`/api/leaderboards/user/${openUserId}`, { cache: 'no-store' }),
+				fetch(`/api/users/${openUserId}/resume`, { cache: 'no-store' })
+			])
 				const b = bRes.ok ? await bRes.json() : null
 				const r = rRes.ok ? await rRes.json() : null
 				setUserBreakdown(b)
@@ -192,17 +175,20 @@ export default function LeaderboardsPage() {
 	const refreshLeaderboards = async () => {
 		try {
 			setRefreshing(true)
-			// Recompute cached tables so other views (like breakdown norms) can be fresh
+			// Trigger recalculation of all leaderboard scores
 			await fetch('/api/leaderboards/recompute', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ periods: ['weekly','monthly','all'], games: ['typing-hero','disc-personality','ultimate','bpoc-cultural'] })
+				body: JSON.stringify({ 
+					action: 'recalculate_all_scores',
+					description: 'Recalculate all user leaderboard scores using the new unified system'
+				})
 			})
 			// Trigger main list and modal re-fetch
 			setRefreshNonce(n => n + 1)
 			if (openUserId) {
 				try {
-					const bRes = await fetch(`/api/leaderboards/user/${openUserId}?source=live`, { cache: 'no-store' })
+					const bRes = await fetch(`/api/leaderboards/user/${openUserId}`, { cache: 'no-store' })
 					if (bRes.ok) setUserBreakdown(await bRes.json())
 				} catch {}
 			}
@@ -275,17 +261,8 @@ export default function LeaderboardsPage() {
 	// Hide zero-value rows per category
 	const filteredResults = useMemo(() => {
 		if (!results || results.length === 0) return []
-		if (category === 'game') {
-			return (results as GameResult[]).filter(r => (r?.bestScore ?? 0) > 0)
-		}
-		if (category === 'overall' || category === 'applicants' || category === 'engagement') {
-			return (results as SimpleResult[]).filter(r => (r?.score ?? 0) > 0)
-		}
-		// For new categories, show placeholder data for now (frontend only)
-		if (category === 'top-resume' || category === 'top-typing-hero' || category === 'top-disc-players') {
-			return [] // Empty for now - will be populated when backend is ready
-		}
-		return results
+		// Filter out users with zero scores for all categories
+		return (results as SimpleResult[]).filter(r => (r?.score ?? 0) > 0)
 	}, [results, category])
 
 	// Selected user for modal header
@@ -373,41 +350,43 @@ export default function LeaderboardsPage() {
 									<div className="text-xs text-gray-400 truncate">@{row.user.slug}</div>
 								)}
 								<div className="text-xs text-gray-400 truncate">
-									{category === 'game' && `Best: ${row.bestScore} • Plays: ${row.plays}`}
-									{category === 'applicants' && `Score: ${row.score}`}
-									{category === 'engagement' && `Score: ${row.score}`}
 									{category === 'overall' && `Overall: ${row.score}`}
-									{category === 'top-resume' && `Resume Score: ${row.score || 'N/A'}`}
-									{category === 'top-typing-hero' && `WPM: ${row.score || 'N/A'}`}
-									{category === 'top-disc-players' && `DISC Score: ${row.score || 'N/A'}`}
+									{category === 'typing-hero' && `Typing Hero: ${row.score}`}
+									{category === 'disc-personality' && `DISC Personality: ${row.score}`}
+									{category === 'profile' && `Profile Completion: ${row.score}`}
+									{category === 'resume' && `Resume Building: ${row.score}`}
+									{category === 'applications' && `Applications: ${row.score}`}
 								</div>
 								{/* Breakdown */}
 								{category === 'overall' && (
 									<div className="mt-2 space-y-2">
 										<div className="flex items-center gap-2 text-[11px] text-gray-300">
-											<span className="w-20">Games</span>
-											<Bar value={row.components?.game_norm ?? 0} color="bg-cyan-500" />
-											<span className="w-10 text-right">{Math.round(row.components?.game_norm ?? 0)}</span>
+											<span className="w-20">Typing Hero</span>
+											<Bar value={row.typing_hero_score ?? 0} color="bg-cyan-500" />
+											<span className="w-10 text-right">{Math.round(row.typing_hero_score ?? 0)}</span>
+										</div>
+										<div className="flex items-center gap-2 text-[11px] text-gray-300">
+											<span className="w-20">DISC</span>
+											<Bar value={row.disc_personality_score ?? 0} color="bg-purple-500" />
+											<span className="w-10 text-right">{Math.round(row.disc_personality_score ?? 0)}</span>
+										</div>
+										<div className="flex items-center gap-2 text-[11px] text-gray-300">
+											<span className="w-20">Profile</span>
+											<Bar value={row.profile_completion_score ?? 0} color="bg-green-500" />
+											<span className="w-10 text-right">{Math.round(row.profile_completion_score ?? 0)}</span>
+										</div>
+										<div className="flex items-center gap-2 text-[11px] text-gray-300">
+											<span className="w-20">Resume</span>
+											<Bar value={row.resume_building_score ?? 0} color="bg-orange-500" />
+											<span className="w-10 text-right">{Math.round(row.resume_building_score ?? 0)}</span>
 										</div>
 										<div className="flex items-center gap-2 text-[11px] text-gray-300">
 											<span className="w-20">Applications</span>
-											<Bar value={row.components?.applicant_norm ?? 0} color="bg-purple-500" />
-											<span className="w-10 text-right">{Math.round(row.components?.applicant_norm ?? 0)}</span>
-                </div>
-										<div className="flex items-center gap-2 text-[11px] text-gray-300">
-											<span className="w-20">Engagement</span>
-											<Bar value={row.components?.engagement_norm ?? 0} color="bg-amber-500" />
-											<span className="w-10 text-right">{Math.round(row.components?.engagement_norm ?? 0)}</span>
-              </div>
-            </div>
+											<Bar value={row.application_activity_score ?? 0} color="bg-amber-500" />
+											<span className="w-10 text-right">{Math.round(row.application_activity_score ?? 0)}</span>
+										</div>
+									</div>
 								)}
-								{category === 'game' && (
-									<div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-										<Badge variant="secondary" className="bg-white/10 border-white/20 text-white">Best {row.bestScore}</Badge>
-										<Badge variant="secondary" className="bg-white/10 border-white/20 text-white">Plays {row.plays}</Badge>
-										{row.lastPlayed && <span className="text-gray-400">Last played {new Date(row.lastPlayed).toLocaleDateString()}</span>}
-                    </div>
-                  )}
                 </div>
                   </div>
                 </CardContent>
@@ -601,42 +580,15 @@ export default function LeaderboardsPage() {
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 text-white border-gray-700">
-                    <SelectItem value="overall">Overall</SelectItem>
-                    <SelectItem value="game">Games</SelectItem>
-                    <SelectItem value="applicants">Applications</SelectItem>
-                    <SelectItem value="engagement">Engagement</SelectItem>
-                    <SelectItem value="top-resume">Top Resume</SelectItem>
-                    <SelectItem value="top-typing-hero">Top Typing Hero Players</SelectItem>
-                    <SelectItem value="top-disc-players">Top DISC Players</SelectItem>
+                    <SelectItem value="overall">🏆 Overall Score</SelectItem>
+                    <SelectItem value="typing-hero">⌨️ Typing Hero</SelectItem>
+                    <SelectItem value="disc-personality">🧠 DISC Personality</SelectItem>
+                    <SelectItem value="profile">👤 Profile Completion</SelectItem>
+                    <SelectItem value="resume">📄 Resume Building</SelectItem>
+                    <SelectItem value="applications">💼 Applications</SelectItem>
                   </SelectContent>
                 </Select>
 
-                {category === 'game' && (
-                  <>
-                    <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-                      <SelectTrigger className="w-32 bg-white/10 border border-white/20 text-white">
-                        <SelectValue placeholder="Period" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-900 text-white border-gray-700">
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="all">All-time</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={gameId} onValueChange={(v) => setGameId(v)}>
-                      <SelectTrigger className="w-52 bg-white/10 border border-white/20 text-white">
-                        <SelectValue placeholder="Game" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-900 text-white border-gray-700">
-                        <SelectItem value="bpoc-cultural">BPOC Cultural</SelectItem>
-                        <SelectItem value="typing-hero">Typing Hero</SelectItem>
-                        <SelectItem value="ultimate">Ultimate</SelectItem>
-                        <SelectItem value="disc-personality">DISC Personality</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </>
-                )}
 
                 <Button onClick={refreshLeaderboards} disabled={refreshing} className="ml-auto bg-white/10 border border-white/20 hover:bg-white/20 text-white">
                   <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -654,31 +606,16 @@ export default function LeaderboardsPage() {
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[80px] text-gray-300 text-center">Rank</TableHead>
                         <TableHead className="text-gray-300">User</TableHead>
-                        {category === 'overall' && (<>
+                        {category === 'overall' && (<> 
                           <TableHead className="text-right text-gray-300">Overall</TableHead>
-                          <TableHead className="text-right text-gray-300">Games</TableHead>
+                          <TableHead className="text-right text-gray-300">Typing Hero</TableHead>
+                          <TableHead className="text-right text-gray-300">DISC</TableHead>
+                          <TableHead className="text-right text-gray-300">Profile</TableHead>
+                          <TableHead className="text-right text-gray-300">Resume</TableHead>
                           <TableHead className="text-right text-gray-300">Applications</TableHead>
-                          <TableHead className="text-right text-gray-300">Engagement</TableHead>
                         </>)}
-                        {category === 'game' && (<>
-                          <TableHead className="text-right text-gray-300">Best</TableHead>
-                          <TableHead className="text-right text-gray-300">Plays</TableHead>
-                          <TableHead className="text-right text-gray-300">Last Played</TableHead>
-                        </>)}
-                        {category === 'applicants' && (
-                          <TableHead className="text-right text-gray-300">Applications</TableHead>
-                        )}
-                        {category === 'engagement' && (
-                          <TableHead className="text-right text-gray-300">Engagement</TableHead>
-                        )}
-                        {category === 'top-resume' && (
-                          <TableHead className="text-right text-gray-300">Resume Score</TableHead>
-                        )}
-                        {category === 'top-typing-hero' && (
-                          <TableHead className="text-right text-gray-300">WPM</TableHead>
-                        )}
-                        {category === 'top-disc-players' && (
-                          <TableHead className="text-right text-gray-300">DISC Score</TableHead>
+                        {category !== 'overall' && (
+                          <TableHead className="text-right text-gray-300">Score</TableHead>
                         )}
                       </TableRow>
                     </TableHeader>
@@ -703,10 +640,7 @@ export default function LeaderboardsPage() {
                       {!loading && !error && filteredResults.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={7} className="text-gray-400">
-                            {category === 'top-resume' && 'Top Resume leaderboard coming soon! 📝'}
-                            {category === 'top-typing-hero' && 'Top Typing Hero Players leaderboard coming soon! ⌨️'}
-                            {category === 'top-disc-players' && 'Top DISC Players leaderboard coming soon! 🧠'}
-                            {!['top-resume', 'top-typing-hero', 'top-disc-players'].includes(category) && 'No results'}
+                            No results found. Try refreshing or check if the leaderboard data has been populated.
                           </TableCell>
                         </TableRow>
                       )}
@@ -729,31 +663,16 @@ export default function LeaderboardsPage() {
                           >
                             <TableCell className="text-center">{renderRankCell(row.rank)}</TableCell>
                             <TableCell>{renderUserCell(row)}</TableCell>
-                          {category === 'overall' && (<>
+                          {category === 'overall' && (<> 
                             <TableCell className="text-right">{row.score}</TableCell>
-                            <TableCell className="text-right">{Math.round(row.components?.game_norm ?? 0)}</TableCell>
-                            <TableCell className="text-right">{Math.round(row.components?.applicant_norm ?? 0)}</TableCell>
-                            <TableCell className="text-right">{Math.round(row.components?.engagement_norm ?? 0)}</TableCell>
+                            <TableCell className="text-right">{row.typing_hero_score || 0}</TableCell>
+                            <TableCell className="text-right">{row.disc_personality_score || 0}</TableCell>
+                            <TableCell className="text-right">{row.profile_completion_score || 0}</TableCell>
+                            <TableCell className="text-right">{row.resume_building_score || 0}</TableCell>
+                            <TableCell className="text-right">{row.application_activity_score || 0}</TableCell>
                           </>)}
-                          {category === 'game' && (<>
-                            <TableCell className="text-right">{row.bestScore}</TableCell>
-                            <TableCell className="text-right">{row.plays}</TableCell>
-                            <TableCell className="text-right">{row.lastPlayed ? new Date(row.lastPlayed).toLocaleDateString() : '-'}</TableCell>
-                          </>)}
-                          {category === 'applicants' && (
+                          {category !== 'overall' && (
                             <TableCell className="text-right">{row.score}</TableCell>
-                          )}
-                          {category === 'engagement' && (
-                            <TableCell className="text-right">{row.score}</TableCell>
-                          )}
-                          {category === 'top-resume' && (
-                            <TableCell className="text-right">{row.score || 'N/A'}</TableCell>
-                          )}
-                          {category === 'top-typing-hero' && (
-                            <TableCell className="text-right">{row.score || 'N/A'}</TableCell>
-                          )}
-                          {category === 'top-disc-players' && (
-                            <TableCell className="text-right">{row.score || 'N/A'}</TableCell>
                           )}
                           </motion.tr>
                         )
@@ -824,19 +743,29 @@ export default function LeaderboardsPage() {
                         </thead>
                         <tbody>
                           <tr className="bg-white/5 hover:bg-white/10 transition-colors">
-                            <td className="px-3 py-2">Games</td>
-                            <td className="px-3 py-2">Avg of your best per game vs game max</td>
-                            <td className="px-3 py-2 text-right">60%</td>
+                            <td className="px-3 py-2">Typing Hero</td>
+                            <td className="px-3 py-2">Best WPM × Accuracy score</td>
+                            <td className="px-3 py-2 text-right">25%</td>
+                          </tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
+                            <td className="px-3 py-2">DISC Personality</td>
+                            <td className="px-3 py-2">Average of D, I, S, C scores</td>
+                            <td className="px-3 py-2 text-right">25%</td>
+                          </tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
+                            <td className="px-3 py-2">Profile Completion</td>
+                            <td className="px-3 py-2">Personal info completeness</td>
+                            <td className="px-3 py-2 text-right">15%</td>
+                          </tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
+                            <td className="px-3 py-2">Resume Building</td>
+                            <td className="px-3 py-2">Resume creation and quality</td>
+                            <td className="px-3 py-2 text-right">20%</td>
                           </tr>
                           <tr className="bg-white/5 hover:bg-white/10 transition-colors">
                             <td className="px-3 py-2">Applications</td>
-                            <td className="px-3 py-2">Your total milestone points vs top</td>
-                            <td className="px-3 py-2 text-right">30%</td>
-                          </tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors">
-                            <td className="px-3 py-2">Engagement</td>
-                            <td className="px-3 py-2">Completions and profile bonuses vs top</td>
-                            <td className="px-3 py-2 text-right">10%</td>
+                            <td className="px-3 py-2">Job application activity</td>
+                            <td className="px-3 py-2 text-right">15%</td>
                           </tr>
                         </tbody>
                       </table>
@@ -844,27 +773,28 @@ export default function LeaderboardsPage() {
                         </div>
 
                   <div>
-                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-purple-400 rounded-full" /> Game Scores</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-purple-400 rounded-full" /> Component Scores</div>
                     <div className="overflow-x-auto">
                       <table className="w-full border-separate border-spacing-y-2">
                         <thead className="text-gray-400 text-xs uppercase tracking-wider">
                           <tr>
-                            <th className="text-left">Game</th>
+                            <th className="text-left">Component</th>
                             <th className="text-left">Score Formula</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Typing Hero</td><td className="px-3 py-2">round(WPM × Accuracy/100)</td></tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">BPOC Cultural</td><td className="px-3 py-2">Average of region scores</td></tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Ultimate</td><td className="px-3 py-2">Average of smart, motivated, integrity, business</td></tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">DISC Personality</td><td className="px-3 py-2">Average of D, I, S, C</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Typing Hero</td><td className="px-3 py-2">Best WPM × Accuracy score</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">DISC Personality</td><td className="px-3 py-2">Average of D, I, S, C scores</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Profile Completion</td><td className="px-3 py-2">Personal info completeness %</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Resume Building</td><td className="px-3 py-2">Resume creation and quality score</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Applications</td><td className="px-3 py-2">Job application milestone points</td></tr>
                         </tbody>
                       </table>
                           </div>
                         </div>
 
                   <div>
-                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-green-400 rounded-full" /> Applications Points</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-green-400 rounded-full" /> Application Milestones</div>
                     <div className="overflow-x-auto">
                       <table className="w-full border-separate border-spacing-y-2">
                         <thead className="text-gray-400 text-xs uppercase tracking-wider">
@@ -889,25 +819,27 @@ export default function LeaderboardsPage() {
                   </div>
 
                     <div>
-                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-pink-400 rounded-full" /> Engagement Points</div>
+                    <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-pink-400 rounded-full" /> Tier System</div>
                     <div className="overflow-x-auto">
                       <table className="w-full border-separate border-spacing-y-2">
                         <thead className="text-gray-400 text-xs uppercase tracking-wider">
                           <tr>
-                            <th className="text-left">Action</th>
-                            <th className="text-right">Points</th>
+                            <th className="text-left">Tier</th>
+                            <th className="text-left">Score Range</th>
+                            <th className="text-left">Description</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Complete a game (first time)</td><td className="px-3 py-2 text-right">+5</td></tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">Complete all 4 games</td><td className="px-3 py-2 text-right">+20</td></tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">First avatar uploaded</td><td className="px-3 py-2 text-right">+5</td></tr>
-                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">First resume created</td><td className="px-3 py-2 text-right">+10</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">💎 Diamond</td><td className="px-3 py-2">90-100</td><td className="px-3 py-2">Elite performers</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">🥈 Platinum</td><td className="px-3 py-2">75-89</td><td className="px-3 py-2">High achievers</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">🥇 Gold</td><td className="px-3 py-2">60-74</td><td className="px-3 py-2">Strong performers</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">🥉 Silver</td><td className="px-3 py-2">40-59</td><td className="px-3 py-2">Developing skills</td></tr>
+                          <tr className="bg-white/5 hover:bg-white/10 transition-colors"><td className="px-3 py-2">🏅 Bronze</td><td className="px-3 py-2">0-39</td><td className="px-3 py-2">Getting started</td></tr>
                         </tbody>
                       </table>
                     </div>
 
-                    <p className="mt-1 text-[10px] text-gray-400">Engagement points are one‑time bonuses.</p>
+                    <p className="mt-1 text-[10px] text-gray-400">Tiers are based on your overall weighted score across all components.</p>
                       </div>
                     </CardContent>
                   </Card>

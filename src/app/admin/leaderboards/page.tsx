@@ -80,9 +80,7 @@ const GAME_LABELS: Record<string, string> = {
 function getGameName(id: string): string { return GAME_LABELS[id] || id }
 
 export default function LeaderboardsPage() {
-	const [category, setCategory] = useState<'game' | 'applicants' | 'engagement' | 'overall'>('overall')
-	const [period, setPeriod] = useState<'weekly' | 'monthly' | 'all'>('weekly')
-	const [gameId, setGameId] = useState<string>('typing-hero')
+	const [category, setCategory] = useState<'overall' | 'typing-hero' | 'disc-personality' | 'profile' | 'resume' | 'applications'>('overall')
 	const [rows, setRows] = useState<any[]>([])
 	const [total, setTotal] = useState<number>(0)
 	const [page, setPage] = useState<number>(1)
@@ -97,6 +95,8 @@ export default function LeaderboardsPage() {
 	const [loadingBreakdown, setLoadingBreakdown] = useState<boolean>(false)
 	const [refreshing, setRefreshing] = useState<boolean>(false)
 	const [refreshNonce, setRefreshNonce] = useState<number>(0)
+	const [systemStatus, setSystemStatus] = useState<any>(null)
+	const [populating, setPopulating] = useState<boolean>(false)
 
 	const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
@@ -122,11 +122,9 @@ export default function LeaderboardsPage() {
 			setError('')
 			const params = new URLSearchParams()
 			params.set('category', category)
-			if (category === 'game') { params.set('period', period); params.set('gameId', gameId) }
-
 			params.set('limit', String(pageSize))
 			params.set('offset', String((page - 1) * pageSize))
-			params.set('source', 'live')
+			
 			const res = await fetch(`/api/leaderboards?${params.toString()}`, { cache: 'no-store' })
 
 			if (!res.ok) throw new Error('Failed to load')
@@ -143,7 +141,12 @@ export default function LeaderboardsPage() {
 	}
 
 
-	useEffect(() => { fetchRows() }, [category, period, gameId, refreshNonce, page, pageSize])
+	useEffect(() => { fetchRows() }, [category, refreshNonce, page, pageSize])
+	
+	// Check system status on load
+	useEffect(() => {
+		checkSystemStatus()
+	}, [])
 
 
   // Delete action removed
@@ -176,18 +179,57 @@ export default function LeaderboardsPage() {
 		}
 	}
 
+	const checkSystemStatus = async () => {
+		try {
+			const res = await fetch('/api/leaderboards/status', { cache: 'no-store' })
+			const status = await res.json()
+			setSystemStatus(status)
+			return status
+		} catch (error) {
+			console.error('Failed to check system status:', error)
+			return null
+		}
+	}
+
+	const populateLeaderboardData = async () => {
+		try {
+			setPopulating(true)
+			const res = await fetch('/api/leaderboards/populate', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' }
+			})
+			const result = await res.json()
+			
+			if (result.success) {
+				console.log('✅ Leaderboard data populated:', result)
+				setRefreshNonce(n => n + 1)
+				await checkSystemStatus()
+			} else {
+				console.error('❌ Failed to populate data:', result)
+			}
+		} catch (error) {
+			console.error('❌ Populate error:', error)
+		} finally {
+			setPopulating(false)
+		}
+	}
+
 	const refreshLeaderboards = async () => {
 		try {
 			setRefreshing(true)
+			// Trigger recalculation of all leaderboard scores
 			await fetch('/api/leaderboards/recompute', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ periods: ['weekly','monthly','all'], games: ['typing-hero','disc-personality'] })
+				body: JSON.stringify({ 
+					action: 'recalculate_all_scores',
+					description: 'Recalculate all user leaderboard scores using the new unified system'
+				})
 			})
 			setRefreshNonce(n => n + 1)
 			if (openUserId) {
 				try {
-					const bRes = await fetch(`/api/leaderboards/user/${openUserId}?source=live`, { cache: 'no-store' })
+					const bRes = await fetch(`/api/leaderboards/user/${openUserId}`, { cache: 'no-store' })
 					if (bRes.ok) setBreakdown(await bRes.json())
 				} catch {}
 			}
@@ -225,48 +267,69 @@ export default function LeaderboardsPage() {
 								</div>
 								<div className="flex items-center gap-2">
 									<Select value={category} onValueChange={(v: any) => setCategory(v)}>
-										<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
+										<SelectTrigger className="w-48 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
 											<SelectValue placeholder="Category" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="overall">Overall</SelectItem>
-											<SelectItem value="game">Games</SelectItem>
-											<SelectItem value="applicants">Applications</SelectItem>
-											<SelectItem value="engagement">Engagement</SelectItem>
+											<SelectItem value="overall">🏆 Overall Score</SelectItem>
+											<SelectItem value="typing-hero">⌨️ Typing Hero</SelectItem>
+											<SelectItem value="disc-personality">🧠 DISC Personality</SelectItem>
+											<SelectItem value="profile">👤 Profile Completion</SelectItem>
+											<SelectItem value="resume">📄 Resume Building</SelectItem>
+											<SelectItem value="applications">💼 Applications</SelectItem>
 										</SelectContent>
 									</Select>
-									{category === 'game' && (
-										<Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-											<SelectTrigger className="w-32 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
-												<SelectValue placeholder="Period" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="weekly">Weekly</SelectItem>
-												<SelectItem value="monthly">Monthly</SelectItem>
-												<SelectItem value="all">All-time</SelectItem>
-											</SelectContent>
-										</Select>
-									)}
-									{category === 'game' && (
-										<Select value={gameId} onValueChange={(v: any) => setGameId(v)}>
-											<SelectTrigger className="w-40 bg-white/5 border-white/10 text-white focus:border-white/20 focus:ring-0 focus:outline-none">
-												<SelectValue placeholder="Game" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="typing-hero">Typing Hero</SelectItem>
-												<SelectItem value="disc-personality">DISC Personality</SelectItem>
-											</SelectContent>
-										</Select>
-									)}
 									<Button onClick={refreshLeaderboards} disabled={refreshing} className="bg-white/10 border border-white/20 hover:bg-white/20 text-white">
 										<RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
 										{refreshing ? 'Refreshing…' : 'Refresh'}
 									</Button>
+									{systemStatus?.status === 'empty' && (
+										<Button onClick={populateLeaderboardData} disabled={populating} className="bg-green-600 hover:bg-green-700 text-white">
+											{populating ? 'Populating…' : 'Populate Data'}
+										</Button>
+									)}
 								</div>
 							</div>
             </CardContent>
           </Card>
             </motion.div>
+
+						{systemStatus && (
+							<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+								<Card className={`glass-card border-white/10 ${
+									systemStatus.status === 'ready' ? 'border-green-500/30' :
+									systemStatus.status === 'empty' ? 'border-yellow-500/30' :
+									'border-red-500/30'
+								}`}>
+									<CardContent className="pt-6">
+										<div className="flex items-center justify-between">
+											<div>
+												<h3 className={`text-lg font-semibold ${
+													systemStatus.status === 'ready' ? 'text-green-400' :
+													systemStatus.status === 'empty' ? 'text-yellow-400' :
+													'text-red-400'
+												}`}>
+													{systemStatus.status === 'ready' ? '✅ System Ready' :
+													 systemStatus.status === 'empty' ? '⚠️ No Data Found' :
+													 '❌ System Error'}
+												</h3>
+												<p className="text-gray-300 mt-1">{systemStatus.message}</p>
+												{systemStatus.userCount !== undefined && (
+													<p className="text-sm text-gray-400 mt-1">
+														Users in leaderboard: {systemStatus.userCount}
+													</p>
+												)}
+											</div>
+											{systemStatus.status === 'empty' && (
+												<Button onClick={populateLeaderboardData} disabled={populating} className="bg-green-600 hover:bg-green-700 text-white">
+													{populating ? 'Populating…' : 'Populate Data'}
+												</Button>
+											)}
+										</div>
+									</CardContent>
+								</Card>
+							</motion.div>
+						)}
 
               <Card className="glass-card border-white/10">
                 <CardHeader>
@@ -285,16 +348,16 @@ export default function LeaderboardsPage() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-[80px]">Position</TableHead>
+                                <TableHead className="w-[80px]">Rank</TableHead>
                                 <TableHead>User</TableHead>
-                                {category === 'game' && <TableHead className="text-right">Best</TableHead>}
-                                {category === 'game' && <TableHead className="text-right">Plays</TableHead>}
-                                {category === 'game' && <TableHead className="text-right">Last Played</TableHead>}
-                                {category !== 'game' && category !== 'overall' && <TableHead className="text-right">Score</TableHead>}
-                                {category === 'overall' && <TableHead className="text-right">Overall</TableHead>}
-                                {category === 'overall' && <TableHead className="text-right">Games</TableHead>}
+                                <TableHead className="text-right">Score</TableHead>
+                                <TableHead className="text-right">Tier</TableHead>
+                                {category === 'overall' && <TableHead className="text-right">Typing Hero</TableHead>}
+                                {category === 'overall' && <TableHead className="text-right">DISC</TableHead>}
+                                {category === 'overall' && <TableHead className="text-right">Profile</TableHead>}
+                                {category === 'overall' && <TableHead className="text-right">Resume</TableHead>}
                                 {category === 'overall' && <TableHead className="text-right">Applications</TableHead>}
-                                {category === 'overall' && <TableHead className="text-right">Engagement</TableHead>}
+                                <TableHead className="text-right">Last Activity</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -318,14 +381,30 @@ export default function LeaderboardsPage() {
                                       </div>
                                     </div>
                                   </TableCell>
-                                  {category === 'game' && <TableCell className="text-right">{formatNumber(r.bestScore)}</TableCell>}
-                                  {category === 'game' && <TableCell className="text-right">{formatNumber(r.plays)}</TableCell>}
-                                  {category === 'game' && <TableCell className="text-right">{r.lastPlayed ? new Date(r.lastPlayed).toLocaleDateString() : '-'}</TableCell>}
-                                  {category !== 'game' && category !== 'overall' && <TableCell className="text-right">{formatNumber(r.score)}</TableCell>}
-                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.score)}</TableCell>}
-                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.game_norm)}</TableCell>}
-                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.applicant_norm)}</TableCell>}
-                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.components?.engagement_norm)}</TableCell>}
+                                  <TableCell className="text-right">
+                                    <div className="font-mono text-lg font-bold text-white">
+                                      {formatNumber(r.score)}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Badge variant="outline" className={`border-white/20 ${
+                                      r.tier === 'Diamond' ? 'text-cyan-400 border-cyan-400' :
+                                      r.tier === 'Platinum' ? 'text-gray-300 border-gray-300' :
+                                      r.tier === 'Gold' ? 'text-yellow-400 border-yellow-400' :
+                                      r.tier === 'Silver' ? 'text-gray-400 border-gray-400' :
+                                      'text-amber-600 border-amber-600'
+                                    }`}>
+                                      {r.tier || 'Bronze'}
+                                    </Badge>
+                                  </TableCell>
+                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.typing_hero_score)}</TableCell>}
+                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.disc_personality_score)}</TableCell>}
+                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.profile_completion_score)}</TableCell>}
+                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.resume_building_score)}</TableCell>}
+                                  {category === 'overall' && <TableCell className="text-right">{formatNumber(r.application_activity_score)}</TableCell>}
+                                  <TableCell className="text-right text-sm text-gray-400">
+                                    {r.last_activity_at ? new Date(r.last_activity_at).toLocaleDateString() : '-'}
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
