@@ -400,7 +400,7 @@ function HomePageContent() {
                 description: 'Interactive games and assessments to test your typing speed, personality, and BPO skills.',
                 color: 'text-green-400',
                 bgColor: 'bg-green-500/10',
-                features: ['Typing Hero', 'DISC Personality', 'BPOC Ultimate'],
+                features: ['Typing Hero', 'DISC Personality', 'Performance Analytics'],
                 hasButton: true,
                 buttonText: 'Play Games',
                 buttonAction: handleNavigateToCareerGames,
