@@ -55,13 +55,6 @@ const mockLeaderboardData = {
     { rank: 4, name: 'Maria Garcia', score: 76, wpm: 105, accuracy: 92, avatar: 'MG', date: '2024-01-12', time: '1:55' },
     { rank: 5, name: 'James Wilson', score: 73, wpm: 100, accuracy: 90, avatar: 'JW', date: '2024-01-11', time: '2:10' },
   ],
-  'ultimate': [
-    { rank: 1, name: 'Amanda Foster', score: 92, tier: 'PLATINUM THINKER', avatar: 'AF', date: '2024-01-15', time: '5:30' },
-    { rank: 2, name: 'Kevin Zhang', score: 88, tier: 'STRATEGIC LEADER', avatar: 'KZ', date: '2024-01-14', time: '5:45' },
-    { rank: 3, name: 'Rachel Green', score: 85, tier: 'COMPETENT MANAGER', avatar: 'RG', date: '2024-01-13', time: '6:00' },
-    { rank: 4, name: 'Tom Anderson', score: 82, tier: 'DEVELOPMENT CANDIDATE', avatar: 'TA', date: '2024-01-12', time: '5:55' },
-    { rank: 5, name: 'Sophie Brown', score: 79, tier: 'DEVELOPMENT CANDIDATE', avatar: 'SB', date: '2024-01-11', time: '6:15' },
-  ]
 }
 
 const getItemDisplayName = (category: string, item: string) => {
@@ -73,8 +66,6 @@ const getItemDisplayName = (category: string, item: string) => {
     'workplace-judgment': 'Workplace Judgment',
     'typing-hero': 'Typing Hero',
     'disc-personality-game': 'BPOC DISC',
-    'ultimate': 'BPOC Ultimate',
-    'bpoc-cultural': 'BPOC Cultural'
   }
   return itemNames[item] || item
 }
@@ -86,8 +77,6 @@ const getScoreDisplay = (item: string, data: any) => {
       return `${data.score}% (${data.level})`
     case 'typing-hero':
       return `${data.wpm} WPM (${data.accuracy}% accuracy)`
-    case 'ultimate':
-      return `${data.score}% (${data.tier})`
     default:
       return `${data.score}%`
   }

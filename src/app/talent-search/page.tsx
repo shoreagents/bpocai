@@ -1,10 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Search, RefreshCw, User, Mail, Calendar, MapPin, Eye, Star, Users, Trophy } from 'lucide-react'
+import { Search, RefreshCw, User, Mail, Calendar, MapPin, Eye, Star, Users, Trophy, Filter, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Header from '@/components/layout/Header'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -22,6 +23,7 @@ interface Candidate {
   overallScore: number
   slug: string
   resumeSlug: string | null
+  verified: boolean
 }
 
 export default function TalentSearchPage() {
@@ -30,6 +32,7 @@ export default function TalentSearchPage() {
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'highest-scores' | 'verified'>('all')
      const [stats, setStats] = useState([
      { label: "Total", count: 0, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
      { label: "Profile Complete", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
@@ -37,48 +40,50 @@ export default function TalentSearchPage() {
 
   // Function to determine rank based on overall score
   const getRank = (score: number) => {
-    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30' }
-    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
-    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
+    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-200', bgColor: 'bg-yellow-400/30', borderColor: 'border-yellow-400/50' }
+    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-slate-200', bgColor: 'bg-slate-400/30', borderColor: 'border-slate-400/50' }
+    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-200', bgColor: 'bg-orange-400/30', borderColor: 'border-orange-400/50' }
     return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
   }
 
-  // Fetch candidates data on component mount
+  // Fetch candidates data on component mount and when filter changes
   useEffect(() => {
     fetchCandidates()
-  }, [])
+  }, [filterType])
 
-  // Filter candidates based on search term
+  // Filter candidates based on search term only (filtering is now handled by backend)
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredCandidates(candidates)
-    } else {
-      const filtered = candidates.filter(candidate =>
+    let filtered = candidates
+
+    // Apply search filter
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(candidate =>
         candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         candidate.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
         candidate.location.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      setFilteredCandidates(filtered)
     }
+
+    setFilteredCandidates(filtered)
   }, [searchTerm, candidates])
 
   const fetchCandidates = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/talent-search')
+      const response = await fetch(`/api/talent-search?filter=${filterType}`)
       const data = await response.json()
       
       if (data.success) {
         setCandidates(data.candidates)
         setFilteredCandidates(data.candidates)
         
-                 // Update stats
-         const profileCount = data.candidates.filter((candidate: any) => candidate.profileComplete).length
-         
-         setStats([
-           { label: "Total", count: data.total, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
-           { label: "Profile Complete", count: profileCount, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
-         ])
+        // Update stats
+        const profileCount = data.candidates.filter((candidate: any) => candidate.profileComplete).length
+        
+        setStats([
+          { label: "Total", count: data.total, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
+          { label: "Profile Complete", count: profileCount, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
+        ])
       }
     } catch (error) {
       console.error('Error fetching candidates:', error)
@@ -134,7 +139,7 @@ export default function TalentSearchPage() {
             ))}
           </div>
 
-                     {/* Search and Refresh */}
+                     {/* Search, Filter and Refresh */}
            <div className="flex gap-4 mb-8">
              <div className="relative flex-1">
                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -145,6 +150,17 @@ export default function TalentSearchPage() {
                    className="pl-10 bg-black/50 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none [&:focus]:ring-0 [&:focus]:outline-none [&:focus]:border-white/20 [&:focus-visible]:border-white/20 [&:focus]:shadow-none [&:focus-visible]:shadow-none"
                  />
              </div>
+             <Select value={filterType} onValueChange={(value: 'all' | 'highest-scores' | 'verified') => setFilterType(value)}>
+               <SelectTrigger className="w-48 bg-black/50 border-white/20 text-white focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none [&:focus]:ring-0 [&:focus]:outline-none [&:focus]:border-white/20 [&:focus-visible]:border-white/20 [&:focus]:shadow-none [&:focus-visible]:shadow-none">
+                 <Filter className="w-4 h-4 mr-2" />
+                 <SelectValue placeholder="Filter by..." />
+               </SelectTrigger>
+               <SelectContent className="bg-gray-900 border-white/20 text-white">
+                 <SelectItem value="all">All Talents</SelectItem>
+                 <SelectItem value="highest-scores">Highest Scores</SelectItem>
+                 <SelectItem value="verified">With Verified Badge</SelectItem>
+               </SelectContent>
+             </Select>
              <Button 
                className="bg-gradient-to-br from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white"
                onClick={handleRefresh}
@@ -197,7 +213,16 @@ export default function TalentSearchPage() {
                     <CardContent className="p-6 -mt-8 relative z-10">
                       {/* First Name and Username */}
                       <div className="text-center mb-4">
-                        <h3 className="text-xl font-bold text-white mb-1">{candidate.name.split(' ')[0]}</h3>
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <h3 className="text-xl font-bold text-white">{candidate.name.split(' ')[0]}</h3>
+                          {candidate.profileComplete && (
+                            <div className="w-4 h-4 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg border-2 border-cyan-300/30 relative overflow-hidden">
+                              {/* Shine effect */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse"></div>
+                              <Check className="w-4 h-4 text-white font-bold relative z-10 drop-shadow-lg" />
+                            </div>
+                          )}
+                        </div>
                         <p className="text-gray-300 mb-2">@{candidate.slug}</p>
                       </div>
 
@@ -234,18 +259,6 @@ export default function TalentSearchPage() {
                         </div>
                       </div>
 
-                      {/* Status Badges */}
-                      <div className="flex flex-wrap gap-2 mb-4 justify-center">
-                        {candidate.profileComplete ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                            Profile Complete
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                            Profile Not Complete
-                          </span>
-                        )}
-                      </div>
 
                       {/* Action Button */}
                       <div className="flex justify-center">

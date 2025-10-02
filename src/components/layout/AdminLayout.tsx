@@ -57,9 +57,7 @@ const managementItems: SidebarItem[] = [
     icon: Puzzle, 
     children: [
       { title: 'Typing Hero', href: '/admin/career-tools-management/games/typing-hero/manage' },
-      { title: 'BPOC DISC', href: '/admin/career-tools-management/games/disc-personality/manage' },
-      { title: 'BPOC Ultimate', href: '/admin/career-tools-management/games/ultimate/manage' },
-      { title: 'BPOC Cultural', href: '/admin/career-tools-management/games/bpoc-cultural/manage' }
+      { title: 'BPOC DISC', href: '/admin/career-tools-management/games/disc-personality/manage' }
     ]
   }
 ]

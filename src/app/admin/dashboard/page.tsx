@@ -211,11 +211,22 @@ export default function DashboardPage() {
 
   const getTypeBadge = (type: string) => {
     const variants = {
-      game: 'bg-green-500/20 text-green-400 border-green-500/30',
-      resume: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      assessment: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      // Games - Emerald Green
+      typing_hero: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      disc_personality: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      game: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      
+      // Applicants - Red/Orange
+      applicants: 'bg-red-500/20 text-red-400 border-red-500/30',
+      
+      // Profile - Blue
       profile: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      applicants: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+      
+      // Resume - Purple
+      resume: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      
+      // Assessment - Yellow/Amber
+      assessment: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
     }
     return variants[type as keyof typeof variants] || variants.profile
   }
@@ -539,7 +550,7 @@ export default function DashboardPage() {
                             </div>
                             <Badge className={getTypeBadge(activity.type)}>
                               {activity.type === 'typing_hero' ? 'Game' : 
-                               activity.type === 'disc_personality' ? 'Assessment' : 
+                               activity.type === 'disc_personality' ? 'Game' : 
                                activity.type === 'resume' ? 'Resume' : 
                                activity.type === 'profile' ? 'Profile' : 
                                activity.type === 'applicants' ? 'Applicants' : 'Activity'}
