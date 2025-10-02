@@ -19,7 +19,9 @@ import {
   Briefcase,
   Wrench,
   FileText,
-  Sparkles
+  Sparkles,
+  Trophy,
+  Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1120,6 +1122,231 @@ export default function ResumeBuilderPage() {
     }
   };
 
+  // NEW: Render read-only preview matching saved resume page
+  const renderPreviewSection = (section: ResumeSection) => {
+    if (!section.visible) return null;
+
+    switch (section.id) {
+      case 'summary':
+        if (!section.content) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Professional Summary
+              </h2>
+            </div>
+            <p className="text-gray-700 leading-relaxed pl-3 border-l-4" style={{ borderColor: customColors.secondary }}>
+              {section.content}
+            </p>
+          </div>
+        );
+
+      case 'experience':
+        if (!Array.isArray(section.content) || section.content.length === 0) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Work Experience
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {section.content.map((exp: any, index: number) => (
+                <div key={index} className="border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-900">{exp.title}</h3>
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{exp.duration}</span>
+                  </div>
+                  <p className="text-gray-600 mb-2 font-medium">{exp.company}</p>
+                  {Array.isArray(exp.achievements) && exp.achievements.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                      {exp.achievements.map((achievement: string, idx: number) => (
+                        <li key={idx}>{achievement}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'skills':
+        if (!section.content) return null;
+        const hasSkills = section.content.technical?.length > 0 || section.content.soft?.length > 0 || section.content.languages?.length > 0;
+        if (!hasSkills) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Skills
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {section.content.technical && section.content.technical.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-3 text-gray-900" style={{ color: customColors.secondary }}>Technical Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {section.content.technical.map((skill: string, index: number) => (
+                      <Badge key={index} variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }} className="text-xs px-2 py-1">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {section.content.soft && section.content.soft.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-3 text-gray-900" style={{ color: customColors.secondary }}>Soft Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {section.content.soft.map((skill: string, index: number) => (
+                      <Badge key={index} variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }} className="text-xs px-2 py-1">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {section.content.languages && section.content.languages.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-3 text-gray-900" style={{ color: customColors.secondary }}>Languages</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {section.content.languages.map((lang: string, index: number) => (
+                      <Badge key={index} variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }} className="text-xs px-2 py-1">
+                        {lang}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'education':
+        if (!Array.isArray(section.content) || section.content.length === 0) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Education
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {section.content.map((edu: any, index: number) => (
+                <div key={index} className="border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-900">{edu.degree}</h3>
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{edu.year}</span>
+                  </div>
+                  <p className="text-gray-600 mb-2 font-medium">{edu.institution}</p>
+                  {Array.isArray(edu.highlights) && edu.highlights.length > 0 && (
+                    <ul className="list-disc list-inside text-sm text-gray-700 mt-2 space-y-1">
+                      {edu.highlights.map((highlight: string, idx: number) => (
+                        <li key={idx}>{highlight}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'certifications':
+        if (!Array.isArray(section.content) || section.content.length === 0) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Certifications
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {section.content.map((cert: string, index: number) => (
+                <div key={index} className="border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-emerald-600" />
+                    <p className="text-gray-700 font-medium">{cert}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'projects':
+        if (!Array.isArray(section.content) || section.content.length === 0) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Projects
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {section.content.map((project: any, index: number) => (
+                <div key={index} className="border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
+                  <h3 className="font-semibold text-gray-900 mb-2">{project.title}</h3>
+                  {project.description && <p className="text-gray-700 text-sm mb-2">{project.description}</p>}
+                  {Array.isArray(project.technologies) && project.technologies.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-xs font-semibold text-gray-600 mb-1">Technologies:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {project.technologies.map((tech: string, idx: number) => (
+                          <Badge key={idx} variant="outline" className="text-xs">{tech}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {Array.isArray(project.impact) && project.impact.length > 0 && (
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      {project.impact.map((imp: string, idx: number) => (
+                        <li key={idx}>{imp}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'achievements':
+        if (!Array.isArray(section.content) || section.content.length === 0) return null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: customColors.primary }}></div>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ color: customColors.primary }}>
+                Achievements
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {section.content.map((achievement: string, index: number) => (
+                <div key={index} className="border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-amber-600" />
+                    <p className="text-gray-700">{achievement}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   const renderSectionContent = (section: ResumeSection) => {
     // Helper function to check if content is empty
     const isEmptyContent = (content: any): boolean => {
@@ -1150,7 +1377,8 @@ export default function ResumeBuilderPage() {
             </h3>
             <textarea
               data-path="summary"
-              className={`w-full border border-gray-300 rounded-md p-4 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 leading-relaxed resize-none ${getHighlightClass('summary')}`}
+              className={`w-full text-gray-700 leading-relaxed resize-none bg-transparent pl-3 border-l-4 border-transparent hover:border-cyan-200 focus:outline-none focus:border-cyan-400 focus:bg-gray-50/50 transition-all ${getHighlightClass('summary')}`}
+              style={{ borderLeftColor: customColors.secondary }}
               value={section.content || ''}
               onChange={(e) => updateResumeText('summary', e.target.value)}
               placeholder="Add your professional summary..."
@@ -1178,53 +1406,58 @@ export default function ResumeBuilderPage() {
             </div>
             {Array.isArray(section.content) && section.content.length > 0 ? (
               section.content.map((exp: any, index: number) => (
-                <div key={index} className="mb-4">
+                <div key={index} className="mb-4 border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
                   <div className="flex justify-between items-start mb-2 gap-3">
                     <input
                       data-path={`experience[${index}].title`}
-                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`experience[${index}].title`)}`}
+                      className={`font-semibold text-gray-900 bg-transparent border-0 border-b border-transparent hover:border-cyan-200 focus:outline-none focus:border-cyan-400 focus:bg-gray-50/50 transition-all w-full ${getHighlightClass(`experience[${index}].title`)}`}
                       value={exp.title || ''}
                       onChange={(e) => updateResumeText(`experience[${index}].title`, e.target.value)}
                       placeholder="Job Title"
                     />
-                    <input
-                      data-path={`experience[${index}].duration`}
-                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`experience[${index}].duration`)}`}
-                      value={exp.duration || ''}
-                      onChange={(e) => updateResumeText(`experience[${index}].duration`, e.target.value)}
-                      placeholder="Duration (e.g., 2020-2024)"
-                    />
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      <input
+                        data-path={`experience[${index}].duration`}
+                        className={`bg-transparent border-0 focus:outline-none focus:bg-white/50 text-sm text-gray-500 transition-all ${getHighlightClass(`experience[${index}].duration`)}`}
+                        style={{ minWidth: '100px' }}
+                        value={exp.duration || ''}
+                        onChange={(e) => updateResumeText(`experience[${index}].duration`, e.target.value)}
+                        placeholder="Duration"
+                      />
+                    </span>
                   </div>
-                  <input
-                    data-path={`experience[${index}].company`}
-                    className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 mb-2 ${getHighlightClass(`experience[${index}].company`)}`}
-                    value={exp.company || ''}
-                    onChange={(e) => updateResumeText(`experience[${index}].company`, e.target.value)}
-                    placeholder="Company"
-                  />
+                  <p className="text-gray-600 font-medium mb-2">
+                    <input
+                      data-path={`experience[${index}].company`}
+                      className={`bg-transparent border-0 border-b border-transparent hover:border-cyan-200 focus:outline-none focus:border-cyan-400 focus:bg-gray-50/50 transition-all w-full ${getHighlightClass(`experience[${index}].company`)}`}
+                      value={exp.company || ''}
+                      onChange={(e) => updateResumeText(`experience[${index}].company`, e.target.value)}
+                      placeholder="Company"
+                    />
+                  </p>
                   <div className="mb-2">
                     <h5 className="font-medium text-gray-700 mb-2">Key Achievements:</h5>
                     <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                       {Array.isArray(exp.achievements) ? (
                         exp.achievements.map((achievement: string, idx: number) => (
-                        <li key={idx} className="flex items-center gap-2 group">
-                          <input
-                            data-path={`experience[${index}].achievements[${idx}]`}
-                            className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`experience[${index}].achievements[${idx}]`)}`}
-                            value={achievement || ''}
-                            onChange={(e) => updateResumeText(`experience[${index}].achievements[${idx}]`, e.target.value)}
-                            placeholder={`Achievement ${idx + 1}`}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeListItem(`experience[${index}].achievements`, idx)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            title="Remove achievement"
-                          >
-                            ×
-                          </Button>
-                        </li>
+                          <li key={idx} className="group hover:bg-gray-50/50 transition-all rounded">
+                            <input
+                              data-path={`experience[${index}].achievements[${idx}]`}
+                              className={`flex-1 text-sm text-gray-700 bg-transparent border-0 focus:outline-none w-full ${getHighlightClass(`experience[${index}].achievements[${idx}]`)}`}
+                              value={achievement || ''}
+                              onChange={(e) => updateResumeText(`experience[${index}].achievements[${idx}]`, e.target.value)}
+                              placeholder={`Achievement ${idx + 1}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeListItem(`experience[${index}].achievements`, idx)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50 absolute right-2"
+                              title="Remove achievement"
+                            >
+                              ×
+                            </Button>
+                          </li>
                                               ))
                       ) : (
                         <li className="text-gray-500">No achievements listed</li>
@@ -1263,17 +1496,19 @@ export default function ResumeBuilderPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {Array.isArray(section.content?.technical) && section.content.technical.length > 0 && (
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Technical Skills</h4>
+                  <h4 className="font-medium mb-3 text-gray-800">Technical Skills</h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                     {section.content.technical.map((skill: string, index: number) => (
                       <li key={index} className="flex items-center gap-2">
-                        <input
-                          data-path={`skills.technical[${index}]`}
-                          className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.technical[${index}]`)}`}
-                          value={skill || ''}
-                          onChange={(e) => updateResumeText(`skills.technical[${index}]`, e.target.value)}
-                          placeholder={`Technical skill ${index + 1}`}
-                        />
+                        <Badge variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }} className="text-xs px-2 py-1">
+                          <input
+                            data-path={`skills.technical[${index}]`}
+                            className={`bg-transparent border-0 focus:outline-none text-white placeholder:text-white/70 w-full ${getHighlightClass(`skills.technical[${index}]`)}`}
+                            value={skill || ''}
+                            onChange={(e) => updateResumeText(`skills.technical[${index}]`, e.target.value)}
+                            placeholder={`Skill ${index + 1}`}
+                          />
+                        </Badge>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1290,17 +1525,19 @@ export default function ResumeBuilderPage() {
               )}
               {Array.isArray(section.content?.soft) && section.content.soft.length > 0 && (
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Soft Skills</h4>
+                  <h4 className="font-medium mb-3 text-gray-800">Soft Skills</h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                     {section.content.soft.map((skill: string, index: number) => (
                       <li key={index} className="flex items-center gap-2">
-                        <input
-                          data-path={`skills.soft[${index}]`}
-                          className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.soft[${index}]`)}`}
-                          value={skill || ''}
-                          onChange={(e) => updateResumeText(`skills.soft[${index}]`, e.target.value)}
-                          placeholder={`Soft skill ${index + 1}`}
-                        />
+                        <Badge variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }} className="text-xs px-2 py-1">
+                          <input
+                            data-path={`skills.soft[${index}]`}
+                            className={`bg-transparent border-0 focus:outline-none text-white placeholder:text-white/70 w-full ${getHighlightClass(`skills.soft[${index}]`)}`}
+                            value={skill || ''}
+                            onChange={(e) => updateResumeText(`skills.soft[${index}]`, e.target.value)}
+                            placeholder={`Skill ${index + 1}`}
+                          />
+                        </Badge>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1317,17 +1554,19 @@ export default function ResumeBuilderPage() {
               )}
               {Array.isArray(section.content?.languages) && section.content.languages.length > 0 && (
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Languages</h4>
+                  <h4 className="font-medium mb-3 text-gray-800">Languages</h4>
                   <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                     {section.content.languages.map((language: string, index: number) => (
                       <li key={index} className="flex items-center gap-2">
-                        <input
-                          data-path={`skills.languages[${index}]`}
-                          className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`skills.languages[${index}]`)}`}
-                          value={language || ''}
-                          onChange={(e) => updateResumeText(`skills.languages[${index}]`, e.target.value)}
-                          placeholder={`Language ${index + 1}`}
-                        />
+                        <Badge variant="secondary" style={{ backgroundColor: customColors.secondary, color: 'white' }} className="text-xs px-2 py-1">
+                          <input
+                            data-path={`skills.languages[${index}]`}
+                            className={`bg-transparent border-0 focus:outline-none text-white placeholder:text-white/70 w-full ${getHighlightClass(`skills.languages[${index}]`)}`}
+                            value={language || ''}
+                            onChange={(e) => updateResumeText(`skills.languages[${index}]`, e.target.value)}
+                            placeholder={`Language ${index + 1}`}
+                          />
+                        </Badge>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1368,39 +1607,44 @@ export default function ResumeBuilderPage() {
             </div>
             {Array.isArray(section.content) && section.content.length > 0 ? (
               section.content.map((edu: any, index: number) => (
-                <div key={index} className="mb-4">
+                <div key={index} className="mb-4 border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
                   <div className="flex justify-between items-start mb-2 gap-3">
                     <input
                       data-path={`education[${index}].degree`}
-                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm font-medium text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`education[${index}].degree`)}`}
+                      className={`font-semibold text-gray-900 bg-transparent border-0 border-b border-transparent hover:border-cyan-200 focus:outline-none focus:border-cyan-400 focus:bg-gray-50/50 transition-all w-full ${getHighlightClass(`education[${index}].degree`)}`}
                       value={edu.degree || ''}
                       onChange={(e) => updateResumeText(`education[${index}].degree`, e.target.value)}
                       placeholder="Degree"
                     />
-                    <input
-                      data-path={`education[${index}].year`}
-                      className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`education[${index}].year`)}`}
-                      value={edu.year || ''}
-                      onChange={(e) => updateResumeText(`education[${index}].year`, e.target.value)}
-                      placeholder="Year (e.g., 2020-2024)"
-                    />
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      <input
+                        data-path={`education[${index}].year`}
+                        className={`bg-transparent border-0 focus:outline-none focus:bg-white/50 text-sm text-gray-500 transition-all ${getHighlightClass(`education[${index}].year`)}`}
+                        style={{ minWidth: '100px' }}
+                        value={edu.year || ''}
+                        onChange={(e) => updateResumeText(`education[${index}].year`, e.target.value)}
+                        placeholder="Year"
+                      />
+                    </span>
                   </div>
-                  <input
-                    data-path={`education[${index}].institution`}
-                    className={`border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 mb-2 ${getHighlightClass(`education[${index}].institution`)}`}
-                    value={edu.institution || ''}
-                    onChange={(e) => updateResumeText(`education[${index}].institution`, e.target.value)}
-                    placeholder="Institution"
-                  />
+                  <p className="text-gray-600 font-medium mb-2">
+                    <input
+                      data-path={`education[${index}].institution`}
+                      className={`bg-transparent border-0 border-b border-transparent hover:border-cyan-200 focus:outline-none focus:border-cyan-400 focus:bg-gray-50/50 transition-all w-full ${getHighlightClass(`education[${index}].institution`)}`}
+                      value={edu.institution || ''}
+                      onChange={(e) => updateResumeText(`education[${index}].institution`, e.target.value)}
+                      placeholder="Institution"
+                    />
+                  </p>
                   {Array.isArray(edu.highlights) && edu.highlights.length > 0 && (
                     <div className="mb-2">
                       <h5 className="font-medium text-gray-700 mb-2">Key Highlights:</h5>
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         {edu.highlights.map((highlight: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-2 group">
+                          <li key={idx} className="group hover:bg-gray-50/50 transition-all rounded">
                             <input
                               data-path={`education[${index}].highlights[${idx}]`}
-                              className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`education[${index}].highlights[${idx}]`)}`}
+                              className={`flex-1 text-sm text-gray-700 bg-transparent border-0 focus:outline-none w-full ${getHighlightClass(`education[${index}].highlights[${idx}]`)}`}
                               value={highlight || ''}
                               onChange={(e) => updateResumeText(`education[${index}].highlights[${idx}]`, e.target.value)}
                               placeholder={`Highlight ${idx + 1}`}
@@ -1409,7 +1653,7 @@ export default function ResumeBuilderPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeListItem(`education[${index}].highlights`, idx)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50 absolute right-2"
                               title="Remove highlight"
                             >
                               ×
@@ -1449,24 +1693,27 @@ export default function ResumeBuilderPage() {
             {Array.isArray(section.content) && section.content.length > 0 ? (
               <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                 {section.content.map((cert: string, index: number) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <input
-                      data-path={`certifications[${index}]`}
-                      className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 ${getHighlightClass(`certifications[${index}]`)}`}
-                      value={cert || ''}
-                      onChange={(e) => updateResumeText(`certifications[${index}]`, e.target.value)}
-                      placeholder={`Certification ${index + 1}`}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeListItem('certifications', index)}
-                      className="px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      title="Remove certification"
-                    >
-                      ×
-                    </Button>
-                  </li>
+                  <div key={index} className="border-l-4 pl-4 mb-3 group hover:bg-gray-50/50 transition-all" style={{ borderColor: customColors.secondary }}>
+                    <div className="flex items-center gap-2">
+                      <Award className="h-4 w-4 text-emerald-600" />
+                      <input
+                        data-path={`certifications[${index}]`}
+                        className={`flex-1 text-gray-700 font-medium bg-transparent border-0 focus:outline-none ${getHighlightClass(`certifications[${index}]`)}`}
+                        value={cert || ''}
+                        onChange={(e) => updateResumeText(`certifications[${index}]`, e.target.value)}
+                        placeholder={`Certification ${index + 1}`}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeListItem('certifications', index)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        title="Remove certification"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </ul>
             ) : (
@@ -1492,17 +1739,19 @@ export default function ResumeBuilderPage() {
             </div>
             {Array.isArray(section.content) && section.content.length > 0 ? (
               section.content.map((project: any, index: number) => (
-                <div key={index} className="mb-6">
-                  <input
-                    data-path={`projects[${index}].title`}
-                    className={`w-full border border-gray-300 rounded-md px-3 py-2 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2 ${getHighlightClass(`projects[${index}].title`)}`}
-                    value={project.title || ''}
-                    onChange={(e) => updateResumeText(`projects[${index}].title`, e.target.value)}
-                    placeholder="Project Title"
-                  />
+                <div key={index} className="mb-6 border-l-4 pl-4" style={{ borderColor: customColors.secondary }}>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    <input
+                      data-path={`projects[${index}].title`}
+                      className={`bg-transparent border-0 border-b border-transparent hover:border-cyan-200 focus:outline-none focus:border-cyan-400 focus:bg-gray-50/50 transition-all w-full ${getHighlightClass(`projects[${index}].title`)}`}
+                      value={project.title || ''}
+                      onChange={(e) => updateResumeText(`projects[${index}].title`, e.target.value)}
+                      placeholder="Project Title"
+                    />
+                  </h3>
                   <textarea
                     data-path={`projects[${index}].description`}
-                    className={`w-full border border-gray-300 rounded-md p-3 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2 ${getHighlightClass(`projects[${index}].description`)}`}
+                    className={`w-full text-sm text-gray-700 bg-transparent border-0 focus:outline-none focus:bg-gray-50/50 transition-all mb-2 resize-none ${getHighlightClass(`projects[${index}].description`)}`}
                     rows={4}
                     value={project.description || ''}
                     onChange={(e) => updateResumeText(`projects[${index}].description`, e.target.value)}
@@ -1513,10 +1762,10 @@ export default function ResumeBuilderPage() {
                     {Array.isArray(project.technologies) ? (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         {project.technologies.map((tech: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-2 group">
+                          <li key={idx} className="group hover:bg-gray-50/50 transition-all rounded">
                             <input
                               data-path={`projects[${index}].technologies[${idx}]`}
-                              className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`projects[${index}].technologies[${idx}]`)}`}
+                              className={`flex-1 text-sm text-gray-700 bg-transparent border-0 focus:outline-none w-full ${getHighlightClass(`projects[${index}].technologies[${idx}]`)}`}
                               value={tech || ''}
                               onChange={(e) => updateResumeText(`projects[${index}].technologies[${idx}]`, e.target.value)}
                               placeholder={`Technology ${idx + 1}`}
@@ -1525,7 +1774,7 @@ export default function ResumeBuilderPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeListItem(`projects[${index}].technologies`, idx)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50 absolute right-2"
                               title="Remove technology"
                             >
                               ×
@@ -1542,10 +1791,10 @@ export default function ResumeBuilderPage() {
                     {Array.isArray(project.impact) ? (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         {project.impact.map((impact: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-2 group">
+                          <li key={idx} className="group hover:bg-gray-50/50 transition-all rounded">
                             <input
                               data-path={`projects[${index}].impact[${idx}]`}
-                              className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`projects[${index}].impact[${idx}]`)}`}
+                              className={`flex-1 text-sm text-gray-700 bg-transparent border-0 focus:outline-none w-full ${getHighlightClass(`projects[${index}].impact[${idx}]`)}`}
                               value={impact || ''}
                               onChange={(e) => updateResumeText(`projects[${index}].impact[${idx}]`, e.target.value)}
                               placeholder={`Impact ${idx + 1}`}
@@ -1554,6 +1803,7 @@ export default function ResumeBuilderPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeListItem(`projects[${index}].impact`, idx)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50 absolute right-2"
                               title="Remove impact"
                             >
                               ×
@@ -1596,24 +1846,27 @@ export default function ResumeBuilderPage() {
             {Array.isArray(section.content) && section.content.length > 0 ? (
               <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                 {section.content.map((achievement: string, index: number) => (
-                  <li key={index} className="flex items-center gap-2 group">
-                    <input
-                      data-path={`achievements[${index}]`}
-                      className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${getHighlightClass(`achievements[${index}]`)}`}
-                      value={achievement || ''}
-                      onChange={(e) => updateResumeText(`achievements[${index}]`, e.target.value)}
-                      placeholder={`Achievement ${index + 1}`}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeListItem('achievements', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      title="Remove achievement"
-                    >
-                      ×
-                    </Button>
-                  </li>
+                  <div key={index} className="border-l-4 pl-4 mb-3 group hover:bg-gray-50/50 transition-all" style={{ borderColor: customColors.secondary }}>
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-yellow-600" />
+                      <input
+                        data-path={`achievements[${index}]`}
+                        className={`flex-1 text-gray-700 font-medium bg-transparent border-0 focus:outline-none ${getHighlightClass(`achievements[${index}]`)}`}
+                        value={achievement || ''}
+                        onChange={(e) => updateResumeText(`achievements[${index}]`, e.target.value)}
+                        placeholder={`Achievement ${index + 1}`}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeListItem('achievements', index)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        title="Remove achievement"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </ul>
             ) : (
@@ -1888,7 +2141,7 @@ export default function ResumeBuilderPage() {
                 )}
             </div>
 
-              {/* Enhanced Main Content - Resume Preview */}
+              {/* Enhanced Main Content - Resume Preview with Inline Editing */}
             <div className="xl:col-span-4">
                 <Card className="glass-card border-white/10 shadow-lg">
                 <CardHeader>
@@ -1976,11 +2229,8 @@ export default function ResumeBuilderPage() {
                           <TooltipTrigger asChild>
                             <div>
                               <h1 className="text-3xl font-bold text-gray-900 mb-2">{getHeaderInfo().name}</h1>
-                              <p className="text-gray-600">
-                                <span>{getHeaderInfo().title}</span>
-                                {' '}
-                                •{' '}
-                                <span>{getHeaderInfo().location}</span>
+                              <p className="text-lg font-semibold text-gray-800" style={{ color: customColors.secondary }}>
+                                {getHeaderInfo().title}
                               </p>
                             </div>
                           </TooltipTrigger>
@@ -1997,7 +2247,7 @@ export default function ResumeBuilderPage() {
                         </p> */}
                       </div>
 
-                      {/* Sections */}
+                      {/* Sections - Inline Editable */}
                       <AnimatePresence>
                         {sections
                           .filter(section => section.visible)
