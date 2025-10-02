@@ -75,8 +75,6 @@ import {
 
 const GAME_LABELS: Record<string, string> = {
 	'typing-hero': 'Typing Hero',
-	'bpoc-cultural': 'BPOC Cultural',
-	'ultimate': 'Ultimate',
 	'disc-personality': 'DISC Personality',
 }
 function getGameName(id: string): string { return GAME_LABELS[id] || id }
@@ -84,7 +82,7 @@ function getGameName(id: string): string { return GAME_LABELS[id] || id }
 export default function LeaderboardsPage() {
 	const [category, setCategory] = useState<'game' | 'applicants' | 'engagement' | 'overall'>('overall')
 	const [period, setPeriod] = useState<'weekly' | 'monthly' | 'all'>('weekly')
-	const [gameId, setGameId] = useState<string>('bpoc-cultural')
+	const [gameId, setGameId] = useState<string>('typing-hero')
 	const [rows, setRows] = useState<any[]>([])
 	const [total, setTotal] = useState<number>(0)
 	const [page, setPage] = useState<number>(1)
@@ -184,7 +182,7 @@ export default function LeaderboardsPage() {
 			await fetch('/api/leaderboards/recompute', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ periods: ['weekly','monthly','all'], games: ['typing-hero','disc-personality','ultimate','bpoc-cultural'] })
+				body: JSON.stringify({ periods: ['weekly','monthly','all'], games: ['typing-hero','disc-personality'] })
 			})
 			setRefreshNonce(n => n + 1)
 			if (openUserId) {
@@ -255,9 +253,7 @@ export default function LeaderboardsPage() {
 												<SelectValue placeholder="Game" />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="bpoc-cultural">BPOC Cultural</SelectItem>
 												<SelectItem value="typing-hero">Typing Hero</SelectItem>
-												<SelectItem value="ultimate">Ultimate</SelectItem>
 												<SelectItem value="disc-personality">DISC Personality</SelectItem>
 											</SelectContent>
 										</Select>

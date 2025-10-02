@@ -9,6 +9,7 @@ import {
   Briefcase,
   BarChart3,
   Gamepad2,
+  Brain,
   Mail,
   Phone,
   MapPin,
@@ -126,6 +127,7 @@ export default function ProfilePage() {
   const [editedPersonalInfo, setEditedPersonalInfo] = useState({
     first_name: '',
     last_name: '',
+    username: '',
     location: '',
     position: '',
     gender: '',
@@ -308,6 +310,7 @@ export default function ProfilePage() {
       setEditedPersonalInfo({
         first_name: userProfile.first_name || '',
         last_name: userProfile.last_name || '',
+        username: userProfile.username || '',
         location: userProfile.location || '',
         position: userProfile.position || '',
         gender: userProfile.gender || '',
@@ -330,6 +333,7 @@ export default function ProfilePage() {
     setEditedPersonalInfo({
       first_name: '',
       last_name: '',
+      username: '',
       location: '',
       position: '',
       gender: '',
@@ -374,6 +378,9 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
+        // Check if username has changed
+        const usernameChanged = editedPersonalInfo.username !== userProfile.username;
+        
         // Update the local state
         setUserProfile(prev => prev ? {
           ...prev,
@@ -381,9 +388,11 @@ export default function ProfilePage() {
           full_name: fullName
         } : null);
         
-        // Note: We no longer update slugs when editing names to preserve username
-        // The username should remain independent of first/last name changes
-        // This prevents the database trigger from incorrectly updating the username
+        // If username changed, update the URL
+        if (usernameChanged && editedPersonalInfo.username) {
+          // Use router.replace to update the URL without adding to history
+          router.replace(`/${editedPersonalInfo.username}`);
+        }
         
         setIsEditingPersonalInfo(false);
       } else {
@@ -975,10 +984,26 @@ export default function ProfilePage() {
                         <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent">
                           {isOwner ? userProfile.full_name : (userProfile.first_name || userProfile.full_name)}
                         </h1>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 backdrop-blur-sm">
-                          <CheckCircle className="w-5 h-5 text-blue-400" />
-                          <span className="text-sm font-bold text-blue-400">Verified</span>
-                        </div>
+                        {(() => {
+                          const hasPersonalData = userProfile.completed_data === true;
+                          const hasWorkStatusData = userProfile.work_status_completed_data === true;
+                          const hasResume = userProfile.resume_score !== undefined && userProfile.resume_score > 0;
+                          const hasTypingHero = userProfile.game_stats?.typing_hero_stats && 
+                            (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                             userProfile.game_stats.typing_hero_stats.latest_wpm > 0);
+                          const hasDisc = userProfile.game_stats?.disc_personality_stats && 
+                            (userProfile.game_stats.disc_personality_stats.primary_type || 
+                             userProfile.game_stats.disc_personality_stats.latest_primary_type);
+                          const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
+                          const completionPercentage = Math.round((completedSteps / 5) * 100);
+                          
+                          return completionPercentage === 100 ? (
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 backdrop-blur-sm">
+                              <CheckCircle className="w-5 h-5 text-blue-400" />
+                              <span className="text-sm font-bold text-blue-400">Verified</span>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
 
                       {/* Username */}
@@ -1149,8 +1174,12 @@ export default function ProfilePage() {
                                 const hasPersonalData = userProfile.completed_data === true;
                                 const hasWorkStatusData = userProfile.work_status_completed_data === true;
                                 const hasResume = userProfile.resume_score !== undefined && userProfile.resume_score > 0;
-                                const hasTypingHero = userProfile.game_stats?.typing_hero_stats !== undefined;
-                                const hasDisc = userProfile.game_stats?.disc_personality_stats !== undefined;
+                                const hasTypingHero = userProfile.game_stats?.typing_hero_stats && 
+                                  (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                                   userProfile.game_stats.typing_hero_stats.latest_wpm > 0);
+                                const hasDisc = userProfile.game_stats?.disc_personality_stats && 
+                                  (userProfile.game_stats.disc_personality_stats.primary_type || 
+                                   userProfile.game_stats.disc_personality_stats.latest_primary_type);
                                 const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
                                 return Math.round((completedSteps / 5) * 100);
                               })()}%
@@ -1164,8 +1193,12 @@ export default function ProfilePage() {
                                   const hasPersonalData = userProfile.completed_data === true;
                                   const hasWorkStatusData = userProfile.work_status_completed_data === true;
                                   const hasResume = userProfile.resume_score !== undefined && userProfile.resume_score > 0;
-                                  const hasTypingHero = userProfile.game_stats?.typing_hero_stats !== undefined;
-                                  const hasDisc = userProfile.game_stats?.disc_personality_stats !== undefined;
+                                  const hasTypingHero = userProfile.game_stats?.typing_hero_stats && 
+                                    (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                                     userProfile.game_stats.typing_hero_stats.latest_wpm > 0);
+                                  const hasDisc = userProfile.game_stats?.disc_personality_stats && 
+                                    (userProfile.game_stats.disc_personality_stats.primary_type || 
+                                     userProfile.game_stats.disc_personality_stats.latest_primary_type);
                                   const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
                                   return (completedSteps / 5) * 100;
                                 })()}%` 
@@ -1197,7 +1230,7 @@ export default function ProfilePage() {
                             </div>
                             {userProfile.completed_data === true ? (
                               <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
-                            ) : (
+                            ) : isOwner ? (
                               <Button
                                 onClick={() => router.push('/?step=1')}
                                 size="sm"
@@ -1205,7 +1238,7 @@ export default function ProfilePage() {
                               >
                                 Complete
                               </Button>
-                            )}
+                            ) : null}
                           </div>
 
                           {/* Step 2: Work Status */}
@@ -1227,7 +1260,7 @@ export default function ProfilePage() {
                             </div>
                             {userProfile.work_status_completed_data === true ? (
                               <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
-                            ) : (
+                            ) : isOwner ? (
                               <Button
                                 onClick={() => router.push('/?step=2')}
                                 size="sm"
@@ -1235,7 +1268,7 @@ export default function ProfilePage() {
                               >
                                 Complete
                               </Button>
-                            )}
+                            ) : null}
                           </div>
 
                           {/* Step 3: Resume Builder */}
@@ -1257,7 +1290,7 @@ export default function ProfilePage() {
                             </div>
                             {userProfile.resume_score !== undefined && userProfile.resume_score > 0 ? (
                               <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
-                            ) : (
+                            ) : isOwner ? (
                               <Button
                                 onClick={() => router.push('/resume-builder')}
                                 size="sm"
@@ -1265,17 +1298,21 @@ export default function ProfilePage() {
                               >
                                 Start
                               </Button>
-                            )}
+                            ) : null}
                           </div>
 
                           {/* Step 4: Typing Hero */}
                           <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              userProfile.game_stats?.typing_hero_stats !== undefined
+                              userProfile.game_stats?.typing_hero_stats && 
+                              (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                               userProfile.game_stats.typing_hero_stats.latest_wpm > 0)
                                 ? 'bg-green-500 text-white'
                                 : 'bg-gray-600 text-gray-400'
                             }`}>
-                              {userProfile.game_stats?.typing_hero_stats !== undefined ? (
+                              {userProfile.game_stats?.typing_hero_stats && 
+                               (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                                userProfile.game_stats.typing_hero_stats.latest_wpm > 0) ? (
                                 <CheckCircle className="w-5 h-5" />
                               ) : (
                                 <span className="text-sm font-bold">4</span>
@@ -1285,9 +1322,11 @@ export default function ProfilePage() {
                               <h5 className="text-white font-semibold">Typing Hero</h5>
                               <p className="text-gray-400 text-sm">Improve your typing skills and speed</p>
                             </div>
-                            {userProfile.game_stats?.typing_hero_stats !== undefined ? (
+                            {userProfile.game_stats?.typing_hero_stats && 
+                             (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                              userProfile.game_stats.typing_hero_stats.latest_wpm > 0) ? (
                               <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
-                            ) : (
+                            ) : isOwner ? (
                               <Button
                                 onClick={() => router.push('/career-tools/games/typing-hero')}
                                 size="sm"
@@ -1295,17 +1334,21 @@ export default function ProfilePage() {
                               >
                                 Start
                               </Button>
-                            )}
+                            ) : null}
                           </div>
 
                           {/* Step 5: BPOC DISC */}
                           <div className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              userProfile.game_stats?.disc_personality_stats !== undefined
+                              userProfile.game_stats?.disc_personality_stats && 
+                              (userProfile.game_stats.disc_personality_stats.primary_type || 
+                               userProfile.game_stats.disc_personality_stats.latest_primary_type)
                                 ? 'bg-green-500 text-white'
                                 : 'bg-gray-600 text-gray-400'
                             }`}>
-                              {userProfile.game_stats?.disc_personality_stats !== undefined ? (
+                              {userProfile.game_stats?.disc_personality_stats && 
+                               (userProfile.game_stats.disc_personality_stats.primary_type || 
+                                userProfile.game_stats.disc_personality_stats.latest_primary_type) ? (
                                 <CheckCircle className="w-5 h-5" />
                               ) : (
                                 <span className="text-sm font-bold">5</span>
@@ -1315,9 +1358,11 @@ export default function ProfilePage() {
                               <h5 className="text-white font-semibold">BPOC DISC</h5>
                               <p className="text-gray-400 text-sm">Discover your personality type and communication style</p>
                             </div>
-                            {userProfile.game_stats?.disc_personality_stats !== undefined ? (
+                            {userProfile.game_stats?.disc_personality_stats && 
+                             (userProfile.game_stats.disc_personality_stats.primary_type || 
+                              userProfile.game_stats.disc_personality_stats.latest_primary_type) ? (
                               <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Completed</Badge>
-                            ) : (
+                            ) : isOwner ? (
                               <Button
                                 onClick={() => router.push('/career-tools/games/disc-personality')}
                                 size="sm"
@@ -1325,11 +1370,127 @@ export default function ProfilePage() {
                               >
                                 Start
                               </Button>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* BPOC.io Verification Card - Only show for profile owner */}
+                    {isOwner && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl"></div>
+                        <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-green-500/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="p-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg">
+                            <CheckCircle className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-white">BPOC.IO Verification</h3>
+                            <p className="text-gray-400 text-sm">Your profile verification status</p>
+                          </div>
+                        </div>
+                        
+                        {(() => {
+                          // Use the same logic as Profile Completion card
+                          const hasPersonalData = userProfile.completed_data === true;
+                          const hasWorkStatusData = userProfile.work_status_completed_data === true;
+                          const hasResume = userProfile.resume_score !== undefined && userProfile.resume_score > 0;
+                          const hasTypingHero = userProfile.game_stats?.typing_hero_stats && 
+                            (userProfile.game_stats.typing_hero_stats.best_wpm > 0 || 
+                             userProfile.game_stats.typing_hero_stats.latest_wpm > 0);
+                          const hasDisc = userProfile.game_stats?.disc_personality_stats && 
+                            (userProfile.game_stats.disc_personality_stats.primary_type || 
+                             userProfile.game_stats.disc_personality_stats.latest_primary_type);
+                          const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
+                          const completionPercentage = Math.round((completedSteps / 5) * 100);
+                          
+                          const isFullyVerified = completionPercentage >= 80;
+                          
+                          return (
+                            <div className="space-y-4">
+                              {/* Verification Status */}
+                              <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    isFullyVerified 
+                                      ? 'bg-green-500 text-white' 
+                                      : 'bg-yellow-500 text-white'
+                                  }`}>
+                                    {isFullyVerified ? (
+                                      <CheckCircle className="w-6 h-6" />
+                                    ) : (
+                                      <span className="text-lg">⚠️</span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-white font-semibold">
+                                      {isFullyVerified ? 'Verified Profile' : 'Pending Verification'}
+                                    </h4>
+                                    <p className="text-gray-400 text-sm">
+                                      {isFullyVerified 
+                                        ? 'Your profile is complete and verified' 
+                                        : 'Complete your profile to gain verification'
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-2xl font-bold ${
+                                    isFullyVerified ? 'text-green-400' : 'text-yellow-400'
+                                  }`}>
+                                    {completionPercentage}%
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Verification Explanation */}
+                              <div className="bg-gradient-to-r from-gray-700/30 to-gray-800/30 rounded-lg p-4 border border-gray-600/30">
+                                <h5 className="text-white font-semibold mb-2 flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                  Verification Requirements
+                                </h5>
+                                <p className="text-gray-300 text-sm leading-relaxed">
+                                  {isFullyVerified ? (
+                                    <>
+                                      <span className="text-green-400 font-medium">✓ Congratulations!</span> You have successfully completed all required profile information and gained the <span className="text-blue-400 font-semibold">Verified</span> badge. This badge appears next to your name and indicates that your profile is complete and trustworthy.
+                                    </>
+                                  ) : (
+                                    <>
+                                      To earn the <span className="text-blue-400 font-semibold">Verified</span> badge, you need to complete at least 100% of your profile information. The verified badge helps establish trust and credibility with other users and potential employers. Complete the remaining profile sections above to gain verification.
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                              
+                              {/* Verification Benefits */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <CheckCircle className="w-4 h-4 text-green-400" />
+                                    <span className="text-green-400 font-semibold text-sm">Trust & Credibility</span>
+                                  </div>
+                                  <p className="text-gray-300 text-xs">
+                                    Verified profiles are more trusted by employers and other users
+                                  </p>
+                                </div>
+                                
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Star className="w-4 h-4 text-blue-400" />
+                                    <span className="text-blue-400 font-semibold text-sm">Enhanced Visibility</span>
+                                  </div>
+                                  <p className="text-gray-300 text-xs">
+                                    Verified profiles appear higher in search results and recommendations
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Personal Information Section */}
                     <div className="relative z-[99999]">
@@ -1382,72 +1543,11 @@ export default function ProfilePage() {
                           )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {/* Gender - Always visible */}
-                          {userProfile.gender && (
-                            <div className="group bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-300 hover:scale-105">
-                              <label className="text-sm font-medium text-pink-300 mb-2 block">Gender</label>
-                              {isEditingPersonalInfo ? (
-                                <div className="space-y-2">
-                                  <select
-                                    value={editedPersonalInfo.gender}
-                                    onChange={(e) => setEditedPersonalInfo(prev => ({ 
-                                      ...prev, 
-                                      gender: e.target.value,
-                                      gender_custom: e.target.value === 'other' ? prev.gender_custom : ''
-                                    }))}
-                                    className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-pink-400/50 rounded-lg px-3 py-2 outline-none focus:border-pink-400 focus:bg-gray-700/70 transition-all duration-200"
-                                  >
-                                    <option value="">Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                  </select>
-                                  {editedPersonalInfo.gender === 'other' && (
-                                    <input 
-                                      type="text" 
-                                      value={editedPersonalInfo.gender_custom}
-                                      onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, gender_custom: e.target.value }))}
-                                      className="w-full bg-gray-700/50 text-white text-base font-medium border-2 border-pink-400/50 rounded-lg px-3 py-2 outline-none focus:border-pink-400 focus:bg-gray-700/70 transition-all duration-200"
-                                      placeholder="Please specify your gender"
-                                    />
-                                  )}
-                                </div>
-                              ) : (
-                                <p className="text-white text-lg font-semibold capitalize">
-                                  {userProfile.gender_custom || userProfile.gender}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-
-                          {/* Age - Always visible */}
-                          {userProfile.birthday && (
-                            <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
-                              <label className="text-sm font-medium text-teal-300 mb-2 block">Age</label>
-                              <p className="text-white text-lg font-semibold">
-                                {Math.floor((new Date().getTime() - new Date(userProfile.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) + " years old"}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Member Since - Always visible */}
-                          {userProfile.created_at && (
-                            <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
-                              <label className="text-sm font-medium text-violet-300 mb-2 block">Member Since</label>
-                              <p className="text-white text-lg font-semibold">
-                                {new Date(userProfile.created_at).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </p>
-                            </div>
-                          )}
 
                           {/* Owner-only fields */}
                           {isOwner && (
                             <>
+                              {/* 1. First Name */}
                               {userProfile.first_name && (
                                 <div className="group bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-xl p-4 border border-cyan-400/30 hover:border-cyan-400/60 transition-all duration-300 hover:scale-105">
                                   <label className="text-sm font-medium text-cyan-300 mb-2 block">First Name</label>
@@ -1466,6 +1566,8 @@ export default function ProfilePage() {
                                   )}
                                 </div>
                               )}
+                              
+                              {/* 2. Last Name */}
                               {userProfile.last_name && (
                                 <div className="group bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-400/30 hover:border-purple-400/60 transition-all duration-300 hover:scale-105">
                                   <label className="text-sm font-medium text-purple-300 mb-2 block">Last Name</label>
@@ -1484,6 +1586,48 @@ export default function ProfilePage() {
                                   )}
                                 </div>
                               )}
+                              
+                              {/* 3. Username */}
+                              {userProfile.username && (
+                                <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-4 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-orange-300 mb-2 block">Username</label>
+                                  {isEditingPersonalInfo ? (
+                                    <input 
+                                      type="text" 
+                                      value={editedPersonalInfo.username}
+                                      onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, username: e.target.value }))}
+                                      className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-orange-400/50 rounded-lg px-3 py-2 outline-none focus:border-orange-400 focus:bg-gray-700/70 transition-all duration-200"
+                                      placeholder="Enter username"
+                                    />
+                                  ) : (
+                                    <p className="text-white text-lg font-semibold">
+                                      @{userProfile.username}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* 4. Job Title */}
+                              {userProfile.position && (
+                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Job Title</label>
+                                  {isEditingPersonalInfo ? (
+                                    <input 
+                                      type="text" 
+                                      value={editedPersonalInfo.position}
+                                      onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, position: e.target.value }))}
+                                      className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-blue-400/50 rounded-lg px-3 py-2 outline-none focus:border-blue-400 focus:bg-gray-700/70 transition-all duration-200"
+                                      placeholder="Enter job title"
+                                    />
+                                  ) : (
+                                    <p className="text-white text-lg font-semibold">
+                                      {userProfile.position}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* 5. Location */}
                               {userProfile.location && (
                                 <div className="group bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-400/30 hover:border-green-400/60 transition-all duration-300 hover:scale-105">
                                   <label className="text-sm font-medium text-green-300 mb-2 block">Location</label>
@@ -1516,24 +1660,46 @@ export default function ProfilePage() {
                                   )}
                                 </div>
                               )}
-                              {userProfile.position && (
-                                <div className="group bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-400/30 hover:border-blue-400/60 transition-all duration-300 hover:scale-105">
-                                  <label className="text-sm font-medium text-blue-300 mb-2 block">Job Title</label>
+                              
+                              {/* 6. Gender */}
+                              {userProfile.gender && (
+                                <div className="group bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl p-4 border border-pink-400/30 hover:border-pink-400/60 transition-all duration-300 hover:scale-105">
+                                  <label className="text-sm font-medium text-pink-300 mb-2 block">Gender</label>
                                   {isEditingPersonalInfo ? (
-                                    <input 
-                                      type="text" 
-                                      value={editedPersonalInfo.position}
-                                      onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, position: e.target.value }))}
-                                      className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-blue-400/50 rounded-lg px-3 py-2 outline-none focus:border-blue-400 focus:bg-gray-700/70 transition-all duration-200"
-                                      placeholder="Enter job title"
-                                    />
+                                    <div className="space-y-2">
+                                      <select
+                                        value={editedPersonalInfo.gender}
+                                        onChange={(e) => setEditedPersonalInfo(prev => ({ 
+                                          ...prev, 
+                                          gender: e.target.value,
+                                          gender_custom: e.target.value === 'other' ? prev.gender_custom : ''
+                                        }))}
+                                        className="w-full bg-gray-700/50 text-white text-lg font-semibold border-2 border-pink-400/50 rounded-lg px-3 py-2 outline-none focus:border-pink-400 focus:bg-gray-700/70 transition-all duration-200"
+                                      >
+                                        <option value="">Select gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                      </select>
+                                      {editedPersonalInfo.gender === 'other' && (
+                                        <input 
+                                          type="text" 
+                                          value={editedPersonalInfo.gender_custom}
+                                          onChange={(e) => setEditedPersonalInfo(prev => ({ ...prev, gender_custom: e.target.value }))}
+                                          className="w-full bg-gray-700/50 text-white text-base font-medium border-2 border-pink-400/50 rounded-lg px-3 py-2 outline-none focus:border-pink-400 focus:bg-gray-700/70 transition-all duration-200"
+                                          placeholder="Please specify your gender"
+                                        />
+                                      )}
+                                    </div>
                                   ) : (
-                                    <p className="text-white text-lg font-semibold">
-                                      {userProfile.position}
+                                    <p className="text-white text-lg font-semibold capitalize">
+                                      {userProfile.gender_custom || userProfile.gender}
                                     </p>
                                   )}
                                 </div>
                               )}
+                              
+                              {/* 7. Birthday */}
                               {userProfile.birthday && (
                                 <div className="group bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-4 border border-indigo-400/30 hover:border-indigo-400/60 transition-all duration-300 hover:scale-105">
                                   <label className="text-sm font-medium text-indigo-300 mb-2 block">Birthday</label>
@@ -1556,6 +1722,30 @@ export default function ProfilePage() {
                                 </div>
                               )}
                             </>
+                          )}
+                          
+                          {/* 8. Age - Always visible */}
+                          {userProfile.birthday && (
+                            <div className="group bg-gradient-to-br from-teal-500/10 to-cyan-500/10 rounded-xl p-4 border border-teal-400/30 hover:border-teal-400/60 transition-all duration-300 hover:scale-105">
+                              <label className="text-sm font-medium text-teal-300 mb-2 block">Age</label>
+                              <p className="text-white text-lg font-semibold">
+                                {Math.floor((new Date().getTime() - new Date(userProfile.birthday).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) + " years old"}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* 9. Member Since - Always visible */}
+                          {userProfile.created_at && (
+                            <div className="group bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-xl p-4 border border-violet-400/30 hover:border-violet-400/60 transition-all duration-300 hover:scale-105">
+                              <label className="text-sm font-medium text-violet-300 mb-2 block">Member Since</label>
+                              <p className="text-white text-lg font-semibold">
+                                {new Date(userProfile.created_at).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2853,7 +3043,7 @@ export default function ProfilePage() {
                         <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-gray-500/20 backdrop-blur-sm flex flex-col h-full">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                              <Gamepad2 className="w-5 h-5 text-blue-400" />
+                              <Brain className="w-5 h-5 text-blue-400" />
                             </div>
                             <h3 className="text-xl font-bold text-white">BPOC DISC</h3>
                           </div>
