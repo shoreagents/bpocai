@@ -479,7 +479,6 @@ export default function LeaderboardsPage() {
 							>
 								{selectedRow.user?.full_name || selectedRow.userId}
 							</button>
-							<Badge className="bg-amber-500/20 border-amber-500/30 text-amber-300">Hire‑ready</Badge>
 						</div>
 					)}
 					{loadingBreakdown && (
@@ -487,101 +486,100 @@ export default function LeaderboardsPage() {
 					)}
 					{!loadingBreakdown && breakdown && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Games */}
-                <div className="bg-white/5 rounded p-4 md:col-span-1">
-                  <div className="font-semibold mb-2">Games 🎮</div>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-gray-300">Game</TableHead>
-                          <TableHead className="text-right text-gray-300">Best</TableHead>
-                          <TableHead className="text-right text-gray-300">Plays</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(breakdown.games || []).map((g: any, idx: number) => (
-                          <TableRow key={`${g.game_id}-${idx}`} className="hover:bg-transparent">
-                            <TableCell>{getGameName(g.game_id)}</TableCell>
-                            <TableCell className="text-right">{g.best_score}</TableCell>
-                            <TableCell className="text-right">{g.plays}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+              {/* Component Scores Display */}
+              <div className="bg-white/5 rounded-lg p-6">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">📊</span>
+                  </span>
+                  Component Scores
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Overall Score */}
+                  <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-yellow-300 font-semibold text-sm">Overall</div>
+                        <div className="text-2xl font-bold text-white">{breakdown.overall?.score || 0}</div>
+                      </div>
+                      <div className="text-3xl">🏆</div>
+                    </div>
+                  </div>
+
+                  {/* Typing Hero Score */}
+                  <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-4 border border-cyan-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-cyan-300 font-semibold text-sm">Typing Hero</div>
+                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.typing_hero || 0}</div>
+                      </div>
+                      <div className="text-3xl">⌨️</div>
+                    </div>
+                  </div>
+
+                  {/* DISC Personality Score */}
+                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 border border-purple-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-purple-300 font-semibold text-sm">DISC</div>
+                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.disc_personality || 0}</div>
+                      </div>
+                      <div className="text-3xl">🧠</div>
+                    </div>
+                  </div>
+
+                  {/* Profile Completion Score */}
+                  <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-green-300 font-semibold text-sm">Profile</div>
+                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.profile_completion || 0}</div>
+                      </div>
+                      <div className="text-3xl">👤</div>
+                    </div>
+                  </div>
+
+                  {/* Resume Building Score */}
+                  <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg p-4 border border-orange-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-orange-300 font-semibold text-sm">Resume</div>
+                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.resume_building || 0}</div>
+                      </div>
+                      <div className="text-3xl">📄</div>
+                    </div>
+                  </div>
+
+                  {/* Applications Score */}
+                  <div className="bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg p-4 border border-amber-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-amber-300 font-semibold text-sm">Applications</div>
+                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.application_activity || 0}</div>
+                      </div>
+                      <div className="text-3xl">💼</div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Applications & Engagement */}
-                <div className="bg-white/5 rounded p-4 md:col-span-2">
-                  <div className="font-semibold mb-2">Applications 📄 & Engagement ✨</div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                      <div className="mb-1 font-medium">Applications (total: {breakdown.applications?.total ?? 0})</div>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="hover:bg-transparent">
-                              <TableHead className="text-gray-300">Job ID</TableHead>
-                              <TableHead className="text-gray-300">Status</TableHead>
-                              <TableHead className="text-right text-gray-300">Points</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(breakdown.applications?.items || []).map((i: any, idx: number) => (
-                              <TableRow key={`${i.job_id}-${idx}`} className="hover:bg-transparent">
-                                <TableCell>{i.job_id}</TableCell>
-                                <TableCell>{i.status}</TableCell>
-                                <TableCell className="text-right">{i.points}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-1 font-medium">Engagement (total: {breakdown.engagement?.total ?? 0})</div>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="hover:bg-transparent">
-                              <TableHead className="text-gray-300">Action</TableHead>
-                              <TableHead className="text-right text-gray-300">Points</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(breakdown.engagement?.items || []).map((i: any, idx: number) => (
-                              <TableRow key={`${i.label}-${idx}`} className="hover:bg-transparent">
-                                <TableCell>{i.label}</TableCell>
-                                <TableCell className="text-right">{i.points}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                {/* Tier Badge */}
+                {breakdown.overall?.tier && (
+                  <div className="mt-4 flex justify-center">
+                    <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                      breakdown.overall.tier === 'Diamond' ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white' :
+                      breakdown.overall.tier === 'Platinum' ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800' :
+                      breakdown.overall.tier === 'Gold' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900' :
+                      breakdown.overall.tier === 'Silver' ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-800' :
+                      'bg-gradient-to-r from-amber-600 to-orange-600 text-amber-100'
+                    }`}>
+                      {breakdown.overall.tier === 'Diamond' ? '💎' : 
+                       breakdown.overall.tier === 'Platinum' ? '🥈' :
+                       breakdown.overall.tier === 'Gold' ? '🥇' :
+                       breakdown.overall.tier === 'Silver' ? '🥉' : '🏅'} {breakdown.overall.tier} Tier
                     </div>
                   </div>
-                </div>
-              </div>
-              {/* Totals row under tables */}
-              <div className="flex flex-wrap items-center gap-3 text-sm mt-4">
-                <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-                  <span className="text-gray-400 mr-2">🎮 Games</span>
-                  <span className="text-white font-semibold">{(breakdown.games || []).reduce((sum: number, g: any) => sum + (g.best_score || 0), 0)}</span>
-                </div>
-                <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-                  <span className="text-gray-400 mr-2">🏆 Overall</span>
-                  <span className="text-white font-semibold">{breakdown.overall?.overall_score ?? 0}</span>
-                </div>
-                <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-                  <span className="text-gray-400 mr-2">📄 Applications</span>
-                  <span className="text-white font-semibold">{breakdown.applications?.total ?? 0}</span>
-                </div>
-                <div className="px-3 py-2 rounded bg-white/5 border border-white/10">
-                  <span className="text-gray-400 mr-2">✨ Engagement</span>
-                  <span className="text-white font-semibold">{breakdown.engagement?.total ?? 0}</span>
-                </div>
+                )}
               </div>
             </div>
           )}
