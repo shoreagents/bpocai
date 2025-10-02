@@ -79,10 +79,10 @@ export default function CareerGamesPage() {
       title: "💰 OFW Money Drama",
       scenario: "Your sister in Dubai sends ₱80,000 for mom's surgery. Your uncle 'borrows' ₱15,000 for tricycle repair. Your cousin needs ₱10,000 for enrollment. Mom is crying because money is disappearing...",
       options: [
-        { id: 'A', disc: 'D', animal: '🦅 FAMILY BOSS', text: "STOP! Sister's money is for MOM ONLY! Pay it back NOW!", reaction: "🦅 A fierce spirit stirs within..." },
-        { id: 'B', disc: 'I', animal: '🦚 FAMILY DIPLOMAT', text: "Let's call ate together and explain the situation honestly", reaction: "🦚 A vibrant energy awakens..." },
-        { id: 'C', disc: 'S', animal: '🐢 QUIET SACRIFICE', text: "Use my own ₱20,000 savings to cover what they took", reaction: "🐢 A steady presence grows..." },
-        { id: 'D', disc: 'C', animal: '🦉 FINANCIAL AUDIT', text: "Calculate exact surgery costs, track spending, create repayment plan", reaction: "🦉 Ancient wisdom gathers..." }
+        { id: 'A', disc: 'D', text: "STOP! Sister's money is for MOM ONLY! Pay it back NOW!", reaction: "A fierce spirit stirs within..." },
+        { id: 'B', disc: 'I', text: "Let's call ate together and explain the situation honestly", reaction: "A vibrant energy awakens..." },
+        { id: 'C', disc: 'S', text: "Use my own ₱20,000 savings to cover what they took", reaction: "A steady presence grows..." },
+        { id: 'D', disc: 'C', text: "Calculate exact surgery costs, track spending, create repayment plan", reaction: "Ancient wisdom gathers..." }
       ]
     },
     {
@@ -91,10 +91,10 @@ export default function CareerGamesPage() {
       title: "📞 Angry Customer Crisis",
       scenario: "Customer screaming about billing error, threatening to cancel account worth ₱50,000 monthly. Your manager is in a meeting. You have 2 minutes to resolve this...",
       options: [
-        { id: 'A', disc: 'D', animal: '🦅 CRISIS LEADER', text: "I'll fix this immediately! Give me your account number and I'll override the system!", reaction: "🦅 A fierce spirit stirs within..." },
-        { id: 'B', disc: 'I', animal: '🦚 CUSTOMER CHARMER', text: "I completely understand your frustration! Let me personally handle this for you!", reaction: "🦚 A vibrant energy awakens..." },
-        { id: 'C', disc: 'S', animal: '🐢 PATIENT LISTENER', text: "I hear you. Let me carefully check every detail of your account", reaction: "🐢 A steady presence grows..." },
-        { id: 'D', disc: 'C', animal: '🦉 SYSTEM ANALYST', text: "Let me trace the exact billing sequence and identify the root cause", reaction: "🦉 Ancient wisdom gathers..." }
+        { id: 'A', disc: 'D', text: "I'll fix this immediately! Give me your account number and I'll override the system!", reaction: "A fierce spirit stirs within..." },
+        { id: 'B', disc: 'I', text: "I completely understand your frustration! Let me personally handle this for you!", reaction: "A vibrant energy awakens..." },
+        { id: 'C', disc: 'S', text: "I hear you. Let me carefully check every detail of your account", reaction: "A steady presence grows..." },
+        { id: 'D', disc: 'C', text: "Let me trace the exact billing sequence and identify the root cause", reaction: "Ancient wisdom gathers..." }
       ]
     }
   ];
@@ -850,57 +850,28 @@ export default function CareerGamesPage() {
                   {discDemoScenarios[discDemoStep].options.map((option, index) => {
                     const isSelected = discDemoSelected === option.id;
                     const isHighlighted = discDemoCurrentChoice === index && !discDemoSelected;
-                    const getDiscStyles = (disc: string) => {
-                      switch (disc) {
-                        case 'D':
-                          return {
-                            bg: 'from-red-500/10 to-red-600/10',
-                            border: 'border-red-500/40',
-                            ring: 'ring-red-500/30',
-                            text: 'text-red-300'
-                          };
-                        case 'I':
-                          return {
-                            bg: 'from-yellow-500/10 to-yellow-600/10',
-                            border: 'border-yellow-500/40',
-                            ring: 'ring-yellow-500/30',
-                            text: 'text-yellow-300'
-                          };
-                        case 'S':
-                          return {
-                            bg: 'from-green-500/10 to-green-600/10',
-                            border: 'border-green-500/40',
-                            ring: 'ring-green-500/30',
-                            text: 'text-green-300'
-                          };
-                        case 'C':
-                          return {
-                            bg: 'from-blue-500/10 to-blue-600/10',
-                            border: 'border-blue-500/40',
-                            ring: 'ring-blue-500/30',
-                            text: 'text-blue-300'
-                          };
-                        default:
-                          return {
-                            bg: 'from-cyan-500/10 to-purple-600/10',
-                            border: 'border-white/10',
-                            ring: 'ring-white/10',
-                            text: 'text-gray-300'
-                          };
-                      }
+                    
+                    // Get context colors for consistent styling
+                    const contextColors = {
+                      FAMILY: { primary: 'pink', bg: 'from-pink-500/10 to-rose-500/10', border: 'border-pink-500/30' },
+                      WORK: { primary: 'blue', bg: 'from-blue-500/10 to-cyan-500/10', border: 'border-blue-500/30' },
+                      SOCIAL: { primary: 'green', bg: 'from-green-500/10 to-emerald-500/10', border: 'border-green-500/30' },
+                      TRAFFIC: { primary: 'orange', bg: 'from-orange-500/10 to-red-500/10', border: 'border-orange-500/30' },
+                      MONEY: { primary: 'yellow', bg: 'from-yellow-500/10 to-amber-500/10', border: 'border-yellow-500/30' }
                     };
                     
-                    const styles = getDiscStyles(option.disc);
+                    const currentContext = discDemoScenarios[discDemoStep].context as keyof typeof contextColors;
+                    const colors = contextColors[currentContext] || contextColors.WORK;
                     
                     return (
                       <motion.div
                         key={option.id}
-                        className={`text-left transition-all rounded-lg border ${styles.border} bg-gradient-to-br ${styles.bg} ${
+                        className={`text-left transition-all rounded-lg border ${colors.border} bg-gradient-to-br ${colors.bg} ${
                           isSelected 
-                            ? `ring-2 ${styles.ring} scale-[1.02] shadow-lg` 
+                            ? `ring-2 ring-${colors.primary}-400 scale-[1.02] shadow-lg` 
                             : isHighlighted 
-                            ? `ring-1 ${styles.ring} scale-[1.01] shadow-md` 
-                            : 'hover:ring-1'
+                            ? `ring-1 ring-${colors.primary}-400/50 scale-[1.01] shadow-md` 
+                            : `hover:ring-1 hover:ring-${colors.primary}-400/50`
                         } backdrop-blur-sm p-4 relative overflow-hidden`}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ 
@@ -930,16 +901,13 @@ export default function CareerGamesPage() {
                           />
                         )}
                         
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-center gap-3">
                           <div className="text-2xl select-none">
-                            {option.animal.split(' ')[0]}
+                            🔮
                           </div>
                           <div className="flex-1">
-                            <div className="text-white font-semibold leading-snug text-sm">
+                            <div className="text-white font-semibold leading-snug text-base">
                               {option.text}
-                            </div>
-                            <div className={`mt-1 text-xs ${styles.text}`}>
-                              {option.animal}
                             </div>
                           </div>
                         </div>
@@ -994,25 +962,6 @@ export default function CareerGamesPage() {
                     />
                   </div>
                   
-                  {/* Score Display */}
-                  <div className="flex items-center justify-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <span className="text-red-400">🦅</span>
-                      <span className="text-white font-bold">{discDemoScores.D}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-400">🦚</span>
-                      <span className="text-white font-bold">{discDemoScores.I}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-400">🐢</span>
-                      <span className="text-white font-bold">{discDemoScores.S}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-blue-400">🦉</span>
-                      <span className="text-white font-bold">{discDemoScores.C}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             ) : (
@@ -1046,14 +995,43 @@ export default function CareerGamesPage() {
                   Your Filipino BPO Animal Spirit!
                 </motion.h3>
                 
-                <motion.p 
+                <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
                   className="text-gray-300 mb-6"
                 >
-                  Based on your demo choices, you're showing traits of a {Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'D' ? '🦅 Eagle Leader' : Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'I' ? '🦚 Peacock Social Star' : Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'S' ? '🐢 Turtle Guardian' : '🦉 Owl Analyst'}!
+                  Based on your demo choices, you're showing traits of a {Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'D' ? 'Dominant Leader' : Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'I' ? 'Influential Social Star' : Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'S' ? 'Steady Guardian' : 'Conscientious Analyst'}!
                 </motion.p>
+                
+                {/* Sample Animal Display */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex items-center justify-center mb-6"
+                >
+                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-purple-500/30 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 animate-pulse"></div>
+                    <div className="relative z-10 text-center">
+                      <div className="text-6xl mb-3">
+                        {Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'D' ? '🦅' : 
+                         Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'I' ? '🦚' : 
+                         Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'S' ? '🐢' : '🦉'}
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">
+                        {Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'D' ? 'The Sky Dominator' : 
+                         Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'I' ? 'The Social Star' : 
+                         Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'S' ? 'The Steady Guardian' : 'The Wise Analyst'}
+                      </h3>
+                      <p className="text-gray-300 text-sm">
+                        {Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'D' ? 'You soar above challenges and lead from the front!' : 
+                         Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'I' ? 'You light up rooms and connect with people effortlessly!' : 
+                         Object.entries(discDemoScores).sort(([,a], [,b]) => b - a)[0][0] === 'S' ? 'You keep everything running smoothly and provide the foundation teams depend on!' : 'You spot what others miss and ensure everything meets the highest standards!'}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
                 
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}

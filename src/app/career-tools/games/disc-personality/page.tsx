@@ -890,6 +890,7 @@ Create a comprehensive 3-paragraph assessment that:
 Additionally, provide these specific sections:
 - CORE TRAITS: List 3-4 key personality traits based on their actual responses and patterns
 - CULTURAL STRENGTHS: Explain 2-3 specific Filipino cultural values they embody based on their choices
+- ANIMAL PERSONALITY REASON: Based on their primary type (${results.primaryType}), explain WHY they became their specific animal and what this reveals about their authentic self. Use the animal metaphor to describe their natural instincts, decision-making patterns, and how they navigate challenges. Make it personal and insightful. Format this section in bullet points for easy reading.
 
 IMPORTANT FORMATTING: For Filipino cultural terms, always provide English translations in parentheses for consistency (e.g., "pakikisama (ability to get along)", "malasakit (genuine care)", "bayanihan (community spirit)")
 
@@ -1457,6 +1458,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                         // Extract AI-generated cultural strengths
                         aiAssessment
                           .split('CULTURAL STRENGTHS:')[1]
+                          ?.split('ANIMAL PERSONALITY REASON')[0] // Remove animal personality reason section
                           ?.split('\n')
                           .filter(line => line.trim())
                           .join(' ')
@@ -1648,6 +1650,57 @@ Make it deeply personal and actionable based on their actual choices.`;
                      return !paragraph.toLowerCase().includes('core traits:') && 
                             !paragraph.toLowerCase().includes('cultural strengths:');
                    }).map((paragraph: string, index: number) => {
+                     // Check if this is the ANIMAL PERSONALITY REASON section
+                     if (paragraph.toLowerCase().includes('animal personality reason')) {
+                       // Extract the content after the section title
+                       const reasonContent = paragraph
+                         .split(/animal personality reason[:\s]*/i)[1]
+                         ?.trim();
+                       
+                       if (reasonContent) {
+                         // Get personality type information for inline display
+                         const personalityType = ANIMAL_PERSONALITIES[discResult.primaryType as keyof typeof ANIMAL_PERSONALITIES];
+                         const animalName = personalityType.animal.replace(/[🦅🦚🐢🦉]/g, '').trim();
+                         const discType = discResult.primaryType === 'D' ? 'Dominance' : 
+                                         discResult.primaryType === 'I' ? 'Influence' : 
+                                         discResult.primaryType === 'S' ? 'Steadiness' : 'Conscientiousness';
+                         
+                         // Split by bullet points and display each as a separate line
+                         const bulletPoints = reasonContent
+                           .split(/[•\-\*]/)
+                           .map(point => point.trim())
+                           .filter(point => point.length > 0)
+                           .filter(point => {
+                             // Remove bullet points that are just personality type references
+                             const lowerPoint = point.toLowerCase();
+                             return !(lowerPoint.includes('(peacock') || 
+                                     lowerPoint.includes('(eagle') ||
+                                     lowerPoint.includes('(turtle') ||
+                                     lowerPoint.includes('(owl') ||
+                                     lowerPoint.includes('influence primary):') ||
+                                     lowerPoint.includes('dominance primary):') ||
+                                     lowerPoint.includes('steadiness primary):') ||
+                                     lowerPoint.includes('conscientiousness primary):'));
+                           });
+                         
+                         return (
+                           <div key={index} className="space-y-2">
+                             <h4 className="text-lg font-semibold text-purple-300 mb-3">
+                               Animal Personality Reason ({animalName} - {discType} Primary)
+                             </h4>
+                             <div className="space-y-2">
+                               {bulletPoints.map((point, bulletIndex) => (
+                                 <div key={bulletIndex} className="flex items-start gap-2">
+                                   <span className="text-purple-400 mt-1">•</span>
+                                   <span className="text-gray-300">{point}</span>
+                                 </div>
+                               ))}
+                             </div>
+                           </div>
+                         );
+                       }
+                     }
+                     
                      // Highlight important phrases within the paragraph
                      const highlightText = (text: string) => {
                        return text

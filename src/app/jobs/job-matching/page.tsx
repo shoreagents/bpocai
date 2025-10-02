@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ import {
   X,
   FileText,
   CheckCircle,
+  CheckCircle2,
   Star,
   Gift,
   Share2,
@@ -56,12 +57,13 @@ import {
   Users
 } from 'lucide-react';
 import { PacmanLoader } from 'react-spinners';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSessionToken } from '@/lib/auth-helpers';
 
-export default function JobMatchingPage() {
+function JobMatchingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
 
   // Add CSS styles for search input
@@ -100,6 +102,7 @@ export default function JobMatchingPage() {
   const [applicationMessage, setApplicationMessage] = useState('');
   const [applicationType, setApplicationType] = useState<'success' | 'error' | 'info'>('success');
   const [appliedMap, setAppliedMap] = useState<Record<string, boolean>>({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   // Use Header's auth modals by toggling URL search params
   const shareRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -150,6 +153,18 @@ export default function JobMatchingPage() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  // Handle application success modal
+  useEffect(() => {
+    const applicationStatus = searchParams.get('application');
+    if (applicationStatus === 'success') {
+      setShowSuccessModal(true);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('application');
+      const newQuery = params.toString();
+      router.replace(newQuery ? `/jobs/job-matching?${newQuery}` : '/jobs/job-matching', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const [jobs, setJobs] = useState<any[]>([])
   const [matchScores, setMatchScores] = useState<{[key: string]: any}>({})
@@ -1334,7 +1349,7 @@ export default function JobMatchingPage() {
                             setAppliedMap(prev => ({ ...prev, [selectedJobData.id]: true }));
                             setSelectedJob(null);
                             setSelectedJobDetails(null);
-                            router.push('/jobs?application=success');
+                            router.push('/jobs/job-matching?application=success');
                             return;
                           } catch (err) {
                             console.error(err)
@@ -1580,6 +1595,56 @@ export default function JobMatchingPage() {
           </div>
         </div>
       )}
+
+      {/* Application Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              </div>
+              Application Sent Successfully!
+            </DialogTitle>
+            <DialogDescription className="text-white mt-2">
+              Your application has been submitted and is now being reviewed by the employer. You'll be notified about any updates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button
+              onClick={() => {
+                setShowSuccessModal(false);
+                router.push('/applications');
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              View My Applications
+            </Button>
+            <Button
+              onClick={() => setShowSuccessModal(false)}
+              variant="outline"
+              className="w-full"
+            >
+              Continue Browsing Jobs
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function JobMatchingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen cyber-grid overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading job matching...</p>
+        </div>
+      </div>
+    }>
+      <JobMatchingContent />
+    </Suspense>
   );
 } 
