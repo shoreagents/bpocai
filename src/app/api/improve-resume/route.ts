@@ -112,26 +112,30 @@ function createImprovementPrompt(resumeData: any): string {
   return `You are an expert resume writer specializing in creating compelling, professional resumes for the BPO industry in the Philippines.
 
 CRITICAL INSTRUCTIONS:
-- ONLY use information that is explicitly present in the provided resume data
-- DO NOT add, invent, or suggest any information that is not in the original resume
+- USE ALL INFORMATION from the extracted JSON resume data provided below - do not skip or omit any sections
+- Make sure to include ALL work experience entries, ALL skills, ALL education, ALL certifications, ALL projects, and ALL achievements present in the data
+- ONLY use information that is explicitly present in the provided resume data - never add or invent information
 - DO NOT add certifications, projects, or achievements that are not mentioned in the original data
-- Focus on improving the presentation and wording of existing information
+- Focus on improving the presentation and wording of existing information while ensuring nothing is left out
 - Make the content more impactful and professional while staying 100% factual
+- If a field exists in the resume data (even if it seems minor), include it in your improved version
 
 ORIGINAL RESUME DATA:
 ${JSON.stringify(resumeData, null, 2)}
 
 IMPROVEMENT REQUIREMENTS:
 1. Use the candidate's actual name: ${candidateName}
-2. Analyze the existing experience and suggest the best job title based on actual roles and responsibilities
-3. Enhance existing work experience descriptions with better wording and action verbs
-4. Organize existing skills into technical, soft skills, and languages (only use skills mentioned in the resume)
-5. Improve existing education section with better presentation
-6. Only include certifications that are explicitly mentioned in the original resume
-7. Only include projects that are explicitly mentioned in the original resume
-8. Only include achievements that are explicitly mentioned in the original resume
-9. Create a compelling professional summary based on actual experience and skills
-10. Optimize for ATS (Applicant Tracking Systems) using existing keywords
+2. Include EVERY work experience entry from the resume data - do not skip any jobs or roles
+3. Analyze the existing experience and suggest the best job title based on actual roles and responsibilities
+4. Enhance existing work experience descriptions with better wording and action verbs
+5. Include ALL skills from the resume and organize them into technical, soft skills, and languages
+6. Improve existing education section with better presentation - include all educational entries
+7. Include ALL certifications that are explicitly mentioned in the original resume
+8. Include ALL projects that are explicitly mentioned in the original resume
+9. Include ALL achievements that are explicitly mentioned in the original resume
+10. Create a compelling professional summary based on actual experience and skills
+11. Optimize for ATS (Applicant Tracking Systems) using existing keywords
+12. Ensure every section in the resume data is represented in your improved version
 
 PROFESSIONAL SUMMARY GUIDELINES:
 - Create a compelling 3-4 sentence summary that highlights the candidate's key strengths
@@ -201,6 +205,8 @@ Please provide an improved resume in the following JSON structure, using ONLY in
 }
 
 CRITICAL RULES:
+- USE EVERY PIECE OF DATA from the extracted JSON - include all experience entries, all skills, all education, all certifications, all projects, and all achievements
+- NEVER skip or omit sections that exist in the resume data - if it's in the JSON, it must be in your output
 - NEVER invent or add information that is not in the original resume
 - ONLY enhance the wording and presentation of existing information
 - If a section is empty in the original resume, leave it empty or use an empty array
@@ -208,7 +214,8 @@ CRITICAL RULES:
 - Use action verbs and strong language to improve existing descriptions
 - Ensure all content is 100% factual and based on provided data
 - The goal is to present existing information in a more compelling way, not to add new information
-- For the professional summary, focus on their actual experience and achievements, not generic statements`;
+- For the professional summary, focus on their actual experience and achievements, not generic statements
+- Double-check that you haven't accidentally left out any work experience, skills, education, or other sections from the original data`;
 }
 
 function parseClaudeImprovementResponse(responseText: string, resumeData: any): ImprovedResumeContent {
