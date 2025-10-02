@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
         u.id, u.email, u.first_name, u.last_name, u.full_name, u.location, u.avatar_url, u.phone, u.bio, u.position, u.completed_data, u.birthday, u.slug, u.created_at, u.updated_at,
         u.gender, u.gender_custom, u.username, u.company, u.admin_level,
         u.location_place_id, u.location_lat, u.location_lng, u.location_city, u.location_province, u.location_country, u.location_barangay, u.location_region,
-        COALESCE(los.overall_score, 0) as overall_score
+        COALESCE(uls.overall_score, 0) as overall_score
       FROM users u
-      LEFT JOIN leaderboard_overall_scores los ON u.id = los.user_id
+      LEFT JOIN user_leaderboard_scores uls ON u.id = uls.user_id
       WHERE u.id = $1
     `
     
