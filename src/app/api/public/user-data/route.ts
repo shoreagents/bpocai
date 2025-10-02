@@ -86,13 +86,16 @@ export async function GET(request: NextRequest) {
         // Filter out private fields if includePrivate is false
         const allowedFields = fields.filter(field => {
           if (!includePrivate) {
-            // Remove private/sensitive fields (SIMPLIFIED - Only 3 tables)
+            // Remove private/sensitive fields (Enhanced with all game stats)
             // Note: expected_salary is now PUBLIC, only email, phone, current_salary remain private
             const privateFields = [
               'email', 'phone', 'current_salary',
               'analysis_metadata', 'files_analyzed', 'original_resume_id',
               'admin_level', 'work_status_user_id', 'analysis_user_id',
-              'candidate_profile' // Hide sensitive AI analysis profile data
+              'candidate_profile', // Hide sensitive AI analysis profile data
+              'disc_personality_user_id', 'typing_hero_user_id', // Hide internal user IDs
+              'disc_ai_assessment', 'typing_ai_analysis', // Hide detailed AI analysis
+              'typing_most_common_incorrect_words', 'typing_vocabulary_weaknesses' // Hide detailed error analysis
             ];
             return !privateFields.includes(field);
           }
@@ -117,15 +120,29 @@ export async function GET(request: NextRequest) {
           strengths_analysis, improvements, recommendations, improved_summary, 
           salary_analysis, career_path, section_analysis, 
           skills_snapshot, experience_snapshot, education_snapshot, portfolio_links,
-          analysis_created_at, analysis_updated_at
+          analysis_created_at, analysis_updated_at,
+          disc_personality_stats_id, disc_total_sessions, disc_completed_sessions, disc_last_taken_at,
+          latest_d_score, latest_i_score, latest_s_score, latest_c_score, disc_primary_type, 
+          disc_secondary_type, disc_confidence_score, disc_completion_time, disc_consistency_trend,
+          disc_ai_assessment, disc_bpo_roles, disc_percentile, disc_created_at, disc_updated_at,
+          typing_hero_stats_id, typing_total_sessions, typing_completed_sessions, typing_last_played_at,
+          typing_best_score, typing_best_wpm, typing_best_accuracy, typing_best_streak,
+          typing_latest_score, typing_latest_wpm, typing_latest_accuracy, typing_latest_difficulty,
+          typing_avg_wpm, typing_avg_accuracy, typing_total_play_time, typing_ai_analysis,
+          typing_total_words_correct, typing_total_words_incorrect, typing_created_at, typing_updated_at,
+          typing_most_common_correct_words, typing_most_common_incorrect_words, typing_average_reaction_time,
+          typing_vocabulary_strengths, typing_vocabulary_weaknesses
         `;
       }
 
-      // Validate sortBy field to prevent SQL injection (SIMPLIFIED - Only 3 tables)
+      // Validate sortBy field to prevent SQL injection (Enhanced with all game stats)
       const allowedSortFields = [
         'user_created_at', 'user_updated_at', 'full_name', 'overall_score',
         'ats_compatibility_score', 'content_quality_score', 'professional_presentation_score',
-        'skills_alignment_score', 'work_status_created_at', 'analysis_created_at'
+        'skills_alignment_score', 'work_status_created_at', 'analysis_created_at',
+        'disc_primary_type', 'disc_confidence_score', 'disc_percentile', 'disc_created_at',
+        'typing_best_wpm', 'typing_best_accuracy', 'typing_avg_wpm', 'typing_created_at',
+        'typing_average_reaction_time', 'typing_total_words_correct', 'typing_total_play_time'
       ];
       const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'user_created_at';
 
