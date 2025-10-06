@@ -31,7 +31,6 @@ import {
   TrendingUp,
   Lightbulb,
   Share,
-  Zap,
   Camera,
   Info,
   ChevronDown
@@ -161,12 +160,14 @@ export default function ProfilePage() {
   const [isAnimalReasonExpanded, setIsAnimalReasonExpanded] = useState<boolean>(false);
   const [isTypingAnalysisExpanded, setIsTypingAnalysisExpanded] = useState<boolean>(false);
 
-  // Function to determine rank based on overall score
+  // Function to determine rank based on overall score (matching leaderboards and talent search system)
   const getRank = (score: number) => {
-    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30' }
-    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30' }
-    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30' }
-    return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
+    if (score >= 90 && score <= 100) return { rank: '💎 Diamond', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20', borderColor: 'border-cyan-500/30', icon: '💎' }
+    if (score >= 75 && score <= 89) return { rank: '🥈 Platinum', color: 'text-slate-300', bgColor: 'bg-slate-500/20', borderColor: 'border-slate-500/30', icon: '🥈' }
+    if (score >= 60 && score <= 74) return { rank: '🥇 Gold', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30', icon: '🥇' }
+    if (score >= 40 && score <= 59) return { rank: '🥉 Silver', color: 'text-gray-300', bgColor: 'bg-gray-500/20', borderColor: 'border-gray-500/30', icon: '🥉' }
+    if (score >= 0 && score <= 39) return { rank: '🏅 Bronze', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/30', icon: '🏅' }
+    return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30', icon: '❌' }
   }
 
   // Calculate rank based on overall score
@@ -905,9 +906,11 @@ export default function ProfilePage() {
                     {/* Glowing Ring */}
                     {overallScore > 0 && (
                       <div className={`absolute -inset-2 rounded-full opacity-75 blur-sm ${
-                        rank.rank === 'GOLD' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' :
-                        rank.rank === 'SILVER' ? 'bg-gradient-to-r from-slate-300 to-slate-500' :
-                        rank.rank === 'BRONZE' ? 'bg-gradient-to-r from-orange-400 to-orange-600' :
+                        rank.rank === '💎 Diamond' ? 'bg-gradient-to-r from-cyan-400 to-cyan-600' :
+                        rank.rank === '🥈 Platinum' ? 'bg-gradient-to-r from-slate-300 to-slate-500' :
+                        rank.rank === '🥇 Gold' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' :
+                        rank.rank === '🥉 Silver' ? 'bg-gradient-to-r from-gray-300 to-gray-500' :
+                        rank.rank === '🏅 Bronze' ? 'bg-gradient-to-r from-orange-400 to-orange-600' :
                         'bg-gradient-to-r from-gray-500 to-gray-700'
                       }`}></div>
                     )}
@@ -917,16 +920,20 @@ export default function ProfilePage() {
                       overallScore > 0 ? 'border-4' : 'border-0'
                     } ${
                       overallScore > 0 ? 
-                        rank.rank === 'GOLD' ? 'border-yellow-500/50' :
-                        rank.rank === 'SILVER' ? 'border-slate-400/60' :
-                        rank.rank === 'BRONZE' ? 'border-orange-500/50' :
+                        rank.rank === '💎 Diamond' ? 'border-cyan-500/50' :
+                        rank.rank === '🥈 Platinum' ? 'border-slate-400/60' :
+                        rank.rank === '🥇 Gold' ? 'border-yellow-500/50' :
+                        rank.rank === '🥉 Silver' ? 'border-gray-400/60' :
+                        rank.rank === '🏅 Bronze' ? 'border-orange-500/50' :
                         'border-gray-500/50'
                       : ''
                     } ${
                       overallScore > 0 
-                        ? rank.rank === 'GOLD' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
-                          rank.rank === 'SILVER' ? 'bg-gradient-to-br from-slate-400 to-slate-600' :
-                          rank.rank === 'BRONZE' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                        ? rank.rank === '💎 Diamond' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' :
+                          rank.rank === '🥈 Platinum' ? 'bg-gradient-to-br from-slate-400 to-slate-600' :
+                          rank.rank === '🥇 Gold' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
+                          rank.rank === '🥉 Silver' ? 'bg-gradient-to-br from-gray-400 to-gray-600' :
+                          rank.rank === '🏅 Bronze' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
                           'bg-gradient-to-br from-gray-600 to-gray-700'
                         : 'bg-gradient-to-br from-gray-700 to-gray-800'
                     }`}>
@@ -1033,15 +1040,13 @@ export default function ProfilePage() {
 
                       {overallScore > 0 ? (
                         <div className={`px-4 py-2 rounded-full border-2 ${rank.bgColor} ${rank.borderColor} backdrop-blur-sm`}>
-                          <div className={`text-sm font-bold ${rank.color} flex items-center gap-2`}>
-                            <Star className="w-4 h-4" />
+                          <div className={`text-sm font-bold ${rank.color}`}>
                             {rank.rank} RANK
                           </div>
                         </div>
                       ) : (
                         <div className="px-4 py-2 rounded-full border-2 bg-gray-600/20 border-gray-500/30 backdrop-blur-sm">
-                          <div className="text-sm font-bold text-gray-400 flex items-center gap-2">
-                            <Star className="w-4 h-4" />
+                          <div className="text-sm font-bold text-gray-400">
                             NO RANK
                           </div>
                         </div>
@@ -1118,7 +1123,6 @@ export default function ProfilePage() {
                   { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', activeBgColor: 'bg-purple-500/20', borderColor: 'border-purple-400' },
                   { id: 'game-results', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', activeBgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-400' },
                   { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-orange-400', bgColor: 'bg-orange-500/10', activeBgColor: 'bg-orange-500/20', borderColor: 'border-orange-400' },
-                  { id: 'power-stats', label: 'Power Stats', icon: Zap, color: 'text-red-400', bgColor: 'bg-red-500/10', activeBgColor: 'bg-red-500/20', borderColor: 'border-red-400' },
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeSection === item.id;
@@ -3189,7 +3193,7 @@ export default function ProfilePage() {
                             </div>
                           ) : (
                             <div className="text-center py-8 flex-1 flex flex-col justify-center">
-                              <div className="text-4xl mb-4">🦚</div>
+                              <div className="text-4xl mb-4">📊</div>
                               <p className="text-gray-400 mb-4">No data found</p>
                               <Button
                                 onClick={() => router.push('/career-tools/games/disc-personality')}
@@ -3311,239 +3315,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* Power Stats Tab */}
-                {activeSection === 'power-stats' && (
-                  <div className="space-y-8">
-                    {/* Power Stats Section */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-red-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                            <Zap className="w-6 h-6 text-white" />
-                          </div>
-                          <span className="bg-gradient-to-r from-red-300 to-pink-300 bg-clip-text text-transparent">
-                            Power Stats
-                          </span>
-                        </h3>
-                        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {/* Sample Power Stats */}
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Zap className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Speed Demon</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">45 WPM</div>
-                              <p className="text-gray-300 text-sm">Average typing speed</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Target className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Accuracy Master</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">94%</div>
-                              <p className="text-gray-300 text-sm">Average accuracy rate</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '94%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Star className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Problem Solver</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">87</div>
-                              <p className="text-gray-300 text-sm">Logical reasoning score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '87%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Heart className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Cultural Fit</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">92</div>
-                              <p className="text-gray-300 text-sm">Cultural assessment score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <TrendingUp className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Growth Mindset</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">78</div>
-                              <p className="text-gray-300 text-sm">Learning potential score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '78%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Medal className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Overall Power</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">85</div>
-                              <p className="text-gray-300 text-sm">Combined performance score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Sign-up CTA for anonymous users */}
-                    {isAnonymous && (
-                      <SignUpCTA
-                        title="View Other Power Stats"
-                        description="Sign up to unlock detailed power statistics, compare your performance with other users, and track your professional growth over time."
-                        icon={Zap}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Power Stats Tab */}
-                {activeSection === 'power-stats' && (
-                  <div className="space-y-8">
-                    {/* Power Stats Section */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-pink-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-red-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                            <Zap className="w-6 h-6 text-white" />
-                          </div>
-                          <span className="bg-gradient-to-r from-red-300 to-pink-300 bg-clip-text text-transparent">
-                            Power Stats
-                          </span>
-                        </h3>
-                        <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {/* Sample Power Stats */}
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Zap className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Speed Demon</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">45 WPM</div>
-                              <p className="text-gray-300 text-sm">Average typing speed</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Target className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Accuracy Master</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">94%</div>
-                              <p className="text-gray-300 text-sm">Average accuracy rate</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '94%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Star className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Problem Solver</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">87</div>
-                              <p className="text-gray-300 text-sm">Logical reasoning score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '87%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Heart className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Cultural Fit</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">92</div>
-                              <p className="text-gray-300 text-sm">Cultural assessment score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <TrendingUp className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Growth Mindset</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">78</div>
-                              <p className="text-gray-300 text-sm">Learning potential score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '78%' }}></div>
-                              </div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-400/30 hover:border-red-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-lg">
-                                  <Medal className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-red-300">Overall Power</h4>
-                              </div>
-                              <div className="text-3xl font-bold text-white mb-2">85</div>
-                              <p className="text-gray-300 text-sm">Combined performance score</p>
-                              <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Sign-up CTA for anonymous users */}
-                    {isAnonymous && (
-                      <SignUpCTA
-                        title="View Other Power Stats"
-                        description="Sign up to unlock detailed power statistics, compare your performance with other users, and track your professional growth over time."
-                        icon={Zap}
-                      />
-                    )}
-                  </div>
-                )}
               </motion.div>
             </div>
           </Card>

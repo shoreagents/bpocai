@@ -6,7 +6,6 @@ import {
   Users, 
   Search, 
   MoreHorizontal,
-  Mail,
   Calendar,
   UserCheck,
   UserX,
@@ -407,7 +406,7 @@ const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
     <AdminLayout title="Users" description="Manage platform users and their accounts">
       <div className="admin-users-page space-y-6">
                  {/* Header Stats */}
-         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="glass-card">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -438,37 +437,6 @@ const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
             </CardContent>
           </Card>
 
-          <Card className="glass-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <UserX className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Inactive Users</p>
-                  <p className="text-2xl font-bold text-white">
-                    {users.filter(u => !u.last_sign_in_at).length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                  <Mail className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Pending</p>
-                  <p className="text-2xl font-bold text-white">
-                    {users.filter(u => !u.full_name).length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
                      <Card className="glass-card">
              <CardContent className="p-6">
@@ -617,18 +585,14 @@ const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
                 <Table>
                                      <TableHeader>
                                            <TableRow className="border-white/10 hover:bg-white/5">
-                        <TableHead className="text-white font-medium">Full Name</TableHead>
-                        <TableHead className="text-white font-medium">Location</TableHead>
-                        <TableHead className="text-white font-medium">Created At</TableHead>
-                        <TableHead className="text-white font-medium">Updated At</TableHead>
-                        <TableHead className="text-white font-medium">Phone</TableHead>
-                        <TableHead className="text-white font-medium">Bio</TableHead>
-                        <TableHead className="text-white font-medium">Position</TableHead>
-                        <TableHead className="text-white font-medium">Gender</TableHead>
-                        <TableHead className="text-white font-medium">Birthday</TableHead>
-                        <TableHead className="text-white font-medium">Completed Data</TableHead>
-                        <TableHead className="text-white font-medium">Admin Level</TableHead>
-                        <TableHead className="text-white font-medium text-right">Actions</TableHead>
+                        <TableHead className="text-white font-medium w-64">Full Name</TableHead>
+                        <TableHead className="text-white font-medium w-48">Location</TableHead>
+                        <TableHead className="text-white font-medium w-32">Created At</TableHead>
+                        <TableHead className="text-white font-medium w-32">Last Sign In</TableHead>
+                        <TableHead className="text-white font-medium w-48">Position</TableHead>
+                        <TableHead className="text-white font-medium w-32">Completed Data</TableHead>
+                        <TableHead className="text-white font-medium w-32">Admin Level</TableHead>
+                        <TableHead className="text-white font-medium text-right w-24">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                   <TableBody>
@@ -642,80 +606,58 @@ const [deletingUsers, setDeletingUsers] = useState<Set<string>>(new Set())
                                  {getInitials(user.full_name || user.email)}
                                </AvatarFallback>
                              </Avatar>
-                             <div>
-                               <p className="font-medium text-white">{user.full_name || 'No Name'}</p>
-                               <p className="text-sm text-gray-400">{user.email}</p>
+                             <div className="min-w-0 flex-1">
+                               <p className="font-medium text-white truncate">{user.full_name || 'No Name'}</p>
+                               <p className="text-sm text-gray-400 truncate">{user.email}</p>
                              </div>
                            </div>
                          </TableCell>
                          <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
-                           <span className="text-gray-300">{user.location || 'N/A'}</span>
+                           <span className="text-gray-300 truncate block" title={user.location || 'N/A'}>
+                             {user.location || 'N/A'}
+                           </span>
                          </TableCell>
                          <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <div className="flex items-center space-x-2 text-sm">
-                             <Calendar className="w-3 h-3 text-gray-400" />
+                             <Calendar className="w-3 h-3 text-gray-400 flex-shrink-0" />
                              <span className="text-gray-300">{formatDate(user.created_at)}</span>
                            </div>
                          </TableCell>
                          <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
                            <div className="flex items-center space-x-2 text-sm">
-                             <Calendar className="w-3 h-3 text-gray-400" />
+                             <Calendar className="w-3 h-3 text-gray-400 flex-shrink-0" />
                              <span className="text-gray-300">{user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'N/A'}</span>
                            </div>
                          </TableCell>
                          <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
-                           <span className="text-gray-300">{user.phone || 'N/A'}</span>
-                         </TableCell>
-                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer max-w-[200px]">
-                           <span 
-                             className="text-gray-300 block truncate" 
-                             title={user.bio || ''}
-                           >
-                             {user.bio || 'N/A'}
+                           <span className="text-gray-300 truncate block" title={user.position || 'N/A'}>
+                             {user.position || 'N/A'}
                            </span>
                          </TableCell>
-                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer max-w-[200px]">
-                             <span 
-                               className="text-gray-300 block truncate" 
-                               title={user.position || ''}
-                             >
-                               {user.position || 'N/A'}
-                             </span>
-                           </TableCell>
-                           <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
-                             <span className="text-gray-300 capitalize">
-                               {user.gender || 'N/A'}
-                             </span>
-                           </TableCell>
-                           <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
-                             <span className="text-gray-300">
-                               {user.birthday ? new Date(user.birthday).toLocaleDateString() : 'N/A'}
-                             </span>
-                           </TableCell>
-                           <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
-                             <Badge 
-                               variant={user.completed_data ? 'default' : 'secondary'}
-                               className={
-                                 user.completed_data 
-                                   ? 'bg-green-600 text-white' 
-                                   : 'bg-gray-600 text-gray-200'
-                               }
-                             >
-                               {user.completed_data ? 'Yes' : 'No'}
-                             </Badge>
-                           </TableCell>
-                          <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
-                            <Badge 
-                              variant={user.admin_level === 'admin' ? 'default' : 'secondary'}
-                              className={
-                                user.admin_level === 'admin' 
-                                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
-                                  : 'bg-gray-600 text-gray-200'
-                              }
-                            >
-                              {user.admin_level || 'user'}
-                            </Badge>
-                          </TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
+                           <Badge 
+                             variant={user.completed_data ? 'default' : 'secondary'}
+                             className={
+                               user.completed_data 
+                                 ? 'bg-green-600 text-white' 
+                                 : 'bg-gray-600 text-gray-200'
+                             }
+                           >
+                             {user.completed_data ? 'Yes' : 'No'}
+                           </Badge>
+                         </TableCell>
+                         <TableCell onClick={() => { setSelectedUser(user); fetchUserProfile(user.id) }} className="cursor-pointer">
+                           <Badge 
+                             variant={user.admin_level === 'admin' ? 'default' : 'secondary'}
+                             className={
+                               user.admin_level === 'admin' 
+                                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                                 : 'bg-gray-600 text-gray-200'
+                             }
+                           >
+                             {user.admin_level || 'user'}
+                           </Badge>
+                         </TableCell>
                          <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

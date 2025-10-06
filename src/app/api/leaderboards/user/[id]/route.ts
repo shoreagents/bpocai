@@ -31,37 +31,77 @@ export async function GET(
     `, [userId])
 
     if (leaderboardRes.rows.length === 0) {
-      return NextResponse.json({ error: 'User not found in leaderboard' }, { status: 404 })
+      // Return default/empty data instead of 404 error
+      return NextResponse.json({
+        user_id: userId,
+        overall_score: 0,
+        typing_hero_score: 0,
+        disc_personality_score: 0,
+        profile_completion_score: 0,
+        resume_building_score: 0,
+        application_activity_score: 0,
+        tier: 'Bronze',
+        rank_position: 0,
+        metrics: {},
+        updated_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString(),
+        engagement: {
+          items: [],
+          total: 0
+        },
+        games: {
+          typing_hero: null,
+          disc_personality: null
+        },
+        applications: {
+          total: 0,
+          by_status: {}
+        }
+      })
     }
 
     const leaderboardData = leaderboardRes.rows[0]
 
-    // Get user's detailed game stats
-    const [typingStats, discStats] = await Promise.all([
-      pool.query(`
-        SELECT 
-          best_wpm, best_accuracy, total_sessions, total_time_spent,
-          created_at, updated_at
-        FROM typing_hero_stats 
-        WHERE user_id = $1
-      `, [userId]),
-      pool.query(`
-        SELECT 
-          best_confidence_score, completed_sessions, latest_primary_type,
-          created_at, updated_at
-        FROM disc_personality_stats 
-        WHERE user_id = $1
-      `, [userId])
-    ])
+    // Get user's detailed game stats with error handling
+    let typingStats = { rows: [] }
+    let discStats = { rows: [] }
+    
+    try {
+      [typingStats, discStats] = await Promise.all([
+        pool.query(`
+          SELECT 
+            best_wpm, best_accuracy, total_sessions, total_time_spent,
+            created_at, updated_at
+          FROM typing_hero_stats 
+          WHERE user_id = $1
+        `, [userId]),
+        pool.query(`
+          SELECT 
+            best_confidence_score, completed_sessions, latest_primary_type,
+            created_at, updated_at
+          FROM disc_personality_stats 
+          WHERE user_id = $1
+        `, [userId])
+      ])
+    } catch (error) {
+      console.log('⚠️ Game stats tables may not exist, using empty data:', error)
+      // Continue with empty data
+    }
 
-    // Get user's application details
-    const applicationsRes = await pool.query(`
-      SELECT 
-        job_id, status, created_at, updated_at
-      FROM applications 
-      WHERE user_id = $1 
-      ORDER BY created_at DESC
-    `, [userId])
+    // Get user's application details with error handling
+    let applicationsRes = { rows: [] }
+    try {
+      applicationsRes = await pool.query(`
+        SELECT 
+          job_id, status, created_at, updated_at
+        FROM applications 
+        WHERE user_id = $1 
+        ORDER BY created_at DESC
+      `, [userId])
+    } catch (error) {
+      console.log('⚠️ Applications table may not exist, using empty data:', error)
+      // Continue with empty data
+    }
 
     const statusPoints: Record<string, number> = {
       'submitted': 5,
@@ -82,15 +122,21 @@ export async function GET(
       updated_at: r.updated_at
     }))
 
-    // Get user's profile completion details
-    const userRes = await pool.query(`
-      SELECT 
-        first_name, last_name, username, email, phone, bio, 
-        avatar_url, location, birthday, gender, position,
-        completed_data, created_at, updated_at
-      FROM users 
-      WHERE id = $1
-    `, [userId])
+    // Get user's profile completion details with error handling
+    let userRes = { rows: [] }
+    try {
+      userRes = await pool.query(`
+        SELECT 
+          first_name, last_name, username, email, phone, bio, 
+          avatar_url, location, birthday, gender, position,
+          completed_data, created_at, updated_at
+        FROM users 
+        WHERE id = $1
+      `, [userId])
+    } catch (error) {
+      console.log('⚠️ Users table query failed, using empty data:', error)
+      // Continue with empty data
+    }
 
     const user = userRes.rows[0] || {}
     

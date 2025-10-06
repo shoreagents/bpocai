@@ -24,6 +24,7 @@ interface Candidate {
   slug: string
   resumeSlug: string | null
   verified: boolean
+  completedSteps?: number
 }
 
 export default function TalentSearchPage() {
@@ -38,11 +39,13 @@ export default function TalentSearchPage() {
      { label: "Profile Complete", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
    ])
 
-  // Function to determine rank based on overall score
+  // Function to determine rank based on overall score (matching leaderboards system)
   const getRank = (score: number) => {
-    if (score >= 85 && score <= 100) return { rank: 'GOLD', color: 'text-yellow-200', bgColor: 'bg-yellow-400/30', borderColor: 'border-yellow-400/50' }
-    if (score >= 65 && score <= 84) return { rank: 'SILVER', color: 'text-slate-200', bgColor: 'bg-slate-400/30', borderColor: 'border-slate-400/50' }
-    if (score >= 50 && score <= 64) return { rank: 'BRONZE', color: 'text-orange-200', bgColor: 'bg-orange-400/30', borderColor: 'border-orange-400/50' }
+    if (score >= 90 && score <= 100) return { rank: '💎 Diamond', color: 'text-cyan-200', bgColor: 'bg-cyan-400/30', borderColor: 'border-cyan-400/50' }
+    if (score >= 75 && score <= 89) return { rank: '🥈 Platinum', color: 'text-slate-200', bgColor: 'bg-slate-400/30', borderColor: 'border-slate-400/50' }
+    if (score >= 60 && score <= 74) return { rank: '🥇 Gold', color: 'text-yellow-200', bgColor: 'bg-yellow-400/30', borderColor: 'border-yellow-400/50' }
+    if (score >= 40 && score <= 59) return { rank: '🥉 Silver', color: 'text-gray-200', bgColor: 'bg-gray-400/30', borderColor: 'border-gray-400/50' }
+    if (score >= 0 && score <= 39) return { rank: '🏅 Bronze', color: 'text-orange-200', bgColor: 'bg-orange-400/30', borderColor: 'border-orange-400/50' }
     return { rank: 'None', color: 'text-gray-500', bgColor: 'bg-gray-600/20', borderColor: 'border-gray-600/30' }
   }
 
@@ -197,7 +200,14 @@ export default function TalentSearchPage() {
                         <img 
                           src={candidate.avatar} 
                           alt={candidate.name}
-                          className="w-24 h-24 rounded-full object-cover border-4 border-white/20 mx-auto mt-4 shadow-lg group-hover:scale-105 transition-transform duration-300"
+                          className={`w-24 h-24 rounded-full object-cover border-4 mx-auto mt-4 shadow-lg group-hover:scale-105 transition-transform duration-300 ${
+                            getRank(candidate.overallScore).rank === '💎 Diamond' ? 'border-cyan-500/50' :
+                            getRank(candidate.overallScore).rank === '🥈 Platinum' ? 'border-slate-400/60' :
+                            getRank(candidate.overallScore).rank === '🥇 Gold' ? 'border-yellow-400' :
+                            getRank(candidate.overallScore).rank === '🥉 Silver' ? 'border-gray-400/60' :
+                            getRank(candidate.overallScore).rank === '🏅 Bronze' ? 'border-orange-400' :
+                            'border-white/20'
+                          }`}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
@@ -205,7 +215,14 @@ export default function TalentSearchPage() {
                           }}
                         />
                       ) : null}
-                      <div className={`w-24 h-24 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mt-4 shadow-lg group-hover:scale-105 transition-transform duration-300 ${candidate.avatar && candidate.avatar.startsWith('http') ? 'hidden' : ''}`}>
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mt-4 shadow-lg group-hover:scale-105 transition-transform duration-300 border-4 ${
+                        getRank(candidate.overallScore).rank === '💎 Diamond' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 border-cyan-500/50' :
+                        getRank(candidate.overallScore).rank === '🥈 Platinum' ? 'bg-gradient-to-br from-slate-400 to-slate-600 border-slate-400/60' :
+                        getRank(candidate.overallScore).rank === '🥇 Gold' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 border-yellow-400' :
+                        getRank(candidate.overallScore).rank === '🥉 Silver' ? 'bg-gradient-to-br from-gray-400 to-gray-600 border-gray-400/60' :
+                        getRank(candidate.overallScore).rank === '🏅 Bronze' ? 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-400' :
+                        'bg-gradient-to-br from-cyan-500 to-purple-600 border-white/20'
+                      } ${candidate.avatar && candidate.avatar.startsWith('http') ? 'hidden' : ''}`}>
                         {candidate.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                       </div>
                     </div>
@@ -215,7 +232,7 @@ export default function TalentSearchPage() {
                       <div className="text-center mb-4">
                         <div className="flex items-center justify-center gap-2 mb-1">
                           <h3 className="text-xl font-bold text-white">{candidate.name.split(' ')[0]}</h3>
-                          {candidate.profileComplete && (
+                          {candidate.verified && candidate.completedSteps === 5 && (
                             <div className="w-4 h-4 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg border-2 border-cyan-300/30 relative overflow-hidden">
                               {/* Shine effect */}
                               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse"></div>

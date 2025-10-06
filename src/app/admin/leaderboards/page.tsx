@@ -95,8 +95,6 @@ export default function LeaderboardsPage() {
 	const [loadingBreakdown, setLoadingBreakdown] = useState<boolean>(false)
 	const [refreshing, setRefreshing] = useState<boolean>(false)
 	const [refreshNonce, setRefreshNonce] = useState<number>(0)
-	const [systemStatus, setSystemStatus] = useState<any>(null)
-	const [populating, setPopulating] = useState<boolean>(false)
 
 	const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
@@ -143,10 +141,6 @@ export default function LeaderboardsPage() {
 
 	useEffect(() => { fetchRows() }, [category, refreshNonce, page, pageSize])
 	
-	// Check system status on load
-	useEffect(() => {
-		checkSystemStatus()
-	}, [])
 
 
   // Delete action removed
@@ -179,40 +173,6 @@ export default function LeaderboardsPage() {
 		}
 	}
 
-	const checkSystemStatus = async () => {
-		try {
-			const res = await fetch('/api/leaderboards/status', { cache: 'no-store' })
-			const status = await res.json()
-			setSystemStatus(status)
-			return status
-		} catch (error) {
-			console.error('Failed to check system status:', error)
-			return null
-		}
-	}
-
-	const populateLeaderboardData = async () => {
-		try {
-			setPopulating(true)
-			const res = await fetch('/api/leaderboards/populate', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' }
-			})
-			const result = await res.json()
-			
-			if (result.success) {
-				console.log('✅ Leaderboard data populated:', result)
-				setRefreshNonce(n => n + 1)
-				await checkSystemStatus()
-			} else {
-				console.error('❌ Failed to populate data:', result)
-			}
-		} catch (error) {
-			console.error('❌ Populate error:', error)
-		} finally {
-			setPopulating(false)
-		}
-	}
 
 	const refreshLeaderboards = async () => {
 		try {
@@ -283,53 +243,12 @@ export default function LeaderboardsPage() {
 										<RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
 										{refreshing ? 'Refreshing…' : 'Refresh'}
 									</Button>
-									{systemStatus?.status === 'empty' && (
-										<Button onClick={populateLeaderboardData} disabled={populating} className="bg-green-600 hover:bg-green-700 text-white">
-											{populating ? 'Populating…' : 'Populate Data'}
-										</Button>
-									)}
 								</div>
 							</div>
             </CardContent>
           </Card>
             </motion.div>
 
-						{systemStatus && (
-							<motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-								<Card className={`glass-card border-white/10 ${
-									systemStatus.status === 'ready' ? 'border-green-500/30' :
-									systemStatus.status === 'empty' ? 'border-yellow-500/30' :
-									'border-red-500/30'
-								}`}>
-									<CardContent className="pt-6">
-										<div className="flex items-center justify-between">
-											<div>
-												<h3 className={`text-lg font-semibold ${
-													systemStatus.status === 'ready' ? 'text-green-400' :
-													systemStatus.status === 'empty' ? 'text-yellow-400' :
-													'text-red-400'
-												}`}>
-													{systemStatus.status === 'ready' ? '✅ System Ready' :
-													 systemStatus.status === 'empty' ? '⚠️ No Data Found' :
-													 '❌ System Error'}
-												</h3>
-												<p className="text-gray-300 mt-1">{systemStatus.message}</p>
-												{systemStatus.userCount !== undefined && (
-													<p className="text-sm text-gray-400 mt-1">
-														Users in leaderboard: {systemStatus.userCount}
-													</p>
-												)}
-											</div>
-											{systemStatus.status === 'empty' && (
-												<Button onClick={populateLeaderboardData} disabled={populating} className="bg-green-600 hover:bg-green-700 text-white">
-													{populating ? 'Populating…' : 'Populate Data'}
-												</Button>
-											)}
-										</div>
-									</CardContent>
-								</Card>
-							</motion.div>
-						)}
 
               <Card className="glass-card border-white/10">
                 <CardHeader>
@@ -451,141 +370,71 @@ export default function LeaderboardsPage() {
 			</div>
 
 			<Dialog open={!!openUserId} onOpenChange={(o) => { if (!o) { setOpenUserId(null); setBreakdown(null) } }}>
-				<DialogContent className="bg-gray-900 border-gray-700 text-white w-[98vw] max-w-none sm:max-w-[1600px] md:max-w-[1600px] lg:max-w-[1700px] xl:max-w-[1800px]">
+				<DialogContent className="bg-gray-900 border-white/10 text-white max-w-5xl">
 					<DialogHeader>
-						<DialogTitle className="text-xl flex items-center gap-3">
-							<span>🎯 User Score Breakdown</span>
+						<DialogTitle className="flex items-center gap-3">
+							<div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
+								{selectedRow?.user?.avatar_url ? (
+									<img src={selectedRow.user.avatar_url} alt={selectedRow.user?.full_name || selectedRow?.userId} className="w-full h-full object-cover" />
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+										{generateInitials(selectedRow?.user?.full_name || null)}
+									</div>
+								)}
+							</div>
+							{selectedRow?.user?.full_name || selectedRow?.userId}
 							{selectedRow?.rank && (
 								<Badge className="bg-cyan-500/20 border-cyan-500/30 text-cyan-300">Rank #{selectedRow.rank}</Badge>
 							)}
 						</DialogTitle>
 					</DialogHeader>
-					{/* User quick info */}
-					{selectedRow && (
-						<div className="flex items-center gap-3 mb-2">
-							<div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
-								{selectedRow.user?.avatar_url ? (
-									<img src={selectedRow.user.avatar_url} alt={selectedRow.user?.full_name || selectedRow.userId} className="w-full h-full object-cover" />
-								) : (
-									<div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
-										{generateInitials(selectedRow.user?.full_name || null)}
+					<div className="space-y-6">
+						{loadingBreakdown && (
+							<div className="text-gray-400 text-center py-8">Loading user details...</div>
+						)}
+						{!loadingBreakdown && breakdown && (
+							<>
+								{/* Overall Score */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div>
+										<div className="text-gray-400 text-xs">Overall Score</div>
+										<div className="text-white text-2xl font-bold">{breakdown.overall?.overall_score || 0}</div>
 									</div>
-								)}
-							</div>
-							<button
-								onClick={(e) => goToResume(e as any, selectedRow.userId)}
-								className="text-cyan-300 hover:underline truncate"
-								title="Open resume"
-							>
-								{selectedRow.user?.full_name || selectedRow.userId}
-							</button>
-						</div>
-					)}
-					{loadingBreakdown && (
-						<div className="text-gray-400">Loading...</div>
-					)}
-					{!loadingBreakdown && breakdown && (
-            <div className="space-y-6">
-              {/* Component Scores Display */}
-              <div className="bg-white/5 rounded-lg p-6">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">📊</span>
-                  </span>
-                  Component Scores
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Overall Score */}
-                  <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-yellow-300 font-semibold text-sm">Overall</div>
-                        <div className="text-2xl font-bold text-white">{breakdown.overall?.score || 0}</div>
-                      </div>
-                      <div className="text-3xl">🏆</div>
-                    </div>
-                  </div>
+									<div>
+										<div className="text-gray-400 text-xs">Tier</div>
+										<div className="text-white text-lg font-semibold">{breakdown.overall?.tier || 'Bronze'}</div>
+									</div>
+								</div>
 
-                  {/* Typing Hero Score */}
-                  <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-4 border border-cyan-500/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-cyan-300 font-semibold text-sm">Typing Hero</div>
-                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.typing_hero || 0}</div>
-                      </div>
-                      <div className="text-3xl">⌨️</div>
-                    </div>
-                  </div>
+								{/* Component Scores */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div>
+										<div className="text-gray-400 text-xs">Typing Hero</div>
+										<div className="text-white text-lg">{breakdown.components?.typing_hero?.score || 0}</div>
+									</div>
+									<div>
+										<div className="text-gray-400 text-xs">DISC Personality</div>
+										<div className="text-white text-lg">{breakdown.components?.disc_personality?.score || 0}</div>
+									</div>
+									<div>
+										<div className="text-gray-400 text-xs">Profile Completion</div>
+										<div className="text-white text-lg">{breakdown.components?.profile_completion?.score || 0}</div>
+									</div>
+									<div>
+										<div className="text-gray-400 text-xs">Resume Building</div>
+										<div className="text-white text-lg">{breakdown.components?.resume_building?.score || 0}</div>
+									</div>
+									<div>
+										<div className="text-gray-400 text-xs">Applications</div>
+										<div className="text-white text-lg">{breakdown.components?.application_activity?.score || 0}</div>
+									</div>
+								</div>
 
-                  {/* DISC Personality Score */}
-                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 border border-purple-500/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-purple-300 font-semibold text-sm">DISC</div>
-                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.disc_personality || 0}</div>
-                      </div>
-                      <div className="text-3xl">🧠</div>
-                    </div>
-                  </div>
-
-                  {/* Profile Completion Score */}
-                  <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-green-300 font-semibold text-sm">Profile</div>
-                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.profile_completion || 0}</div>
-                      </div>
-                      <div className="text-3xl">👤</div>
-                    </div>
-                  </div>
-
-                  {/* Resume Building Score */}
-                  <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg p-4 border border-orange-500/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-orange-300 font-semibold text-sm">Resume</div>
-                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.resume_building || 0}</div>
-                      </div>
-                      <div className="text-3xl">📄</div>
-                    </div>
-                  </div>
-
-                  {/* Applications Score */}
-                  <div className="bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg p-4 border border-amber-500/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-amber-300 font-semibold text-sm">Applications</div>
-                        <div className="text-2xl font-bold text-white">{breakdown.overall?.components?.application_activity || 0}</div>
-                      </div>
-                      <div className="text-3xl">💼</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tier Badge */}
-                {breakdown.overall?.tier && (
-                  <div className="mt-4 flex justify-center">
-                    <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                      breakdown.overall.tier === 'Diamond' ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white' :
-                      breakdown.overall.tier === 'Platinum' ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800' :
-                      breakdown.overall.tier === 'Gold' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900' :
-                      breakdown.overall.tier === 'Silver' ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-800' :
-                      'bg-gradient-to-r from-amber-600 to-orange-600 text-amber-100'
-                    }`}>
-                      {breakdown.overall.tier === 'Diamond' ? '💎' : 
-                       breakdown.overall.tier === 'Platinum' ? '🥈' :
-                       breakdown.overall.tier === 'Gold' ? '🥇' :
-                       breakdown.overall.tier === 'Silver' ? '🥉' : '🏅'} {breakdown.overall.tier} Tier
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-					</DialogContent>
-				</Dialog>
+							</>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
     </AdminLayout>
   )
 }
