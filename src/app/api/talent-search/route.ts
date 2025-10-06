@@ -10,63 +10,49 @@ export async function GET(request: NextRequest) {
     const filter = searchParams.get('filter') || 'all'
     console.log('📊 Filter requested:', filter)
     
-    // Step 1: Test basic database connection
-    console.log('📊 Step 1: Testing database connection...')
-    try {
-      const testQuery = `SELECT COUNT(*) as user_count FROM users`
-      const testResult = await pool.query(testQuery)
-      console.log('✅ Database connection test result:', testResult.rows[0])
-    } catch (dbError) {
-      console.error('❌ Database connection failed:', dbError)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Database connection failed',
-        details: dbError.message 
-      }, { status: 500 })
-    }
+    // Query for all users (filtering will be applied later)
+    const allUsersQuery = `
+      SELECT 
+        u.id,
+        u.full_name,
+        u.position,
+        u.email,
+        u.avatar_url,
+        u.created_at,
+        u.location,
+        u.completed_data,
+        u.slug,
+        COALESCE(los.overall_score, 0) as overall_score,
+        CASE WHEN sr.id IS NOT NULL THEN true ELSE false END as has_resume,
+        CASE WHEN uws.completed_data IS NOT NULL THEN uws.completed_data ELSE false END as work_status_completed,
+        sr.resume_slug,
+        CASE WHEN sr.id IS NOT NULL THEN 1 ELSE 0 END as resume_score,
+        CASE WHEN ths.id IS NOT NULL THEN true ELSE false END as has_typing_hero,
+        CASE WHEN dps.id IS NOT NULL THEN true ELSE false END as has_disc_personality
+      FROM users u
+      LEFT JOIN user_leaderboard_scores los ON u.id = los.user_id
+      LEFT JOIN saved_resumes sr ON u.id = sr.user_id
+      LEFT JOIN user_work_status uws ON u.id = uws.user_id
+      LEFT JOIN typing_hero_stats ths ON u.id = ths.user_id
+      LEFT JOIN disc_personality_stats dps ON u.id = dps.user_id
+      WHERE u.full_name IS NOT NULL 
+        AND u.full_name != ''
+        AND u.slug IS NOT NULL
+        AND u.slug != ''
+      ORDER BY COALESCE(los.overall_score, 0) DESC, u.created_at DESC
+      LIMIT 100
+    `
     
-    // Step 2: Check if leaderboard_overall_scores table exists and has data
-    console.log('📊 Step 2: Checking leaderboard_overall_scores table...')
-    try {
-      const leaderboardQuery = `SELECT COUNT(*) as score_count FROM leaderboard_overall_scores`
-      const leaderboardResult = await pool.query(leaderboardQuery)
-      console.log('✅ Leaderboard scores count:', leaderboardResult.rows[0])
-    } catch (leaderboardError) {
-      console.error('❌ Leaderboard table query failed:', leaderboardError)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Leaderboard table not found or accessible',
-        details: leaderboardError.message 
-      }, { status: 500 })
-    }
-    
-    // Step 3: Check for ALL users (not just those with scores > 50)
-    console.log('📊 Step 3: Checking for ALL users with basic profile data...')
-    try {
-      const allUsersQuery = `
-        SELECT COUNT(*) as all_users_count 
-        FROM users u 
-        WHERE u.full_name IS NOT NULL 
-          AND u.full_name != ''
-          AND u.slug IS NOT NULL
-          AND u.slug != ''
-      `
-      const allUsersResult = await pool.query(allUsersQuery)
-      console.log('✅ All users with basic profile data:', allUsersResult.rows[0])
-    } catch (allUsersError) {
-      console.error('❌ All users query failed:', allUsersError)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'All users query failed',
-        details: allUsersError.message 
-      }, { status: 500 })
-    }
-    
-    // Step 4: Get ALL users and check their verification status
-    console.log('📊 Step 4: Getting ALL users and checking verification status...')
+    console.log('Executing all users query...')
     let result
     try {
-      const fullQuery = `
+      result = await pool.query(allUsersQuery)
+      console.log('✅ All users query result:', result.rows.length, 'users found')
+    } catch (queryError) {
+      console.error('❌ High-score query failed:', queryError)
+      // Fallback to basic query if leaderboard table doesn't exist
+      console.log('🔄 Falling back to basic query...')
+      const fallbackQuery = `
         SELECT 
           u.id,
           u.full_name,
@@ -77,37 +63,23 @@ export async function GET(request: NextRequest) {
           u.location,
           u.completed_data,
           u.slug,
-          COALESCE(los.overall_score, 0) as overall_score,
-          CASE WHEN sr.id IS NOT NULL THEN true ELSE false END as has_resume,
-          CASE WHEN uws.completed_data IS NOT NULL THEN uws.completed_data ELSE false END as work_status_completed,
-          sr.resume_slug,
-          CASE WHEN sr.id IS NOT NULL THEN 1 ELSE 0 END as resume_score,
-          CASE WHEN ths.id IS NOT NULL THEN true ELSE false END as has_typing_hero,
-          CASE WHEN dps.id IS NOT NULL THEN true ELSE false END as has_disc_personality
+          0 as overall_score,
+          false as has_resume,
+          false as work_status_completed,
+          null as resume_slug,
+          0 as resume_score,
+          false as has_typing_hero,
+          false as has_disc_personality
         FROM users u
-        LEFT JOIN leaderboard_overall_scores los ON u.id = los.user_id
-        LEFT JOIN saved_resumes sr ON u.id = sr.user_id
-        LEFT JOIN user_work_status uws ON u.id = uws.user_id
-        LEFT JOIN typing_hero_stats ths ON u.id = ths.user_id
-        LEFT JOIN disc_personality_stats dps ON u.id = dps.user_id
         WHERE u.full_name IS NOT NULL 
           AND u.full_name != ''
           AND u.slug IS NOT NULL
           AND u.slug != ''
-        ORDER BY COALESCE(los.overall_score, 0) DESC, u.created_at DESC
+        ORDER BY u.created_at DESC
         LIMIT 100
       `
-      
-      console.log('Executing full query with verification data...')
-      result = await pool.query(fullQuery)
-      console.log('✅ Full query result:', result.rows.length, 'candidates found before verification filter')
-    } catch (queryError) {
-      console.error('❌ Full query failed:', queryError)
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Full query failed',
-        details: queryError.message 
-      }, { status: 500 })
+      result = await pool.query(fallbackQuery)
+      console.log('✅ Fallback query result:', result.rows.length, 'users found')
     }
     
     if (result.rows.length === 0) {
@@ -120,51 +92,21 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    console.log('📊 Found', result.rows.length, 'users with basic profile data, now checking verification status...')
-    
-    // Log sample data
-    console.log('📊 Sample user data:', {
-      name: result.rows[0].full_name,
-      score: result.rows[0].overall_score,
-      completed_data: result.rows[0].completed_data,
-      work_status_completed: result.rows[0].work_status_completed,
-      has_resume: result.rows[0].has_resume,
-      has_typing_hero: result.rows[0].has_typing_hero,
-      has_disc_personality: result.rows[0].has_disc_personality
-    })
-    
-    // Apply filtering based on the filter parameter
+    // Map to candidate format with proper verification logic
     const candidates = result.rows
       .map(row => {
-        // Calculate verified status using the same 5-step logic as profile page
+        // Calculate profile completion (5 steps)
         const hasPersonalData = row.completed_data === true;
         const hasWorkStatusData = row.work_status_completed === true;
         const hasResume = row.resume_score !== undefined && row.resume_score > 0;
         const hasTypingHero = row.has_typing_hero === true;
         const hasDisc = row.has_disc_personality === true;
         const completedSteps = [hasPersonalData, hasWorkStatusData, hasResume, hasTypingHero, hasDisc].filter(Boolean).length;
-        const isVerified = completedSteps === 5; // 100% completion required for verified badge
+        const isFullyVerified = completedSteps === 5; // 100% completion
+        const isHighlyQualified = completedSteps >= 4; // 80% completion (4/5 steps)
         
-        // Check if user has high score
-        const hasHighScore = (row.overall_score || 0) > 50;
+        console.log(`🔍 User ${row.full_name}: Score=${row.overall_score}, Personal=${hasPersonalData}, Work=${hasWorkStatusData}, Resume=${hasResume}, Typing=${hasTypingHero}, DISC=${hasDisc} -> Steps=${completedSteps}/5 -> FullyVerified=${isFullyVerified}`);
         
-        // Determine if user qualifies based on filter
-        let qualifies = false;
-        switch (filter) {
-          case 'highest-scores':
-            qualifies = hasHighScore; // Only users with score > 50
-            break;
-          case 'verified':
-            qualifies = isVerified; // Only verified users
-            break;
-          case 'all':
-          default:
-            qualifies = isVerified || hasHighScore; // Verified OR high score
-            break;
-        }
-
-        console.log(`🔍 User ${row.full_name}: Personal=${hasPersonalData}, Work=${hasWorkStatusData}, Resume=${hasResume}, Typing=${hasTypingHero}, DISC=${hasDisc} -> Steps=${completedSteps}/5 -> Verified=${isVerified}, Score=${row.overall_score || 0} -> HighScore=${hasHighScore} -> Filter=${filter} -> Qualifies=${qualifies}`);
-
         return {
           id: row.id,
           name: row.full_name,
@@ -176,39 +118,46 @@ export async function GET(request: NextRequest) {
           overallScore: Math.round(row.overall_score || 0),
           resumeAvailable: row.has_resume || false,
           profileComplete: row.completed_data && (row.work_status_completed || false),
-          verified: isVerified,
+          verified: isFullyVerified, // Only true if 100% complete
+          completedSteps: completedSteps, // Add completion steps count
+          isHighlyQualified: isHighlyQualified, // 80% completion
           slug: row.slug,
           resumeSlug: row.resume_slug || null
         }
       })
       .filter(candidate => {
-        const isVerified = candidate.verified;
+        // Apply filtering based on the filter parameter
         const hasHighScore = candidate.overallScore > 50;
+        const isHighlyQualified = candidate.isHighlyQualified; // 4/5 steps completed
+        const isFullyVerified = candidate.verified; // 5/5 steps completed
         
         let qualifies = false;
+        
         switch (filter) {
           case 'highest-scores':
+            // Only users with high scores (regardless of completion)
             qualifies = hasHighScore;
             break;
           case 'verified':
-            qualifies = isVerified;
+            // Only users with 100% profile completion
+            qualifies = isFullyVerified;
             break;
           case 'all':
           default:
-            qualifies = isVerified || hasHighScore;
+            // Users with high scores AND high profile completion (4/5 steps = 80%)
+            qualifies = hasHighScore && isHighlyQualified;
             break;
         }
         
         if (!qualifies) {
-          console.log('❌ Filtering out user:', candidate.name, 'verified:', isVerified, 'score:', candidate.overallScore, 'filter:', filter)
+          console.log('❌ Filtering out user:', candidate.name, 'score:', candidate.overallScore, 'completedSteps:', candidate.completedSteps, 'filter:', filter, 'reason:', !hasHighScore ? 'low score' : !isFullyVerified ? 'insufficient profile completion' : 'filter criteria not met')
         } else {
-          console.log('✅ Keeping user:', candidate.name, 'verified:', isVerified, 'score:', candidate.overallScore, 'filter:', filter)
+          console.log('✅ Keeping user:', candidate.name, 'score:', candidate.overallScore, 'completedSteps:', candidate.completedSteps, 'filter:', filter)
         }
         return qualifies
       })
-
+    
     console.log('✅ Returning', candidates.length, 'candidates to frontend')
-    console.log(`📊 Summary: Scanned ${result.rows.length} users, ${candidates.length} qualify with filter: ${filter}`)
     
     return NextResponse.json({ 
       success: true, 

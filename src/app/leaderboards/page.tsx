@@ -279,7 +279,7 @@ export default function LeaderboardsPage() {
 	const renderUserCell = (row: any) => {
 		const getSpecialBadge = (rank: number) => {
 			if (rank === 1) return <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900 border-yellow-400/50 font-bold">🥇 Champion</Badge>
-			if (rank === 2) return <Badge className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 border-gray-300/50 font-semibold">🥈 Runner-up</Badge>
+			if (rank === 2) return <Badge className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 border-gray-300/50 font-semibold">🥈 2nd Place</Badge>
 			if (rank === 3) return <Badge className="bg-gradient-to-r from-orange-400 to-orange-500 text-orange-900 border-orange-400/50 font-semibold">🥉 3rd Place</Badge>
 			return null
 		}
@@ -849,141 +849,180 @@ export default function LeaderboardsPage() {
 
           {/* Breakdown Modal */}
           <Dialog open={!!openUserId} onOpenChange={(o) => { if (!o) { setOpenUserId(null); setUserBreakdown(null) } }}>
-            <DialogContent className="bg-gray-900 border-gray-700 text-white w-[98vw] max-w-none sm:max-w-[1600px] md:max-w-[1600px] lg:max-w-[1700px] xl:max-w-[1800px]">
+            <DialogContent className="bg-gray-900 border-white/10 text-white w-[98vw] max-w-none sm:max-w-[1600px] md:max-w-[1600px] lg:max-w-[1700px] xl:max-w-[1800px]">
               <DialogHeader>
-                <DialogTitle className="text-xl flex items-center gap-3">
-                  <span>🎯 User Score Breakdown</span>
+                <DialogTitle className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden ring-2 ring-cyan-500/20">
+                    {selectedUser?.user?.avatar_url ? (
+                      <img src={selectedUser.user.avatar_url} alt={selectedUser.user?.full_name || selectedUser?.userId} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+                        {generateInitials(selectedUser?.user?.full_name || null)}
+                      </div>
+                    )}
+                  </div>
+                  {selectedUser?.user?.full_name || selectedUser?.userId}
                   {selectedUser?.rank && (
                     <Badge className="bg-cyan-500/20 border-cyan-500/30 text-cyan-300">Rank #{selectedUser.rank}</Badge>
                   )}
                 </DialogTitle>
               </DialogHeader>
-              {/* User quick info */}
-              {selectedUser && (
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-cyan-500/20">
-                    {selectedUser.user?.avatar_url ? (
-                      <img src={selectedUser.user.avatar_url} alt={selectedUser.user?.full_name || selectedUser.userId} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{generateInitials(selectedUser.user?.full_name || null)}</span>
-                      </div>
-                    )}
-                </div>
-                    <button
-                    onClick={(e) => goToResume(e as any, selectedUser.userId)}
-                    className="text-cyan-300 hover:underline truncate"
-                    title="Open resume"
-                    >
-                    {selectedUser.user?.full_name ? selectedUser.user.full_name.split(' ')[0] : selectedUser.userId}
-                    </button>
-                    {selectedUser.user?.slug && (
-                      <div className="text-gray-400 text-xs truncate">@{selectedUser.user.slug}</div>
-                    )}
-                      </div>
-                    )}
-              {loadingBreakdown && (
-                <div className="text-gray-400">Loading...</div>
-              )}
-              {!loadingBreakdown && userBreakdown && (
-                <div className="space-y-6">
-                  {/* Component Scores Display */}
-                  <div className="bg-white/5 rounded-lg p-6">
-                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold">📊</span>
-                      </span>
-                      Component Scores
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {/* Overall Score */}
-                      <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-yellow-300 font-semibold text-sm">Overall</div>
-                            <div className="text-2xl font-bold text-white">{userBreakdown.overall?.score || 0}</div>
+              <div className="space-y-8">
+                {loadingBreakdown && (
+                  <div className="text-center py-12">
+                    <div className="inline-flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                      <span className="text-cyan-400 font-medium">Loading user details...</span>
+                    </div>
+                  </div>
+                )}
+                {!loadingBreakdown && userBreakdown && (
+                  <>
+                    {/* Overall Score Hero Section */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
+                      <div className="relative bg-gradient-to-r from-cyan-500/20 to-purple-500/20 backdrop-blur-sm rounded-2xl p-8 border border-cyan-500/30">
+                        <div className="text-center">
+                          <div className="inline-flex items-center space-x-2 mb-4">
+                            <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full animate-pulse"></div>
+                            <span className="text-cyan-300 text-sm font-medium tracking-wider uppercase">Overall Performance</span>
+                            <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-cyan-400 rounded-full animate-pulse"></div>
                           </div>
-                          <div className="text-3xl">🏆</div>
-                        </div>
-                      </div>
-
-                      {/* Typing Hero Score */}
-                      <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-4 border border-cyan-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-cyan-300 font-semibold text-sm">Typing Hero</div>
-                            <div className="text-2xl font-bold text-white">{userBreakdown.overall?.components?.typing_hero || 0}</div>
+                          <div className="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                            {userBreakdown.overall?.overall_score || 0}
                           </div>
-                          <div className="text-3xl">⌨️</div>
-                        </div>
-                      </div>
-
-                      {/* DISC Personality Score */}
-                      <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 border border-purple-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-purple-300 font-semibold text-sm">DISC</div>
-                            <div className="text-2xl font-bold text-white">{userBreakdown.overall?.components?.disc_personality || 0}</div>
+                          <div className="inline-flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                              <span className="text-white font-bold text-sm">🏆</span>
+                            </div>
+                            <span className="text-2xl font-bold text-white">{userBreakdown.overall?.tier || 'Bronze'}</span>
                           </div>
-                          <div className="text-3xl">🧠</div>
-                        </div>
-                      </div>
-
-                      {/* Profile Completion Score */}
-                      <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-green-300 font-semibold text-sm">Profile</div>
-                            <div className="text-2xl font-bold text-white">{userBreakdown.overall?.components?.profile_completion || 0}</div>
-                          </div>
-                          <div className="text-3xl">👤</div>
-                        </div>
-                      </div>
-
-                      {/* Resume Building Score */}
-                      <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg p-4 border border-orange-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-orange-300 font-semibold text-sm">Resume</div>
-                            <div className="text-2xl font-bold text-white">{userBreakdown.overall?.components?.resume_building || 0}</div>
-                          </div>
-                          <div className="text-3xl">📄</div>
-                        </div>
-                      </div>
-
-                      {/* Applications Score */}
-                      <div className="bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg p-4 border border-amber-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-amber-300 font-semibold text-sm">Applications</div>
-                            <div className="text-2xl font-bold text-white">{userBreakdown.overall?.components?.application_activity || 0}</div>
-                          </div>
-                          <div className="text-3xl">💼</div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Tier Badge */}
-                    {userBreakdown.overall?.tier && (
-                      <div className="mt-4 flex justify-center">
-                        <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                          userBreakdown.overall.tier === 'Diamond' ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white' :
-                          userBreakdown.overall.tier === 'Platinum' ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800' :
-                          userBreakdown.overall.tier === 'Gold' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900' :
-                          userBreakdown.overall.tier === 'Silver' ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-gray-800' :
-                          'bg-gradient-to-r from-amber-600 to-orange-600 text-amber-100'
-                        }`}>
-                          {userBreakdown.overall.tier === 'Diamond' ? '💎' : 
-                           userBreakdown.overall.tier === 'Platinum' ? '🥈' :
-                           userBreakdown.overall.tier === 'Gold' ? '🥇' :
-                           userBreakdown.overall.tier === 'Silver' ? '🥉' : '🏅'} {userBreakdown.overall.tier} Tier
+                    {/* Component Scores Grid */}
+                    <div className="space-y-6">
+                      {/* Top Row - 3 Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Typing Hero */}
+                        <div className="group relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                          <div className="relative bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-lg">⚡</span>
+                              </div>
+                              <div>
+                                <div className="text-blue-300 text-sm font-medium">Typing Hero</div>
+                                <div className="text-2xl font-bold text-white">{userBreakdown.components?.typing_hero?.score || 0}</div>
+                              </div>
+                            </div>
+                            <div className="w-full bg-blue-500/20 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-blue-400 to-cyan-400 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min((userBreakdown.components?.typing_hero?.score || 0), 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* DISC Personality */}
+                        <div className="group relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                          <div className="relative bg-gradient-to-br from-purple-500/30 to-pink-500/30 backdrop-blur-sm rounded-xl p-6 border border-purple-500/30 group-hover:border-purple-400/50 transition-all duration-300">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-lg">🧠</span>
+                              </div>
+                              <div>
+                                <div className="text-purple-300 text-sm font-medium">DISC Personality</div>
+                                <div className="text-2xl font-bold text-white">{userBreakdown.components?.disc_personality?.score || 0}</div>
+                              </div>
+                            </div>
+                            <div className="w-full bg-purple-500/20 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min((userBreakdown.components?.disc_personality?.score || 0), 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Profile Completion */}
+                        <div className="group relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                          <div className="relative bg-gradient-to-br from-green-500/30 to-emerald-500/30 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-400 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-lg">✅</span>
+                              </div>
+                              <div>
+                                <div className="text-green-300 text-sm font-medium">Profile Completion</div>
+                                <div className="text-2xl font-bold text-white">{userBreakdown.components?.profile_completion?.score || 0}</div>
+                              </div>
+                            </div>
+                            <div className="w-full bg-green-500/20 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min((userBreakdown.components?.profile_completion?.score || 0), 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
+
+                      {/* Bottom Row - 2 Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        {/* Resume Building */}
+                        <div className="group relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                          <div className="relative bg-gradient-to-br from-orange-500/30 to-red-500/30 backdrop-blur-sm rounded-xl p-6 border border-orange-500/30 group-hover:border-orange-400/50 transition-all duration-300">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-400 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-lg">📄</span>
+                              </div>
+                              <div>
+                                <div className="text-orange-300 text-sm font-medium">Resume Building</div>
+                                <div className="text-2xl font-bold text-white">{userBreakdown.components?.resume_building?.score || 0}</div>
+                              </div>
+                            </div>
+                            <div className="w-full bg-orange-500/20 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-orange-400 to-red-400 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min((userBreakdown.components?.resume_building?.score || 0), 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Application Activity */}
+                        <div className="group relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl blur-lg group-hover:blur-xl transition-all duration-300"></div>
+                          <div className="relative bg-gradient-to-br from-indigo-500/30 to-purple-500/30 backdrop-blur-sm rounded-xl p-6 border border-indigo-500/30 group-hover:border-indigo-400/50 transition-all duration-300">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-lg">🚀</span>
+                              </div>
+                              <div>
+                                <div className="text-indigo-300 text-sm font-medium">Applications</div>
+                                <div className="text-2xl font-bold text-white">{userBreakdown.components?.application_activity?.score || 0}</div>
+                              </div>
+                            </div>
+                            <div className="w-full bg-indigo-500/20 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-indigo-400 to-purple-400 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min((userBreakdown.components?.application_activity?.score || 0), 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>
