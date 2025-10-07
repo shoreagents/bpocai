@@ -39,11 +39,12 @@ import { Suspense } from 'react';
 function RecruiterHomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -56,6 +57,19 @@ function RecruiterHomePageContent() {
     setShowSignUpModal(false);
     setShowSignInModal(true);
   };
+
+  // Early check: Sign out regular users if they access /recruiter
+  useEffect(() => {
+    const handleUserAccess = async () => {
+      if (user && user.user_metadata?.admin_level !== 'recruiter') {
+        console.log('🚫 RecruiterPage: Regular user detected, showing user redirect modal');
+        setShowUserModal(true);
+        await signOut();
+      }
+    }
+    
+    handleUserAccess();
+  }, [user, signOut]);
 
   // Fetch user profile from Railway
   useEffect(() => {
@@ -70,7 +84,15 @@ function RecruiterHomePageContent() {
             console.log('✅ User profile loaded:', data.user);
             setUserProfile(data.user);
             
-            // Check if profile completion is needed
+            // Sign out regular users and show modal
+            if (data.user.admin_level !== 'recruiter') {
+              console.log('🚫 RecruiterPage: Regular user detected, showing user redirect modal');
+              setShowUserModal(true);
+              await signOut();
+              return;
+            }
+            
+            // Check if profile completion is needed (only for recruiters)
             // Don't show modal if user was just created (within last 5 minutes) - they just signed up
             const userCreatedAt = new Date(data.user.created_at);
             const now = new Date();
@@ -942,6 +964,82 @@ function RecruiterHomePageContent() {
         onOpenChange={setShowProfileModal}
         onComplete={handleProfileComplete}
       />
+
+      {/* User Redirect Modal */}
+      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 border-cyan-500/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              BPOC User Account Detected
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
+              <p className="text-gray-200 text-center leading-relaxed">
+                This account is registered as a <span className="font-bold text-cyan-400">BPOC User Account</span>, not a recruiter account.
+              </p>
+            </div>
+            
+            <div className="space-y-3 text-gray-300">
+              <p className="text-sm">
+                As a BPOC user, you have access to:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Build professional resumes</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Play career development games</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Take skill assessments</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Apply for jobs</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Track your career progress</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 mt-4">
+              <p className="text-emerald-200 text-sm text-center">
+                This page is for <span className="font-bold text-emerald-400">recruiters only</span>. Please go to the main BPOC home page to access your account features.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowUserModal(false)}
+              className="flex-1 border-white/20 text-white hover:bg-white/10"
+            >
+              Stay Here
+            </Button>
+            <Button
+              onClick={() => {
+                setShowUserModal(false);
+                router.push('/home');
+              }}
+              className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+            >
+              Go to BPOC Home
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Recruiter Footer */}
       <footer className="bg-gradient-to-r from-slate-900 via-gray-900 to-slate-800 text-white">

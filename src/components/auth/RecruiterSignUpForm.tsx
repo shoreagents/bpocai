@@ -24,7 +24,9 @@ import {
   Chrome,
   User,
   CheckCircle,
-  Building2
+  Building2,
+  FileText,
+  ArrowLeft
 } from 'lucide-react'
 
 interface RecruiterSignUpFormProps {
@@ -46,6 +48,10 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [termsLocked, setTermsLocked] = useState(false)
+  const [hasReadTerms, setHasReadTerms] = useState(false)
+  const [showTermsContent, setShowTermsContent] = useState(false)
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -54,6 +60,33 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const handleTermsCheckboxChange = () => {
+    // This prevents the checkbox from being checked if terms haven't been read
+    if (!hasReadTerms) {
+      setErrors(prev => ({ ...prev, terms: 'Please read the Terms and Conditions first before agreeing' }))
+      return
+    }
+    
+    // Only allow checkbox to be checked if terms have been read
+    if (termsLocked) return // Don't allow changes if locked
+    
+    setAgreedToTerms(!agreedToTerms)
+    // Clear any existing terms error
+    if (errors.terms) {
+      setErrors(prev => ({ ...prev, terms: '' }))
+    }
+  }
+
+  const handleTermsLinkClick = () => {
+    setShowTermsContent(true)
+    setHasReadTerms(true)
+    setHasScrolledToEnd(false) // Reset scroll state when opening terms
+    // Clear any existing terms error when they click to read terms
+    if (errors.terms) {
+      setErrors(prev => ({ ...prev, terms: '' }))
     }
   }
 
@@ -292,30 +325,64 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
             {/* Header */}
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-gray-900">
+                {showTermsContent && (
+                  <button
+                    onClick={() => setShowTermsContent(false)}
+                    className="mr-2 hover:bg-gray-100 rounded-full p-1 transition-colors"
+                  >
+                    <ArrowLeft className="h-5 w-5 text-gray-600" />
+                  </button>
+                )}
                 <Building2 className="h-5 w-5 text-emerald-600" />
-                Create Recruiter Account
+                {showTermsContent ? 'Terms and Conditions' : 'Create Recruiter Account'}
               </DialogTitle>
-              <DialogDescription className="text-gray-600">
-                Join our platform and start finding the best talent
-              </DialogDescription>
+              {!showTermsContent && (
+                <DialogDescription className="text-gray-600">
+                  Join our platform and start finding the best talent
+                </DialogDescription>
+              )}
             </DialogHeader>
 
-            {/* Success Message */}
-            {successMessage && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-600 text-sm text-center">{successMessage}</p>
-              </div>
-            )}
+            {/* Show Terms Content or Form */}
+            {showTermsContent ? (
+              <>
+                <TermsContent onScrollToEnd={() => {
+                  setHasScrolledToEnd(true)
+                  // Automatically accept terms and close modal when user reaches the end
+                  setAgreedToTerms(true)
+                  setTermsLocked(true)
+                  setShowTermsContent(false)
+                  // Clear any existing terms error
+                  if (errors.terms) {
+                    setErrors(prev => ({ ...prev, terms: '' }))
+                  }
+                }} />
+                {!hasScrolledToEnd && (
+                  <div className="text-center py-2">
+                    <p className="text-xs text-gray-500 italic">
+                      Please scroll to the end to continue
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Success Message */}
+                {successMessage && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-green-600 text-sm text-center">{successMessage}</p>
+                  </div>
+                )}
 
-            {/* General Error Display */}
-            {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-600 text-sm text-center">{errors.general}</p>
-              </div>
-            )}
+                {/* General Error Display */}
+                {errors.general && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-600 text-sm text-center">{errors.general}</p>
+                  </div>
+                )}
 
-            <div className="space-y-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Name Fields */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -392,19 +459,28 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                   <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1">
                     Password
                   </label>
-                  <input
-                    id="password"
-                    type="password"
-                    required
-                    placeholder="Create a password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
-                      errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-                    }`}
-                    disabled={isLoading}
-                    autoComplete="new-password"
-                  />
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="Create a password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      className={`w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
+                        errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                      }`}
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="text-red-500 text-xs mt-1">{errors.password}</p>
                   )}
@@ -422,7 +498,7 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                       placeholder="Confirm your password"
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
+                      className={`w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900 placeholder-gray-500  ${
                         errors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                       }`}
                       disabled={isLoading}
@@ -442,29 +518,59 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                 </div>
 
                 {/* Terms and Conditions */}
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                    disabled={isLoading}
-                  />
-                  <label htmlFor="terms" className="text-sm text-gray-600">
-                    I agree to the{' '}
-                    <span className="text-gray-500 cursor-not-allowed underline">
-                      Terms and Conditions
-                    </span>{' '}
-                    and{' '}
-                    <span className="text-gray-500 cursor-not-allowed underline">
-                      Privacy Policy
-                    </span>
-                  </label>
+                <div className="space-y-2">
+                  {/* Note about reading terms first */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-emerald-700 font-semibold text-sm">📋 First Step Required</span>
+                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          Please read the <span className="text-emerald-600 font-medium">Terms and Conditions</span> before proceeding with your account creation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <button
+                      type="button"
+                      onClick={handleTermsCheckboxChange}
+                      className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                        agreedToTerms 
+                          ? 'bg-emerald-500 border-emerald-500' 
+                          : 'border-gray-300 hover:border-emerald-500'
+                      } ${errors.terms ? 'border-red-500' : ''} ${termsLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                      disabled={isLoading || termsLocked}
+                      aria-label="Agree to terms and conditions"
+                    >
+                      {agreedToTerms && <CheckCircle className="w-3 h-3 text-white" />}
+                    </button>
+                    <label className="text-sm text-gray-700 leading-relaxed">
+                      I agree to the{' '}
+                      <button
+                        type="button"
+                        className="text-emerald-600 hover:text-emerald-700 underline transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded"
+                        onClick={handleTermsLinkClick}
+                      >
+                        Terms and Conditions
+                      </button>
+                      {termsLocked && (
+                        <span className="ml-2 text-xs text-green-600 font-medium">
+                          ✓ Terms reviewed and accepted
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                  {errors.terms && (
+                    <p className="text-red-500 text-xs mt-1">{errors.terms}</p>
+                  )}
                 </div>
-                {errors.terms && (
-                  <p className="text-red-500 text-xs mt-1">{errors.terms}</p>
-                )}
 
                 {/* Sign In Link */}
                 <div className="text-center">
@@ -490,7 +596,8 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                   <Button 
                     type="submit"
                     className="bg-emerald-600 hover:bg-emerald-700 flex-1"
-                    disabled={isLoading}
+                    disabled={isLoading || !agreedToTerms}
+                    title={!agreedToTerms ? 'You must agree to the Terms and Conditions' : undefined}
                   >
                     {isLoading ? (
                       <>
@@ -502,12 +609,223 @@ export default function RecruiterSignUpForm({ open, onOpenChange, onSwitchToLogi
                     )}
                   </Button>
                 </div>
-              </form>
-            </div>
+                  </form>
+                </div>
+              </>
+            )}
           </motion.div>
         </DialogContent>
       </Dialog>
 
     </>
+  )
+}
+
+// Terms Content Component for Recruiter Signup
+function TermsContent({ onScrollToEnd }: { onScrollToEnd: () => void }) {
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1
+    
+    if (isAtBottom) {
+      onScrollToEnd()
+    }
+  }
+
+  return (
+    <div 
+      className="max-h-[60vh] overflow-y-auto space-y-6 text-sm px-2"
+      onScroll={handleScroll}
+    >
+      {/* Platform Information */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Platform Information</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2 text-gray-700">
+              <div><strong className="text-gray-900">Platform:</strong> <span className="text-gray-800">BPOC.IO</span></div>
+              <div><strong className="text-gray-900">Operated By:</strong> <span className="text-gray-800">ShoreAgents Inc.</span></div>
+              <div><strong className="text-gray-900">Registration:</strong> <span className="text-gray-800">SEC CS201918140 | TIN 010-425-223-00000</span></div>
+              <div><strong className="text-gray-900">Phone:</strong> <span className="text-gray-800">+63 917 702 0676</span></div>
+            </div>
+            <div className="space-y-2 text-gray-700">
+              <div><strong className="text-gray-900">Email:</strong> <span className="text-gray-800">careers@shoreagents.com</span></div>
+              <div><strong className="text-gray-900">Website:</strong> <span className="text-gray-800">https://shoreagents.com</span></div>
+              <div><strong className="text-gray-900">Careers Website:</strong> <span className="text-gray-800">https://careers.shoreagents.com</span></div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-300">
+            <div><strong className="text-gray-900">Address:</strong> <span className="text-gray-800">Business Center 26, Philexcel Business Park, Ma Roxas Highway, Clark Freeport, 2023 Pampanga</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* About BPOC.IO */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">About BPOC.IO</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <p className="text-gray-700 mb-3">BPOC.IO is ShoreAgents Inc.'s recruitment and assessment platform designed to:</p>
+          <ul className="space-y-1 text-gray-700">
+            <li>• <strong className="text-gray-900">Streamline hiring</strong> for positions within ShoreAgents organization</li>
+            <li>• <strong className="text-gray-900">Evaluate candidate qualifications</strong> through AI-powered assessments and interactive tools</li>
+            <li>• <strong className="text-gray-900">Match talent</strong> with appropriate roles in our company</li>
+            <li>• <strong className="text-gray-900">Provide career development</strong> insights and professional growth opportunities</li>
+            <li>• <strong className="text-gray-900">Optimize recruitment efficiency</strong> through automated screening and evaluation</li>
+          </ul>
+          <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+            <p className="text-gray-800 font-semibold text-sm">By using BPOC.IO, you are applying for potential employment with ShoreAgents Inc.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Acceptance of Terms */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Acceptance of Terms</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="mb-4">
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Agreement to Terms</h4>
+            <p className="text-gray-700 text-xs">By accessing, registering for, or using BPOC.IO, you acknowledge that you have read, understood, and agree to be bound by these Terms of Use, along with our Privacy Policy.</p>
+          </div>
+          
+          <div className="mb-4">
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Changes to Terms</h4>
+            <p className="text-gray-700 text-xs">We reserve the right to update or modify these Terms at any time without prior notice. Your continued use of BPOC.IO after any changes indicates your acceptance of the updated Terms.</p>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Eligibility</h4>
+            <p className="text-gray-700 text-xs">By using BPOC.IO, you represent that you are at least 18 years old and have the legal capacity to enter into these Terms.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* User Registration and Account */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">User Registration and Account</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Account Creation</h4>
+            <p className="text-gray-700 text-xs">To access certain features of BPOC.IO, you must create an account. You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate, current, and complete.</p>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Account Security</h4>
+            <p className="text-gray-700 text-xs">You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.</p>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Account Termination</h4>
+            <p className="text-gray-700 text-xs">We reserve the right to suspend or terminate your account at any time, with or without cause, including if you violate these Terms.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Data Collection and Privacy */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Data Collection and Privacy</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Information We Collect</h4>
+            <p className="text-gray-700 text-xs mb-2">We collect the following types of information:</p>
+            <ul className="space-y-1 text-gray-700 text-xs ml-4">
+              <li>• Personal information (name, email, contact details)</li>
+              <li>• Professional information (work experience, education, skills)</li>
+              <li>• Assessment results and game performance data</li>
+              <li>• Resume and application materials</li>
+              <li>• Usage data and analytics</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">How We Use Your Information</h4>
+            <p className="text-gray-700 text-xs mb-2">Your information is used to:</p>
+            <ul className="space-y-1 text-gray-700 text-xs ml-4">
+              <li>• Process your job applications</li>
+              <li>• Evaluate your qualifications and fit for positions</li>
+              <li>• Communicate with you regarding opportunities</li>
+              <li>• Improve our platform and services</li>
+              <li>• Comply with legal obligations</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Data Sharing</h4>
+            <p className="text-gray-700 text-xs">We may share your information with hiring managers and relevant personnel within ShoreAgents Inc. for recruitment purposes. We do not sell your personal information to third parties.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Platform Usage */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Platform Usage</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Permitted Use</h4>
+            <p className="text-gray-700 text-xs">You may use BPOC.IO solely for the purpose of applying for positions with ShoreAgents Inc. and related recruitment activities.</p>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Prohibited Conduct</h4>
+            <p className="text-gray-700 text-xs mb-2">You agree not to:</p>
+            <ul className="space-y-1 text-gray-700 text-xs ml-4">
+              <li>• Provide false or misleading information</li>
+              <li>• Use the platform for any unlawful purpose</li>
+              <li>• Attempt to gain unauthorized access to our systems</li>
+              <li>• Interfere with or disrupt the platform's operation</li>
+              <li>• Copy, modify, or distribute platform content without permission</li>
+              <li>• Use automated tools to access or interact with the platform</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Intellectual Property */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Intellectual Property</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">Platform Ownership</h4>
+            <p className="text-gray-700 text-xs">All content, features, and functionality of BPOC.IO, including but not limited to text, graphics, logos, and software, are owned by ShoreAgents Inc. and are protected by intellectual property laws.</p>
+          </div>
+          
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 mb-2">User Content</h4>
+            <p className="text-gray-700 text-xs">By submitting content to BPOC.IO (including resumes, applications, and assessment responses), you grant ShoreAgents Inc. a non-exclusive, worldwide, royalty-free license to use, store, and process such content for recruitment and business purposes.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Limitation of Liability */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Limitation of Liability</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <p className="text-gray-700 text-xs mb-3">BPOC.IO is provided "as is" without warranties of any kind. ShoreAgents Inc. shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the platform.</p>
+          <p className="text-gray-700 text-xs">We do not guarantee that the platform will be uninterrupted, secure, or error-free, nor do we guarantee any specific results from using the platform.</p>
+        </div>
+      </div>
+
+      {/* Contact Information */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Contact Us</h3>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <p className="text-gray-700 text-xs mb-3">If you have any questions about these Terms of Use, please contact us:</p>
+          <div className="space-y-1 text-gray-700 text-xs">
+            <div><strong className="text-gray-900">Email:</strong> careers@shoreagents.com</div>
+            <div><strong className="text-gray-900">Phone:</strong> +63 917 702 0676</div>
+            <div><strong className="text-gray-900">Address:</strong> Business Center 26, Philexcel Business Park, Ma Roxas Highway, Clark Freeport, 2023 Pampanga</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Final Acknowledgment */}
+      <div className="bg-emerald-50 p-4 rounded-lg border-2 border-emerald-500">
+        <p className="text-gray-800 text-sm font-semibold text-center mb-2">
+          ✓ You have reached the end of the Terms and Conditions
+        </p>
+        <p className="text-gray-700 text-xs text-center">
+          By continuing, you acknowledge that you have read and agree to these terms.
+        </p>
+      </div>
+    </div>
   )
 }
