@@ -36,7 +36,8 @@ import {
   X,
   Crown,
   Medal,
-  Award
+  Award,
+  Building2
 } from 'lucide-react'
 import { formatNumber, generateInitials } from '@/lib/utils'
 import ProfileCompletionModal from '@/components/auth/ProfileCompletionModal'
@@ -44,10 +45,24 @@ import ProfileCompletionModal from '@/components/auth/ProfileCompletionModal'
 function HomePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [showRecruiterModal, setShowRecruiterModal] = useState(false)
+
+  // Early check: Sign out recruiters if they access /home
+  useEffect(() => {
+    const handleRecruiterAccess = async () => {
+      if (user?.user_metadata?.admin_level === 'recruiter') {
+        console.log('🚫 HomePage: Recruiter detected, showing recruiter redirect modal')
+        setShowRecruiterModal(true)
+        await signOut()
+      }
+    }
+    
+    handleRecruiterAccess()
+  }, [user, signOut])
 
   // RankBadge component for leaderboards
   const RankBadge = ({ rank }: { rank: number }) => {
@@ -241,8 +256,17 @@ function HomePageContent() {
           console.log('✅ HomePage: Profile loaded successfully:', profile)
           setUserProfile(profile)
           
+          // Sign out recruiters and show modal
+          if (profile.admin_level === 'recruiter') {
+            console.log('🚫 HomePage: User is a recruiter, showing recruiter redirect modal')
+            setShowRecruiterModal(true)
+            await signOut()
+            return
+          }
+          
           // Show modal if completed_data is false
           if (profile.completed_data === false) {
+            console.log('📝 HomePage: Showing profile completion modal for regular user')
             setShowProfileModal(true)
           }
         } else {
@@ -287,6 +311,16 @@ function HomePageContent() {
                 if (retryResponse.ok) {
                   const retryData = await retryResponse.json()
                   setUserProfile(retryData.user)
+                  
+                  // Sign out recruiters and show modal
+                  if (retryData.user.admin_level === 'recruiter') {
+                    console.log('🚫 HomePage: User is a recruiter, showing recruiter redirect modal')
+                    setShowRecruiterModal(true)
+                    await signOut()
+                    return
+                  }
+                  
+                  // Only show modal for regular users
                   if (retryData.user.completed_data === false) {
                     setShowProfileModal(true)
                   }
@@ -1232,6 +1266,78 @@ function HomePageContent() {
         onOpenChange={handleCloseModal}
         onComplete={handleProfileComplete}
       />
+
+      {/* Recruiter Redirect Modal */}
+      <Dialog open={showRecruiterModal} onOpenChange={setShowRecruiterModal}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 border-emerald-500/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-white" />
+              </div>
+              Recruiter Account Detected
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+              <p className="text-gray-200 text-center leading-relaxed">
+                This account is registered as a <span className="font-bold text-emerald-400">Recruiter Account</span>.
+              </p>
+            </div>
+            
+            <div className="space-y-3 text-gray-300">
+              <p className="text-sm">
+                Recruiter accounts have access to:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Post and manage job listings</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Browse candidate profiles</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Review job applications</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Access recruiter dashboard</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4 mt-4">
+              <p className="text-cyan-200 text-sm text-center">
+                Please sign in on the <span className="font-bold text-cyan-400">Recruiter Portal</span> to access your account features.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowRecruiterModal(false)}
+              className="flex-1 border-white/20 text-white hover:bg-white/10"
+            >
+              Stay Here
+            </Button>
+            <Button
+              onClick={() => {
+                setShowRecruiterModal(false)
+                router.push('/recruiter')
+              }}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+            >
+              Go to Recruiter Portal
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
