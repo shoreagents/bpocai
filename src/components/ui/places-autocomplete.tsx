@@ -162,18 +162,18 @@ export function PlacesAutocomplete({ value, placeholder, disabled, onChange, onS
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="pl-10 h-11 !bg-white !text-gray-900 !placeholder:text-gray-500 !border-gray-300 focus:!border-emerald-500 focus:!ring-2 focus:!ring-emerald-500 focus-visible:!border-emerald-500 focus-visible:!ring-2 focus-visible:!ring-emerald-500"
+        className="pl-10 h-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
         aria-autocomplete="list"
         aria-expanded={open}
         role="combobox"
       />
       {open && (
-        <div className="absolute z-[99999] mt-1 w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-lg">
+        <div className="absolute z-[99999] mt-1 w-full rounded-md border border-white/20 bg-black/90 text-white shadow-lg backdrop-blur-sm">
           {loading && (
-            <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
+            <div className="px-3 py-2 text-sm text-gray-400">Loading…</div>
           )}
           {!loading && predictions.length === 0 && (
-            <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            <div className="px-3 py-2 text-sm text-gray-400">No results</div>
           )}
           <ul className="max-h-60 overflow-auto py-1">
             {predictions.map((p) => (
@@ -181,7 +181,7 @@ export function PlacesAutocomplete({ value, placeholder, disabled, onChange, onS
                 <button
                   type="button"
                   onClick={() => handleSelect(p)}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-50 text-gray-900"
+                  className="w-full px-3 py-2 text-left hover:bg-white/10 text-white"
                 >
                   {p.description}
                 </button>

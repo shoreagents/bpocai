@@ -119,28 +119,15 @@ export async function GET(request: NextRequest) {
           [user.id]
         )
         
-        // Count how many different game types the user has played
-        const gameTypesRes = await client.query(
-          `SELECT 
-            CASE WHEN EXISTS(SELECT 1 FROM bpoc_cultural_sessions WHERE user_id = $1) THEN 1 ELSE 0 END +
-            CASE WHEN EXISTS(SELECT 1 FROM disc_personality_sessions WHERE user_id = $1) THEN 1 ELSE 0 END +
-            CASE WHEN EXISTS(SELECT 1 FROM typing_hero_sessions WHERE user_id = $1) THEN 1 ELSE 0 END +
-            CASE WHEN EXISTS(SELECT 1 FROM ultimate_sessions WHERE user_id = $1) THEN 1 ELSE 0 END as completed_games`,
-          [user.id]
-        )
-        
-        completedGames = gameTypesRes.rows[0]?.completed_games || 0
+        // We'll calculate completed games after we fetch the game stats data
+        // to use the exact same logic as the profile completion card
+        completedGames = 0
       } catch (gameError) {
         console.log('Game sessions tables might not exist:', gameError)
         completedGames = 0
       }
 
-      // Apply privacy filter to games completed
-      if (!isOwner && privacySettings.games_completed === 'only-me') {
-        completedGames = 0 // Hide the count
-      }
-
-      const totalGames = 4
+      const totalGames = 2
 
       // Get game stats data
       let gameStats = {
@@ -217,6 +204,28 @@ export async function GET(request: NextRequest) {
         }
       } catch (gameStatsError) {
         console.log('Game stats tables might not exist:', gameStatsError)
+      }
+
+      // Calculate completed games using the exact same logic as profile completion card
+      if (!isOwner && privacySettings.games_completed === 'only-me') {
+        completedGames = 0 // Hide the count
+      } else {
+        // Use the same logic as profile completion card
+        let gamesCompleted = 0
+        
+        // Check Typing Hero (same logic as profile completion card)
+        if (gameStats.typing_hero_stats && 
+            (gameStats.typing_hero_stats.best_wpm > 0 || gameStats.typing_hero_stats.latest_wpm > 0)) {
+          gamesCompleted++
+        }
+        
+        // Check DISC Personality (same logic as profile completion card)
+        if (gameStats.disc_personality_stats && 
+            (gameStats.disc_personality_stats.primary_type || gameStats.disc_personality_stats.latest_primary_type)) {
+          gamesCompleted++
+        }
+        
+        completedGames = gamesCompleted
       }
 
       return NextResponse.json({ 

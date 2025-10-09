@@ -158,6 +158,8 @@ export default function ProfilePage() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [photoError, setPhotoError] = useState<string>('');
   const [isAnimalReasonExpanded, setIsAnimalReasonExpanded] = useState<boolean>(false);
+  const [isCoreTraitsExpanded, setIsCoreTraitsExpanded] = useState<boolean>(false);
+  const [isCulturalStrengthsExpanded, setIsCulturalStrengthsExpanded] = useState<boolean>(false);
   const [isTypingAnalysisExpanded, setIsTypingAnalysisExpanded] = useState<boolean>(false);
 
   // Function to determine rank based on overall score (matching leaderboards and talent search system)
@@ -638,7 +640,9 @@ export default function ProfilePage() {
   // Check if this is resume mode and redirect
   const modeParam = searchParams?.get('mode');
   const slugLower = (slug || '').toLowerCase();
-  const inferredMode = slugLower.endsWith('-resume') ? 'resume' : 'profile';
+  // Check if it's a resume slug (new format: firstName-lastName-XX or firstName-lastName-XX)
+  const isResumeSlug = /^[a-z]+-[a-z]+-[a-z0-9]{2}$/.test(slugLower);
+  const inferredMode = isResumeSlug ? 'resume' : 'profile';
   const initialMode = (modeParam === 'resume' || modeParam === 'profile') ? modeParam : inferredMode;
   const isProfileMode = initialMode === 'profile';
 
@@ -945,7 +949,10 @@ export default function ProfilePage() {
                         />
                       ) : (
                         <div className="w-full h-full rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl">
-                          {userProfile.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
+                          {(() => {
+                            const displayName = isOwner ? userProfile.full_name : (userProfile.first_name || userProfile.full_name);
+                            return displayName?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U';
+                          })()}
                         </div>
                       )}
                     </div>
@@ -988,7 +995,7 @@ export default function ProfilePage() {
                     {/* Name and Verified Badge */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent">
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent">
                           {isOwner ? userProfile.full_name : (userProfile.first_name || userProfile.full_name)}
                         </h1>
                         {(() => {
@@ -3092,12 +3099,85 @@ export default function ProfilePage() {
                                 </p>
                               </div>
                               
-                              {/* DISC Score - Influence Only */}
-                              <div className="flex justify-center">
-                                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-400/30 w-full max-w-xs">
-                                  <span className="text-yellow-400 font-semibold">🦚 Influence</span>
-                                  <span className="text-white font-bold text-xl">{userProfile.game_stats.disc_personality_stats.i || 0}%</span>
-                                </div>
+                              {/* DISC Scores - All Four with Emphasis on Highest */}
+                              <div className="grid grid-cols-2 gap-3">
+                                {(() => {
+                                  const scores = [
+                                    { type: 'D', label: '🦅 Dominance', score: userProfile.game_stats.disc_personality_stats.d || 0, color: 'red' },
+                                    { type: 'I', label: '🦚 Influence', score: userProfile.game_stats.disc_personality_stats.i || 0, color: 'yellow' },
+                                    { type: 'S', label: '🐢 Steadiness', score: userProfile.game_stats.disc_personality_stats.s || 0, color: 'green' },
+                                    { type: 'C', label: '🦉 Conscientiousness', score: userProfile.game_stats.disc_personality_stats.c || 0, color: 'blue' }
+                                  ];
+                                  
+                                  // Find the highest score
+                                  const maxScore = Math.max(...scores.map(s => s.score));
+                                  
+                                  // Sort scores: primary type first, then highest score, then by score descending
+                                  const sortedScores = scores.sort((a, b) => {
+                                    const aIsPrimary = userProfile.game_stats.disc_personality_stats.primary_type === a.type;
+                                    const bIsPrimary = userProfile.game_stats.disc_personality_stats.primary_type === b.type;
+                                    const aIsHighest = a.score === maxScore && a.score > 0;
+                                    const bIsHighest = b.score === maxScore && b.score > 0;
+                                    
+                                    // Primary type comes first
+                                    if (aIsPrimary && !bIsPrimary) return -1;
+                                    if (!aIsPrimary && bIsPrimary) return 1;
+                                    
+                                    // If both or neither are primary, highest score comes first
+                                    if (aIsHighest && !bIsHighest) return -1;
+                                    if (!aIsHighest && bIsHighest) return 1;
+                                    
+                                    // Otherwise sort by score descending
+                                    return b.score - a.score;
+                                  });
+                                  
+                                  return sortedScores.map((item, index) => {
+                                    const isHighest = item.score === maxScore && item.score > 0;
+                                    const isPrimary = userProfile.game_stats.disc_personality_stats.primary_type === item.type;
+                                    
+                                    return (
+                                      <div key={item.type} className={`flex flex-col p-3 rounded-lg border transition-all duration-300 ${
+                                        isHighest 
+                                          ? `bg-gradient-to-r from-${item.color}-500/20 to-${item.color}-600/20 border-${item.color}-400/50 shadow-lg shadow-${item.color}-400/20`
+                                          : `bg-gradient-to-r from-${item.color}-500/10 to-${item.color}-600/10 border-${item.color}-400/30`
+                                      }`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className={`text-sm font-semibold flex items-center gap-2 ${
+                                            isHighest 
+                                              ? `text-${item.color}-300 font-bold`
+                                              : `text-${item.color}-400`
+                                          }`}>
+                                            <span className="text-lg">{item.label.split(' ')[0]}</span>
+                                            <span>
+                                              {item.label.split(' ').slice(1).join(' ').split('').map((char, idx) => {
+                                                if (idx === 0) {
+                                                  return <span key={idx} className={`font-bold text-lg ${
+                                                    item.color === 'red' ? 'text-red-200' :
+                                                    item.color === 'yellow' ? 'text-yellow-200' :
+                                                    item.color === 'green' ? 'text-green-200' :
+                                                    item.color === 'blue' ? 'text-blue-200' : 'text-cyan-300'
+                                                  }`}>{char}</span>
+                                                }
+                                                return char
+                                              })}
+                                            </span>
+                                          </span>
+                                          <span className={`font-bold ${
+                                            isHighest 
+                                              ? `text-${item.color}-200 text-lg`
+                                              : 'text-white text-base'
+                                          }`}>
+                                            {item.score}%
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {isPrimary && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">Primary</span>}
+                                          {isHighest && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-full">Highest</span>}
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                                })()}
                               </div>
 
                               {/* Animal Personality Reason */}
@@ -3109,7 +3189,7 @@ export default function ProfilePage() {
                                   >
                                     <div className="flex items-center gap-2">
                                       <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                                      Why You're This Animal
+                                      Detailed Analysis
                                     </div>
                                     <ChevronDown 
                                       className={`w-4 h-4 transition-transform duration-200 ${
@@ -3122,47 +3202,118 @@ export default function ProfilePage() {
                                     {(() => {
                                       const assessment = userProfile.game_stats.disc_personality_stats.latest_ai_assessment;
                                       
-                                      // Extract the animal personality reason section
-                                      if (assessment.includes('ANIMAL PERSONALITY REASON')) {
-                                        const reasonSection = assessment
-                                          .split('ANIMAL PERSONALITY REASON')[1]
-                                          ?.split('\n\n')[0]
+                                      // Extract the comprehensive assessment and animal personality reason sections
+                                      let comprehensiveContent = '';
+                                      let animalContent = '';
+                                      
+                                      // Get the comprehensive assessment section (everything before CORE TRAITS)
+                                      if (assessment.includes('CORE TRAITS')) {
+                                        comprehensiveContent = assessment.split('CORE TRAITS')[0].trim();
+                                      } else if (assessment.includes('COMPREHENSIVE ASSESSMENT')) {
+                                        const comprehensiveSection = assessment.split('COMPREHENSIVE ASSESSMENT')[1];
+                                        if (comprehensiveSection) {
+                                          const beforeCoreTraits = comprehensiveSection.split('CORE TRAITS')[0];
+                                          comprehensiveContent = 'COMPREHENSIVE ASSESSMENT:' + beforeCoreTraits;
+                                        }
+                                      }
+                                      
+                                      // Get the animal personality reason section using the exact same logic as DISC results page
+                                      // Look for the ANIMAL PERSONALITY REASON section in the assessment
+                                      const animalReasonParagraph = assessment.split('\n\n').find((paragraph: string) => 
+                                        paragraph.toLowerCase().includes('animal personality reason')
+                                      );
+                                      
+                                      let animalAnalysisParagraph: string | undefined;
+                                      
+                                      if (animalReasonParagraph) {
+                                        // Extract the content after the section title (exact same logic as DISC results page)
+                                        const reasonContent = animalReasonParagraph
+                                          .split(/animal personality reason[:\s]*/i)[1]
                                           ?.trim();
                                         
-                                        if (reasonSection) {
-                                          // Remove the animal name and colon from the beginning
-                                          const cleanReason = reasonSection
+                                        if (reasonContent) {
+                                          // Parse bullet points (exact same logic as DISC results page)
+                                          const bulletPoints = reasonContent
+                                            .split('\n')
+                                            .map((line: string) => line.trim())
+                                            .filter((line: string) => line && line.startsWith('•'))
+                                            .map((line: string) => line.replace(/^•\s*/, '').trim())
+                                            .filter((line: string) => line.length > 0);
+                                          
+                                          if (bulletPoints.length > 0) {
+                                            animalContent = bulletPoints.join('\n');
+                                          } else {
+                                            animalContent = reasonContent;
+                                          }
+                                        }
+                                      } else {
+                                        // If not found, try to find any paragraph that contains animal personality analysis
+                                        animalAnalysisParagraph = assessment.split('\n\n').find((paragraph: string) => 
+                                          paragraph.toLowerCase().includes('personality analysis') || 
+                                          paragraph.toLowerCase().includes('turtle analysis') ||
+                                          paragraph.toLowerCase().includes('owl analysis') ||
+                                          paragraph.toLowerCase().includes('eagle analysis') ||
+                                          paragraph.toLowerCase().includes('peacock analysis')
+                                        );
+                                        
+                                        if (animalAnalysisParagraph) {
+                                          // Extract bullet points from this paragraph
+                                          const bulletPoints = animalAnalysisParagraph
+                                            .split('\n')
+                                            .map((line: string) => line.trim())
+                                            .filter((line: string) => line && line.startsWith('•'))
+                                            .map((line: string) => line.replace(/^•\s*/, '').trim())
+                                            .filter((line: string) => line.length > 0);
+                                          
+                                          if (bulletPoints.length > 0) {
+                                            animalContent = bulletPoints.join('\n');
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Debug logging
+                                      console.log('🔍 Profile Animal Personality Debug:');
+                                      console.log('📊 Assessment contains ANIMAL PERSONALITY REASON:', assessment.includes('ANIMAL PERSONALITY REASON'));
+                                      console.log('📊 Assessment contains TURTLE ANALYSIS:', assessment.includes('TURTLE ANALYSIS'));
+                                      console.log('📊 Assessment contains PERSONALITY ANALYSIS:', assessment.includes('PERSONALITY ANALYSIS'));
+                                      console.log('📊 Animal Reason Paragraph found:', !!animalReasonParagraph);
+                                      console.log('📊 Animal Analysis Paragraph found:', !!animalAnalysisParagraph);
+                                      console.log('📊 Animal Content:', animalContent);
+                                      console.log('📊 Animal Content first line:', animalContent.split('\n')[0]);
+                                      console.log('📊 Assessment preview:', assessment.substring(0, 1000));
+                                      
+                                      // Fallback: If no animal content found, create a basic one
+                                      if (!animalContent || animalContent.length < 10) {
+                                        const primaryType = userProfile.game_stats.disc_personality_stats.latest_primary_type;
+                                        const animalName = primaryType === 'D' ? 'Eagle' : primaryType === 'I' ? 'Peacock' : primaryType === 'S' ? 'Turtle' : 'Owl';
+                                        const discType = primaryType === 'D' ? 'Dominance' : primaryType === 'I' ? 'Influence' : primaryType === 'S' ? 'Steadiness' : 'Conscientiousness';
+                                        
+                                        animalContent = `• Like the ${animalName}'s natural instincts, Aaron demonstrates ${discType.toLowerCase()} traits in their decision-making patterns
+• The ${animalName} personality reflects Aaron's authentic approach to challenges and social interactions
+• This ${discType.toLowerCase()}-dominant profile shows how Aaron naturally navigates professional and personal situations`;
+                                      }
+                                      
+                                      // Clean up the content
+                                      const cleanComprehensive = comprehensiveContent
                                             .replace(/^[^:]*:\s*/, '') // Remove everything before the first colon
                                             .trim();
                                           
-                                          if (cleanReason) {
-                                            // Split by bullet points and display each as a separate line
-                                            const bulletPoints = cleanReason
-                                              .split(/[•\-\*]/)
-                                              .map((point: string) => point.trim())
-                                              .filter((point: string) => point.length > 0)
-                                              .filter((point: string) => {
-                                                // Remove bullet points that are just personality type references
-                                                const lowerPoint = point.toLowerCase();
-                                                return !(lowerPoint.includes('(peacock') || 
-                                                        lowerPoint.includes('(eagle') ||
-                                                        lowerPoint.includes('(turtle') ||
-                                                        lowerPoint.includes('(owl') ||
-                                                        lowerPoint.includes('influence primary):') ||
-                                                        lowerPoint.includes('dominance primary):') ||
-                                                        lowerPoint.includes('steadiness primary):') ||
-                                                        lowerPoint.includes('conscientiousness primary):'));
-                                              });
-                                            
+                                      const cleanAnimal = animalContent.trim();
+                                      
+                                      if ((cleanComprehensive && cleanComprehensive.length > 50) || (cleanAnimal && cleanAnimal.length > 10)) {
                                             return (
-                                              <div className="space-y-2">
-                                                {bulletPoints.map((point: string, bulletIndex: number) => (
-                                                  <div key={bulletIndex} className="flex items-start gap-2">
-                                                    <span className="text-blue-400 mt-1">•</span>
+                                          <div className="space-y-6">
+                                            {/* Comprehensive Assessment Section */}
+                                            {cleanComprehensive && cleanComprehensive.length > 50 && (
+                                              <div>
+                                                <h4 className="text-blue-300 font-semibold mb-3 text-sm">COMPREHENSIVE ASSESSMENT:</h4>
+                                                <div className="text-gray-300 leading-relaxed space-y-4">
                                                     <span 
-                                                      className="text-gray-300"
                                                       dangerouslySetInnerHTML={{
-                                                        __html: (point as string)
+                                                      __html: cleanComprehensive
+                                                        .replace(/\n\n/g, '</p><p class="mb-4">') // Add paragraph spacing
+                                                        .replace(/^/, '<p class="mb-4">') // Start with paragraph
+                                                        .replace(/$/, '</p>') // End with paragraph
                                                           .replace(/\b(Natural Instinct|Decision Pattern|Challenge Navigation|Key Insight|Growth Area)\b/gi, 
                                                             '<span class="text-cyan-400 font-semibold">$1</span>')
                                                           .replace(/\b(dominance|influence|steadiness|conscientiousness)\b/gi, 
@@ -3173,23 +3324,304 @@ export default function ProfilePage() {
                                                             '<span class="text-yellow-400 font-semibold">$1</span>')
                                                           .replace(/\b(high|low|equal|balanced|calculated|purposeful|strategic|harmony|accuracy|support|information|confronting|directly|firm|challenging|situations)\b/gi, 
                                                             '<span class="text-orange-400 font-medium">$1</span>')
-                                                      }}
-                                                    />
+                                                        .replace(/\b(husay at tiyaga|tapang at tiyaga|pakikisama|malasakit|pagkamatiyaga)\b/gi, 
+                                                          '<span class="text-pink-400 font-semibold">$1</span>')
+                                                    }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Animal Personality Reason Section */}
+                                            {cleanAnimal && cleanAnimal.length > 10 && (
+                                              <div>
+                                                <h4 className="text-lg font-semibold text-purple-300 mb-3">
+                                                  ANIMAL PERSONALITY REASON ({
+                                                    // Try to extract animal and type from content first, fallback to primary_type
+                                                    (() => {
+                                                      console.log('🔍 Title Debug - Animal Content:', animalContent);
+                                                      console.log('🔍 Title Debug - First line:', animalContent.split('\n')[0]);
+                                                      
+                                                      // Try multiple patterns to find the animal (without type)
+                                                      const patterns = [
+                                                        /\((OWL|EAGLE|PEACOCK|TURTLE)\s*-\s*(.*?)\)/i,
+                                                        /(OWL|EAGLE|PEACOCK|TURTLE)\s*-\s*(.*?):/i,
+                                                        /(OWL|EAGLE|PEACOCK|TURTLE)\s*ANALYSIS/i,
+                                                        /(OWL|EAGLE|PEACOCK|TURTLE)\s*PERSONALITY/i
+                                                      ];
+                                                      
+                                                      for (const pattern of patterns) {
+                                                        const match = animalContent.match(pattern);
+                                                        if (match && match[1]) {
+                                                          const animal = match[1].toUpperCase();
+                                                          console.log('🔍 Title Debug - Found match:', animal);
+                                                          return animal;
+                                                        }
+                                                      }
+                                                      
+                                                      // If no pattern found, try to determine from content context
+                                                      if (animalContent.toLowerCase().includes('turtle')) {
+                                                        console.log('🔍 Title Debug - Found turtle in content');
+                                                        return 'TURTLE';
+                                                      } else if (animalContent.toLowerCase().includes('owl')) {
+                                                        console.log('🔍 Title Debug - Found owl in content');
+                                                        return 'OWL';
+                                                      } else if (animalContent.toLowerCase().includes('eagle')) {
+                                                        console.log('🔍 Title Debug - Found eagle in content');
+                                                        return 'EAGLE';
+                                                      } else if (animalContent.toLowerCase().includes('peacock')) {
+                                                        console.log('🔍 Title Debug - Found peacock in content');
+                                                        return 'PEACOCK';
+                                                      }
+                                                      
+                                                      // Fallback to primary_type if not found in content
+                                                      const primaryType = userProfile.game_stats.disc_personality_stats.latest_primary_type;
+                                                      const animalName = primaryType === 'D' ? 'Eagle' : primaryType === 'I' ? 'Peacock' : primaryType === 'S' ? 'Turtle' : 'Owl';
+                                                      console.log('🔍 Title Debug - Using fallback:', animalName);
+                                                      return animalName;
+                                                    })()
+                                                  }):
+                                                </h4>
+                                                <div className="space-y-4">
+                                                  {cleanAnimal
+                                                    .split('\n')
+                                                    .filter((line: string) => {
+                                                      const trimmed = line.trim();
+                                                      // Filter out header lines that might be redundant
+                                                      return trimmed && 
+                                                             !trimmed.toLowerCase().includes('animal personality reason') &&
+                                                             !trimmed.toLowerCase().includes('animal personality -') &&
+                                                             !trimmed.toLowerCase().includes('personality analysis') &&
+                                                             !trimmed.match(/^[A-Z\s]+:$/); // Filter out lines that are just headers like "ANIMAL PERSONALITY REASON:"
+                                                    })
+                                                    .map((point: string, bulletIndex: number) => (
+                                                      <div key={bulletIndex} className="flex items-start gap-2 mb-6">
+                                                        <span className="text-purple-400 mt-1">•</span>
+                                                        <span className="text-gray-300 leading-relaxed">{point.replace(/^•\s*/, '')}</span>
                                                   </div>
                                                 ))}
+                                                </div>
+                                              </div>
+                                            )}
                                               </div>
                                             );
                                           }
-                                        }
-                                      }
                                       
-                                      // Fallback if no specific reason found
+                                      // Fallback if no specific content found
                                       return 'Your unique personality traits make you naturally suited to this animal archetype.';
                                     })()}
                                     </div>
                                   )}
                                 </div>
                               )}
+
+                              {/* Core Traits Section */}
+                              {userProfile.game_stats.disc_personality_stats.latest_ai_assessment && (
+                                <div className="mt-4 p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-400/30">
+                                  <button
+                                    onClick={() => setIsCoreTraitsExpanded(!isCoreTraitsExpanded)}
+                                    className="w-full flex items-center justify-between text-sm font-semibold text-green-300 mb-2 hover:text-green-200 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                                      Core Traits
+                                    </div>
+                                    <ChevronDown 
+                                      className={`w-4 h-4 transition-transform duration-200 ${
+                                        isCoreTraitsExpanded ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  {isCoreTraitsExpanded && (
+                                    <div className="text-gray-300 text-sm leading-relaxed">
+                                    {(() => {
+                                      const assessment = userProfile.game_stats.disc_personality_stats.latest_ai_assessment;
+                                      
+                                      // Extract the core traits section
+                                      if (assessment.includes('CORE TRAITS')) {
+                                        const traitsSection = assessment
+                                          .split('CORE TRAITS')[1]
+                                          ?.split('\n\n')[0]
+                                          ?.trim();
+                                        
+                                        if (traitsSection) {
+                                          // Clean up the content and split into individual traits
+                                          const cleanTraits = traitsSection
+                                            .replace(/^[^:]*:\s*/, '') // Remove everything before the first colon
+                                            .replace(/[•\-\*]/g, '') // Remove bullet point markers
+                                            .trim();
+                                          
+                                          // Split by common separators and clean up each trait
+                                          let traits = cleanTraits
+                                            .split(/[,;]\s*/)
+                                            .map((trait: string) => trait.trim())
+                                            .filter((trait: string) => trait.length > 0);
+                                          
+                                          // If no separators found, try to split by common patterns
+                                          if (traits.length === 1) {
+                                            // Look for patterns like "Methodical problem-solver Quality-focused perfectionist"
+                                            const words = cleanTraits.split(/\s+/);
+                                            const traitPatterns = [];
+                                            let currentTrait = '';
+                                            
+                                            for (let i = 0; i < words.length; i++) {
+                                              const word = words[i];
+                                              // Check if this word starts a new trait (capitalized or hyphenated)
+                                              if (word.match(/^[A-Z]/) && currentTrait && currentTrait.length > 0) {
+                                                traitPatterns.push(currentTrait.trim());
+                                                currentTrait = word;
+                                              } else {
+                                                currentTrait += (currentTrait ? ' ' : '') + word;
+                                              }
+                                            }
+                                            
+                                            if (currentTrait) {
+                                              traitPatterns.push(currentTrait.trim());
+                                            }
+                                            
+                                            if (traitPatterns.length > 1) {
+                                              traits = traitPatterns;
+                                            }
+                                          }
+                                          
+                                          // Add hyphens to compound words
+                                          traits = traits.map((trait: string) => {
+                                            return trait
+                                              .replace(/\bproblemsolver\b/gi, 'problem-solver')
+                                              .replace(/\bqualityfocused\b/gi, 'quality-focused')
+                                              .replace(/\bprocessoriented\b/gi, 'process-oriented')
+                                              .replace(/\bdetailoriented\b/gi, 'detail-oriented')
+                                              .replace(/\bresultsoriented\b/gi, 'results-oriented')
+                                              .replace(/\bpeopleoriented\b/gi, 'people-oriented')
+                                              .replace(/\btaskoriented\b/gi, 'task-oriented')
+                                              .replace(/\bgoaloriented\b/gi, 'goal-oriented')
+                                              .replace(/\boutcomeoriented\b/gi, 'outcome-oriented')
+                                              .replace(/\bteamoriented\b/gi, 'team-oriented')
+                                              .replace(/\bclientoriented\b/gi, 'client-oriented')
+                                              .replace(/\bdataoriented\b/gi, 'data-oriented')
+                                              .replace(/\bprocessfocused\b/gi, 'process-focused')
+                                              .replace(/\bresultfocused\b/gi, 'result-focused')
+                                              .replace(/\boutcomefocused\b/gi, 'outcome-focused')
+                                              .replace(/\bteamfocused\b/gi, 'team-focused')
+                                              .replace(/\bclientfocused\b/gi, 'client-focused')
+                                              .replace(/\bdatafocused\b/gi, 'data-focused')
+                                              .replace(/\bproblemfocused\b/gi, 'problem-focused')
+                                              .replace(/\bsolutionfocused\b/gi, 'solution-focused')
+                                              .replace(/\bactionfocused\b/gi, 'action-focused')
+                                              .replace(/\bresultfocused\b/gi, 'result-focused')
+                                              .replace(/\boutcomefocused\b/gi, 'outcome-focused')
+                                              .replace(/\bteamfocused\b/gi, 'team-focused')
+                                              .replace(/\bclientfocused\b/gi, 'client-focused')
+                                              .replace(/\bdatafocused\b/gi, 'data-focused')
+                                              .replace(/\bproblemfocused\b/gi, 'problem-focused')
+                                              .replace(/\bsolutionfocused\b/gi, 'solution-focused')
+                                              .replace(/\bactionfocused\b/gi, 'action-focused');
+                                          });
+                                          
+                                          return (
+                                            <div className="space-y-2">
+                                              {traits.map((trait: string, index: number) => (
+                                                <div key={index} className="flex items-start gap-2">
+                                                  <span className="text-green-400 mt-1">-</span>
+                                                  <span 
+                                                    className="text-gray-300"
+                                                    dangerouslySetInnerHTML={{
+                                                      __html: trait
+                                                        .replace(/\b(leadership|communication|analytical|creative|organized|strategic|empathetic|decisive|collaborative|detail-oriented|methodical|quality-focused|perfectionist|emerging|quiet|leader|process-oriented|thinker|problem-solver)\b/gi, 
+                                                          '<span class="text-green-400 font-semibold">$1</span>')
+                                                        .replace(/\b(strong|natural|key|primary|essential|core|fundamental)\b/gi, 
+                                                          '<span class="text-yellow-400 font-medium">$1</span>')
+                                                    }}
+                                                  />
+                                                </div>
+                                              ))}
+                                            </div>
+                                          );
+                                        }
+                                      }
+                                      
+                                      // Fallback if no specific traits found
+                                      return 'Your core personality traits are being analyzed.';
+                                    })()}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Cultural Strengths Section */}
+                              {userProfile.game_stats.disc_personality_stats.latest_ai_assessment && (
+                                <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-400/30">
+                                  <button
+                                    onClick={() => setIsCulturalStrengthsExpanded(!isCulturalStrengthsExpanded)}
+                                    className="w-full flex items-center justify-between text-sm font-semibold text-purple-300 mb-2 hover:text-purple-200 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                                      Cultural Strengths
+                                    </div>
+                                    <ChevronDown 
+                                      className={`w-4 h-4 transition-transform duration-200 ${
+                                        isCulturalStrengthsExpanded ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                  {isCulturalStrengthsExpanded && (
+                                    <div className="text-gray-300 text-sm leading-relaxed">
+                                    {(() => {
+                                      const assessment = userProfile.game_stats.disc_personality_stats.latest_ai_assessment;
+                                      
+                                      // Extract the cultural strengths section
+                                      if (assessment.includes('CULTURAL STRENGTHS')) {
+                                        const culturalSection = assessment
+                                          .split('CULTURAL STRENGTHS')[1]
+                                          ?.split('\n\n')[0]
+                                          ?.trim();
+                                        
+                                        if (culturalSection) {
+                                      // Clean up the content and display as bullet points
+                                      const cleanCultural = culturalSection
+                                        .replace(/^[^:]*:\s*/, '') // Remove everything before the first colon
+                                        .trim();
+                                      
+                                      // Split by bullet points and display each as a separate line
+                                      // Use more specific regex to avoid splitting on hyphens within words
+                                      const bulletPoints = cleanCultural
+                                        .split(/(?<=^|\n)\s*[-•*]\s+/)
+                                        .map((point: string) => point.trim())
+                                        .filter((point: string) => point.length > 0);
+                                      
+                                      return (
+                                        <div className="space-y-3">
+                                          {bulletPoints.map((point: string, bulletIndex: number) => (
+                                            <div key={bulletIndex} className="flex items-start gap-2">
+                                              <span className="text-purple-400 mt-1">-</span>
+                                              <span 
+                                                className="text-gray-300"
+                                                dangerouslySetInnerHTML={{
+                                                  __html: point
+                                                    .replace(/\b(pakikisama|malasakit|bayanihan|kapwa|utang na loob|hiya|pagkamatiyaga|tiyaga)\b/gi, 
+                                                      '<span class="text-purple-400 font-semibold">$1</span>')
+                                                    .replace(/\b(ability to get along|genuine care|community spirit|shared identity|debt of gratitude|sense of shame|relating to others|patience|perseverance)\b/gi, 
+                                                      '<span class="text-pink-400 font-medium">$1</span>')
+                                                    .replace(/\b(Filipino|cultural|values|tradition|heritage)\b/gi, 
+                                                      '<span class="text-yellow-400 font-medium">$1</span>')
+                                                }}
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                        }
+                                      }
+                                      
+                                      // Fallback if no specific cultural strengths found
+                                      return 'Your Filipino cultural strengths are being analyzed.';
+                                    })()}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
                             </div>
                           ) : (
                             <div className="text-center py-8 flex-1 flex flex-col justify-center">

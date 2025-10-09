@@ -3687,10 +3687,10 @@ export default function TypingHeroPage() {
                 margin={4}
               />
             </div>
-            <h3 className="text-2xl font-bold text-white">
+            <h3 className="text-2xl font-bold text-white text-center">
               AI is generating your Typing Hero story...
             </h3>
-            <p className="text-gray-400 max-w-md">
+            <p className="text-gray-400 max-w-md text-center mx-auto">
               Creating a personalized career journey story based on your profile. This will take a few seconds.
             </p>
             

@@ -107,29 +107,34 @@ export async function GET(request: NextRequest) {
       const achievementPoints = parseInt(engagementScoreRes.rows[0]?.score ?? '0') || 0
       console.log('📊 Achievement points:', achievementPoints)
       
-      // Calculate total completed games
-      const typingHeroCount = parseInt(typingHeroResult.rows[0]?.count || '0')
-      const discPersonalityCount = parseInt(discPersonalityResult.rows[0]?.count || '0')
-      const ultimateCount = parseInt(ultimateResult.rows[0]?.count || '0')
-
-      const bpocCulturalCount = Math.max(
-        parseInt(bpocCulturalResult.rows[0]?.count || '0'),
-        bpocCulturalResultsCount
+      // Calculate total completed games (only 2 games now)
+      // Use the same logic as profile completion card - check for actual game data
+      console.log('🔍 Checking DISC personality stats...')
+      const discPersonalityStatsRes = await client.query(
+        `SELECT primary_type, latest_primary_type FROM disc_personality_stats WHERE user_id = $1`,
+        [userId]
       )
+      const hasDiscData = discPersonalityStatsRes.rows.length > 0 && 
+        (discPersonalityStatsRes.rows[0]?.primary_type || discPersonalityStatsRes.rows[0]?.latest_primary_type)
+      console.log('📊 DISC personality has data:', hasDiscData)
+      
+      console.log('🔍 Checking typing hero stats...')
+      const typingHeroStatsRes = await client.query(
+        `SELECT best_wpm, latest_wpm FROM typing_hero_stats WHERE user_id = $1`,
+        [userId]
+      )
+      const hasTypingData = typingHeroStatsRes.rows.length > 0 && 
+        (typingHeroStatsRes.rows[0]?.best_wpm > 0 || typingHeroStatsRes.rows[0]?.latest_wpm > 0)
+      console.log('📊 Typing hero has data:', hasTypingData)
 
-      // Compute total sessions across all games
+      // Compute total sessions across remaining games
       const totalSessions =
         parseInt(typingHeroTotalRes.rows[0]?.count || '0') +
-        parseInt(discPersonalityTotalRes.rows[0]?.count || '0') +
-        parseInt(ultimateTotalRes.rows[0]?.count || '0') +
-        parseInt(bpocCulturalTotalRes.rows[0]?.count || '0')
+        parseInt(discPersonalityTotalRes.rows[0]?.count || '0')
 
       console.log('📊 Total sessions:', totalSessions)
       
-      const totalCompleted = (typingHeroCount > 0 ? 1 : 0) + 
-                           (discPersonalityCount > 0 ? 1 : 0) + 
-                           (ultimateCount > 0 ? 1 : 0) +
-                           (bpocCulturalCount > 0 ? 1 : 0)
+      const totalCompleted = (hasTypingData ? 1 : 0) + (hasDiscData ? 1 : 0)
       
       console.log('📊 Total completed games:', totalCompleted)
       
@@ -139,10 +144,8 @@ export async function GET(request: NextRequest) {
         totalSessions,
         achievementPoints,
         breakdown: {
-          typingHero: typingHeroCount,
-          discPersonality: discPersonalityCount,
-          ultimate: ultimateCount,
-          bpocCultural: bpocCulturalCount
+          typingHero: hasTypingData ? 1 : 0,
+          discPersonality: hasDiscData ? 1 : 0
         }
       }
       

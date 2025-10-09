@@ -56,6 +56,65 @@ export default function ResumeBuilderPage() {
   const [isCheckingSavedResume, setIsCheckingSavedResume] = useState(true);
   const [checkpointCheckComplete, setCheckpointCheckComplete] = useState(false);
 
+  // Auto-scroll ref for console output
+  const consoleOutputRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to bottom
+  const scrollToBottom = () => {
+    if (consoleOutputRef.current) {
+      const element = consoleOutputRef.current;
+      element.scrollTop = element.scrollHeight;
+    }
+  };
+
+  // Auto-scroll to bottom when new logs are added
+  useEffect(() => {
+    if (showProcessingLogs) {
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+    }
+  }, [processingLogs, showProcessingLogs]);
+
+  // Also scroll when latestActivity changes (for real-time updates)
+  useEffect(() => {
+    if (showProcessingLogs && latestActivity) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+    }
+  }, [latestActivity, showProcessingLogs]);
+
+  // Scroll to bottom when modal opens
+  useEffect(() => {
+    if (showProcessingLogs) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [showProcessingLogs]);
+
+  // Add custom styles for enhanced console animations
+  const consoleStyles = `
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px); }
+      75% { transform: translateX(2px); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+    .animate-slideIn { animation: slideIn 0.3s ease-out; }
+    .animate-shake { animation: shake 0.5s ease-in-out; }
+  `;
+
   // Reusable sticky footer component for different steps
   const renderStickyFooter = (stepNumber: number, stepTitle: string, stepDescription: string, progressPercentage: number, showButton: boolean = false, buttonText?: string, buttonAction?: () => void) => (
     <motion.div
@@ -791,19 +850,38 @@ export default function ResumeBuilderPage() {
                     </div>
                   </div>
                   
-                  {/* Live Console Output Display */}
+                  {/* Enhanced Live Console Output Display */}
                   <div className="mt-4">
-                    <div className="bg-black/60 border border-purple-500/30 rounded-lg overflow-hidden shadow-lg shadow-purple-500/10">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-purple-900/80 border-b border-purple-500/30">
-                        <div className="flex gap-1.5">
-                          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-                          <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                          <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                    <style dangerouslySetInnerHTML={{ __html: consoleStyles }} />
+                    <div className="bg-gradient-to-br from-gray-900/90 to-black/90 border border-purple-500/40 rounded-xl overflow-hidden shadow-2xl shadow-purple-500/20 backdrop-blur-sm">
+                      {/* Enhanced Header */}
+                      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-900/90 to-indigo-900/90 border-b border-purple-500/40">
+                        <div className="flex items-center gap-3">
+                          <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500/90 shadow-sm shadow-red-500/50"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/90 shadow-sm shadow-yellow-500/50"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500/90 shadow-sm shadow-green-500/50"></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                            <span className="text-sm font-bold text-purple-200">Live Console</span>
+                          </div>
                         </div>
-                        <div className="text-xs font-bold text-purple-200 ml-2">Console Output</div>
+                        <div className="flex items-center gap-2 text-xs text-purple-300">
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                            <span>Processing</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="console-output-container p-3 max-h-64 overflow-y-auto scroll-smooth">
-                        <div className="space-y-1 text-left font-mono text-xs">
+                      
+                      {/* Enhanced Console Content */}
+                      <div 
+                        ref={consoleOutputRef}
+                        className="console-output-container p-4 max-h-72 overflow-y-auto scroll-smooth scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-gray-800/50"
+                        style={{ scrollBehavior: 'smooth' }}
+                      >
+                        <div className="space-y-1.5 text-left font-mono text-sm">
                           {Object.entries(processingLogs).map(([fileName, logs]) => (
                             <div key={fileName}>
                               {logs.map((log, idx) => {
@@ -813,31 +891,121 @@ export default function ResumeBuilderPage() {
                                 const isWarning = log.includes('⏳');
                                 const isInfo = log.includes('🚀') || log.includes('📤') || log.includes('🤖') || log.includes('📝') || log.includes('🔄') || log.includes('📊') || log.includes('🏗️') || log.includes('📖') || log.includes('💰');
                                 
-                                let textColor = 'text-gray-300';
+                                // Check if this log represents a completed step
+                                const isCompletedStep = isSuccess || log.includes('Complete') || log.includes('✅');
+                                
+                                // Get current progress for this file
+                                const currentProgress = fileProgress[fileName] || 0;
+                                
+                                // Simple completion detection based on common patterns
+                                const isCompletedLog = isCompletedStep || 
+                                  log.includes('Complete') || 
+                                  log.includes('✅') ||
+                                  log.includes('saved') ||
+                                  log.includes('finished') ||
+                                  log.includes('done') ||
+                                  (currentProgress >= 90); // High progress indicates completion
+                                
+                                let textColor = 'text-white'; // Default to white for pending
                                 let bgColor = '';
+                                
                                 if (isError) {
                                   textColor = 'text-red-400';
                                   bgColor = 'bg-red-500/5';
-                                } else if (isSuccess) {
-                                  textColor = 'text-green-400';
+                                } else if (isSuccess || isCompletedLog) {
+                                  textColor = 'text-green-400'; // Green for completed
                                   bgColor = 'bg-green-500/5';
                                 } else if (isWarning) {
                                   textColor = 'text-yellow-400';
                                   bgColor = 'bg-yellow-500/5';
                                 } else if (isInfo) {
                                   textColor = 'text-cyan-400';
+                                } else {
+                                  textColor = 'text-white'; // White for pending/current logs
                                 }
                                 
+                                // Add animation classes based on log type
+                                const animationClass = isCompletedLog ? 'animate-fadeIn' : 
+                                                    isError ? 'animate-shake' : 
+                                                    'animate-slideIn';
+                                
+                                // Add timestamp for better UX
+                                const timestamp = new Date().toLocaleTimeString();
+                                
                                 return (
-                                  <div key={idx} className={`${textColor} ${bgColor} leading-relaxed py-0.5 px-1 rounded`}>
-                                    {log}
-                                  </div>
+                                  <motion.div 
+                                    key={idx} 
+                                    initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                                    transition={{ 
+                                      duration: 0.3, 
+                                      delay: idx * 0.05,
+                                      ease: "easeOut"
+                                    }}
+                                    className={`${textColor} ${bgColor} leading-relaxed py-2 px-3 rounded-lg border-l-2 transition-all duration-300 hover:shadow-md ${
+                                      isCompletedLog ? 'border-l-green-400 bg-green-500/10' :
+                                      isError ? 'border-l-red-400 bg-red-500/10' :
+                                      isWarning ? 'border-l-yellow-400 bg-yellow-500/10' :
+                                      'border-l-purple-400 bg-purple-500/5'
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <div className="flex-shrink-0 mt-0.5">
+                                        {isCompletedLog && <span className="text-green-400">✓</span>}
+                                        {isError && <span className="text-red-400">✗</span>}
+                                        {isWarning && <span className="text-yellow-400">⚠</span>}
+                                        {!isCompletedLog && !isError && !isWarning && (
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></div>
+                                            {idx === logs.length - 1 && (
+                                              <div className="w-0.5 h-3 bg-current animate-pulse"></div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-medium">{log}</span>
+                                          <span className="text-xs opacity-60 ml-2 flex-shrink-0">
+                                            {timestamp}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </motion.div>
                                 );
                               })}
                             </div>
                           ))}
                           {Object.keys(processingLogs).length === 0 && (
-                            <div className="text-gray-500 italic">Waiting for processing to start...</div>
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex items-center justify-center py-8"
+                            >
+                              <div className="text-center">
+                                <div className="w-8 h-8 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                  <div className="w-3 h-3 rounded-full bg-purple-400 animate-pulse"></div>
+                                </div>
+                                <div className="text-gray-400 text-sm">Waiting for processing to start...</div>
+                                <div className="text-gray-500 text-xs mt-1">Console will show real-time updates here</div>
+                              </div>
+                            </motion.div>
+                          )}
+                          
+                          {/* Real-time activity indicator */}
+                          {latestActivity && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="mt-2 p-2 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 rounded-lg"
+                            >
+                              <div className="flex items-center gap-2 text-xs text-purple-300">
+                                <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></div>
+                                <span className="font-medium">Latest:</span>
+                                <span className="text-white">{latestActivity}</span>
+                              </div>
+                            </motion.div>
                           )}
                         </div>
                       </div>

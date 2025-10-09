@@ -23,6 +23,7 @@ interface TypingHeroStats {
   consistency_score: number
   percentile_rank: number
   last_played_at: string
+  ai_analysis?: string
   created_at: string
   updated_at: string
   user_name: string
@@ -948,6 +949,321 @@ export default function GamesPage() {
                       </div>
                     </div>
 
+                  </div>
+                )}
+
+                {/* AI Analysis Section - Only for Typing Hero */}
+                {gameModalType === 'typing-hero' && (
+                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl border border-gray-600/20 shadow-lg">
+                    <div className="mb-6">
+                      <h3 className="text-2xl font-bold text-white">
+                        AI Performance Analysis
+                      </h3>
+                    </div>
+                    <div className="bg-gray-700/50 border border-gray-600/30 rounded-xl p-6">
+                      {(() => {
+                        console.log('🔍 AI Analysis Debug:', {
+                          hasAiAnalysis: !!selectedGameStat.ai_analysis,
+                          type: typeof selectedGameStat.ai_analysis,
+                          value: selectedGameStat.ai_analysis,
+                          isString: typeof selectedGameStat.ai_analysis === 'string',
+                          keys: typeof selectedGameStat.ai_analysis === 'object' ? Object.keys(selectedGameStat.ai_analysis) : 'N/A',
+                          stringValues: typeof selectedGameStat.ai_analysis === 'object' ? Object.values(selectedGameStat.ai_analysis).filter(v => typeof v === 'string') : 'N/A'
+                        })
+                        
+                        if (!selectedGameStat.ai_analysis) {
+                          return <div className="text-gray-400 italic">No AI analysis available</div>
+                        }
+                        
+                        // Handle different data types
+                        let analysisText = ''
+                        if (typeof selectedGameStat.ai_analysis === 'string') {
+                          // Try to parse as JSON first, then fallback to string
+                          try {
+                            const parsed = JSON.parse(selectedGameStat.ai_analysis)
+                            if (parsed.text) {
+                              analysisText = parsed.text
+                            } else if (parsed.content) {
+                              analysisText = parsed.content
+                            } else if (parsed.analysis) {
+                              analysisText = parsed.analysis
+                            } else {
+                              analysisText = selectedGameStat.ai_analysis
+                            }
+                          } catch {
+                            analysisText = selectedGameStat.ai_analysis
+                          }
+                        } else if (typeof selectedGameStat.ai_analysis === 'object') {
+                          // If it's an object, try to extract text content
+                          if (selectedGameStat.ai_analysis.text) {
+                            analysisText = selectedGameStat.ai_analysis.text
+                          } else if (selectedGameStat.ai_analysis.content) {
+                            analysisText = selectedGameStat.ai_analysis.content
+                          } else if (selectedGameStat.ai_analysis.analysis) {
+                            analysisText = selectedGameStat.ai_analysis.analysis
+                          } else if (selectedGameStat.ai_analysis.summary) {
+                            analysisText = selectedGameStat.ai_analysis.summary
+                          } else if (selectedGameStat.ai_analysis.description) {
+                            analysisText = selectedGameStat.ai_analysis.description
+                          } else {
+                            // Try to find any string value in the object (including nested objects)
+                            const extractStrings = (obj: any, depth = 0): string[] => {
+                              if (depth > 3) return [] // Prevent infinite recursion
+                              const strings: string[] = []
+                              
+                              for (const [key, value] of Object.entries(obj)) {
+                                if (typeof value === 'string' && value.trim().length > 10) {
+                                  strings.push(value)
+                                } else if (typeof value === 'object' && value !== null) {
+                                  strings.push(...extractStrings(value, depth + 1))
+                                }
+                              }
+                              return strings
+                            }
+                            
+                            const stringValues = extractStrings(selectedGameStat.ai_analysis)
+                            if (stringValues.length > 0) {
+                              analysisText = stringValues.join('\n\n')
+                            } else {
+                              // Show the structure in a more readable format
+                              const formatObject = (obj: any, indent = 0): string => {
+                                const spaces = '  '.repeat(indent)
+                                let result = ''
+                                
+                                for (const [key, value] of Object.entries(obj)) {
+                                  if (typeof value === 'string' && value.length > 0) {
+                                    result += `${spaces}${key}: ${value}\n`
+                                  } else if (typeof value === 'object' && value !== null) {
+                                    result += `${spaces}${key}:\n${formatObject(value, indent + 1)}`
+                                  } else if (typeof value === 'number' || typeof value === 'boolean') {
+                                    result += `${spaces}${key}: ${value}\n`
+                                  }
+                                }
+                                return result
+                              }
+                              
+                              analysisText = `AI Analysis Data:\n\n${formatObject(selectedGameStat.ai_analysis)}`
+                            }
+                          }
+                        } else {
+                          analysisText = String(selectedGameStat.ai_analysis)
+                        }
+                        
+                        if (!analysisText.trim()) {
+                          return <div className="text-gray-400 italic">AI analysis is empty</div>
+                        }
+                        
+                        // Try to extract the aiAssessment from the comprehensive analysis
+                        let aiAssessment = null
+                        if (typeof selectedGameStat.ai_analysis === 'object' && selectedGameStat.ai_analysis.aiAssessment) {
+                          aiAssessment = selectedGameStat.ai_analysis.aiAssessment
+                        } else if (typeof selectedGameStat.ai_analysis === 'string') {
+                          try {
+                            const parsed = JSON.parse(selectedGameStat.ai_analysis)
+                            if (parsed.aiAssessment) {
+                              aiAssessment = parsed.aiAssessment
+                            } else if (parsed.overallAssessment) {
+                              // If it's already the aiAssessment format
+                              aiAssessment = parsed
+                            }
+                          } catch (e) {
+                            // If parsing fails, treat as raw text
+                          }
+                        }
+
+                        if (aiAssessment) {
+                          return (
+                            <div className="space-y-6">
+                              {/* Overall Assessment */}
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-white border-b border-gray-600/30 pb-2">
+                                  Performance Analysis
+                                </h4>
+                                <div className="bg-gray-700/50 border border-gray-600/30 rounded-xl p-4">
+                                  <p 
+                                    className="text-gray-200 leading-relaxed"
+                                    style={{ 
+                                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                                      lineHeight: '1.7',
+                                      fontSize: '15px'
+                                    }}
+                                  >
+                                    {aiAssessment.overallAssessment}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Strengths */}
+                              {aiAssessment.strengths?.length > 0 && (
+                                <div className="space-y-4">
+                                  <h4 className="text-lg font-semibold text-white border-b border-gray-600/30 pb-2">
+                                    Your Strengths
+                                  </h4>
+                                  <div className="bg-gray-700/50 border border-gray-600/30 rounded-xl p-4">
+                                    <ul className="text-gray-300 space-y-3">
+                                      {aiAssessment.strengths.map((strength: string, i: number) => (
+                                        <li 
+                                          key={i}
+                                          className="flex items-start space-x-3 p-3 bg-gray-600/30 rounded-lg border border-gray-600/20"
+                                          style={{ 
+                                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                                            lineHeight: '1.6',
+                                            fontSize: '15px'
+                                          }}
+                                        >
+                                          <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-white text-xs font-bold">{i + 1}</span>
+                                          </div>
+                                          <span className="text-gray-200">{strength}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Personalized Tips */}
+                              {aiAssessment.personalizedTips?.length > 0 && (
+                                <div className="space-y-4">
+                                  <h4 className="text-lg font-semibold text-white border-b border-gray-600/30 pb-2">
+                                    Personalized Tips
+                                  </h4>
+                                  <div className="space-y-4">
+                                    {aiAssessment.personalizedTips.map((tip: any, i: number) => (
+                                      <div key={i} className="bg-gray-700/50 border border-gray-600/30 rounded-xl p-4">
+                                        <div className="flex items-start space-x-3">
+                                          <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="text-white text-sm">•</span>
+                                          </div>
+                                          <div className="flex-1">
+                                            <p 
+                                              className="text-gray-300 font-semibold mb-2"
+                                              style={{ 
+                                                fontFamily: 'system-ui, -apple-system, sans-serif',
+                                                lineHeight: '1.6',
+                                                fontSize: '16px'
+                                              }}
+                                            >
+                                              {tip.category}: {tip.tip}
+                                            </p>
+                                            <p 
+                                              className="text-gray-200"
+                                              style={{ 
+                                                fontFamily: 'system-ui, -apple-system, sans-serif',
+                                                lineHeight: '1.6',
+                                                fontSize: '15px'
+                                              }}
+                                            >
+                                              {tip.explanation}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Next Session Goal */}
+                              {aiAssessment.nextSessionGoal && (
+                                <div className="space-y-4">
+                                  <h4 className="text-lg font-semibold text-white border-b border-gray-600/30 pb-2">
+                                    Next Session Goal
+                                  </h4>
+                                  <div className="bg-gray-700/50 border border-gray-600/30 rounded-xl p-4">
+                                    <div className="flex items-start space-x-3">
+                                      <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span className="text-white text-sm">•</span>
+                                      </div>
+                                      <p 
+                                        className="text-gray-200 font-medium"
+                                        style={{ 
+                                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                                          lineHeight: '1.6',
+                                          fontSize: '16px'
+                                        }}
+                                      >
+                                        {aiAssessment.nextSessionGoal}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Encouragement */}
+                              {aiAssessment.encouragement && (
+                                <div className="space-y-4 pt-6 border-t border-gray-600/20">
+                                  <h4 className="text-lg font-semibold text-white text-center">
+                                    Encouragement
+                                  </h4>
+                                  <div className="bg-gray-700/50 border border-gray-600/30 rounded-xl p-6 text-center">
+                                    <div className="flex items-center justify-center space-x-3">
+                                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                        <span className="text-white text-sm">•</span>
+                                      </div>
+                                      <p 
+                                        className="text-gray-200 font-medium"
+                                        style={{ 
+                                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                                          lineHeight: '1.6',
+                                          fontSize: '16px'
+                                        }}
+                                      >
+                                        {aiAssessment.encouragement}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+
+                        // Fallback to raw text display if aiAssessment not found
+                        return (
+                          <div className="space-y-4">
+                            <div 
+                              className="text-gray-200 leading-relaxed"
+                              style={{ 
+                                fontFamily: 'system-ui, -apple-system, sans-serif',
+                                lineHeight: '1.7',
+                                fontSize: '15px'
+                              }}
+                            >
+                              {analysisText.split('\n').map((line, index) => {
+                                const isBulletPoint = line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*')
+                                const isHeader = line.trim().endsWith(':') && line.length < 50
+                                
+                                if (isHeader) {
+                                  return (
+                                    <div key={index} className="mb-4">
+                                      <h4 className="text-lg font-semibold text-white border-b border-purple-400/30 pb-2 mb-3">
+                                        {line}
+                                      </h4>
+                                    </div>
+                                  )
+                                } else if (isBulletPoint) {
+                                  return (
+                                    <div key={index} className="flex items-start space-x-3 mb-3 p-3 bg-purple-500/5 rounded-lg border border-purple-400/20">
+                                      <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-200">{line.replace(/^[•\-\*]\s*/, '')}</span>
+                                    </div>
+                                  )
+                                } else if (line.trim()) {
+                                  return (
+                                    <div key={index} className="mb-3 p-3 bg-gray-800/30 rounded-lg">
+                                      <p className="text-gray-200">{line}</p>
+                                    </div>
+                                  )
+                                } else {
+                                  return <div key={index} className="mb-2"></div>
+                                }
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
                   </div>
                 )}
 

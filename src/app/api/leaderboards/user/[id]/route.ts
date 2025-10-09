@@ -10,6 +10,39 @@ export async function GET(
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
     console.log('🔍 Fetching user breakdown for:', userId)
+    console.log('🔍 User ID type:', typeof userId)
+    console.log('🔍 User ID value:', userId)
+    
+    // Test if API is being called at all
+    console.log('🚀 API CALLED - Leaderboard user API is working!')
+    
+    // Direct database check - let's see what's actually in the database
+    console.log('🔍 Direct Database Check:')
+    try {
+      const directTypingCheck = await pool.query(`
+        SELECT COUNT(*) as count FROM typing_hero_stats WHERE user_id = $1
+      `, [userId])
+      console.log('📊 Direct typing_hero_stats count:', directTypingCheck.rows[0]?.count)
+      
+      const directDiscCheck = await pool.query(`
+        SELECT COUNT(*) as count FROM disc_personality_stats WHERE user_id = $1
+      `, [userId])
+      console.log('📊 Direct disc_personality_stats count:', directDiscCheck.rows[0]?.count)
+      
+      // Let's also check what user IDs exist in these tables
+      const allTypingUsers = await pool.query(`
+        SELECT user_id FROM typing_hero_stats LIMIT 5
+      `)
+      console.log('📊 Sample typing_hero_stats user_ids:', allTypingUsers.rows.map(r => r.user_id))
+      
+      const allDiscUsers = await pool.query(`
+        SELECT user_id FROM disc_personality_stats LIMIT 5
+      `)
+      console.log('📊 Sample disc_personality_stats user_ids:', allDiscUsers.rows.map(r => r.user_id))
+      
+    } catch (dbError: any) {
+      console.log('❌ Direct database check failed:', dbError.message)
+    }
 
     // Get user's leaderboard data from the new unified system
     const leaderboardRes = await pool.query(`
@@ -63,14 +96,14 @@ export async function GET(
     const leaderboardData = leaderboardRes.rows[0]
 
     // Get user's detailed game stats with error handling
-    let typingStats = { rows: [] }
-    let discStats = { rows: [] }
+    let typingStats: any = { rows: [] }
+    let discStats: any = { rows: [] }
     
     try {
       [typingStats, discStats] = await Promise.all([
         pool.query(`
           SELECT 
-            best_wpm, best_accuracy, total_sessions, total_time_spent,
+            best_wpm, latest_wpm, best_accuracy, total_sessions,
             created_at, updated_at
           FROM typing_hero_stats 
           WHERE user_id = $1
@@ -83,13 +116,36 @@ export async function GET(
           WHERE user_id = $1
         `, [userId])
       ])
+      
+      // Debug logging
+      console.log('🔍 Leaderboard API Debug:')
+      console.log('📊 Typing Hero Stats:', typingStats.rows)
+      console.log('📊 DISC Personality Stats:', discStats.rows)
+      console.log('📊 Typing Hero has data:', typingStats.rows.length > 0)
+      console.log('📊 DISC has data:', discStats.rows.length > 0)
+      
+      if (typingStats.rows.length > 0) {
+        console.log('📊 Typing Hero WPM check:', {
+          best_wpm: typingStats.rows[0].best_wpm,
+          latest_wpm: typingStats.rows[0].latest_wpm,
+          hasBestWpm: typingStats.rows[0].best_wpm > 0,
+          hasLatestWpm: typingStats.rows[0].latest_wpm > 0
+        })
+      }
+      
+      if (discStats.rows.length > 0) {
+        console.log('📊 DISC Personality check:', {
+          latest_primary_type: discStats.rows[0].latest_primary_type,
+          hasLatestPrimaryType: !!discStats.rows[0].latest_primary_type
+        })
+      }
     } catch (error) {
       console.log('⚠️ Game stats tables may not exist, using empty data:', error)
       // Continue with empty data
     }
 
     // Get user's application details with error handling
-    let applicationsRes = { rows: [] }
+    let applicationsRes: any = { rows: [] }
     try {
       applicationsRes = await pool.query(`
         SELECT 
@@ -123,7 +179,7 @@ export async function GET(
     }))
 
     // Get user's profile completion details with error handling
-    let userRes = { rows: [] }
+    let userRes: any = { rows: [] }
     try {
       userRes = await pool.query(`
         SELECT 
@@ -208,8 +264,7 @@ export async function GET(
           details: typingStats.rows[0] ? {
             best_wpm: typingStats.rows[0].best_wpm,
             best_accuracy: typingStats.rows[0].best_accuracy,
-            total_sessions: typingStats.rows[0].total_sessions,
-            total_time_spent: typingStats.rows[0].total_time_spent
+            total_sessions: typingStats.rows[0].total_sessions
           } : null
         },
         disc_personality: {
@@ -241,14 +296,38 @@ export async function GET(
       
       // System info
       system: 'new_unified',
-      description: 'Unified leaderboard system with 5 weighted components'
+      description: 'Unified leaderboard system with 5 weighted components',
+      
+      // Add engagement data for frontend compatibility
+      engagement: {
+        items: [
+          ...(typingStats.rows[0] && (typingStats.rows[0].best_wpm > 0 || typingStats.rows[0].latest_wpm > 0) ? [{
+            label: 'Typing Hero Completed',
+            points: 50
+          }] : []),
+          ...(discStats.rows[0] && discStats.rows[0].latest_primary_type ? [{
+            label: 'DISC Personality Completed', 
+            points: 50
+          }] : [])
+        ],
+        total: leaderboardData.overall_score
+      },
+      
+      // Add games data for frontend compatibility
+      games: [
+        ...(typingStats.rows[0] ? [{
+          name: 'typing_hero',
+          plays: typingStats.rows[0].total_sessions || 0
+        }] : []),
+        ...(discStats.rows[0] ? [{
+          name: 'disc_personality', 
+          plays: discStats.rows[0].completed_sessions || 0
+        }] : [])
+      ]
     })
-
+    
   } catch (error) {
-    console.error('❌ User breakdown error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to load user breakdown',
-      details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 })
+    console.error('Error fetching user breakdown:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

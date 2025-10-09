@@ -58,6 +58,7 @@ interface UserProfile {
   first_name: string
   last_name: string
   full_name: string
+  username?: string
   location: string
   avatar_url?: string
   phone?: string
@@ -109,14 +110,30 @@ export default function Header({}: HeaderProps) {
     }
   }, [isAdmin, user, pathname, router])
 
-  // Fetch user profile from Railway
+  // Fetch user profile from Railway with retry mechanism
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserProfile = async (retryCount = 0) => {
       if (user?.id) {
+        let timeoutId: NodeJS.Timeout | undefined
         try {
           setProfileLoading(true)
-          console.log('🔄 Fetching user profile for:', user.id)
+          console.log('🔄 Fetching user profile for:', user.id, retryCount > 0 ? `(retry ${retryCount})` : '')
+          console.log('⏰ Profile loading started at:', new Date().toISOString())
+          
+          // Add a small delay to allow Google OAuth metadata to be fully processed
+          if (retryCount === 0) {
+            console.log('⏳ Waiting 500ms for OAuth metadata to be processed...')
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          
+          // Add timeout to prevent infinite loading
+          timeoutId = setTimeout(() => {
+            console.log('⏰ Profile loading timeout reached, forcing loading to false')
+            setProfileLoading(false)
+          }, 10000) // 10 second timeout
+          
           const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          clearTimeout(timeoutId)
           if (response.ok) {
             const data = await response.json()
             console.log('✅ User profile loaded:', data.user)
@@ -134,10 +151,19 @@ export default function Header({}: HeaderProps) {
                 full_name: user.user_metadata?.full_name
               })
               try {
-                // Parse name data from Google metadata
+                // Parse name data from Google metadata with better extraction
                 let firstName = user.user_metadata?.first_name || user.user_metadata?.given_name || ''
                 let lastName = user.user_metadata?.last_name || user.user_metadata?.family_name || ''
                 let fullName = user.user_metadata?.full_name || user.user_metadata?.name || ''
+                
+                console.log('🔍 Google metadata name fields:', {
+                  first_name: user.user_metadata?.first_name,
+                  last_name: user.user_metadata?.last_name,
+                  given_name: user.user_metadata?.given_name,
+                  family_name: user.user_metadata?.family_name,
+                  full_name: user.user_metadata?.full_name,
+                  name: user.user_metadata?.name
+                })
                 
                 // If we have a full name but no individual names, parse it
                 if (fullName && (!firstName || !lastName)) {
@@ -151,10 +177,23 @@ export default function Header({}: HeaderProps) {
                   }
                 }
                 
+                // If we have individual names but no full name, construct it
+                if ((firstName || lastName) && !fullName) {
+                  fullName = `${firstName} ${lastName}`.trim()
+                }
+                
                 // Fallback to email if no name data at all
                 if (!fullName && !firstName && !lastName) {
-                  fullName = user.email
+                  fullName = user.email || 'User'
+                  firstName = user.email?.split('@')[0] || 'User'
+                  lastName = ''
                 }
+                
+                console.log('🔍 Parsed name data:', {
+                  firstName,
+                  lastName,
+                  fullName
+                })
 
                 const syncResponse = await fetch('/api/user/sync', {
                   method: 'POST',
@@ -203,10 +242,19 @@ export default function Header({}: HeaderProps) {
             // User not found in database, try to sync them
             console.log('⚠️ User not found in database, attempting to sync...')
             try {
-              // Parse name data from Google metadata
+              // Parse name data from Google metadata with better extraction
               let firstName = user.user_metadata?.first_name || user.user_metadata?.given_name || ''
               let lastName = user.user_metadata?.last_name || user.user_metadata?.family_name || ''
               let fullName = user.user_metadata?.full_name || user.user_metadata?.name || ''
+              
+              console.log('🔍 Google metadata name fields (404 case):', {
+                first_name: user.user_metadata?.first_name,
+                last_name: user.user_metadata?.last_name,
+                given_name: user.user_metadata?.given_name,
+                family_name: user.user_metadata?.family_name,
+                full_name: user.user_metadata?.full_name,
+                name: user.user_metadata?.name
+              })
               
               // If we have a full name but no individual names, parse it
               if (fullName && (!firstName || !lastName)) {
@@ -220,10 +268,23 @@ export default function Header({}: HeaderProps) {
                 }
               }
               
+              // If we have individual names but no full name, construct it
+              if ((firstName || lastName) && !fullName) {
+                fullName = `${firstName} ${lastName}`.trim()
+              }
+              
               // Fallback to email if no name data at all
               if (!fullName && !firstName && !lastName) {
-                fullName = user.email
+                fullName = user.email || 'User'
+                firstName = user.email?.split('@')[0] || 'User'
+                lastName = ''
               }
+              
+              console.log('🔍 Parsed name data (404 case):', {
+                firstName,
+                lastName,
+                fullName
+              })
 
               const syncResponse = await fetch('/api/user/sync', {
                 method: 'POST',
@@ -259,16 +320,49 @@ export default function Header({}: HeaderProps) {
                 }
               } else {
                 console.error('❌ Failed to sync user:', syncResponse.status)
+                // Retry after a delay if sync failed and we haven't retried too many times
+                if (retryCount < 3) {
+                  const delay = retryCount === 0 ? 1000 : retryCount === 1 ? 2000 : 3000
+                  console.log(`🔄 Retrying profile fetch in ${delay}ms (attempt ${retryCount + 1})`)
+                  setTimeout(() => fetchUserProfile(retryCount + 1), delay)
+                  return
+                }
               }
             } catch (syncError) {
               console.error('❌ Error during user sync:', syncError)
+              // Retry after a delay if sync failed and we haven't retried too many times
+              if (retryCount < 3) {
+                const delay = retryCount === 0 ? 1000 : retryCount === 1 ? 2000 : 3000
+                console.log(`🔄 Retrying profile fetch in ${delay}ms (attempt ${retryCount + 1})`)
+                setTimeout(() => fetchUserProfile(retryCount + 1), delay)
+                return
+              }
             }
           } else {
             console.error('❌ Failed to fetch user profile:', response.status, response.statusText)
+            // Retry after a delay if fetch failed and we haven't retried too many times
+            if (retryCount < 3) {
+              const delay = retryCount === 0 ? 1000 : retryCount === 1 ? 2000 : 3000
+              console.log(`🔄 Retrying profile fetch in ${delay}ms (attempt ${retryCount + 1})`)
+              setTimeout(() => fetchUserProfile(retryCount + 1), delay)
+              return
+            }
           }
         } catch (error) {
           console.error('❌ Error fetching user profile:', error)
+          // Clear timeout on error
+          if (timeoutId) {
+            clearTimeout(timeoutId)
+          }
+          // Retry after a delay if fetch failed and we haven't retried too many times
+          if (retryCount < 3) {
+            const delay = retryCount === 0 ? 1000 : retryCount === 1 ? 2000 : 3000
+            console.log(`🔄 Retrying profile fetch in ${delay}ms (attempt ${retryCount + 1})`)
+            setTimeout(() => fetchUserProfile(retryCount + 1), delay)
+            return
+          }
         } finally {
+          console.log('⏰ Profile loading finished at:', new Date().toISOString())
           setProfileLoading(false)
         }
       } else {
@@ -293,6 +387,65 @@ export default function Header({}: HeaderProps) {
         console.error('Error refreshing user profile:', error)
       } finally {
         setProfileLoading(false)
+      }
+    }
+  }
+
+  // Function to handle My Profile click when slug is not available
+  const handleMyProfileClick = async () => {
+    if (!userProfile?.slug && user?.id) {
+      console.log('🔄 My Profile clicked but no slug available, attempting to refresh profile...')
+      
+      try {
+        // Try to refresh the profile
+        const response = await fetch(`/api/user/profile?userId=${user.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          const updatedProfile = data.user
+          
+          if (updatedProfile?.slug) {
+            console.log('✅ Profile refreshed with slug:', updatedProfile.slug)
+            window.location.href = `/profile/${updatedProfile.slug}`
+            return
+          }
+          
+          // If user has username but no slug, the database trigger might be delayed
+          if (updatedProfile?.username && !updatedProfile?.slug) {
+            console.log('🔄 User has username but no slug yet, waiting for database trigger...')
+            
+            // Wait a bit longer for the database trigger to generate the slug
+            setTimeout(async () => {
+              try {
+                const retryResponse = await fetch(`/api/user/profile?userId=${user.id}`)
+                if (retryResponse.ok) {
+                  const retryData = await retryResponse.json()
+                  const retryProfile = retryData.user
+                  
+                  if (retryProfile?.slug) {
+                    console.log('✅ Slug generated after delay:', retryProfile.slug)
+                    window.location.href = `/profile/${retryProfile.slug}`
+                    return
+                  }
+                }
+                
+                // Still no slug, redirect to settings
+                console.log('⚠️ Slug still not generated after delay, redirecting to settings')
+                window.location.href = '/settings'
+              } catch (retryError) {
+                console.error('❌ Error in retry:', retryError)
+                window.location.href = '/settings'
+              }
+            }, 2000) // Wait 2 seconds for database trigger
+            return
+          }
+        }
+        
+        // If still no slug, redirect to settings
+        console.log('⚠️ Still no slug available after refresh, redirecting to settings')
+        window.location.href = '/settings'
+      } catch (error) {
+        console.error('❌ Error refreshing profile:', error)
+        window.location.href = '/settings'
       }
     }
   }
@@ -339,11 +492,31 @@ export default function Header({}: HeaderProps) {
     checkSavedResumes()
   }, [user?.id])
   
-  // Extract user info from Railway data only
-  const userDisplayName = profileLoading ? 'Loading...' : (userProfile?.full_name || 'User')
-  const userInitials = profileLoading ? 'L' : (userProfile?.full_name 
-    ? userProfile.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-    : 'U')
+  // Extract user info with fallback to Google OAuth data
+  const userDisplayName = profileLoading ? 'Loading...' : (
+    userProfile?.full_name || 
+    (userProfile?.first_name && userProfile?.last_name ? `${userProfile.first_name} ${userProfile.last_name}` : null) ||
+    userProfile?.username || 
+    // Fallback to Google OAuth data when Railway data isn't available yet
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    (user?.user_metadata?.given_name && user?.user_metadata?.family_name ? 
+      `${user.user_metadata.given_name} ${user.user_metadata.family_name}` : null) ||
+    (user?.user_metadata?.first_name && user?.user_metadata?.last_name ? 
+      `${user.user_metadata.first_name} ${user.user_metadata.last_name}` : null) ||
+    user?.email?.split('@')[0] ||
+    'User'
+  )
+  const userInitials = profileLoading ? 'L' : (
+    userProfile?.full_name 
+      ? userProfile.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
+      : (userProfile?.first_name && userProfile?.last_name 
+          ? `${userProfile.first_name[0]}${userProfile.last_name[0]}`.toUpperCase()
+          : userProfile?.username?.[0]?.toUpperCase() || 
+          // Fallback to Google OAuth data for initials
+          (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.given_name)?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() ||
+          user?.email?.[0]?.toUpperCase() || 'U')
+  )
   
 
 
@@ -401,16 +574,22 @@ export default function Header({}: HeaderProps) {
   }
 
   const userMenuItems = [
-    { label: 'My Profile', href: (userProfile?.slug ? `/profile/${userProfile.slug}` : '/settings'), icon: FileTextIcon, action: null },
-    { label: 'My Resume', href: (savedResumeInfo?.resumeUrl || '/resume-builder'), icon: FileTextIcon, action: null },
-    { label: 'My Applications', href: '/applications', icon: Briefcase, action: null },
-    { label: 'Settings', href: '/settings', icon: Settings, action: null },
-    { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true) }
+    { 
+      label: 'My Profile', 
+      href: (userProfile?.slug ? `/profile/${userProfile.slug}` : '#'), 
+      icon: FileTextIcon, 
+      action: (!userProfile?.slug && !profileLoading) ? handleMyProfileClick : null,
+      disabled: profileLoading
+    },
+    { label: 'My Resume', href: (savedResumeInfo?.resumeUrl || '/resume-builder'), icon: FileTextIcon, action: null, disabled: false },
+    { label: 'My Applications', href: '/applications', icon: Briefcase, action: null, disabled: false },
+    { label: 'Settings', href: '/settings', icon: Settings, action: null, disabled: false },
+    { label: 'Sign Out', href: null, icon: LogOut, action: () => setShowSignOutDialog(true), disabled: false }
   ]
 
   // Add admin menu items if user is admin
   const adminMenuItems = isAdmin ? [
-    { label: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield, action: null }
+    { label: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield, action: null, disabled: false }
   ] : []
 
   // Combine regular and admin menu items
@@ -648,23 +827,39 @@ export default function Header({}: HeaderProps) {
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 top-full mt-2 w-48 bg-black border border-white/10 rounded-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-xl shadow-black/50">
                     {allMenuItems.map((item) => (
-                      item.href ? (
+                      item.href && item.href !== '#' ? (
                         <Link
                           key={item.label}
                           href={item.href}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm hover:bg-white/10 transition-colors"
+                          className={`flex items-center space-x-2 px-4 py-2 text-sm transition-colors ${
+                            item.disabled 
+                              ? 'text-gray-500 cursor-not-allowed' 
+                              : 'hover:bg-white/10'
+                          }`}
+                          onClick={item.disabled ? (e) => e.preventDefault() : undefined}
                         >
                           <item.icon className="w-4 h-4" />
-                          <span>{item.label}</span>
+                          <span>
+                            {item.label}
+                            {item.disabled && ' (Loading...)'}
+                          </span>
                         </Link>
                       ) : (
                         <button
                           key={item.label}
                           onClick={item.action || (() => {})}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm hover:bg-white/10 transition-colors w-full text-left"
+                          className={`flex items-center space-x-2 px-4 py-2 text-sm transition-colors w-full text-left ${
+                            item.disabled 
+                              ? 'text-gray-500 cursor-not-allowed' 
+                              : 'hover:bg-white/10'
+                          }`}
+                          disabled={item.disabled}
                         >
                           <item.icon className="w-4 h-4" />
-                          <span>{item.label}</span>
+                          <span>
+                            {item.label}
+                            {item.disabled && ' (Loading...)'}
+                          </span>
                         </button>
                       )
                     ))}
@@ -914,24 +1109,39 @@ export default function Header({}: HeaderProps) {
                     {isAuthenticated && (
                       <div className="space-y-2 pt-6 border-t border-white/10">
                         {allMenuItems.map((item) => (
-                          item.href ? (
+                          item.href && item.href !== '#' ? (
                             <Link
                               key={item.label}
                               href={item.href}
-                              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
-                              onClick={() => setIsMobileMenuOpen(false)}
+                              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                                item.disabled 
+                                  ? 'text-gray-500 cursor-not-allowed' 
+                                  : 'hover:bg-white/10'
+                              }`}
+                              onClick={item.disabled ? (e) => e.preventDefault() : () => setIsMobileMenuOpen(false)}
                             >
                               <item.icon className="w-5 h-5" />
-                              <span>{item.label}</span>
+                              <span>
+                                {item.label}
+                                {item.disabled && ' (Loading...)'}
+                              </span>
                             </Link>
                           ) : (
                             <button
                               key={item.label}
                               onClick={item.action || (() => {})}
-                              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors w-full text-left"
+                              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors w-full text-left ${
+                                item.disabled 
+                                  ? 'text-gray-500 cursor-not-allowed' 
+                                  : 'hover:bg-white/10'
+                              }`}
+                              disabled={item.disabled}
                             >
                               <item.icon className="w-5 h-5" />
-                              <span>{item.label}</span>
+                              <span>
+                                {item.label}
+                                {item.disabled && ' (Loading...)'}
+                              </span>
                             </button>
                           )
                         ))}

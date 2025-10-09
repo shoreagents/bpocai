@@ -86,10 +86,12 @@ export default function ResumesPage() {
   const fetchResumes = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/resumes')
+      const response = await fetch(`/api/admin/resumes?t=${Date.now()}`, { cache: 'no-store' })
       const data = await response.json()
       
       if (response.ok) {
+        console.log('📋 Fetched resumes:', data.resumes);
+        console.log('📋 First resume slug:', data.resumes[0]?.resume_slug);
         setResumes(data.resumes)
       } else {
         toast.error('Failed to fetch resumes')
@@ -174,10 +176,12 @@ export default function ResumesPage() {
       setPreviewLoading(true)
       setPreviewOpen(true)
       
-      const response = await fetch(`/api/admin/resumes/${resumeId}/preview`)
+      const response = await fetch(`/api/admin/resumes/${resumeId}/preview?t=${Date.now()}`, { cache: 'no-store' })
       const data = await response.json()
       
       if (response.ok) {
+        console.log('🔍 Preview resume data:', data.resume);
+        console.log('🔍 Preview resume slug:', data.resume?.resume_slug);
         setPreviewResume(data.resume)
       } else {
         toast.error('Failed to fetch resume preview')
@@ -324,6 +328,15 @@ export default function ResumesPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={fetchResumes}
+                  className="border-transparent text-white hover:bg-white/10"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="border-transparent text-white hover:bg-white/10">

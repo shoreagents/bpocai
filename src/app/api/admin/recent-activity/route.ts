@@ -11,15 +11,67 @@ export async function GET() {
       // Get all types of activities
       const activities = []
       
-      // 1. Fetch Job Applications
+      // 1. Fetch Job Applications from both tables
       try {
         console.log('🔍 Starting to fetch application activities...')
+        
+        // First, let's check if the tables exist and have data
+        console.log('🔍 Checking if applications table exists...')
+        try {
+          const applicationsTableCheck = await client.query(`
+            SELECT COUNT(*) as count FROM applications
+          `)
+          console.log('📊 Total applications in applications table:', applicationsTableCheck.rows[0]?.count)
+        } catch (tableError) {
+          console.log('⚠️ Applications table does not exist or error:', tableError.message)
+        }
+        
+        // Show recent applications from applications table
+        try {
+          const recentApplicationsCheck = await client.query(`
+            SELECT a.id, a.user_id, a.job_id, a.created_at, u.full_name
+            FROM applications a
+            JOIN users u ON a.user_id = u.id
+            ORDER BY a.created_at DESC
+            LIMIT 5
+          `)
+          console.log('📝 Recent applications from applications table:', recentApplicationsCheck.rows)
+        } catch (recentError) {
+          console.log('⚠️ Error fetching recent applications:', recentError.message)
+        }
+        
+        console.log('🔍 Checking if recruiter_applications table exists...')
+        try {
+          const recruiterApplicationsTableCheck = await client.query(`
+            SELECT COUNT(*) as count FROM recruiter_applications
+          `)
+          console.log('📊 Total applications in recruiter_applications table:', recruiterApplicationsTableCheck.rows[0]?.count)
+        } catch (tableError) {
+          console.log('⚠️ Recruiter_applications table does not exist or error:', tableError.message)
+        }
+        
+        // Show recent applications from recruiter_applications table
+        try {
+          const recentRecruiterApplicationsCheck = await client.query(`
+            SELECT ra.id, ra.user_id, ra.job_id, ra.created_at, u.full_name
+            FROM recruiter_applications ra
+            JOIN users u ON ra.user_id = u.id
+            ORDER BY ra.created_at DESC
+            LIMIT 5
+          `)
+          console.log('📝 Recent applications from recruiter_applications table:', recentRecruiterApplicationsCheck.rows)
+        } catch (recentError) {
+          console.log('⚠️ Error fetching recent recruiter applications:', recentError.message)
+        }
+        
+        // Fetch from applications table (processed jobs)
+        console.log('🔍 Fetching from applications table...')
         const applicationQuery = `
           SELECT 
             'applicants' as type,
             u.full_name as user_name,
             u.avatar_url as user_avatar,
-            'Applied for: ' || COALESCE(pjr.position, 'Job Position') as action,
+            'Applied for: ' || COALESCE(pjr.job_title, 'Job Position') as action,
             NULL as score,
             a.created_at as activity_time
           FROM applications a
@@ -29,12 +81,84 @@ export async function GET() {
           LIMIT 5
         `
         const applicationResult = await client.query(applicationQuery)
-        console.log('📝 Application activities found:', applicationResult.rows.length)
+        console.log('📝 Application activities found (applications table):', applicationResult.rows.length)
+        console.log('📝 Sample application data:', applicationResult.rows.slice(0, 2))
         if (applicationResult.rows.length > 0) {
           activities.push(...applicationResult.rows)
         }
+        
+        // Fallback: Simple query without JOINs if the above fails
+        if (applicationResult.rows.length === 0) {
+          console.log('🔍 Trying fallback query for applications...')
+          const fallbackQuery = `
+            SELECT 
+              'applicants' as type,
+              u.full_name as user_name,
+              u.avatar_url as user_avatar,
+              'Applied for a job' as action,
+              NULL as score,
+              a.created_at as activity_time
+            FROM applications a
+            JOIN users u ON a.user_id = u.id
+            ORDER BY a.created_at DESC
+            LIMIT 5
+          `
+          const fallbackResult = await client.query(fallbackQuery)
+          console.log('📝 Fallback application activities found:', fallbackResult.rows.length)
+          if (fallbackResult.rows.length > 0) {
+            activities.push(...fallbackResult.rows)
+          }
+        }
+        
+        // Fetch from recruiter_applications table (recruiter jobs)
+        console.log('🔍 Fetching from recruiter_applications table...')
+        const recruiterApplicationQuery = `
+          SELECT 
+            'applicants' as type,
+            u.full_name as user_name,
+            u.avatar_url as user_avatar,
+            'Applied for: ' || COALESCE(rj.job_title, 'Job Position') as action,
+            NULL as score,
+            ra.created_at as activity_time
+          FROM recruiter_applications ra
+          JOIN users u ON ra.user_id = u.id
+          LEFT JOIN recruiter_jobs rj ON ra.job_id = rj.id
+          ORDER BY ra.created_at DESC
+          LIMIT 5
+        `
+        const recruiterApplicationResult = await client.query(recruiterApplicationQuery)
+        console.log('📝 Application activities found (recruiter_applications table):', recruiterApplicationResult.rows.length)
+        console.log('📝 Sample recruiter application data:', recruiterApplicationResult.rows.slice(0, 2))
+        if (recruiterApplicationResult.rows.length > 0) {
+          activities.push(...recruiterApplicationResult.rows)
+        }
+        
+        // Fallback: Simple query without JOINs if the above fails
+        if (recruiterApplicationResult.rows.length === 0) {
+          console.log('🔍 Trying fallback query for recruiter applications...')
+          const recruiterFallbackQuery = `
+            SELECT 
+              'applicants' as type,
+              u.full_name as user_name,
+              u.avatar_url as user_avatar,
+              'Applied for a recruiter job' as action,
+              NULL as score,
+              ra.created_at as activity_time
+            FROM recruiter_applications ra
+            JOIN users u ON ra.user_id = u.id
+            ORDER BY ra.created_at DESC
+            LIMIT 5
+          `
+          const recruiterFallbackResult = await client.query(recruiterFallbackQuery)
+          console.log('📝 Fallback recruiter application activities found:', recruiterFallbackResult.rows.length)
+          if (recruiterFallbackResult.rows.length > 0) {
+            activities.push(...recruiterFallbackResult.rows)
+          }
+        }
       } catch (error) {
         console.log('⚠️ Error fetching application activities:', error)
+        console.log('⚠️ Error details:', error.message)
+        console.log('⚠️ Error stack:', error.stack)
       }
       
       // 2. Fetch Typing Hero Game Activities
@@ -153,6 +277,14 @@ export async function GET() {
         resume: activities.filter(a => a.type === 'resume').length,
         profile: activities.filter(a => a.type === 'profile').length
       })
+      
+      // Log sample activities for debugging
+      console.log('🔍 Sample activities:', recentActivity.slice(0, 3).map(a => ({
+        type: a.type,
+        user_name: a.user_name,
+        action: a.action,
+        activity_time: a.activity_time
+      })))
       
       // If no real data, provide sample data
       if (recentActivity.length === 0) {

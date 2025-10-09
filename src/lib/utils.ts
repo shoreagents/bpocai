@@ -4142,6 +4142,27 @@ export function generateInitials(fullName: string | null): string {
 }
 
 /**
+ * Generate first letter of first name only
+ * @param fullName - The full name to get first letter from
+ * @returns First letter of first name (e.g., "Juan Dela Cruz" -> "J")
+ */
+export function generateFirstLetter(fullName: string | null): string {
+  if (!fullName || typeof fullName !== 'string') {
+    return 'U'; // Default for unknown users
+  }
+  
+  // Split by spaces and filter out empty strings
+  const nameParts = fullName.trim().split(/\s+/).filter(part => part.length > 0);
+  
+  if (nameParts.length === 0) {
+    return 'U';
+  }
+  
+  // Return first letter of first name only
+  return nameParts[0].charAt(0).toUpperCase();
+}
+
+/**
  * Calculate distance between two coordinates using Haversine formula
  * @param lat1 Latitude of first point
  * @param lon1 Longitude of first point
