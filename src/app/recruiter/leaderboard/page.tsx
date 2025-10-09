@@ -32,7 +32,6 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -95,12 +94,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Recruiter Navbar */}
-      <RecruiterNavbar 
-        currentPage="leaderboard" 
-        onSignInClick={() => setShowSignInModal(true)}
-        onSignUpClick={() => setShowSignUpModal(true)}
-      />
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">

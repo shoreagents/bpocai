@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Search, Send, MoreVertical, Phone, Video } from 'lucide-react';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 
 interface Message {
   id: number;
@@ -224,7 +223,6 @@ function MessagesContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <RecruiterNavbar />
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Messages</h1>
@@ -414,7 +412,6 @@ export default function MessagesPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50">
-        <RecruiterNavbar />
         <div className="max-w-7xl mx-auto p-6">
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>

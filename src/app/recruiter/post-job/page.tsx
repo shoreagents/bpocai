@@ -17,7 +17,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -674,13 +673,6 @@ export default function PostJobPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Recruiter Navbar */}
-      <RecruiterNavbar 
-        currentPage="post-job" 
-        onSignInClick={() => setShowSignInModal(true)}
-        onSignUpClick={() => setShowSignUpModal(true)}
-      />
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

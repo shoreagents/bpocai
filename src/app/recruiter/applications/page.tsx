@@ -43,7 +43,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { supabase } from '@/lib/supabase';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ApplicantsPage() {
@@ -584,12 +583,6 @@ export default function ApplicantsPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Recruiter Navbar */}
-      <RecruiterNavbar 
-        currentPage="applications" 
-        onSignInClick={() => setShowSignInModal(true)}
-        onSignUpClick={() => setShowSignUpModal(true)}
-      />
       
       {/* Header */}
       <div className="bg-white border-b border-gray-200">

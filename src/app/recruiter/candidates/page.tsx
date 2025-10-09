@@ -31,7 +31,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -287,12 +286,6 @@ export default function CandidatesPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Recruiter Navbar */}
-      <RecruiterNavbar 
-        currentPage="candidates" 
-        onSignInClick={() => setShowSignInModal(true)}
-        onSignUpClick={() => setShowSignUpModal(true)}
-      />
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">

@@ -16,7 +16,6 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 import RecruiterProfileCompletionModal from '@/components/auth/RecruiterProfileCompletionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -218,12 +217,6 @@ export default function RecruiterDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Recruiter Navbar */}
-      <RecruiterNavbar 
-        onSignInClick={() => setShowSignInModal(true)}
-        onSignUpClick={() => setShowSignUpModal(true)}
-      />
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-12">
