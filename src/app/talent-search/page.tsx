@@ -36,7 +36,7 @@ export default function TalentSearchPage() {
   const [filterType, setFilterType] = useState<'all' | 'highest-scores' | 'verified'>('all')
      const [stats, setStats] = useState([
      { label: "Total", count: 0, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
-     { label: "Profile Complete", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
+     { label: "Verified Profile", count: 0, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
    ])
 
   // Function to determine rank based on overall score (matching leaderboards system)
@@ -81,11 +81,11 @@ export default function TalentSearchPage() {
         setFilteredCandidates(data.candidates)
         
         // Update stats
-        const profileCount = data.candidates.filter((candidate: any) => candidate.profileComplete).length
+        const verifiedCount = data.candidates.filter((candidate: any) => candidate.verified).length
         
         setStats([
           { label: "Total", count: data.total, color: "bg-gradient-to-br from-blue-500 to-blue-600", icon: User },
-          { label: "Profile Complete", count: profileCount, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
+          { label: "Verified Profile", count: verifiedCount, color: "bg-gradient-to-br from-green-500 to-green-600", icon: Star }
         ])
       }
     } catch (error) {
@@ -215,15 +215,15 @@ export default function TalentSearchPage() {
                           }}
                         />
                       ) : null}
-                      <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mt-4 shadow-lg group-hover:scale-105 transition-transform duration-300 border-4 ${
-                        getRank(candidate.overallScore).rank === '💎 Diamond' ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 border-cyan-500/50' :
-                        getRank(candidate.overallScore).rank === '🥈 Platinum' ? 'bg-gradient-to-br from-slate-400 to-slate-600 border-slate-400/60' :
-                        getRank(candidate.overallScore).rank === '🥇 Gold' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600 border-yellow-400' :
-                        getRank(candidate.overallScore).rank === '🥉 Silver' ? 'bg-gradient-to-br from-gray-400 to-gray-600 border-gray-400/60' :
-                        getRank(candidate.overallScore).rank === '🏅 Bronze' ? 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-400' :
-                        'bg-gradient-to-br from-cyan-500 to-purple-600 border-white/20'
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mt-4 shadow-lg group-hover:scale-105 transition-transform duration-300 border-4 bg-gradient-to-br from-cyan-500 to-purple-600 ${
+                        getRank(candidate.overallScore).rank === '💎 Diamond' ? 'border-cyan-500/50' :
+                        getRank(candidate.overallScore).rank === '🥈 Platinum' ? 'border-slate-400/60' :
+                        getRank(candidate.overallScore).rank === '🥇 Gold' ? 'border-yellow-400' :
+                        getRank(candidate.overallScore).rank === '🥉 Silver' ? 'border-gray-400/60' :
+                        getRank(candidate.overallScore).rank === '🏅 Bronze' ? 'border-orange-400' :
+                        'border-white/20'
                       } ${candidate.avatar && candidate.avatar.startsWith('http') ? 'hidden' : ''}`}>
-                        {candidate.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                        {candidate.name.split(' ')[0][0].toUpperCase()}
                       </div>
                     </div>
 

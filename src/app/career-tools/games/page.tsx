@@ -205,8 +205,35 @@ export default function CareerGamesPage() {
         const res = await fetch(`/api/leaderboards/user/${user.id}`)
         if (!res.ok) throw new Error(`Failed to load leaderboard user data: ${res.status}`)
         const data = await res.json()
+        console.log('🔍 Frontend Debug - User ID being used:', user.id)
+        console.log('🔍 Frontend Debug - User email:', user.email)
+        console.log('🔍 Frontend Debug - User username:', user.username)
+        console.log('🔍 Frontend Debug - API Response:', data)
+        console.log('🔍 Frontend Debug - Engagement:', data?.engagement)
+        console.log('🔍 Frontend Debug - Games:', data?.games)
+        
+        // Let's also test the profile API to compare
+        try {
+          // Try username first, then email, then user ID as fallback
+          const profileSlug = user.username || user.email || user.id
+          console.log('🔍 Frontend Debug - Profile slug being used:', profileSlug)
+          const profileRes = await fetch(`/api/public/user-by-slug/${profileSlug}`)
+          if (profileRes.ok) {
+            const profileData = await profileRes.json()
+            console.log('🔍 Frontend Debug - Profile API Response:', profileData)
+            console.log('🔍 Frontend Debug - Profile completed_games:', profileData.user?.completed_games)
+            console.log('🔍 Frontend Debug - Profile game_stats:', profileData.user?.game_stats)
+          } else {
+            console.log('❌ Profile API failed with status:', profileRes.status)
+            console.log('❌ Profile API URL attempted:', `/api/public/user-by-slug/${profileSlug}`)
+          }
+        } catch (profileError) {
+          console.log('❌ Profile API test failed:', profileError)
+        }
+        
         // Compute gamesCompleted from engagement items where game completed points > 0 for visible games only
         const engagementItems: Array<{ label: string; points: number }> = data?.engagement?.items || []
+        console.log('🔍 Frontend Debug - Engagement Items:', engagementItems)
         const visibleGameLabels = new Set([
           'Typing Hero Completed',
           'DISC Personality Completed'

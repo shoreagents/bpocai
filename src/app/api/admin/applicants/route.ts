@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
       const res = await pool.query(
         `SELECT a.*, 
                 u.email as user_email, u.full_name as user_full_name, u.avatar_url as user_avatar, u.position as user_position, u.location as user_location,
-                sr.resume_title as saved_resume_title
+                sr.resume_title as saved_resume_title,
+                sr.resume_slug as saved_resume_slug
          FROM applications a
          LEFT JOIN users u ON u.id = a.user_id
          LEFT JOIN saved_resumes sr ON sr.id = a.resume_id
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
         id: r.id,
         user_id: r.user_id,
         job_id: r.job_id,
-        resume_slug: r.resume_slug,
+        resume_slug: r.saved_resume_slug || r.resume_slug, // Use saved_resume_slug if available, fallback to applications.resume_slug
         status: r.status,
         created_at: r.created_at,
         user: { email: r.user_email, full_name: r.user_full_name, avatar_url: r.user_avatar, position: r.user_position, location: r.user_location },
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest) {
     const res = await pool.query(
       `SELECT a.*, 
               u.email as user_email, u.full_name as user_full_name, u.avatar_url as user_avatar, u.position as user_position, u.location as user_location,
-              sr.resume_title as saved_resume_title
+              sr.resume_title as saved_resume_title,
+              sr.resume_slug as saved_resume_slug
        FROM applications a
        LEFT JOIN users u ON u.id = a.user_id
        LEFT JOIN saved_resumes sr ON sr.id = a.resume_id
@@ -60,7 +62,7 @@ export async function GET(request: NextRequest) {
       id: r.id,
       user_id: r.user_id,
       job_id: r.job_id,
-      resume_slug: r.resume_slug,
+      resume_slug: r.saved_resume_slug || r.resume_slug, // Use saved_resume_slug if available, fallback to applications.resume_slug
       status: r.status,
       created_at: r.created_at,
       user: { email: r.user_email, full_name: r.user_full_name, avatar_url: r.user_avatar, position: r.user_position, location: r.user_location },

@@ -625,9 +625,15 @@ export default function ProfileCompletionModal({
       // Update Supabase metadata
       await updateProfile(profileUpdateData)
 
-      onComplete()
-      onOpenChange(false)
-      setShowCompletionModal(true)
+      // Dispatch event to refresh header profile data
+      window.dispatchEvent(new CustomEvent('profileUpdated'))
+
+      // Add a small delay to ensure the database update is processed
+      setTimeout(() => {
+        onComplete()
+        onOpenChange(false)
+        setShowCompletionModal(true)
+      }, 500)
     } catch (error) {
       console.error('Error updating profile:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile. Please try again.'
@@ -1022,7 +1028,7 @@ export default function ProfileCompletionModal({
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="center" className="max-w-xs text-xs">
-                      Tell us how many days’ notice you need to give your current employer. If you’re not employed, enter 0.
+                      Tell us how many days' notice you need to give your current employer.
                     </TooltipContent>
                   </Tooltip>
                 </div>

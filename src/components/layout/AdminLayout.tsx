@@ -22,8 +22,6 @@ import {
   UserCircle,
   ChevronLeft,
   ChevronRight,
-  Wrench,
-  Puzzle,
   BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -51,16 +49,6 @@ const platformItems: SidebarItem[] = [
   { title: 'Leaderboards', icon: Trophy, href: '/admin/leaderboards' }
 ]
 
-const managementItems: SidebarItem[] = [
-  { 
-    title: 'Games', 
-    icon: Puzzle, 
-    children: [
-      { title: 'Typing Hero', href: '/admin/career-tools-management/games/typing-hero/manage' },
-      { title: 'BPOC DISC', href: '/admin/career-tools-management/games/disc-personality/manage' }
-    ]
-  }
-]
 
 
 
@@ -90,7 +78,7 @@ export default function AdminLayout({
   
   // Use adminUser from props if provided, otherwise use from context
   const currentAdminUser = adminUser || contextAdminUser
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform', 'management']))
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['platform']))
   const [userExpanded, setUserExpanded] = useState(false)
   const [sidebarMinimized, setSidebarMinimized] = useState(false)
   const pathname = usePathname()
@@ -277,25 +265,6 @@ export default function AdminLayout({
               </div>
             </div>
 
-            <Separator className="my-6 bg-white/10" />
-
-            {/* Management Section */}
-            <div className="mb-6">
-                             <div className={cn(
-                 "flex items-center mb-3",
-                 sidebarMinimized ? "justify-center" : "space-x-2"
-               )}>
-                                  <Wrench className="w-4 h-4 text-purple-400" />
-                                   {!sidebarMinimized && (
-                     <span className="text-sm font-semibold text-purple-400 uppercase tracking-wider">Career Tools Management</span>
-                   )}
-               </div>
-              <div className="space-y-1">
-                {managementItems.map((item) => (
-                  <SidebarItem key={item.title} item={item} category="management" />
-                ))}
-              </div>
-            </div>
 
 
 

@@ -890,7 +890,7 @@ Create a comprehensive 3-paragraph assessment that:
 Additionally, provide these specific sections:
 - CORE TRAITS: List 3-4 key personality traits based on their actual responses and patterns
 - CULTURAL STRENGTHS: Explain 2-3 specific Filipino cultural values they embody based on their choices
-- ANIMAL PERSONALITY REASON: Based on their primary type (${results.primaryType}), explain WHY they became their specific animal and what this reveals about their authentic self. Use the animal metaphor to describe their natural instincts, decision-making patterns, and how they navigate challenges. Make it personal and insightful. Format this section in bullet points for easy reading.
+- ANIMAL PERSONALITY REASON: Based on their primary type (${results.primaryType}), explain WHY they became their specific animal (${results.primaryType === 'D' ? 'Eagle' : results.primaryType === 'I' ? 'Peacock' : results.primaryType === 'S' ? 'Turtle' : 'Owl'}) and what this reveals about their authentic self. Use the animal metaphor to describe their natural instincts, decision-making patterns, and how they navigate challenges. Make it personal and insightful. Format this section in bullet points for easy reading.
 
 IMPORTANT FORMATTING: For Filipino cultural terms, always provide English translations in parentheses for consistency (e.g., "pakikisama (ability to get along)", "malasakit (genuine care)", "bayanihan (community spirit)")
 
@@ -1460,7 +1460,19 @@ Make it deeply personal and actionable based on their actual choices.`;
                           .split('CULTURAL STRENGTHS:')[1]
                           ?.split('ANIMAL PERSONALITY REASON')[0] // Remove animal personality reason section
                           ?.split('\n')
-                          .filter(line => line.trim())
+                          .filter(line => {
+                            const trimmedLine = line.trim();
+                            // Filter out any lines that contain animal references or personality type information
+                            return trimmedLine && 
+                                   !trimmedLine.toLowerCase().includes('owl') &&
+                                   !trimmedLine.toLowerCase().includes('eagle') &&
+                                   !trimmedLine.toLowerCase().includes('peacock') &&
+                                   !trimmedLine.toLowerCase().includes('turtle') &&
+                                   !trimmedLine.toLowerCase().includes('dominance') &&
+                                   !trimmedLine.toLowerCase().includes('influence') &&
+                                   !trimmedLine.toLowerCase().includes('steadiness') &&
+                                   !trimmedLine.toLowerCase().includes('conscientiousness');
+                          })
                           .join(' ')
                           .trim()
                       ) : (
@@ -1665,6 +1677,14 @@ Make it deeply personal and actionable based on their actual choices.`;
                                          discResult.primaryType === 'I' ? 'Influence' : 
                                          discResult.primaryType === 'S' ? 'Steadiness' : 'Conscientiousness';
                          
+                         // Debug logging to check the values
+                         console.log('🔍 DISC Result Debug:');
+                         console.log('📊 Primary Type:', discResult.primaryType);
+                         console.log('📊 Scores:', discResult.scores);
+                         console.log('📊 Calculated DISC Type:', discType);
+                         console.log('📊 Animal Name:', animalName);
+                         console.log('📊 Title will be:', `Animal Personality Reason (${animalName} - ${discType === 'Dominance' ? 'High Dominance' : discType === 'Influence' ? 'High Influence' : discType === 'Steadiness' ? 'High Steadiness' : 'High Conscientiousness'})`);
+                         
                          // Split by bullet points and display each as a separate line
                          const bulletPoints = reasonContent
                            .split(/[•\-\*]/)
@@ -1680,19 +1700,23 @@ Make it deeply personal and actionable based on their actual choices.`;
                                      lowerPoint.includes('influence primary):') ||
                                      lowerPoint.includes('dominance primary):') ||
                                      lowerPoint.includes('steadiness primary):') ||
-                                     lowerPoint.includes('conscientiousness primary):'));
+                                     lowerPoint.includes('conscientiousness primary):') ||
+                                     lowerPoint.includes('high influence):') ||
+                                     lowerPoint.includes('high dominance):') ||
+                                     lowerPoint.includes('high steadiness):') ||
+                                     lowerPoint.includes('high conscientiousness):'));
                            });
                          
                          return (
                            <div key={index} className="space-y-2">
                              <h4 className="text-lg font-semibold text-purple-300 mb-3">
-                               Animal Personality Reason ({animalName} - {discType} Primary)
+                               ANIMAL PERSONALITY REASON ({animalName}):
                              </h4>
-                             <div className="space-y-2">
+                             <div className="space-y-4">
                                {bulletPoints.map((point, bulletIndex) => (
-                                 <div key={bulletIndex} className="flex items-start gap-2">
+                                 <div key={bulletIndex} className="flex items-start gap-2 mb-6">
                                    <span className="text-purple-400 mt-1">•</span>
-                                   <span className="text-gray-300">{point}</span>
+                                   <span className="text-gray-300 leading-relaxed">{point}</span>
                                  </div>
                                ))}
                              </div>
@@ -1712,8 +1736,45 @@ Make it deeply personal and actionable based on their actual choices.`;
                            '<span class="text-yellow-400 font-medium">$1</span>');
                      };
                      
+                     // Check if this paragraph contains "OWL PERSONALITY ANALYSIS" or similar animal analysis
+                     const isAnimalAnalysis = paragraph.toLowerCase().includes('personality analysis') || 
+                                            paragraph.toLowerCase().includes('owl personality') ||
+                                            paragraph.toLowerCase().includes('eagle personality') ||
+                                            paragraph.toLowerCase().includes('peacock personality') ||
+                                            paragraph.toLowerCase().includes('turtle personality');
+                     
+                     if (isAnimalAnalysis) {
+                       // Add Animal Personality Reason Header before the animal analysis
+                       const personalityType = ANIMAL_PERSONALITIES[discResult.primaryType as keyof typeof ANIMAL_PERSONALITIES];
+                       const animalName = personalityType.animal.replace(/[🦅🦚🐢🦉]/g, '').trim();
+                       const discType = discResult.primaryType === 'D' ? 'Dominance' : 
+                                       discResult.primaryType === 'I' ? 'Influence' : 
+                                       discResult.primaryType === 'S' ? 'Steadiness' : 'Conscientiousness';
+                       
+                       return (
+                         <div key={index}>
+                           <h4 className="text-lg font-semibold text-purple-300 mb-3">
+                             ANIMAL PERSONALITY REASON ({animalName}):
+                           </h4>
+                           <div dangerouslySetInnerHTML={{ 
+                             __html: highlightText(paragraph)
+                               .replace(/•\s*/g, '<div class="mb-4">• ') // Add spacing after each bullet
+                               .replace(/\n\n/g, '</div><div class="mb-4">') // Add paragraph spacing
+                               .replace(/^/, '<div class="mb-4">') // Start with div
+                               .replace(/$/, '</div>') // End with div
+                           }} />
+                         </div>
+                       );
+                     }
+                     
                      return (
-                       <p key={index} dangerouslySetInnerHTML={{ __html: highlightText(paragraph) }} />
+                       <div key={index} dangerouslySetInnerHTML={{ 
+                         __html: highlightText(paragraph)
+                           .replace(/•\s*/g, '<div class="mb-4">• ') // Add spacing after each bullet
+                           .replace(/\n\n/g, '</div><div class="mb-4">') // Add paragraph spacing
+                           .replace(/^/, '<div class="mb-4">') // Start with div
+                           .replace(/$/, '</div>') // End with div
+                       }} />
                      );
                    })}
                  </div>

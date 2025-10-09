@@ -56,8 +56,8 @@ export async function syncUserToDatabaseServer(userData: UserData) {
       const updateQuery = `
         UPDATE users SET
           email = $2,
-          first_name = COALESCE(NULLIF($3, ''), 'Unknown'),
-          last_name = COALESCE(NULLIF($4, ''), 'User'),
+          first_name = COALESCE(NULLIF($3, ''), SPLIT_PART($2, '@', 1)),
+          last_name = COALESCE(NULLIF($4, ''), ''),
           full_name = COALESCE(NULLIF($5, ''), $2),
           location = $6,
           avatar_url = $7,
@@ -117,7 +117,7 @@ export async function syncUserToDatabaseServer(userData: UserData) {
           avatar_url, phone, bio, position, company, completed_data,
           birthday, gender, admin_level, created_at, updated_at
         ) VALUES (
-          $1, $2, COALESCE(NULLIF($3, ''), 'Unknown'), COALESCE(NULLIF($4, ''), 'User'), COALESCE(NULLIF($5, ''), $2), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
+          $1, $2, COALESCE(NULLIF($3, ''), SPLIT_PART($2, '@', 1)), COALESCE(NULLIF($4, ''), ''), COALESCE(NULLIF($5, ''), $2), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
         )
         RETURNING id, email, first_name, last_name, admin_level
       `

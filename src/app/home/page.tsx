@@ -240,15 +240,62 @@ function HomePageContent() {
 
   // Check if user needs to complete profile
   useEffect(() => {
-    const checkProfileCompletion = async () => {
+    const checkProfileCompletion = async (retryCount = 0) => {
       if (!user) {
         setProfileLoading(false)
         return
       }
 
       try {
-        console.log('🔄 HomePage: Fetching profile for user:', user.id)
-        const response = await fetch(`/api/user/profile?userId=${user.id}`)
+        console.log('🔄 HomePage: Fetching profile for user:', user.id, retryCount > 0 ? `(retry ${retryCount})` : '')
+        console.log('🔄 HomePage: User object:', {
+          id: user.id,
+          email: user.email,
+          metadata: user.user_metadata
+        })
+        
+        // Add a small delay for the first attempt to allow OAuth metadata to be processed
+        if (retryCount === 0) {
+          console.log('⏳ HomePage: Waiting 300ms for OAuth metadata to be processed...')
+          await new Promise(resolve => setTimeout(resolve, 300))
+        }
+        
+        // Test if the API endpoint is accessible
+        console.log('🔄 HomePage: Testing API endpoint accessibility...')
+        const testUrl = `/api/user/profile?userId=${user.id}`
+        console.log('🔄 HomePage: API URL:', testUrl)
+        console.log('🔄 HomePage: Current origin:', window.location.origin)
+        
+        let response
+        try {
+          response = await fetch(`/api/user/profile?userId=${user.id}`)
+          console.log('🔄 HomePage: Profile API response status:', response.status)
+          console.log('🔄 HomePage: Profile API response headers:', Object.fromEntries(response.headers.entries()))
+        } catch (fetchError) {
+          console.error('❌ HomePage: Fetch error occurred:', fetchError)
+          console.error('❌ HomePage: Fetch error details:', {
+            name: fetchError?.name,
+            message: fetchError?.message,
+            stack: fetchError?.stack,
+            type: typeof fetchError,
+            constructor: fetchError?.constructor?.name,
+            url: `/api/user/profile?userId=${user.id}`,
+            userId: user.id
+          })
+          
+          // Retry for network errors
+          if (retryCount < 2) {
+            const delay = retryCount === 0 ? 1000 : 2000
+            console.log(`🔄 HomePage: Retrying due to network error in ${delay}ms (attempt ${retryCount + 1})`)
+            setTimeout(() => checkProfileCompletion(retryCount + 1), delay)
+            return
+          }
+          
+          // Don't throw the error, handle it gracefully
+          console.log('🔄 HomePage: Handling fetch error gracefully after retries failed...')
+          setUserProfile(null)
+          return
+        }
         
         if (response.ok) {
           const data = await response.json()
@@ -270,41 +317,136 @@ function HomePageContent() {
             setShowProfileModal(true)
           }
         } else {
-          const errorData = await response.json().catch(() => ({}))
-          console.error('❌ HomePage: Failed to fetch user profile:', {
+          let errorData = {}
+          let errorText = ''
+          
+          console.log('🔍 HomePage: Response not OK, debugging response...')
+          console.log('🔍 HomePage: Response status:', response.status)
+          console.log('🔍 HomePage: Response statusText:', response.statusText)
+          console.log('🔍 HomePage: Response headers:', Object.fromEntries(response.headers.entries()))
+          
+          try {
+            errorData = await response.json()
+            console.log('🔍 HomePage: Parsed JSON error data:', errorData)
+          } catch (jsonError) {
+            console.log('⚠️ HomePage: Response is not JSON, trying to get text...')
+            console.log('⚠️ HomePage: JSON parse error:', jsonError)
+            try {
+              errorText = await response.text()
+              console.log('📄 HomePage: Response text:', errorText)
+            } catch (textError) {
+              console.log('⚠️ HomePage: Could not get response text either')
+              console.log('⚠️ HomePage: Text parse error:', textError)
+            }
+          }
+          
+          const errorInfo = {
             status: response.status,
             statusText: response.statusText,
-            error: errorData.error || 'Unknown error',
-            details: errorData.details || 'No details available'
-          })
+            error: errorData.error || errorText || 'Unknown error',
+            details: errorData.details || 'No details available',
+            url: `/api/user/profile?userId=${user.id}`,
+            userId: user.id,
+            timestamp: new Date().toISOString(),
+            rawErrorData: errorData,
+            rawErrorText: errorText
+          }
+          
+          console.error('❌ HomePage: Failed to fetch user profile:', errorInfo)
+          
+          // Retry for certain error statuses
+          if ((response.status >= 500 || response.status === 0) && retryCount < 2) {
+            const delay = retryCount === 0 ? 1000 : 2000
+            console.log(`🔄 HomePage: Retrying due to server error (${response.status}) in ${delay}ms (attempt ${retryCount + 1})`)
+            setTimeout(() => checkProfileCompletion(retryCount + 1), delay)
+            return
+          }
           
           // If user not found (404), they might not be synced to Railway yet
           if (response.status === 404) {
             console.log('⚠️ HomePage: User not found in Railway database, they may need to be synced')
             console.log('🔄 HomePage: Attempting to trigger user sync...')
+            console.log('🔄 HomePage: User metadata for sync:', user.user_metadata)
             
             // Try to trigger user sync by calling the sync endpoint
             try {
+              // Parse name data from Google metadata with better extraction
+              let firstName = user.user_metadata?.first_name || user.user_metadata?.given_name || ''
+              let lastName = user.user_metadata?.last_name || user.user_metadata?.family_name || ''
+              let fullName = user.user_metadata?.full_name || user.user_metadata?.name || ''
+              
+              console.log('🔍 HomePage Google metadata name fields:', {
+                first_name: user.user_metadata?.first_name,
+                last_name: user.user_metadata?.last_name,
+                given_name: user.user_metadata?.given_name,
+                family_name: user.user_metadata?.family_name,
+                full_name: user.user_metadata?.full_name,
+                name: user.user_metadata?.name
+              })
+              
+              // If we have a full name but no individual names, parse it
+              if (fullName && (!firstName || !lastName)) {
+                const nameParts = fullName.trim().split(' ')
+                if (nameParts.length >= 2) {
+                  firstName = nameParts[0]
+                  lastName = nameParts.slice(1).join(' ')
+                } else if (nameParts.length === 1) {
+                  firstName = nameParts[0]
+                  lastName = ''
+                }
+              }
+              
+              // If we have individual names but no full name, construct it
+              if ((firstName || lastName) && !fullName) {
+                fullName = `${firstName} ${lastName}`.trim()
+              }
+              
+              // Fallback to email if no name data at all
+              if (!fullName && !firstName && !lastName) {
+                fullName = user.email
+                firstName = user.email.split('@')[0]
+                lastName = ''
+              }
+              
+              console.log('🔍 HomePage parsed name data:', {
+                firstName,
+                lastName,
+                fullName
+              })
+
+              const syncData = {
+                id: user.id,
+                email: user.email,
+                first_name: firstName,
+                last_name: lastName,
+                full_name: fullName,
+                location: user.user_metadata?.location || '',
+                avatar_url: user.user_metadata?.avatar_url || null,
+                phone: user.user_metadata?.phone || '',
+                bio: user.user_metadata?.bio || '',
+                position: user.user_metadata?.position || '',
+                company: user.user_metadata?.company || '',
+                completed_data: user.user_metadata?.completed_data ?? false,
+                birthday: user.user_metadata?.birthday || null,
+                gender: user.user_metadata?.gender || null,
+                admin_level: user.user_metadata?.admin_level || 'user'
+              }
+              
+              console.log('🔄 HomePage: Sending sync data:', syncData)
+              
               const syncResponse = await fetch('/api/user/sync', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                  id: user.id,
-                  email: user.email,
-                  first_name: user.user_metadata?.first_name || '',
-                  last_name: user.user_metadata?.last_name || '',
-                  full_name: user.user_metadata?.full_name || '',
-                  location: user.user_metadata?.location || '',
-                  avatar_url: user.user_metadata?.avatar_url || null,
-                  phone: user.user_metadata?.phone || '',
-                  bio: user.user_metadata?.bio || '',
-                  position: user.user_metadata?.position || ''
-                })
+                body: JSON.stringify(syncData)
               })
               
+              console.log('🔄 HomePage: Sync API response status:', syncResponse.status)
+              
               if (syncResponse.ok) {
+                const syncResult = await syncResponse.json()
+                console.log('✅ HomePage: User sync successful:', syncResult)
                 console.log('✅ HomePage: User sync successful, retrying profile fetch...')
                 // Retry fetching the profile after sync
                 const retryResponse = await fetch(`/api/user/profile?userId=${user.id}`)
@@ -326,23 +468,101 @@ function HomePageContent() {
                   }
                 }
               } else {
-                console.error('❌ HomePage: User sync failed:', syncResponse.status)
-                setUserProfile(null)
+                const syncErrorData = await syncResponse.json().catch(() => ({}))
+                console.error('❌ HomePage: User sync failed:', {
+                  status: syncResponse.status,
+                  statusText: syncResponse.statusText,
+                  error: syncErrorData.error || 'Unknown sync error',
+                  details: syncErrorData.details || 'No details available'
+                })
+                // Set fallback profile when sync fails
+                const fallbackProfile = {
+                  id: user.id,
+                  email: user.email,
+                  first_name: user.user_metadata?.first_name || user.user_metadata?.given_name || '',
+                  last_name: user.user_metadata?.last_name || user.user_metadata?.family_name || '',
+                  full_name: user.user_metadata?.full_name || user.user_metadata?.name || 
+                            (user.user_metadata?.given_name && user.user_metadata?.family_name ? 
+                              `${user.user_metadata.given_name} ${user.user_metadata.family_name}` : null) ||
+                            user.email?.split('@')[0] || 'User',
+                  avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+                  completed_data: false
+                }
+                setUserProfile(fallbackProfile)
               }
             } catch (syncError) {
               console.error('❌ HomePage: Error during user sync:', syncError)
-              setUserProfile(null)
+              // Set fallback profile when sync error occurs
+              const fallbackProfile = {
+                id: user.id,
+                email: user.email,
+                first_name: user.user_metadata?.first_name || user.user_metadata?.given_name || '',
+                last_name: user.user_metadata?.last_name || user.user_metadata?.family_name || '',
+                full_name: user.user_metadata?.full_name || user.user_metadata?.name || 
+                          (user.user_metadata?.given_name && user.user_metadata?.family_name ? 
+                            `${user.user_metadata.given_name} ${user.user_metadata.family_name}` : null) ||
+                          user.email?.split('@')[0] || 'User',
+                avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+                completed_data: false
+              }
+              setUserProfile(fallbackProfile)
             }
           }
         }
       } catch (error) {
         console.error('❌ HomePage: Error checking profile completion:', error)
-        console.error('❌ HomePage: Error details:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          userId: user.id
-        })
-        setUserProfile(null)
+        
+        // Better error handling with more specific error information
+        if (error instanceof Error) {
+          console.error('❌ HomePage: Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            userId: user.id
+          })
+          
+          // Try to get more specific error information
+          if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.error('🌐 Network error detected - possible CORS, DNS, or connection issue')
+          } else if (error.name === 'DOMException') {
+            console.error('🚫 DOM exception - possible browser security issue')
+          } else if (error.name === 'AbortError') {
+            console.error('⏹️ Request was aborted')
+          } else {
+            console.error('❓ Error type:', error.name, 'Message:', error.message)
+          }
+        } else {
+          console.error('❌ HomePage: Non-Error object thrown:', {
+            error,
+            type: typeof error,
+            string: String(error),
+            userId: user.id
+          })
+        }
+        
+        // Retry after a delay if fetch failed and we haven't retried too many times
+        if (retryCount < 2) {
+          const delay = retryCount === 0 ? 1000 : 2000
+          console.log(`🔄 HomePage: Retrying profile fetch in ${delay}ms (attempt ${retryCount + 1})`)
+          setTimeout(() => checkProfileCompletion(retryCount + 1), delay)
+          return
+        }
+        
+        // Set a fallback profile using Google OAuth data when profile fetch fails
+        const fallbackProfile = {
+          id: user.id,
+          email: user.email,
+          first_name: user.user_metadata?.first_name || user.user_metadata?.given_name || '',
+          last_name: user.user_metadata?.last_name || user.user_metadata?.family_name || '',
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || 
+                    (user.user_metadata?.given_name && user.user_metadata?.family_name ? 
+                      `${user.user_metadata.given_name} ${user.user_metadata.family_name}` : null) ||
+                    user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          completed_data: false // Assume not completed if we can't fetch from database
+        }
+        console.log('🔄 HomePage: Using fallback profile data after retries failed:', fallbackProfile)
+        setUserProfile(fallbackProfile)
       } finally {
         setProfileLoading(false)
       }
@@ -358,6 +578,63 @@ function HomePageContent() {
       setUserProfile(prev => prev ? { ...prev, completed_data: true } : null)
     }
   }
+
+  // Listen for profile updates from the profile completion modal
+  useEffect(() => {
+    const handleProfileUpdate = async () => {
+      console.log('🔄 HomePage: Profile update event received, refreshing profile data...')
+      if (user?.id) {
+        try {
+          setProfileLoading(true)
+          const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            console.log('✅ HomePage: Profile refreshed after update:', data.user)
+            setUserProfile(data.user)
+          } else {
+            let errorData = {}
+            let errorText = ''
+            
+            try {
+              errorData = await response.json()
+            } catch (jsonError) {
+              try {
+                errorText = await response.text()
+              } catch (textError) {
+                console.log('⚠️ HomePage: Could not get error response text')
+              }
+            }
+            
+            console.error('❌ HomePage: Failed to refresh profile after update:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData.error || errorText || 'Unknown error',
+              details: errorData.details || 'No details available',
+              url: `/api/user/profile?userId=${user.id}`,
+              userId: user.id,
+              timestamp: new Date().toISOString()
+            })
+          }
+        } catch (error) {
+          console.error('❌ HomePage: Error refreshing profile after update:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            name: error instanceof Error ? error.name : 'Unknown',
+            stack: error instanceof Error ? error.stack : undefined,
+            type: typeof error,
+            userId: user.id,
+            timestamp: new Date().toISOString()
+          })
+        } finally {
+          setProfileLoading(false)
+        }
+      }
+    }
+
+    window.addEventListener('profileUpdated', handleProfileUpdate)
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate)
+    }
+  }, [user?.id])
 
   const handleCloseModal = () => {
     setShowProfileModal(false)
@@ -982,7 +1259,7 @@ function HomePageContent() {
 
                     const getSpecialBadge = (rank: number) => {
                       if (rank === 1) return <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-yellow-900 border-yellow-400/50 font-bold">🥇 Champion</Badge>
-                      if (rank === 2) return <Badge className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 border-gray-300/50 font-semibold">🥈 Runner-up</Badge>
+                      if (rank === 2) return <Badge className="bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 border-gray-300/50 font-semibold">🥈 2nd Place</Badge>
                       if (rank === 3) return <Badge className="bg-gradient-to-r from-orange-400 to-orange-500 text-orange-900 border-orange-400/50 font-semibold">🥉 3rd Place</Badge>
                       return null
                     }

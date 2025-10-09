@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import pool from '@/lib/database';
 
 // Helper function to generate clean resume slug (same as frontend)
 const generateResumeSlug = (firstName: string, lastName: string, uid: string | number) => {
@@ -31,49 +32,31 @@ export async function POST(request: NextRequest) {
     console.log('🚀 Starting resume slug migration...');
     console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE MIGRATION'}`);
     
-    // TODO: Replace with your actual database connection
-    // For Supabase example:
-    /*
-    import { createClient } from '@supabase/supabase-js';
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Get all resumes with user data from database
+    const result = await pool.query(`
+      SELECT 
+        sr.id,
+        sr.resume_slug,
+        sr.user_id,
+        u.first_name,
+        u.last_name,
+        u.id as uid
+      FROM saved_resumes sr
+      LEFT JOIN users u ON sr.user_id = u.id
+      WHERE sr.resume_slug IS NOT NULL
+      ORDER BY sr.id
+    `);
     
-    // Get all resumes with user data
-    const { data: resumes, error } = await supabase
-      .from('saved_resumes')
-      .select(`
-        id,
-        slug,
-        user_id,
-        users (
-          id,
-          first_name,
-          last_name
-        )
-      `)
-      .not('slug', 'is', null);
-    
-    if (error) {
-      throw new Error(`Database error: ${error.message}`);
-    }
-    */
-    
-    // Mock data for demonstration - replace with actual database query
-    const resumes = [
-      // Example structure:
-      // {
-      //   id: 1,
-      //   slug: 'old-random-slug-123',
-      //   user_id: 12345,
-      //   users: {
-      //     id: 12345,
-      //     first_name: 'John',
-      //     last_name: 'Doe'
-      //   }
-      // }
-    ];
+    const resumes = result.rows.map(row => ({
+      id: row.id,
+      slug: row.resume_slug,
+      user_id: row.user_id,
+      users: {
+        id: row.uid,
+        first_name: row.first_name,
+        last_name: row.last_name
+      }
+    }));
     
     console.log(`📋 Found ${resumes.length} resumes to process`);
     
@@ -139,17 +122,21 @@ export async function POST(request: NextRequest) {
         
         // Perform the actual update (if not dry run)
         if (!dryRun) {
-          // TODO: Implement actual database update
-          /*
-          const { error: updateError } = await supabase
-            .from('saved_resumes')
-            .update({ slug: newSlug })
-            .eq('id', resume.id);
+          await pool.query(
+            'UPDATE saved_resumes SET resume_slug = $1 WHERE id = $2',
+            [newSlug, resume.id]
+          );
           
-          if (updateError) {
-            throw new Error(`Update failed: ${updateError.message}`);
+          // Also update applications table if it has resume_slug
+          try {
+            await pool.query(
+              'UPDATE applications SET resume_slug = $1 WHERE resume_id = $2',
+              [newSlug, resume.id]
+            );
+          } catch (err) {
+            console.log(`⚠️  Could not update applications table for resume ${resume.id}: ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
-          */
+          
           console.log(`   📝 Database updated for resume ${resume.id}`);
         }
         

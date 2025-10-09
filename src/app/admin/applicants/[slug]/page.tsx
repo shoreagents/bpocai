@@ -598,13 +598,6 @@ export default function ApplicantsJobDetailPage() {
 
                       {/* Additional Details - Flexible content area */}
                       <div className="flex-1 space-y-2 text-sm mb-3">
-                        {app.user?.position && (
-                          <div className="flex items-center space-x-2 text-gray-300">
-                            <User className="w-4 h-4 text-gray-400" />
-                            <span className="text-white capitalize">{app.user.position}</span>
-                          </div>
-                        )}
-                        
                         {app.user?.location && (
                           <div className="flex items-center space-x-2 text-gray-300">
                             <MapPin className="w-4 h-4 text-gray-400" />

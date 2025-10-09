@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { generateInitials } from '@/lib/utils';
+import { generateInitials, generateFirstLetter } from '@/lib/utils';
 import { 
   ArrowLeft,
   Trophy,
@@ -296,7 +296,7 @@ export default function LeaderboardsPage() {
                   <img src={row.user.avatar_url} alt={row.user?.full_name || row.userId} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">{generateInitials(row.user?.full_name)}</span>
+                    <span className="text-white text-xs font-bold">{generateFirstLetter(row.user?.full_name)}</span>
                   </div>
                 )}
 				</div>
@@ -331,7 +331,7 @@ export default function LeaderboardsPage() {
 							<div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center ring-2 ring-cyan-500/20">
 								                {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : (
                   <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">{generateInitials(name)}</span>
+                    <span className="text-white text-sm font-bold">{generateFirstLetter(name)}</span>
                   </div>
                 )}
       </div>
@@ -479,7 +479,7 @@ export default function LeaderboardsPage() {
                         <img src={filteredResults[1].user.avatar_url} alt={filteredResults[1].user?.full_name || filteredResults[1].userId} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">{generateInitials(filteredResults[1]?.user?.full_name || null)}</span>
+                          <span className="text-white font-bold text-sm">{generateFirstLetter(filteredResults[1]?.user?.full_name || null)}</span>
                         </div>
                       )}
                     </div>
@@ -520,7 +520,7 @@ export default function LeaderboardsPage() {
                         <img src={filteredResults[0].user.avatar_url} alt={filteredResults[0].user?.full_name || filteredResults[0].userId} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">{generateInitials(filteredResults[0]?.user?.full_name || null)}</span>
+                          <span className="text-white font-bold text-sm">{generateFirstLetter(filteredResults[0]?.user?.full_name || null)}</span>
                         </div>
                       )}
                     </div>
@@ -547,7 +547,7 @@ export default function LeaderboardsPage() {
                         <img src={filteredResults[2].user.avatar_url} alt={filteredResults[2].user?.full_name || filteredResults[2].userId} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">{generateInitials(filteredResults[2]?.user?.full_name || null)}</span>
+                          <span className="text-white font-bold text-sm">{generateFirstLetter(filteredResults[2]?.user?.full_name || null)}</span>
                         </div>
                       )}
                     </div>
@@ -769,8 +769,11 @@ export default function LeaderboardsPage() {
                           </tr>
                         </tbody>
                       </table>
-                          </div>
-                        </div>
+                    </div>
+                    <p className="mt-2 px-3 py-2 rounded bg-white/10 border border-white/20 text-[11px] text-gray-400">
+                      Overall Score = (Typing × 25%) + (DISC × 25%) + (Profile × 15%) + (Resume × 20%) + (Apps × 15%)
+                    </p>
+                  </div>
 
                   <div>
                     <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-purple-400 rounded-full" /> Component Scores</div>
@@ -817,6 +820,7 @@ export default function LeaderboardsPage() {
                     </div>
                     <p className="mt-2 px-3 py-2 rounded bg-white/10 border border-white/20 text-[11px] text-gray-400">Highest status per job only. No double counting.</p>
                   </div>
+
 
                     <div>
                     <div className="mb-3 flex items-center gap-2 text-white font-semibold"><span className="w-2 h-2 bg-pink-400 rounded-full" /> Tier System</div>

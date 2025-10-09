@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 API: Fetching profile for user:', userId)
     console.log('🔍 API: Database URL available:', !!process.env.DATABASE_URL)
+    console.log('🔍 API: Database URL length:', process.env.DATABASE_URL?.length || 0)
 
     // Base query (avoid selecting optional columns that may not exist across envs)
     const query = `
@@ -30,8 +31,20 @@ export async function GET(request: NextRequest) {
     console.log('🔍 API: Executing query:', query)
     console.log('🔍 API: Query parameters:', [userId])
     
-    const result = await pool.query(query, [userId])
-    console.log('🔍 API: Query result rows count:', result.rows.length)
+    let result
+    try {
+      result = await pool.query(query, [userId])
+      console.log('🔍 API: Query result rows count:', result.rows.length)
+    } catch (dbError) {
+      console.error('❌ API: Database query failed:', dbError)
+      console.error('❌ API: Database error details:', {
+        message: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+        errorType: typeof dbError,
+        errorString: String(dbError)
+      })
+      throw dbError
+    }
 
     if (result.rows.length === 0) {
       console.log('❌ API: User not found:', userId)
@@ -77,8 +90,39 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ user: userProfile })
   } catch (error) {
     console.error('❌ API: Error fetching user profile:', error)
+    console.error('❌ API: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      errorType: typeof error,
+      errorString: String(error),
+      errorJSON: JSON.stringify(error),
+      userId: userId,
+      timestamp: new Date().toISOString()
+    })
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('connection')) {
+        console.error('🌐 Database connection error detected')
+        return NextResponse.json({ 
+          error: 'Database connection failed', 
+          details: 'Unable to connect to the database. Please try again.' 
+        }, { status: 503 })
+      } else if (error.message.includes('timeout')) {
+        console.error('⏰ Database timeout error detected')
+        return NextResponse.json({ 
+          error: 'Database timeout', 
+          details: 'Database query timed out. Please try again.' 
+        }, { status: 504 })
+      }
+    }
+    
     const errorMessage = error instanceof Error ? error.message : String(error)
-    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
   }
 }
 
@@ -307,16 +351,35 @@ export async function PUT(request: NextRequest) {
         const resumeId: string = savedRes.rows[0].id
         const currentSlug: string = savedRes.rows[0].resume_slug
 
-        // Build base slug from updated full name and ensure it ends with -resume
-        const baseFromFullName = String(fullName || '').toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
-          .trim()
-        let baseSlug = baseFromFullName || 'user'
-        if (!baseSlug.endsWith('-resume')) {
-          baseSlug += '-resume'
+        // Build base slug in firstName-lastName-XX format
+        const generateSlugFromUser = (firstName: string, lastName: string, uid: string) => {
+          // Clean and normalize names
+          const cleanFirst = (firstName || 'user')
+            .toLowerCase()
+            .normalize('NFD') // Decompose accented characters
+            .replace(/[\u0300-\u036f]/g, '') // Remove accent marks
+            .replace(/[^a-z0-9]/g, '') // Keep only alphanumeric
+            .slice(0, 20) // Limit length
+          
+          const cleanLast = (lastName || 'profile')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '')
+            .slice(0, 20)
+          
+          // Get last 2 digits of UID
+          const lastTwoDigits = uid.toString().slice(-2).padStart(2, '0')
+          
+          return `${cleanFirst}-${cleanLast}-${lastTwoDigits}`
         }
+
+        // Get user's first and last name from full_name
+        const nameParts = (fullName || '').trim().split(' ')
+        const firstName = nameParts[0] || 'user'
+        const lastName = nameParts.slice(1).join(' ') || 'profile'
+        
+        const baseSlug = generateSlugFromUser(firstName, lastName, userId)
 
         // If slug is already correct, skip
         if (currentSlug !== baseSlug) {
