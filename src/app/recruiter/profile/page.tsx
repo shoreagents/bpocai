@@ -24,7 +24,6 @@ import {
   CheckCircle,
   Camera
 } from 'lucide-react';
-import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
 
 interface RecruiterProfile {
   id: string;
@@ -243,7 +242,6 @@ export default function RecruiterProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <RecruiterNavbar currentPage="profile" />
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
         </div>
@@ -254,7 +252,6 @@ export default function RecruiterProfilePage() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <RecruiterNavbar currentPage="profile" />
         <div className="text-center py-12">
           <p className="text-gray-600">Profile not found</p>
         </div>
@@ -264,8 +261,6 @@ export default function RecruiterProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <RecruiterNavbar currentPage="profile" />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Single Profile Card */}
         <Card className="bg-white border border-gray-200 shadow-lg min-h-[700px]">

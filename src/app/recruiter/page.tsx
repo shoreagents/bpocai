@@ -58,6 +58,14 @@ function RecruiterHomePageContent() {
     setShowSignInModal(true);
   };
 
+  // Redirect authenticated recruiters to dashboard
+  useEffect(() => {
+    if (user && user.user_metadata?.admin_level === 'recruiter') {
+      console.log('✅ Authenticated recruiter detected, redirecting to dashboard');
+      router.push('/recruiter/dashboard');
+    }
+  }, [user, router]);
+
   // Early check: Sign out regular users if they access /recruiter
   useEffect(() => {
     const handleUserAccess = async () => {
