@@ -232,7 +232,27 @@ interface QuestionResponse {
 
 export default function FilipinoDiscGame() {
   const router = useRouter();
+  
+  // NEW: Shared results state
+  const [sharedResults, setSharedResults] = useState<any>(null);
+  const [showSharedResults, setShowSharedResults] = useState(false);
   const { user, session } = useAuth();
+  
+  // Check for shared results on page load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resultsParam = urlParams.get('results');
+    
+    if (resultsParam) {
+      try {
+        const decodedResults = JSON.parse(decodeURIComponent(resultsParam));
+        setSharedResults(decodedResults);
+        setShowSharedResults(true);
+      } catch (error) {
+        console.error('Failed to parse shared results:', error);
+      }
+    }
+  }, []);
   
   const [gameState, setGameState] = useState<GameState>({
     currentQuestion: 0,
@@ -1039,11 +1059,35 @@ Make it deeply personal and actionable based on their actual choices.`;
     // Step 3: Show the actual results
     setTimeout(async () => {
     const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
+    
+    // Calculate raw percentages
+    const rawPercentages = {
+      D: (scores.D / total) * 100,
+      I: (scores.I / total) * 100,
+      S: (scores.S / total) * 100,
+      C: (scores.C / total) * 100
+    };
+    
+    // Round to integers and ensure they sum to exactly 100
+    const roundedPercentages = {
+      D: Math.round(rawPercentages.D),
+      I: Math.round(rawPercentages.I),
+      S: Math.round(rawPercentages.S),
+      C: Math.round(rawPercentages.C)
+    };
+    
+    // Calculate the difference from 100
+    const currentSum = Object.values(roundedPercentages).reduce((sum, val) => sum + val, 0);
+    const difference = 100 - currentSum;
+    
+    // Find the largest percentage to adjust
+    const sortedEntries = Object.entries(roundedPercentages).sort(([,a], [,b]) => b - a);
+    const largestKey = sortedEntries[0][0] as keyof typeof roundedPercentages;
+    
+    // Adjust the largest percentage to make the sum exactly 100
     const percentages = {
-      D: Math.round((scores.D / total) * 100),
-      I: Math.round((scores.I / total) * 100),
-      S: Math.round((scores.S / total) * 100),
-      C: Math.round((scores.C / total) * 100)
+      ...roundedPercentages,
+      [largestKey]: roundedPercentages[largestKey] + difference
     };
 
     const sorted = Object.entries(percentages).sort(([,a], [,b]) => b - a);
@@ -1435,11 +1479,21 @@ Make it deeply personal and actionable based on their actual choices.`;
                           ?.split('CULTURAL STRENGTHS:')[0]
                           ?.split('\n')
                           .filter(line => line.trim() && !line.includes('CULTURAL STRENGTHS'))
-                          .map((trait, index) => (
-                            <span key={index} className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">
-                              {trait.trim().replace(/^[-•]\s*/, '')}
-                            </span>
-                          ))
+                          .map((trait, index) => {
+                            // Fix common hyphenation issues
+                            let fixedTrait = trait.trim().replace(/^[-•]\s*/, '');
+                            fixedTrait = fixedTrait
+                              .replace(/Actionoriented/g, 'Action-oriented')
+                              .replace(/Relationshipconscious/g, 'Relationship-conscious')
+                              .replace(/Strategicrelationship/g, 'Strategic relationship')
+                              .replace(/Adaptablecommunicator/g, 'Adaptable communicator');
+                            
+                            return (
+                              <span key={index} className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">
+                                {fixedTrait}
+                              </span>
+                            );
+                          })
                       ) : (
                         // Fallback to hardcoded traits
                         personalityType.traits.map((trait, index) => (
@@ -1867,13 +1921,48 @@ Make it deeply personal and actionable based on their actual choices.`;
                   Back to Games
                 </Button>
                 <Button
-                  onClick={() => {
-                    // Generate shareable result card
-                    const shareText = `I'm a ${personalityType.animal}! ${personalityType.title} 🇵🇭 Perfect for ${personalityType.bpoRoles[0]} roles! What's your BPO animal?`;
-                    if (navigator.share) {
-                      navigator.share({ text: shareText });
-                    } else if (navigator.clipboard) {
-                      navigator.clipboard.writeText(shareText);
+                  onClick={async () => {
+                    try {
+                      // Create a results-only shareable link
+                      const resultsData = {
+                        game: 'BPOC DISC Personality',
+                        personalityType: personalityType.animal,
+                        animal: personalityType.animal,
+                        title: personalityType.title,
+                        description: personalityType.description,
+                        bpoRoles: personalityType.bpoRoles,
+                        traits: personalityType.traits,
+                        timestamp: new Date().toISOString()
+                      };
+                      
+                      // Encode results in URL parameters
+                      const encodedResults = encodeURIComponent(JSON.stringify(resultsData));
+                      const shareableUrl = `${window.location.origin}/career-tools/games/disc-personality?results=${encodedResults}`;
+                      
+                      const shareText = `I'm a ${personalityType.animal}! ${personalityType.title} 🇵🇭 Perfect for ${personalityType.bpoRoles[0]} roles! What's your BPO animal?\n\nView my results: ${shareableUrl}`;
+                      
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'My BPOC DISC Personality Results!',
+                          text: shareText,
+                          url: shareableUrl
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        await navigator.clipboard.writeText(shareText);
+                        
+                        // Show success feedback
+                        const button = event?.target as HTMLButtonElement;
+                        if (button) {
+                          const originalText = button.innerHTML;
+                          button.innerHTML = '<div class="flex items-center"><span class="w-4 h-4 mr-2">✓</span>Results Copied!</div>';
+                          setTimeout(() => {
+                            button.innerHTML = originalText;
+                          }, 2000);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Failed to share results:', error);
                     }
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg w-full"
@@ -2348,6 +2437,93 @@ Make it deeply personal and actionable based on their actual choices.`;
   
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Shared Results Display */}
+      {showSharedResults && sharedResults && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 max-w-md w-full border border-purple-500/30 shadow-2xl"
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">{sharedResults.animal}</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Shared Results</h2>
+              <p className="text-gray-300">Someone shared their DISC personality results!</p>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="bg-slate-700/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-purple-400 mb-1">
+                  {sharedResults.animal}
+                </div>
+                <div className="text-lg font-semibold text-white mb-2">
+                  {sharedResults.title}
+                </div>
+                <div className="text-sm text-gray-300">
+                  {sharedResults.description}
+                </div>
+              </div>
+              
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <div className="text-sm font-semibold text-green-400 mb-2">Perfect BPO Roles:</div>
+                <div className="flex flex-wrap gap-2">
+                  {sharedResults.bpoRoles.map((role: string, index: number) => (
+                    <span key={index} className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs">
+                      {role}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <div className="text-sm font-semibold text-blue-400 mb-2">Key Traits:</div>
+                <div className="flex flex-wrap gap-2">
+                  {sharedResults.traits.map((trait: string, index: number) => (
+                    <span key={index} className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded text-xs">
+                      {trait}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <div className="text-xs text-gray-400">
+                  Completed: {new Date(sharedResults.timestamp).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowSharedResults(false);
+                  setSharedResults(null);
+                  // Clear URL parameters
+                  window.history.replaceState({}, '', window.location.pathname);
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowSharedResults(false);
+                  setSharedResults(null);
+                  setGameState(prev => ({ ...prev, gameStarted: false }));
+                  // Clear URL parameters
+                  window.history.replaceState({}, '', window.location.pathname);
+                }}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              >
+                Take the Test!
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
