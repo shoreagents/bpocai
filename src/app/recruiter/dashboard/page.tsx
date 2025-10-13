@@ -155,29 +155,21 @@ export default function RecruiterDashboardPage() {
             ).length;
             setActiveJobs(activeJobsCount);
             
-            // Calculate total applicants from recruiter jobs
-            try {
-              let totalApplicantsCount = 0;
-              for (const job of jobs) {
-                try {
-                  const applicantsResponse = await fetch(`/api/recruiter/applicants?jobId=${job.originalId}`, {
-                    headers: {
-                      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                    },
-                  });
-                  
-                  if (applicantsResponse.ok) {
-                    const applicantsData = await applicantsResponse.json();
-                    totalApplicantsCount += applicantsData.applicants?.length || 0;
-                  }
-                } catch (err) {
-                  console.error('Error fetching applicants for job:', job.id, err);
-                }
-              }
-              setTotalApplicants(totalApplicantsCount);
-            } catch (error) {
-              console.error('Error calculating total applicants:', error);
-            }
+        // Fetch total applicants from recruiter_applications table
+        try {
+          const totalApplicantsResponse = await fetch('/api/recruiter/total-applicants', {
+            headers: {
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+          });
+          
+          if (totalApplicantsResponse.ok) {
+            const totalApplicantsData = await totalApplicantsResponse.json();
+            setTotalApplicants(totalApplicantsData.total_applicants || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching total applicants:', error);
+        }
           }
         } catch (error) {
           console.error('Error fetching recruiter jobs:', error);
@@ -268,7 +260,7 @@ export default function RecruiterDashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-emerald-600 mb-1">Your Applications</p>
+                  <p className="text-sm font-medium text-emerald-600 mb-1">Total Applicants</p>
                   <div className="text-3xl font-bold text-emerald-900">
                     {loading ? (
                       <span className="inline-block w-12 h-8 bg-emerald-300 animate-pulse rounded"></span>
@@ -276,7 +268,7 @@ export default function RecruiterDashboardPage() {
                       totalApplicants.toLocaleString()
                     )}
                   </div>
-                  <p className="text-sm text-emerald-700 mt-2">Applications to your jobs</p>
+                  <p className="text-sm text-emerald-700 mt-2">Total applicants across all your jobs</p>
                 </div>
                 <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                   <FileText className="h-6 w-6 text-white" />
@@ -378,8 +370,8 @@ export default function RecruiterDashboardPage() {
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl font-bold text-gray-900">Recent Jobs Activity</CardTitle>
-                      <CardDescription className="text-gray-600 mt-1">Latest job applications and updates</CardDescription>
+                      <CardTitle className="text-xl font-bold text-gray-900">Recent Applications</CardTitle>
+                      <CardDescription className="text-gray-600 mt-1">Latest job applications from candidates</CardDescription>
                     </div>
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                       <Users className="h-5 w-5 text-white" />
@@ -406,10 +398,35 @@ export default function RecruiterDashboardPage() {
                       ) : recentActivity.length > 0 ? (
                         recentActivity.map((activity, index) => (
                           <div key={index} className="flex items-start space-x-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50">
-                            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                              <span className="text-white text-sm font-bold">
-                                {activity.user_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'U'}
-                              </span>
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden">
+                              {activity.user_avatar ? (
+                                <img 
+                                  src={activity.user_avatar} 
+                                  alt={activity.user_name || 'User'} 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    // Fallback to initials if image fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `
+                                        <div class="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                                          <span class="text-white text-sm font-bold">
+                                            ${activity.user_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'U'}
+                                          </span>
+                                        </div>
+                                      `;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-sm font-bold">
+                                    {activity.user_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'U'}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-semibold text-gray-900">{activity.user_name?.split(' ')[0] || 'Unknown User'}</p>
@@ -424,8 +441,8 @@ export default function RecruiterDashboardPage() {
                       ) : (
                         <div className="text-center py-8 text-gray-500">
                           <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                          <p>No recent activity</p>
-                          <p className="text-sm">Activity will appear here as users interact with the platform</p>
+                          <p>No recent applications</p>
+                          <p className="text-sm">Job applications will appear here as candidates apply to your jobs</p>
                         </div>
                       )}
                   </div>
@@ -456,51 +473,6 @@ export default function RecruiterDashboardPage() {
         onComplete={handleProfileComplete}
       />
 
-      {/* Recruiter Footer */}
-      <footer className="bg-gradient-to-r from-slate-900 via-gray-900 to-slate-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Company Info */}
-            <div className="lg:col-span-2">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  BPOC Recruiter
-                </span>
-              </div>
-              <p className="text-gray-300 mb-6 max-w-md">
-                The leading platform for BPO talent acquisition. Connect with 15,000+ pre-screened professionals and find your perfect hire in minutes.
-              </p>
-            </div>
-
-            {/* For Recruiters */}
-            <div>
-              <h3 className="text-lg font-semibold mb-6 text-emerald-400">For Recruiters</h3>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                <ul className="space-y-3">
-                  <li><Link href="/recruiter/dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Dashboard</Link></li>
-                  <li><Link href="/recruiter/post-job" className="text-gray-300 hover:text-emerald-400 transition-colors">Post a Job</Link></li>
-                  <li><Link href="/recruiter/applications" className="text-gray-300 hover:text-emerald-400 transition-colors">Applications</Link></li>
-                </ul>
-                <ul className="space-y-3">
-                  <li><Link href="/recruiter/candidates" className="text-gray-300 hover:text-emerald-400 transition-colors">Browse Candidates</Link></li>
-                  <li><Link href="/recruiter/analytics" className="text-gray-300 hover:text-emerald-400 transition-colors">Analytics</Link></li>
-                  <li><Link href="/recruiter/leaderboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Leaderboard</Link></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="mt-12 pt-8 border-t border-white/20 text-center">
-            <div className="text-sm text-gray-400">
-              © 2025 BPOC Recruiter. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import RecruiterSidebar from '@/components/layout/RecruiterSidebar';
+import RecruiterFooter from '@/components/layout/RecruiterFooter';
 import { cn } from '@/lib/utils';
 
 export default function RecruiterLayout({
@@ -59,10 +60,14 @@ export default function RecruiterLayout({
 
       {/* Main Content */}
       <div className={cn(
-        "flex-1 overflow-y-auto transition-all duration-300",
+        "flex-1 overflow-y-auto transition-all duration-300 flex flex-col",
         showSidebar ? "ml-64" : "ml-0"
       )}>
-        {children}
+        <div className="flex-1">
+          {children}
+        </div>
+        {/* Footer - only show on authenticated pages (not landing page) */}
+        {showSidebar && <RecruiterFooter />}
       </div>
     </div>
   );

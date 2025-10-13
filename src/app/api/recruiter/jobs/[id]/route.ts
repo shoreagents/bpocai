@@ -70,7 +70,7 @@ export async function PATCH(
     console.log('🔍 Verifying recruiter ownership of job...');
     
     // First, verify that the recruiter owns this job
-    const existingJob = await prisma.recruiter_jobs.findFirst({
+    const existingJob = await (prisma as any).recruiterJob.findFirst({
       where: {
         id: jobId,
         recruiter_id: recruiterId
@@ -94,7 +94,7 @@ export async function PATCH(
 
     // Update the job status
     console.log('🔍 Updating job status...');
-    const updatedJob = await prisma.recruiter_jobs.update({
+    const updatedJob = await (prisma as any).recruiterJob.update({
       where: {
         id: jobId
       },
@@ -244,7 +244,7 @@ export async function PUT(
     console.log('🔍 Verifying recruiter ownership of job...');
     
     // First, verify that the recruiter owns this job
-    const existingJob = await prisma.recruiter_jobs.findFirst({
+    const existingJob = await (prisma as any).recruiterJob.findFirst({
       where: {
         id: jobId,
         recruiter_id: recruiterId
@@ -268,7 +268,7 @@ export async function PUT(
 
     // Update the job with all provided fields
     console.log('🔍 Updating job with data:', body);
-    const updatedJob = await prisma.recruiter_jobs.update({
+    const updatedJob = await (prisma as any).recruiterJob.update({
       where: {
         id: jobId
       },
