@@ -276,7 +276,7 @@ export default function CareerGamesPage() {
     {
       id: 'disc-personality',
       title: 'BPOC DISC',
-      description: '🇵🇭 Discover your BPO animal spirit! Navigate authentic scenarios and unlock your communication style. Get AI-powered personalized questions, earn XP and badges, and receive BPO career insights.',
+      description: '🎯 Discover your BPO animal spirit! Navigate authentic scenarios and unlock your communication style. Get AI-powered personalized questions, earn XP and badges, and receive BPO career insights.',
       icon: Brain,
       category: 'Personality',
       duration: '3-5 minutes',
@@ -816,7 +816,7 @@ export default function CareerGamesPage() {
       <AlertDialog open={showDiscDemoModal} onOpenChange={setShowDiscDemoModal}>
         <AlertDialogContent className="bg-black border-gray-700 max-w-5xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white text-2xl">🇵🇭 BPOC DISC - Interactive Demo</AlertDialogTitle>
+            <AlertDialogTitle className="text-white text-2xl">🎯 BPOC DISC - Interactive Demo</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
               Experience authentic Filipino scenarios and discover your BPO animal spirit!
             </AlertDialogDescription>
@@ -828,7 +828,7 @@ export default function CareerGamesPage() {
             {/* Demo Header */}
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-white">🇵🇭 Filipino DISC Personality</h3>
+                <h3 className="font-semibold text-white">🎯 Filipino DISC Personality</h3>
                 <p className="text-sm text-gray-400">Interactive Demo</p>
               </div>
               <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
