@@ -1129,7 +1129,6 @@ export default function ProfilePage() {
                   ...(isOwner ? [{ id: 'work-status', label: 'Work Status', icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/10', activeBgColor: 'bg-green-500/20', borderColor: 'border-green-400' }] : []),
                   { id: 'analysis', label: 'AI Analysis', icon: BarChart3, color: 'text-purple-400', bgColor: 'bg-purple-500/10', activeBgColor: 'bg-purple-500/20', borderColor: 'border-purple-400' },
                   { id: 'game-results', label: 'Game Results', icon: Gamepad2, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', activeBgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-400' },
-                  { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-orange-400', bgColor: 'bg-orange-500/10', activeBgColor: 'bg-orange-500/20', borderColor: 'border-orange-400' },
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeSection === item.id;
@@ -3751,103 +3750,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {activeSection === 'achievements' && (
-                  <div className="space-y-8">
-                    {/* Achievements Section */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-red-500/10 to-pink-500/10 rounded-2xl blur-xl"></div>
-                      <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/60 rounded-2xl p-6 border border-orange-500/20 backdrop-blur-sm">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                            <Trophy className="w-6 h-6 text-white" />
-                          </div>
-                          <span className="bg-gradient-to-r from-orange-300 to-red-300 bg-clip-text text-transparent">
-                            Achievements
-                          </span>
-                        </h3>
-                        <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {/* Sample Achievements */}
-                            <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                                  <Trophy className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-orange-300">First Game Completed</h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">Completed your first career assessment game</p>
-                              <div className="mt-3 text-xs text-orange-400 font-medium">Unlocked</div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                                  <Star className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-orange-300">High Performer</h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">Achieved a score above 80 in any assessment</p>
-                              <div className="mt-3 text-xs text-orange-400 font-medium">Unlocked</div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                                  <Medal className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-orange-300">All Games Master</h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">Completed all available career assessment games</p>
-                              <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                                  <Target className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-orange-300">Perfect Score</h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">Achieved a perfect score in any assessment</p>
-                              <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                                  <TrendingUp className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-orange-300">Rising Star</h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">Improved your score by 20+ points in any assessment</p>
-                              <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
-
-                            <div className="group bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl p-6 border border-orange-400/30 hover:border-orange-400/60 transition-all duration-300 hover:scale-105">
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg">
-                                  <Heart className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-orange-300">Community Favorite</h4>
-                              </div>
-                              <p className="text-gray-300 text-sm">Received 100+ likes on your profile</p>
-                              <div className="mt-3 text-xs text-gray-500 font-medium">Locked</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Sign-up CTA for anonymous users */}
-                    {isAnonymous && (
-                      <SignUpCTA
-                        title="View Other Achievements"
-                        description="Sign up to unlock all achievements, track your professional milestones, and compete with other users on the leaderboard."
-                        icon={Trophy}
-                      />
-                    )}
-                  </div>
-                )}
 
               </motion.div>
             </div>
