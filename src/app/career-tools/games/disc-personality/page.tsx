@@ -1387,7 +1387,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                 />
               </div>
               <p className="text-sm text-gray-400">
-                This will make your results impossible to fake and perfectly personalized to your life! 🇵🇭
+                This will make your results impossible to fake and perfectly personalized to your life! ✨
               </p>
             </CardContent>
           </Card>
@@ -1939,7 +1939,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                       const encodedResults = encodeURIComponent(JSON.stringify(resultsData));
                       const shareableUrl = `${window.location.origin}/career-tools/games/disc-personality?results=${encodedResults}`;
                       
-                      const shareText = `I'm a ${personalityType.animal}! ${personalityType.title} 🇵🇭 Perfect for ${personalityType.bpoRoles[0]} roles! What's your BPO animal?\n\nView my results: ${shareableUrl}`;
+                      const shareText = `I'm a ${personalityType.animal}! ${personalityType.title} 🎯 Perfect for ${personalityType.bpoRoles[0]} roles! What's your BPO animal?\n\nView my results: ${shareableUrl}`;
                       
                       if (navigator.share) {
                         navigator.share({
@@ -2232,7 +2232,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                         <div className="p-4 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl border border-purple-500/30">
                           <div className="flex items-center gap-3 mb-3">
                             <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                              <span className="text-white text-lg">🇵🇭</span>
+                              <span className="text-white text-lg">🎯</span>
                             </div>
                             <div>
                               <h4 className="text-white font-bold">Filipino Context</h4>
@@ -2557,7 +2557,7 @@ Make it deeply personal and actionable based on their actual choices.`;
                   <ContextIcon className="h-8 w-8 text-green-400 mr-3" />
                 </motion.div>
                 <div>
-                  <h1 className="text-2xl font-bold gradient-text">BPOC DISC 🇵🇭</h1>
+                  <h1 className="text-2xl font-bold gradient-text">BPOC DISC 🎯</h1>
                   <p className="text-gray-400 text-sm">{currentScenario?.context} Context</p>
                 </div>
               </div>
@@ -2603,7 +2603,7 @@ Make it deeply personal and actionable based on their actual choices.`;
               <Card className="disc-game-screen">
 						<CardContent className="p-4 h-full flex flex-col">
                     <div className="text-center mb-3">
-                      <h3 className="text-lg font-bold text-cyan-300">🇵🇭 Personality Journey</h3>
+                      <h3 className="text-lg font-bold text-cyan-300">🎯 Personality Journey</h3>
                       <div className="text-xs text-gray-400">Discovering Your Filipino Work Style</div>
                       </div>
                     
