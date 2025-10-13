@@ -3,9 +3,18 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 GET /api/recruiter/jobs - Starting request')
+    console.log('🔍 Environment check:', {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      nodeEnv: process.env.NODE_ENV
+    })
+    
     // Get user ID from headers (set by middleware)
     const userId = request.headers.get('x-user-id')
+    console.log('🔍 User ID from headers:', userId)
+    
     if (!userId) {
+      console.log('❌ No user ID found in headers')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   console.log('🔍 API called: /api/recruiter/applicants');
