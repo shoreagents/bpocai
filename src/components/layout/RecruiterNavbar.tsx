@@ -318,6 +318,9 @@ export default function RecruiterNavbar({
     return false;
   };
 
+  // Check if we're on the main recruiter landing page
+  const isRecruiterLanding = pathname === '/recruiter';
+
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg shadow-gray-900/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -333,228 +336,253 @@ export default function RecruiterNavbar({
               </span>
             </div>
             
-            {/* Navigation Links */}
-            <div className="hidden md:flex items-center space-x-6">
-              <Link href="/recruiter" className={`font-medium transition-colors duration-200 relative group ${
-                isActive('/recruiter') 
-                  ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                  : 'text-gray-700 hover:text-emerald-600'
-              }`}>
-                Home
-                {isActive('/recruiter') && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                )}
-              </Link>
-              <Link href="/recruiter/dashboard" className={`font-medium transition-colors duration-200 relative group ${
-                isActive('/recruiter/dashboard') 
-                  ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                  : 'text-gray-700 hover:text-emerald-600'
-              }`}>
-                Dashboard
-                {isActive('/recruiter/dashboard') && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                )}
-              </Link>
-              <Link href="/recruiter/post-job" className={`font-medium transition-colors duration-200 relative group ${
-                isActive('/recruiter/post-job') 
-                  ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                  : 'text-gray-700 hover:text-emerald-600'
-              }`}>
-                Jobs
-                {isActive('/recruiter/post-job') && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                )}
-                {!isActive('/recruiter/post-job') && (
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
-                )}
-              </Link>
-              <Link href="/recruiter/applications" className={`font-medium transition-colors duration-200 relative group ${
-                isActive('/recruiter/applications') 
-                  ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                  : 'text-gray-700 hover:text-emerald-600'
-              }`}>
-                Applications
-                {isActive('/recruiter/applications') && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                )}
-              </Link>
-              <Link href="/recruiter/candidates" className={`font-medium transition-colors duration-200 relative group ${
-                isActive('/recruiter/candidates') 
-                  ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                  : 'text-gray-700 hover:text-emerald-600'
-              }`}>
-                Applicants
-                {isActive('/recruiter/candidates') && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                )}
-              </Link>
-              <Link href="/recruiter/leaderboard" className={`font-medium transition-colors duration-200 relative group ${
-                isActive('/recruiter/leaderboard') 
-                  ? 'text-emerald-600 border-b-2 border-emerald-600' 
-                  : 'text-gray-700 hover:text-emerald-600'
-              }`}>
-                Leaderboard
-                {isActive('/recruiter/leaderboard') && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
-                )}
-              </Link>
-            </div>
+            {/* Navigation Links - Only show on non-landing pages */}
+            {!isRecruiterLanding && (
+              <div className="hidden md:flex items-center space-x-6">
+                <Link href="/recruiter" className={`font-medium transition-colors duration-200 relative group ${
+                  isActive('/recruiter') 
+                    ? 'text-emerald-600 border-b-2 border-emerald-600' 
+                    : 'text-gray-700 hover:text-emerald-600'
+                }`}>
+                  Home
+                  {isActive('/recruiter') && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+                  )}
+                </Link>
+                <Link href="/recruiter/dashboard" className={`font-medium transition-colors duration-200 relative group ${
+                  isActive('/recruiter/dashboard') 
+                    ? 'text-emerald-600 border-b-2 border-emerald-600' 
+                    : 'text-gray-700 hover:text-emerald-600'
+                }`}>
+                  Dashboard
+                  {isActive('/recruiter/dashboard') && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+                  )}
+                </Link>
+                <Link href="/recruiter/post-job" className={`font-medium transition-colors duration-200 relative group ${
+                  isActive('/recruiter/post-job') 
+                    ? 'text-emerald-600 border-b-2 border-emerald-600' 
+                    : 'text-gray-700 hover:text-emerald-600'
+                }`}>
+                  Jobs
+                  {isActive('/recruiter/post-job') && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+                  )}
+                  {!isActive('/recruiter/post-job') && (
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-200 group-hover:w-full"></span>
+                  )}
+                </Link>
+                <Link href="/recruiter/applications" className={`font-medium transition-colors duration-200 relative group ${
+                  isActive('/recruiter/applications') 
+                    ? 'text-emerald-600 border-b-2 border-emerald-600' 
+                    : 'text-gray-700 hover:text-emerald-600'
+                }`}>
+                  Applications
+                  {isActive('/recruiter/applications') && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+                  )}
+                </Link>
+                <Link href="/recruiter/candidates" className={`font-medium transition-colors duration-200 relative group ${
+                  isActive('/recruiter/candidates') 
+                    ? 'text-emerald-600 border-b-2 border-emerald-600' 
+                    : 'text-gray-700 hover:text-emerald-600'
+                }`}>
+                  Applicants
+                  {isActive('/recruiter/candidates') && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+                  )}
+                </Link>
+                <Link href="/recruiter/leaderboard" className={`font-medium transition-colors duration-200 relative group ${
+                  isActive('/recruiter/leaderboard') 
+                    ? 'text-emerald-600 border-b-2 border-emerald-600' 
+                    : 'text-gray-700 hover:text-emerald-600'
+                }`}>
+                  Leaderboard
+                  {isActive('/recruiter/leaderboard') && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-500 to-teal-600"></span>
+                  )}
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-3">
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-3">
-                {/* User Menu */}
-                <div className="relative group">
-                  <button className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-all duration-200 border border-gray-200 -mt-1">
-                    <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center overflow-hidden">
-                      {userProfile?.avatar_url ? (
-                        <img
-                          src={userProfile.avatar_url}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs font-bold text-white">
-                          {userInitials}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 hidden sm:block">{userDisplayName}</span>
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                  </button>
-                  
-                  {/* Dropdown Menu */}
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-xl shadow-gray-900/10">
-                    <button
-                      onClick={() => router.push('/recruiter/profile')}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full text-left"
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Profile</span>
-                    </button>
-                    <button
-                      onClick={() => setShowSignOutDialog(true)}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
+              // If on landing page and authenticated, redirect to dashboard
+              isRecruiterLanding ? (
+                <div className="flex items-center space-x-3">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 px-4 py-2 font-medium transition-all duration-200 rounded-full"
+                    onClick={() => router.push('/home')}
+                  >
+                    ← Back to BPOC
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
+                    onClick={() => router.push('/recruiter/dashboard')}
+                  >
+                    Go to Dashboard →
+                  </Button>
                 </div>
-                
-                <Button 
-                  size="sm" 
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                  onClick={() => router.push('/recruiter/post-job')}
-                >
-                  🎯 Post Job
-                </Button>
-                
-                {/* Notification Icon */}
-                <div className="relative">
+              ) : (
+                // Full navbar for authenticated users on other pages
+                <div className="flex items-center space-x-3">
+                  {/* User Menu */}
+                  <div className="relative group">
+                    <button className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-all duration-200 border border-gray-200 -mt-1">
+                      <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center overflow-hidden">
+                        {userProfile?.avatar_url ? (
+                          <img
+                            src={userProfile.avatar_url}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-white">
+                            {userInitials}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 hidden sm:block">{userDisplayName}</span>
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-xl shadow-gray-900/10">
+                      <button
+                        onClick={() => router.push('/recruiter/profile')}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full text-left"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Profile</span>
+                      </button>
+                      <button
+                        onClick={() => setShowSignOutDialog(true)}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
+                    onClick={() => router.push('/recruiter/post-job')}
+                  >
+                    🎯 Post Job
+                  </Button>
+                  
+                  {/* Notification Icon */}
+                  <div className="relative">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="text-gray-600 hover:text-gray-900 px-3 py-2 transition-all duration-200 rounded-full border border-black relative"
+                            onClick={() => setShowNotifications(!showNotifications)}
+                          >
+                            <Bell className="w-4 h-4" />
+                            {notifications.filter(n => n.unread).length > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {notifications.filter(n => n.unread).length}
+                              </span>
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Notifications</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    {/* Notification Dropdown */}
+                    {showNotifications && (
+                      <div className="notification-dropdown absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                        <div className="p-4 border-b border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                            <button
+                              onClick={() => setShowNotifications(false)}
+                              className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="max-h-96 overflow-y-auto">
+                          {notifications.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500">
+                              No notifications yet
+                            </div>
+                          ) : (
+                            notifications.map((notification) => (
+                              <div
+                                key={notification.id}
+                                className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                  notification.unread ? 'bg-blue-50' : ''
+                                }`}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                                    notification.unread ? 'bg-blue-500' : 'bg-gray-300'
+                                  }`} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-2">
+                                      {notification.time}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        
+                        <div className="p-3 border-t border-gray-200">
+                          <button className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                            View All Notifications
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Inbox Icon */}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
                           size="sm" 
                           variant="ghost"
-                          className="text-gray-600 hover:text-gray-900 px-3 py-2 transition-all duration-200 rounded-full border border-black relative"
-                          onClick={() => setShowNotifications(!showNotifications)}
+                          className="text-gray-600 hover:text-gray-900 px-3 py-2 transition-all duration-200 rounded-full border border-black"
+                          onClick={() => router.push('/recruiter/messages')}
                         >
-                          <Bell className="w-4 h-4" />
-                          {notifications.filter(n => n.unread).length > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                              {notifications.filter(n => n.unread).length}
-                            </span>
-                          )}
+                          <Inbox className="w-4 h-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Notifications</p>
+                        <p>Inbox</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-
-                  {/* Notification Dropdown */}
-                  {showNotifications && (
-                    <div className="notification-dropdown absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                      <div className="p-4 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                          <button
-                            onClick={() => setShowNotifications(false)}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="max-h-96 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="p-4 text-center text-gray-500">
-                            No notifications yet
-                          </div>
-                        ) : (
-                          notifications.map((notification) => (
-                            <div
-                              key={notification.id}
-                              className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                notification.unread ? 'bg-blue-50' : ''
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 ${
-                                  notification.unread ? 'bg-blue-500' : 'bg-gray-300'
-                                }`} />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {notification.title}
-                                  </p>
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    {notification.message}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-2">
-                                    {notification.time}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      
-                      <div className="p-3 border-t border-gray-200">
-                        <button className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                          View All Notifications
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
-                
-                {/* Inbox Icon */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        className="text-gray-600 hover:text-gray-900 px-3 py-2 transition-all duration-200 rounded-full border border-black"
-                        onClick={() => router.push('/recruiter/messages')}
-                      >
-                        <Inbox className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Inbox</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              )
             ) : (
+              // Simplified navbar for non-authenticated users on landing page
               <div className="flex items-center space-x-3">
                 <Button 
                   variant="ghost" 
