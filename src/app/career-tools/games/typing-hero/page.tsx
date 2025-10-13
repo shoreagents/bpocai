@@ -3940,7 +3940,7 @@ export default function TypingHeroPage() {
                   <h3 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
                     Your Story is Ready!
                   </h3>
-                  <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
+                  <p className="text-xl text-gray-300 max-w-lg leading-relaxed text-center mx-auto">
                     From your past experiences... are you ready to <span className="text-cyan-400 font-bold">type the past</span> to <span className="text-green-400 font-bold">change your future</span>?
                   </p>
                   <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg p-6 border border-cyan-400/20">
