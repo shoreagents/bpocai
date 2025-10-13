@@ -470,13 +470,6 @@ export default function RecruiterNavbar({
                     </div>
                   </div>
                   
-                  <Button 
-                    size="sm" 
-                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                    onClick={() => router.push('/recruiter/post-job')}
-                  >
-                    🎯 Post Job
-                  </Button>
                   
                   {/* Notification Icon */}
                   <div className="relative">
@@ -599,13 +592,6 @@ export default function RecruiterNavbar({
                   onClick={onSignUpClick}
                 >
                   Sign Up
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2 font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 rounded-full transform hover:scale-105"
-                  onClick={() => router.push('/recruiter/post-job')}
-                >
-                  🎯 Post Job
                 </Button>
               </div>
             )}

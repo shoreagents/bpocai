@@ -115,9 +115,9 @@ export default function DashboardPage() {
           setActiveJobs(0)
         }
 
-        // Fetch recent activity
+        // Fetch recent activity (ALL activities for admin)
         try {
-          const activityResponse = await fetch('/api/admin/recent-activity')
+          const activityResponse = await fetch('/api/admin/all-recent-activity')
           console.log('🔍 Activity API response status:', activityResponse.status)
           
           if (activityResponse.ok) {
@@ -390,10 +390,10 @@ export default function DashboardPage() {
                         >
                           <Filter className="w-3 h-3 mr-2" />
                           {activityFilter === 'all' ? 'All Types' : 
-                           activityFilter === 'game' ? 'Games' : 
-                           activityFilter === 'resume' ? 'Resumes' : 
-                           activityFilter === 'profile' ? 'Profiles' : 
-                           activityFilter === 'applicants' ? 'Applicants' : 'All Types'}
+                           activityFilter === 'game' ? 'Games & Assessments' : 
+                           activityFilter === 'resume' ? 'Resume Uploads' : 
+                           activityFilter === 'profile' ? 'Profile Updates' : 
+                           activityFilter === 'applicants' ? 'Job Applications' : 'All Types'}
                           <ChevronDown className="w-3 h-3 ml-2" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -411,28 +411,28 @@ export default function DashboardPage() {
                           onClick={() => setActivityFilter('game')}
                         >
                           <Gamepad2 className="w-3 h-3 mr-2" />
-                          Games Only
+                          Games & Assessments
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className={activityFilter === 'resume' ? 'bg-white/20' : ''}
                           onClick={() => setActivityFilter('resume')}
                         >
                           <FileText className="w-3 h-3 mr-2" />
-                          Resumes Only
+                          Resume Uploads
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className={activityFilter === 'profile' ? 'bg-white/20' : ''}
                           onClick={() => setActivityFilter('profile')}
                         >
                           <Users className="w-3 h-3 mr-2" />
-                          Profiles Only
+                          Profile Updates
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className={activityFilter === 'applicants' ? 'bg-white/20' : ''}
                           onClick={() => setActivityFilter('applicants')}
                         >
                           <ClipboardList className="w-3 h-3 mr-2" />
-                          Applicants Only
+                          Job Applications
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -494,10 +494,10 @@ export default function DashboardPage() {
                       <span>Showing:</span>
                       {activityFilter !== 'all' && (
                         <Badge variant="outline" className="text-xs">
-                          {activityFilter === 'game' ? 'Games' : 
-                           activityFilter === 'resume' ? 'Resumes' : 
-                           activityFilter === 'profile' ? 'Profiles' : 
-                           activityFilter === 'applicants' ? 'Applicants' : 'All Types'}
+                          {activityFilter === 'game' ? 'Games & Assessments' : 
+                           activityFilter === 'resume' ? 'Resume Uploads' : 
+                           activityFilter === 'profile' ? 'Profile Updates' : 
+                           activityFilter === 'applicants' ? 'Job Applications' : 'All Types'}
                         </Badge>
                       )}
                       {timeFilter !== 'all' && (
@@ -549,11 +549,10 @@ export default function DashboardPage() {
                               </p>
                             </div>
                             <Badge className={getTypeBadge(activity.type)}>
-                              {activity.type === 'typing_hero' ? 'Game' : 
-                               activity.type === 'disc_personality' ? 'Game' : 
+                              {activity.type === 'game' ? 'Games' : 
                                activity.type === 'resume' ? 'Resume' : 
                                activity.type === 'profile' ? 'Profile' : 
-                               activity.type === 'applicants' ? 'Applicants' : 'Activity'}
+                               activity.type === 'applicants' ? 'Application' : 'Activity'}
                             </Badge>
                             <span className="text-gray-500 text-sm">
                               {activity.activity_time ? new Date(activity.activity_time).toLocaleTimeString() : 'Unknown'}

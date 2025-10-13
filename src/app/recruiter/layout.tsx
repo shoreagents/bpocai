@@ -49,7 +49,7 @@ export default function RecruiterLayout({
   const showSidebar = !!user && !isLandingPage;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar - only shown when authenticated and not on landing page */}
       {showSidebar && (
         <RecruiterSidebar 
@@ -60,7 +60,7 @@ export default function RecruiterLayout({
 
       {/* Main Content */}
       <div className={cn(
-        "flex-1 overflow-y-auto transition-all duration-300 flex flex-col",
+        "flex-1 transition-all duration-300 flex flex-col min-h-screen",
         showSidebar ? "ml-64" : "ml-0"
       )}>
         <div className="flex-1">
