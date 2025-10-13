@@ -798,7 +798,9 @@ function JobMatchingContent() {
                         <div className="flex items-center gap-2">
                           <div>
                             <p className="font-medium text-white">{job.company}</p>
-                            <p className="text-xs text-gray-400">{job.postedDays} days ago</p>
+                            <p className="text-xs text-gray-400">
+                              {typeof job.postedDays === 'string' ? job.postedDays : `${job.postedDays} days ago`}
+                            </p>
                           </div>
                           {/* Priority Badge next to company name */}
                           {job.priority && (
@@ -1087,7 +1089,9 @@ function JobMatchingContent() {
                           </div>
                           <div>
                             <p className="font-medium text-white text-lg">{selectedJobData.company}</p>
-                            <p className="text-gray-400 text-sm">{selectedJobData.postedDays} days ago</p>
+                            <p className="text-gray-400 text-sm">
+                              {typeof selectedJobData.postedDays === 'string' ? selectedJobData.postedDays : `${selectedJobData.postedDays} days ago`}
+                            </p>
                           </div>
                         </div>
                         

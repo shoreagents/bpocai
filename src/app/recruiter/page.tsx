@@ -32,6 +32,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import RecruiterSignInModal from '@/components/auth/RecruiterSignInModal';
 import RecruiterSignUpForm from '@/components/auth/RecruiterSignUpForm';
 import RecruiterNavbar from '@/components/layout/RecruiterNavbar';
+import RecruiterFooter from '@/components/layout/RecruiterFooter';
 import RecruiterProfileCompletionModal from '@/components/auth/RecruiterProfileCompletionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Suspense } from 'react';
@@ -438,32 +439,52 @@ function RecruiterHomePageContent() {
               transition={{ duration: 0.8, delay: 2.2 }}
               className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16"
             >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-2xl shadow-emerald-500/25 text-lg px-10 py-4 rounded-full font-semibold transform hover:scale-105 transition-all duration-300"
-                  onClick={() => router.push('/recruiter/applications')}
+              {user && user.user_metadata?.admin_level === 'recruiter' ? (
+                // Show recruiter-specific buttons when signed in
+                <>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button 
+                      size="lg" 
+                      className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-2xl shadow-emerald-500/25 text-lg px-10 py-4 rounded-full font-semibold transform hover:scale-105 transition-all duration-300"
+                      onClick={() => router.push('/recruiter/post-job')}
+                    >
+                      📝 Post a Job
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      className="border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-transparent text-lg px-10 py-4 rounded-full font-semibold backdrop-blur-sm transition-all duration-300"
+                      onClick={() => router.push('/recruiter/dashboard')}
+                    >
+                      📊 Go to Dashboard
+                    </Button>
+                  </motion.div>
+                </>
+              ) : (
+                // Show general button when not signed in
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  🎯 Start Hiring Now
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-transparent text-lg px-10 py-4 rounded-full font-semibold backdrop-blur-sm transition-all duration-300"
-                  onClick={() => router.push('/recruiter/candidates')}
-                >
-                  👀 View Candidate Pool
-                </Button>
-              </motion.div>
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-2xl shadow-emerald-500/25 text-lg px-10 py-4 rounded-full font-semibold transform hover:scale-105 transition-all duration-300"
+                    onClick={() => setShowSignInModal(true)}
+                  >
+                    🚀 Get Started
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
+              )}
             </motion.div>
 
             {/* Trust Indicators */}
@@ -1050,50 +1071,7 @@ function RecruiterHomePageContent() {
       </Dialog>
 
       {/* Recruiter Footer */}
-      <footer className="bg-gradient-to-r from-slate-900 via-gray-900 to-slate-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Company Info */}
-            <div className="lg:col-span-2">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <Building2 className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  BPOC Recruiter
-                </span>
-              </div>
-              <p className="text-gray-300 mb-6 max-w-md">
-                The leading platform for BPO talent acquisition. Connect with 15,000+ pre-screened professionals and find your perfect hire in minutes.
-              </p>
-            </div>
-
-            {/* For Recruiters */}
-            <div>
-              <h3 className="text-lg font-semibold mb-6 text-emerald-400">For Recruiters</h3>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                <ul className="space-y-3">
-                  <li><Link href="/recruiter/dashboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Dashboard</Link></li>
-                  <li><Link href="/recruiter/post-job" className="text-gray-300 hover:text-emerald-400 transition-colors">Post a Job</Link></li>
-                  <li><Link href="/recruiter/applications" className="text-gray-300 hover:text-emerald-400 transition-colors">Applications</Link></li>
-                </ul>
-                <ul className="space-y-3">
-                  <li><Link href="/recruiter/candidates" className="text-gray-300 hover:text-emerald-400 transition-colors">Browse Candidates</Link></li>
-                  <li><Link href="/recruiter/analytics" className="text-gray-300 hover:text-emerald-400 transition-colors">Analytics</Link></li>
-                  <li><Link href="/recruiter/leaderboard" className="text-gray-300 hover:text-emerald-400 transition-colors">Leaderboard</Link></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="mt-12 pt-8 border-t border-white/20 text-center">
-            <div className="text-sm text-gray-400">
-              © 2025 BPOC Recruiter. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <RecruiterFooter />
     </div>
   );
 }

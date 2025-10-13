@@ -44,7 +44,20 @@ export async function GET(_request: NextRequest) {
       const salary = formatSalary(String(row.currency || 'PHP'), row.salary_min != null ? Number(row.salary_min) : null, row.salary_max != null ? Number(row.salary_max) : null, String(row.salary_type || 'monthly'))
       const createdAt = row.created_at ? new Date(row.created_at) : new Date()
       const ms = Date.now() - createdAt.getTime()
-      const postedDays = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)))
+      const minutes = Math.floor(ms / (1000 * 60))
+      const hours = Math.floor(minutes / 60)
+      const days = Math.floor(hours / 24)
+      
+      let postedDays: number | string
+      if (days > 0) {
+        postedDays = days
+      } else if (hours > 0) {
+        postedDays = hours === 1 ? '1 hour ago' : `${hours} hours ago`
+      } else if (minutes > 0) {
+        postedDays = minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`
+      } else {
+        postedDays = 'Just now'
+      }
       const locationType = String(row.work_arrangement || 'onsite')
       const priorityFromDb = String(row.priority ?? '').toLowerCase()
       const priority: 'low' | 'medium' | 'high' | 'urgent' =
@@ -98,7 +111,20 @@ export async function GET(_request: NextRequest) {
       const salary = formatSalary(String(row.currency || 'PHP'), row.salary_min != null ? Number(row.salary_min) : null, row.salary_max != null ? Number(row.salary_max) : null, String(row.salary_type || 'monthly'))
       const createdAt = row.created_at ? new Date(row.created_at) : new Date()
       const ms = Date.now() - createdAt.getTime()
-      const postedDays = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)))
+      const minutes = Math.floor(ms / (1000 * 60))
+      const hours = Math.floor(minutes / 60)
+      const days = Math.floor(hours / 24)
+      
+      let postedDays: number | string
+      if (days > 0) {
+        postedDays = days
+      } else if (hours > 0) {
+        postedDays = hours === 1 ? '1 hour ago' : `${hours} hours ago`
+      } else if (minutes > 0) {
+        postedDays = minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`
+      } else {
+        postedDays = 'Just now'
+      }
       const locationType = String(row.work_arrangement || 'onsite')
       const priorityFromDb = String(row.priority ?? '').toLowerCase()
       const priority: 'low' | 'medium' | 'high' | 'urgent' =
