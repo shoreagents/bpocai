@@ -198,6 +198,26 @@ export default function TypingHeroPage() {
   const musicAudioRef = useRef<HTMLAudioElement>(null); // NEW: Dedicated music audio element
   const audioContextRef = useRef<AudioContext | null>(null);
   
+  // NEW: Shared results state
+  const [sharedResults, setSharedResults] = useState<any>(null);
+  const [showSharedResults, setShowSharedResults] = useState(false);
+  
+  // Check for shared results on page load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resultsParam = urlParams.get('results');
+    
+    if (resultsParam) {
+      try {
+        const decodedResults = JSON.parse(decodeURIComponent(resultsParam));
+        setSharedResults(decodedResults);
+        setShowSharedResults(true);
+      } catch (error) {
+        console.error('Failed to parse shared results:', error);
+      }
+    }
+  }, []);
+  
   // NEW: Music preference state
   const [musicGender, setMusicGender] = useState<'male' | 'female'>('male'); // Default to male
   
@@ -3072,6 +3092,81 @@ export default function TypingHeroPage() {
 
   return (
     <div className="min-h-screen cyber-grid overflow-hidden">
+      {/* Shared Results Display */}
+      {showSharedResults && sharedResults && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 max-w-md w-full border border-purple-500/30 shadow-2xl"
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trophy className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Shared Results</h2>
+              <p className="text-gray-300">Someone shared their Typing Hero achievement!</p>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="bg-slate-700/50 rounded-lg p-4">
+                <div className="text-3xl font-bold text-purple-400 mb-1">
+                  {sharedResults.score.toLocaleString()} points
+                </div>
+                <div className="text-sm text-gray-300">Total Score</div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-700/50 rounded-lg p-3">
+                  <div className="text-xl font-bold text-green-400">{sharedResults.wpm} WPM</div>
+                  <div className="text-xs text-gray-300">Words Per Minute</div>
+                </div>
+                <div className="bg-slate-700/50 rounded-lg p-3">
+                  <div className="text-xl font-bold text-blue-400">{sharedResults.accuracy}%</div>
+                  <div className="text-xs text-gray-300">Accuracy</div>
+                </div>
+              </div>
+              
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <div className="text-lg font-bold text-orange-400">{sharedResults.longestStreak} streak</div>
+                <div className="text-xs text-gray-300">Longest Streak</div>
+              </div>
+              
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <div className="text-sm text-gray-300">Difficulty: <span className="text-purple-400 font-semibold capitalize">{sharedResults.difficulty}</span></div>
+                <div className="text-xs text-gray-400">Completed: {new Date(sharedResults.timestamp).toLocaleDateString()}</div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowSharedResults(false);
+                  setSharedResults(null);
+                  // Clear URL parameters
+                  window.history.replaceState({}, '', window.location.pathname);
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowSharedResults(false);
+                  setSharedResults(null);
+                  setGameState('menu');
+                  // Clear URL parameters
+                  window.history.replaceState({}, '', window.location.pathname);
+                }}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              >
+                Try to Beat It!
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
       {/* Hidden audio elements */}
       <audio ref={audioRef} preload="auto">
         <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEgCj2a4OwPPgEEQJvQ8t2RQgoMX7zS8dlUIAwXZr7n7qhVEwdAXbzS8NxTHwMFPZnK8N+Ja" type="audio/wav" />
@@ -5146,21 +5241,49 @@ export default function TypingHeroPage() {
 
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
-                  onClick={() => {
-                      // Enhanced share functionality
-                      const shareText = `🎮 Just crushed Typing Hero!\n\n🏆 ${gameStats.score.toLocaleString()} points\n⚡ ${gameStats.wpm} WPM\n🎯 ${Math.round(gameStats.accuracy)}% accuracy\n🔥 ${gameStats.longestStreak} streak\n\nCan you beat my score? 🚀`;
+                  onClick={async () => {
+                    try {
+                      // Create a results-only shareable link
+                      const resultsData = {
+                        game: 'Typing Hero',
+                        score: gameStats.score,
+                        wpm: gameStats.wpm,
+                        accuracy: Math.round(gameStats.accuracy),
+                        longestStreak: gameStats.longestStreak,
+                        difficulty: currentDifficulty,
+                        timestamp: new Date().toISOString()
+                      };
                       
-                    if (navigator.share) {
-                      navigator.share({
+                      // Encode results in URL parameters
+                      const encodedResults = encodeURIComponent(JSON.stringify(resultsData));
+                      const shareableUrl = `${window.location.origin}/career-tools/games/typing-hero?results=${encodedResults}`;
+                      
+                      const shareText = `🎮 Just crushed Typing Hero!\n\n🏆 ${gameStats.score.toLocaleString()} points\n⚡ ${gameStats.wpm} WPM\n🎯 ${Math.round(gameStats.accuracy)}% accuracy\n🔥 ${gameStats.longestStreak} streak\n\nCan you beat my score? 🚀\n\nView my results: ${shareableUrl}`;
+                      
+                      if (navigator.share) {
+                        navigator.share({
                           title: 'My Typing Hero Achievement!',
                           text: shareText,
-                        url: window.location.href
-                      });
-                    } else {
-                        navigator.clipboard.writeText(shareText + '\n' + window.location.href);
-                        // Could add a toast notification here
+                          url: shareableUrl
+                        });
+                      } else {
+                        // Fallback: copy to clipboard
+                        await navigator.clipboard.writeText(shareText);
+                        
+                        // Show success feedback
+                        const button = event?.target as HTMLButtonElement;
+                        if (button) {
+                          const originalText = button.innerHTML;
+                          button.innerHTML = '<div class="flex items-center"><span class="w-4 h-4 mr-2">✓</span>Results Copied!</div>';
+                          setTimeout(() => {
+                            button.innerHTML = originalText;
+                          }, 2000);
+                        }
                       }
-                    }}
+                    } catch (error) {
+                      console.error('Failed to share results:', error);
+                    }
+                  }}
                     className="w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl hover:shadow-blue-400/20 transition-all duration-300"
                   >
                     <Share className="w-5 h-5 mr-2" />
@@ -5170,6 +5293,7 @@ export default function TypingHeroPage() {
                     </div>
                 </Button>
                 </motion.div>
+
 
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button

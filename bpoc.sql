@@ -235,6 +235,13 @@ insert
 update
     of username on
     public.users for each row execute function users_set_slug_trigger();
+create trigger trigger_update_leaderboard_on_user after
+update
+    of completed_data,
+    avatar_url,
+    bio,
+    location on
+    public.users for each row execute function trigger_update_leaderboard_score();
 
 
 -- public.bpoc_cultural_sessions definition
@@ -429,7 +436,14 @@ CREATE TABLE public.disc_personality_stats (
 	latest_ai_assessment text NULL,
 	latest_bpo_roles jsonb DEFAULT '[]'::jsonb NULL,
 	percentile numeric(5, 2) NULL,
+	total_xp int4 DEFAULT 0 NULL, -- Cumulative XP earned across all DISC sessions
+	badges_earned int4 DEFAULT 0 NULL, -- Total number of badges/achievements earned
+	cultural_alignment_score int4 NULL, -- Latest cultural alignment percentage (Filipino workplace fit)
+	authenticity_score int4 NULL, -- Latest authenticity score from DISC assessment
+	latest_session_xp int4 DEFAULT 0 NULL, -- XP earned in the most recent session
+	CONSTRAINT disc_personality_stats_authenticity_score_check CHECK (((authenticity_score IS NULL) OR ((authenticity_score >= 0) AND (authenticity_score <= 100)))),
 	CONSTRAINT disc_personality_stats_best_confidence_score_check CHECK (((best_confidence_score IS NULL) OR ((best_confidence_score >= 0) AND (best_confidence_score <= 100)))),
+	CONSTRAINT disc_personality_stats_cultural_alignment_score_check CHECK (((cultural_alignment_score IS NULL) OR ((cultural_alignment_score >= 0) AND (cultural_alignment_score <= 100)))),
 	CONSTRAINT disc_personality_stats_latest_c_score_check CHECK (((latest_c_score IS NULL) OR ((latest_c_score >= 0) AND (latest_c_score <= 100)))),
 	CONSTRAINT disc_personality_stats_latest_d_score_check CHECK (((latest_d_score IS NULL) OR ((latest_d_score >= 0) AND (latest_d_score <= 100)))),
 	CONSTRAINT disc_personality_stats_latest_i_score_check CHECK (((latest_i_score IS NULL) OR ((latest_i_score >= 0) AND (latest_i_score <= 100)))),
@@ -441,16 +455,33 @@ CREATE TABLE public.disc_personality_stats (
 	CONSTRAINT disc_personality_stats_user_id_key UNIQUE (user_id),
 	CONSTRAINT disc_personality_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_disc_stats_badges ON public.disc_personality_stats USING btree (badges_earned);
 CREATE INDEX idx_disc_stats_bpo_roles ON public.disc_personality_stats USING gin (latest_bpo_roles);
 CREATE INDEX idx_disc_stats_confidence ON public.disc_personality_stats USING btree (best_confidence_score);
+CREATE INDEX idx_disc_stats_cultural_alignment ON public.disc_personality_stats USING btree (cultural_alignment_score);
 CREATE INDEX idx_disc_stats_last_taken ON public.disc_personality_stats USING btree (last_taken_at);
 CREATE INDEX idx_disc_stats_percentile ON public.disc_personality_stats USING btree (percentile);
 CREATE INDEX idx_disc_stats_primary_type ON public.disc_personality_stats USING btree (latest_primary_type);
+CREATE INDEX idx_disc_stats_total_xp ON public.disc_personality_stats USING btree (total_xp);
 CREATE INDEX idx_disc_stats_user_id ON public.disc_personality_stats USING btree (user_id);
 COMMENT ON TABLE public.disc_personality_stats IS 'Aggregated DISC personality statistics per user for quick lookups and leaderboards';
 
+-- Column comments
+
+COMMENT ON COLUMN public.disc_personality_stats.total_xp IS 'Cumulative XP earned across all DISC sessions';
+COMMENT ON COLUMN public.disc_personality_stats.badges_earned IS 'Total number of badges/achievements earned';
+COMMENT ON COLUMN public.disc_personality_stats.cultural_alignment_score IS 'Latest cultural alignment percentage (Filipino workplace fit)';
+COMMENT ON COLUMN public.disc_personality_stats.authenticity_score IS 'Latest authenticity score from DISC assessment';
+COMMENT ON COLUMN public.disc_personality_stats.latest_session_xp IS 'XP earned in the most recent session';
+
 -- Table Triggers
 
+create trigger trigger_update_leaderboard_on_disc after
+insert
+    or
+update
+    on
+    public.disc_personality_stats for each row execute function trigger_update_leaderboard_score();
 create trigger update_disc_stats_updated_at before
 update
     on
@@ -506,82 +537,6 @@ create trigger update_job_requests_updated_at before
 update
     on
     public.job_requests for each row execute function update_updated_at_column();
-
-
--- public.leaderboard_applicant_scores definition
-
--- Drop table
-
--- DROP TABLE public.leaderboard_applicant_scores;
-
-CREATE TABLE public.leaderboard_applicant_scores (
-	"period" public."leaderboard_period_enum" DEFAULT 'all'::leaderboard_period_enum NOT NULL,
-	user_id uuid NOT NULL,
-	score int4 NOT NULL,
-	updated_at timestamptz DEFAULT now() NOT NULL,
-	extra jsonb DEFAULT '{}'::jsonb NULL,
-	CONSTRAINT leaderboard_applicant_scores_pkey PRIMARY KEY (period, user_id),
-	CONSTRAINT leaderboard_applicant_scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_lbs_applicants_order ON public.leaderboard_applicant_scores USING btree (period, score DESC);
-
-
--- public.leaderboard_engagement_scores definition
-
--- Drop table
-
--- DROP TABLE public.leaderboard_engagement_scores;
-
-CREATE TABLE public.leaderboard_engagement_scores (
-	"period" public."leaderboard_period_enum" DEFAULT 'all'::leaderboard_period_enum NOT NULL,
-	user_id uuid NOT NULL,
-	score int4 NOT NULL,
-	updated_at timestamptz DEFAULT now() NOT NULL,
-	extra jsonb DEFAULT '{}'::jsonb NULL,
-	CONSTRAINT leaderboard_engagement_scores_pkey PRIMARY KEY (period, user_id),
-	CONSTRAINT leaderboard_engagement_scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_lbs_engagement_order ON public.leaderboard_engagement_scores USING btree (period, score DESC);
-
-
--- public.leaderboard_game_scores definition
-
--- Drop table
-
--- DROP TABLE public.leaderboard_game_scores;
-
-CREATE TABLE public.leaderboard_game_scores (
-	"period" public."leaderboard_period_enum" NOT NULL,
-	game_id text NOT NULL,
-	user_id uuid NOT NULL,
-	best_score int4 NOT NULL,
-	plays int4 DEFAULT 0 NOT NULL,
-	last_played timestamptz NULL,
-	updated_at timestamptz DEFAULT now() NOT NULL,
-	extra jsonb DEFAULT '{}'::jsonb NULL,
-	CONSTRAINT leaderboard_game_scores_pkey PRIMARY KEY (period, game_id, user_id),
-	CONSTRAINT leaderboard_game_scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_lbs_game_order ON public.leaderboard_game_scores USING btree (game_id, period, best_score DESC, plays, last_played);
-
-
--- public.leaderboard_overall_scores definition
-
--- Drop table
-
--- DROP TABLE public.leaderboard_overall_scores;
-
-CREATE TABLE public.leaderboard_overall_scores (
-	user_id uuid NOT NULL,
-	game_norm numeric(6, 2) DEFAULT 0 NOT NULL,
-	applicant_norm numeric(6, 2) DEFAULT 0 NOT NULL,
-	engagement_norm numeric(6, 2) DEFAULT 0 NOT NULL,
-	overall_score int4 NOT NULL,
-	updated_at timestamptz DEFAULT now() NOT NULL,
-	CONSTRAINT leaderboard_overall_scores_pkey PRIMARY KEY (user_id),
-	CONSTRAINT leaderboard_overall_scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
-);
-CREATE INDEX idx_lbs_overall_order ON public.leaderboard_overall_scores USING btree (overall_score DESC);
 
 
 -- public.privacy_settings definition
@@ -936,6 +891,7 @@ CREATE TABLE public.typing_hero_stats (
 	average_reaction_time numeric(5, 2) NULL, -- Average reaction time across all correct words in milliseconds.
 	vocabulary_strengths jsonb DEFAULT '[]'::jsonb NULL, -- Array of vocabulary areas where the user performs well as JSONB.
 	vocabulary_weaknesses jsonb DEFAULT '[]'::jsonb NULL, -- Array of vocabulary areas where the user needs improvement as JSONB.
+	generated_story text NULL,
 	CONSTRAINT typing_hero_stats_pkey PRIMARY KEY (id),
 	CONSTRAINT typing_hero_stats_user_id_key UNIQUE (user_id),
 	CONSTRAINT typing_hero_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
@@ -979,6 +935,12 @@ create trigger update_typing_hero_stats_updated_at before
 update
     on
     public.typing_hero_stats for each row execute function update_typing_hero_stats_updated_at();
+create trigger trigger_update_leaderboard_on_typing_hero after
+insert
+    or
+update
+    on
+    public.typing_hero_stats for each row execute function trigger_update_leaderboard_score();
 
 
 -- public.ultimate_sessions definition
@@ -1069,6 +1031,46 @@ update
     public.ultimate_stats for each row execute function update_updated_at_column();
 
 
+-- public.user_leaderboard_scores definition
+
+-- Drop table
+
+-- DROP TABLE public.user_leaderboard_scores;
+
+CREATE TABLE public.user_leaderboard_scores (
+	user_id uuid NOT NULL,
+	typing_hero_score int4 DEFAULT 0 NOT NULL,
+	disc_personality_score int4 DEFAULT 0 NOT NULL,
+	profile_completion_score int4 DEFAULT 0 NOT NULL,
+	resume_building_score int4 DEFAULT 0 NOT NULL,
+	application_activity_score int4 DEFAULT 0 NOT NULL,
+	overall_score int4 DEFAULT 0 NOT NULL,
+	tier text DEFAULT 'Bronze'::text NOT NULL,
+	rank_position int4 DEFAULT 0 NOT NULL,
+	metrics jsonb DEFAULT '{}'::jsonb NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	last_activity_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT user_leaderboard_scores_application_activity_score_check CHECK (((application_activity_score >= 0) AND (application_activity_score <= 100))),
+	CONSTRAINT user_leaderboard_scores_disc_personality_score_check CHECK (((disc_personality_score >= 0) AND (disc_personality_score <= 100))),
+	CONSTRAINT user_leaderboard_scores_overall_score_check CHECK (((overall_score >= 0) AND (overall_score <= 100))),
+	CONSTRAINT user_leaderboard_scores_pkey PRIMARY KEY (user_id),
+	CONSTRAINT user_leaderboard_scores_profile_completion_score_check CHECK (((profile_completion_score >= 0) AND (profile_completion_score <= 100))),
+	CONSTRAINT user_leaderboard_scores_resume_building_score_check CHECK (((resume_building_score >= 0) AND (resume_building_score <= 100))),
+	CONSTRAINT user_leaderboard_scores_tier_check CHECK ((tier = ANY (ARRAY['Bronze'::text, 'Silver'::text, 'Gold'::text, 'Platinum'::text, 'Diamond'::text]))),
+	CONSTRAINT user_leaderboard_scores_typing_hero_score_check CHECK (((typing_hero_score >= 0) AND (typing_hero_score <= 100))),
+	CONSTRAINT user_leaderboard_scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_leaderboard_disc ON public.user_leaderboard_scores USING btree (disc_personality_score DESC);
+CREATE INDEX idx_user_leaderboard_metrics ON public.user_leaderboard_scores USING gin (metrics);
+CREATE INDEX idx_user_leaderboard_overall_score ON public.user_leaderboard_scores USING btree (overall_score DESC);
+CREATE INDEX idx_user_leaderboard_rank ON public.user_leaderboard_scores USING btree (rank_position);
+CREATE INDEX idx_user_leaderboard_tier ON public.user_leaderboard_scores USING btree (tier);
+CREATE INDEX idx_user_leaderboard_typing ON public.user_leaderboard_scores USING btree (typing_hero_score DESC);
+CREATE INDEX idx_user_leaderboard_updated ON public.user_leaderboard_scores USING btree (updated_at DESC);
+COMMENT ON TABLE public.user_leaderboard_scores IS 'Unified leaderboard scoring system based on typing hero, DISC personality, profile completion, resume building, and job applications';
+
+
 -- public.user_work_status definition
 
 -- Drop table
@@ -1111,6 +1113,12 @@ create trigger user_work_status_updated_at before
 update
     on
     public.user_work_status for each row execute function update_updated_at_column();
+create trigger trigger_update_leaderboard_on_work_status after
+insert
+    or
+update
+    of completed_data on
+    public.user_work_status for each row execute function trigger_update_leaderboard_score();
 
 
 -- public.ai_analysis_results definition
@@ -1184,6 +1192,12 @@ create trigger update_ai_analysis_results_updated_at before
 update
     on
     public.ai_analysis_results for each row execute function update_updated_at_column();
+create trigger trigger_update_leaderboard_on_resume after
+insert
+    or
+update
+    of overall_score on
+    public.ai_analysis_results for each row execute function trigger_update_leaderboard_score();
 
 
 -- public.applications definition
@@ -1228,6 +1242,12 @@ create trigger applications_notify_status_changes after
 update
     on
     public.applications for each row execute function notify_job_status_change();
+create trigger trigger_update_leaderboard_on_applications after
+insert
+    or
+update
+    of status on
+    public.applications for each row execute function trigger_update_leaderboard_score();
 
 
 -- public.bpoc_cultural_results definition
@@ -1293,69 +1313,6 @@ CREATE TABLE public.recruiter_applications (
 	CONSTRAINT recruiter_applications_resume_id_fkey FOREIGN KEY (resume_id) REFERENCES public.saved_resumes(id) ON DELETE RESTRICT,
 	CONSTRAINT recruiter_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
-
-
--- public.mv_leaderboard_overall source
-
-CREATE MATERIALIZED VIEW public.mv_leaderboard_overall
-TABLESPACE pg_default
-AS WITH per_game_max AS (
-         SELECT leaderboard_game_scores.game_id,
-            max(leaderboard_game_scores.best_score) AS max_score
-           FROM leaderboard_game_scores
-          WHERE leaderboard_game_scores.period = 'all'::leaderboard_period_enum
-          GROUP BY leaderboard_game_scores.game_id
-        ), per_user_game_norm AS (
-         SELECT l.user_id,
-            avg(100.0 * l.best_score::numeric / NULLIF(m.max_score, 0)::numeric) AS game_norm
-           FROM leaderboard_game_scores l
-             JOIN per_game_max m ON m.game_id = l.game_id
-          WHERE l.period = 'all'::leaderboard_period_enum
-          GROUP BY l.user_id
-        ), app_max AS (
-         SELECT max(leaderboard_applicant_scores.score) AS max_app
-           FROM leaderboard_applicant_scores
-          WHERE leaderboard_applicant_scores.period = 'all'::leaderboard_period_enum
-        ), eng_max AS (
-         SELECT max(leaderboard_engagement_scores.score) AS max_eng
-           FROM leaderboard_engagement_scores
-          WHERE leaderboard_engagement_scores.period = 'all'::leaderboard_period_enum
-        ), per_user_app_norm AS (
-         SELECT a_1.user_id,
-            100.0 * a_1.score::numeric / NULLIF(( SELECT app_max.max_app
-                   FROM app_max), 0)::numeric AS applicant_norm
-           FROM leaderboard_applicant_scores a_1
-          WHERE a_1.period = 'all'::leaderboard_period_enum
-        ), per_user_eng_norm AS (
-         SELECT e.user_id,
-            100.0 * e.score::numeric / NULLIF(( SELECT eng_max.max_eng
-                   FROM eng_max), 0)::numeric AS engagement_norm
-           FROM leaderboard_engagement_scores e
-          WHERE e.period = 'all'::leaderboard_period_enum
-        ), user_union AS (
-         SELECT per_user_game_norm.user_id
-           FROM per_user_game_norm
-        UNION
-         SELECT per_user_app_norm.user_id
-           FROM per_user_app_norm
-        UNION
-         SELECT per_user_eng_norm.user_id
-           FROM per_user_eng_norm
-        )
- SELECT u.user_id,
-    COALESCE(g.game_norm, 0::numeric) AS game_norm,
-    COALESCE(a.applicant_norm, 0::numeric) AS applicant_norm,
-    COALESCE(en.engagement_norm, 0::numeric) AS engagement_norm,
-    round(0.6 * COALESCE(g.game_norm, 0::numeric) + 0.3 * COALESCE(a.applicant_norm, 0::numeric) + 0.1 * COALESCE(en.engagement_norm, 0::numeric))::integer AS overall_score,
-    now() AS updated_at
-   FROM user_union u
-     LEFT JOIN per_user_game_norm g ON g.user_id = u.user_id
-     LEFT JOIN per_user_app_norm a ON a.user_id = u.user_id
-     LEFT JOIN per_user_eng_norm en ON en.user_id = u.user_id
-WITH DATA;
-
--- View indexes:
-CREATE INDEX idx_mv_leaderboard_overall_score ON public.mv_leaderboard_overall USING btree (overall_score DESC);
 
 
 -- public.v_user_complete_data source
@@ -1427,12 +1384,65 @@ AS SELECT u.id AS user_id,
     aar.experience_snapshot,
     aar.education_snapshot,
     aar.created_at AS analysis_created_at,
-    aar.updated_at AS analysis_updated_at
+    aar.updated_at AS analysis_updated_at,
+    dps.id AS disc_personality_stats_id,
+    dps.user_id AS disc_personality_user_id,
+    dps.created_at AS disc_created_at,
+    dps.updated_at AS disc_updated_at,
+    dps.total_sessions AS disc_total_sessions,
+    dps.completed_sessions AS disc_completed_sessions,
+    dps.last_taken_at AS disc_last_taken_at,
+    dps.latest_d_score,
+    dps.latest_i_score,
+    dps.latest_s_score,
+    dps.latest_c_score,
+    dps.latest_primary_type AS disc_primary_type,
+    dps.latest_secondary_type AS disc_secondary_type,
+    dps.best_confidence_score AS disc_confidence_score,
+    dps.average_completion_time AS disc_completion_time,
+    dps.consistency_trend AS disc_consistency_trend,
+    dps.latest_ai_assessment AS disc_ai_assessment,
+    dps.latest_bpo_roles AS disc_bpo_roles,
+    dps.percentile AS disc_percentile,
+    dps.total_xp AS disc_total_xp,
+    dps.badges_earned AS disc_badges_earned,
+    dps.cultural_alignment_score AS disc_cultural_alignment_score,
+    dps.authenticity_score AS disc_authenticity_score,
+    dps.latest_session_xp AS disc_latest_session_xp,
+    ths.id AS typing_hero_stats_id,
+    ths.user_id AS typing_hero_user_id,
+    ths.created_at AS typing_created_at,
+    ths.updated_at AS typing_updated_at,
+    ths.total_sessions AS typing_total_sessions,
+    ths.completed_sessions AS typing_completed_sessions,
+    ths.last_played_at AS typing_last_played_at,
+    ths.best_score AS typing_best_score,
+    ths.best_wpm AS typing_best_wpm,
+    ths.best_accuracy AS typing_best_accuracy,
+    ths.best_streak AS typing_best_streak,
+    ths.latest_score AS typing_latest_score,
+    ths.latest_wpm AS typing_latest_wpm,
+    ths.latest_accuracy AS typing_latest_accuracy,
+    ths.latest_difficulty AS typing_latest_difficulty,
+    ths.avg_wpm AS typing_avg_wpm,
+    ths.avg_accuracy AS typing_avg_accuracy,
+    ths.total_play_time AS typing_total_play_time,
+    ths.ai_analysis AS typing_ai_analysis,
+    ths.total_words_correct AS typing_total_words_correct,
+    ths.total_words_incorrect AS typing_total_words_incorrect,
+    ths.most_common_correct_words AS typing_most_common_correct_words,
+    ths.most_common_incorrect_words AS typing_most_common_incorrect_words,
+    ths.average_reaction_time AS typing_average_reaction_time,
+    ths.vocabulary_strengths AS typing_vocabulary_strengths,
+    ths.vocabulary_weaknesses AS typing_vocabulary_weaknesses,
+    ths.generated_story AS typing_generated_story
    FROM users u
      LEFT JOIN user_work_status uws ON u.id = uws.user_id
-     LEFT JOIN ai_analysis_results aar ON u.id = aar.user_id;
+     LEFT JOIN ai_analysis_results aar ON u.id = aar.user_id
+     LEFT JOIN disc_personality_stats dps ON u.id = dps.user_id
+     LEFT JOIN typing_hero_stats ths ON u.id = ths.user_id;
 
-COMMENT ON VIEW public.v_user_complete_data IS 'Simplified user data view combining users, work status, and AI analysis results (no is_admin; includes username).';
+COMMENT ON VIEW public.v_user_complete_data IS 'Complete user data view with ALL columns from users, work status, AI analysis, DISC personality stats (including XP, badges, cultural alignment), and typing hero stats (including generated story) for comprehensive public API consumption.';
 
 
 
@@ -1452,15 +1462,6 @@ END;
 $function$
 ;
 
--- DROP FUNCTION public.armor(bytea);
-
-CREATE OR REPLACE FUNCTION public.armor(bytea)
- RETURNS text
- LANGUAGE c
- IMMUTABLE PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pg_armor$function$
-;
-
 -- DROP FUNCTION public.armor(bytea, _text, _text);
 
 CREATE OR REPLACE FUNCTION public.armor(bytea, text[], text[])
@@ -1470,20 +1471,251 @@ CREATE OR REPLACE FUNCTION public.armor(bytea, text[], text[])
 AS '$libdir/pgcrypto', $function$pg_armor$function$
 ;
 
--- DROP FUNCTION public.compute_user_slug(text, text, uuid);
+-- DROP FUNCTION public.armor(bytea);
 
-CREATE OR REPLACE FUNCTION public.compute_user_slug(p_first text, p_last text, p_id uuid)
+CREATE OR REPLACE FUNCTION public.armor(bytea)
  RETURNS text
- LANGUAGE sql
- IMMUTABLE
+ LANGUAGE c
+ IMMUTABLE PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pg_armor$function$
+;
+
+-- DROP FUNCTION public.calculate_user_leaderboard_score(uuid);
+
+CREATE OR REPLACE FUNCTION public.calculate_user_leaderboard_score(p_user_id uuid)
+ RETURNS TABLE(typing_score integer, disc_score integer, profile_score integer, resume_score integer, application_score integer, overall integer, tier_name text, detailed_metrics jsonb)
+ LANGUAGE plpgsql
 AS $function$
-  SELECT concat_ws('-',
-           nullif(public.slugify_text(p_first), ''),
-           nullif(public.slugify_text(p_last), ''),
-           right(translate(p_id::text, '-', ''), 4)
-         );
+DECLARE
+    v_typing_score INTEGER := 0;
+    v_disc_score INTEGER := 0;
+    v_profile_score INTEGER := 0;
+    v_resume_score INTEGER := 0;
+    v_application_score INTEGER := 0;
+    v_overall_score INTEGER := 0;
+    v_tier TEXT := 'Bronze';
+    v_metrics JSONB := '{}'::jsonb;
+    
+    -- Typing Hero variables
+    v_typing_best_wpm INTEGER;
+    v_typing_best_accuracy NUMERIC;
+    v_typing_avg_wpm NUMERIC;
+    v_typing_sessions INTEGER;
+    
+    -- DISC Personality variables
+    v_disc_confidence INTEGER;
+    v_disc_completed INTEGER;
+    v_disc_primary_type TEXT;
+    
+    -- Profile completion variables
+    v_profile_completed BOOLEAN;
+    v_work_status_completed BOOLEAN;
+    v_has_avatar BOOLEAN;
+    v_has_bio BOOLEAN;
+    v_has_location BOOLEAN;
+    
+    -- Resume variables
+    v_resume_overall_score INTEGER;
+    v_has_resume BOOLEAN;
+    
+    -- Application variables
+    v_total_applications INTEGER;
+    v_active_applications INTEGER;
+    v_hired_count INTEGER;
+    v_passed_count INTEGER;
+BEGIN
+    -- =====================================================
+    -- 1. TYPING HERO SCORE (0-100)
+    -- =====================================================
+    -- Scoring: 40% best WPM, 30% accuracy, 20% avg WPM, 10% consistency (sessions)
+    SELECT 
+        ths.best_wpm,
+        ths.best_accuracy,
+        ths.avg_wpm,
+        ths.completed_sessions
+    INTO v_typing_best_wpm, v_typing_best_accuracy, v_typing_avg_wpm, v_typing_sessions
+    FROM typing_hero_stats ths
+    WHERE ths.user_id = p_user_id;
+    
+    IF v_typing_best_wpm IS NOT NULL THEN
+        -- WPM Score: 0 at 0 WPM, 100 at 100+ WPM
+        v_typing_score := LEAST(100, (
+            (LEAST(v_typing_best_wpm, 100)::NUMERIC / 100.0 * 40) +  -- 40% weight
+            (COALESCE(v_typing_best_accuracy, 0) / 100.0 * 30) +      -- 30% weight
+            (LEAST(COALESCE(v_typing_avg_wpm, 0), 100)::NUMERIC / 100.0 * 20) +  -- 20% weight
+            (LEAST(v_typing_sessions, 10)::NUMERIC / 10.0 * 10)       -- 10% weight
+        ))::INTEGER;
+    END IF;
+    
+    -- =====================================================
+    -- 2. DISC PERSONALITY SCORE (0-100)
+    -- =====================================================
+    -- Scoring: 50% confidence, 30% completion, 20% engagement
+    SELECT 
+        dps.best_confidence_score,
+        dps.completed_sessions,
+        dps.latest_primary_type
+    INTO v_disc_confidence, v_disc_completed, v_disc_primary_type
+    FROM disc_personality_stats dps
+    WHERE dps.user_id = p_user_id;
+    
+    IF v_disc_confidence IS NOT NULL THEN
+        v_disc_score := (
+            (COALESCE(v_disc_confidence, 0) * 0.5) +                  -- 50% weight
+            (LEAST(v_disc_completed, 3)::NUMERIC / 3.0 * 30) +        -- 30% weight (cap at 3 sessions)
+            (CASE WHEN v_disc_primary_type IS NOT NULL THEN 20 ELSE 0 END)  -- 20% weight
+        )::INTEGER;
+    END IF;
+    
+    -- =====================================================
+    -- 3. PROFILE COMPLETION SCORE (0-100)
+    -- =====================================================
+    -- Scoring: All sections weighted
+    SELECT 
+        u.completed_data,
+        uws.completed_data,
+        u.avatar_url IS NOT NULL,
+        u.bio IS NOT NULL AND length(u.bio) > 20,
+        u.location IS NOT NULL
+    INTO v_profile_completed, v_work_status_completed, v_has_avatar, v_has_bio, v_has_location
+    FROM users u
+    LEFT JOIN user_work_status uws ON u.id = uws.user_id
+    WHERE u.id = p_user_id;
+    
+    v_profile_score := (
+        (CASE WHEN v_profile_completed THEN 30 ELSE 0 END) +          -- Personal data: 30%
+        (CASE WHEN v_work_status_completed THEN 30 ELSE 0 END) +      -- Work status: 30%
+        (CASE WHEN v_has_avatar THEN 15 ELSE 0 END) +                 -- Avatar: 15%
+        (CASE WHEN v_has_bio THEN 15 ELSE 0 END) +                    -- Bio: 15%
+        (CASE WHEN v_has_location THEN 10 ELSE 0 END)                 -- Location: 10%
+    )::INTEGER;
+    
+    -- =====================================================
+    -- 4. RESUME BUILDING SCORE (0-100)
+    -- =====================================================
+    -- Scoring: Resume quality + having saved resume
+    SELECT 
+        aar.overall_score,
+        EXISTS(SELECT 1 FROM saved_resumes sr WHERE sr.user_id = p_user_id)
+    INTO v_resume_overall_score, v_has_resume
+    FROM ai_analysis_results aar
+    WHERE aar.user_id = p_user_id;
+    
+    IF v_resume_overall_score IS NOT NULL THEN
+        v_resume_score := (
+            (v_resume_overall_score * 0.7) +                           -- AI score: 70%
+            (CASE WHEN v_has_resume THEN 30 ELSE 0 END)               -- Has saved resume: 30%
+        )::INTEGER;
+    ELSIF v_has_resume THEN
+        v_resume_score := 30; -- At least they have a resume
+    END IF;
+    
+    -- =====================================================
+    -- 5. APPLICATION ACTIVITY SCORE (0-100)
+    -- =====================================================
+    -- Scoring: Based on quantity and quality of applications
+    SELECT 
+        COUNT(*)::INTEGER,
+        COUNT(*) FILTER (WHERE status IN ('submitted', 'qualified', 'for verification', 'verified', 'initial interview', 'final interview'))::INTEGER,
+        COUNT(*) FILTER (WHERE status = 'hired')::INTEGER,
+        COUNT(*) FILTER (WHERE status = 'passed')::INTEGER
+    INTO v_total_applications, v_active_applications, v_hired_count, v_passed_count
+    FROM applications
+    WHERE user_id = p_user_id;
+    
+    IF v_total_applications > 0 THEN
+        v_application_score := LEAST(100, (
+            (LEAST(v_total_applications, 20)::NUMERIC / 20.0 * 40) +  -- Total apps: 40% (cap at 20)
+            (LEAST(v_active_applications, 10)::NUMERIC / 10.0 * 30) + -- Active apps: 30% (cap at 10)
+            (v_hired_count * 20) +                                     -- Each hire: 20 points
+            (v_passed_count * 10)                                      -- Each pass: 10 points
+        ))::INTEGER;
+    END IF;
+    
+    -- =====================================================
+    -- 6. CALCULATE OVERALL SCORE (Weighted Average)
+    -- =====================================================
+    -- Weights: Typing 25%, DISC 25%, Profile 15%, Resume 20%, Applications 15%
+    v_overall_score := (
+        (v_typing_score * 0.25) +
+        (v_disc_score * 0.25) +
+        (v_profile_score * 0.15) +
+        (v_resume_score * 0.20) +
+        (v_application_score * 0.15)
+    )::INTEGER;
+    
+    -- =====================================================
+    -- 7. DETERMINE TIER
+    -- =====================================================
+    v_tier := CASE 
+        WHEN v_overall_score >= 90 THEN 'Diamond'
+        WHEN v_overall_score >= 75 THEN 'Platinum'
+        WHEN v_overall_score >= 60 THEN 'Gold'
+        WHEN v_overall_score >= 40 THEN 'Silver'
+        ELSE 'Bronze'
+    END;
+    
+    -- =====================================================
+    -- 8. BUILD DETAILED METRICS JSON
+    -- =====================================================
+    v_metrics := jsonb_build_object(
+        'typing_hero', jsonb_build_object(
+            'best_wpm', v_typing_best_wpm,
+            'best_accuracy', v_typing_best_accuracy,
+            'avg_wpm', v_typing_avg_wpm,
+            'sessions', v_typing_sessions,
+            'score', v_typing_score
+        ),
+        'disc_personality', jsonb_build_object(
+            'confidence', v_disc_confidence,
+            'completed_sessions', v_disc_completed,
+            'primary_type', v_disc_primary_type,
+            'score', v_disc_score
+        ),
+        'profile_completion', jsonb_build_object(
+            'personal_data', v_profile_completed,
+            'work_status', v_work_status_completed,
+            'has_avatar', v_has_avatar,
+            'has_bio', v_has_bio,
+            'has_location', v_has_location,
+            'score', v_profile_score
+        ),
+        'resume_building', jsonb_build_object(
+            'ai_score', v_resume_overall_score,
+            'has_saved_resume', v_has_resume,
+            'score', v_resume_score
+        ),
+        'applications', jsonb_build_object(
+            'total', v_total_applications,
+            'active', v_active_applications,
+            'hired', v_hired_count,
+            'passed', v_passed_count,
+            'score', v_application_score
+        ),
+        'weights', jsonb_build_object(
+            'typing_hero', '25%',
+            'disc_personality', '25%',
+            'profile_completion', '15%',
+            'resume_building', '20%',
+            'applications', '15%'
+        )
+    );
+    
+    -- Return calculated values
+    RETURN QUERY SELECT 
+        v_typing_score,
+        v_disc_score,
+        v_profile_score,
+        v_resume_score,
+        v_application_score,
+        v_overall_score,
+        v_tier,
+        v_metrics;
+END;
 $function$
 ;
+
+COMMENT ON FUNCTION public.calculate_user_leaderboard_score(uuid) IS 'Calculates comprehensive leaderboard score for a user based on typing hero, DISC personality, profile completion, resume building, and applications';
 
 -- DROP FUNCTION public.compute_user_slug(text, uuid);
 
@@ -1500,6 +1732,21 @@ AS $function$
     ELSE 
       concat('user-', right(translate(p_id::text, '-', ''), 4))
   END;
+$function$
+;
+
+-- DROP FUNCTION public.compute_user_slug(text, text, uuid);
+
+CREATE OR REPLACE FUNCTION public.compute_user_slug(p_first text, p_last text, p_id uuid)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  SELECT concat_ws('-',
+           nullif(public.slugify_text(p_first), ''),
+           nullif(public.slugify_text(p_last), ''),
+           right(translate(p_id::text, '-', ''), 4)
+         );
 $function$
 ;
 
@@ -1539,18 +1786,18 @@ CREATE OR REPLACE FUNCTION public.decrypt_iv(bytea, bytea, bytea, text)
 AS '$libdir/pgcrypto', $function$pg_decrypt_iv$function$
 ;
 
--- DROP FUNCTION public.digest(bytea, text);
+-- DROP FUNCTION public.digest(text, text);
 
-CREATE OR REPLACE FUNCTION public.digest(bytea, text)
+CREATE OR REPLACE FUNCTION public.digest(text, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pg_digest$function$
 ;
 
--- DROP FUNCTION public.digest(text, text);
+-- DROP FUNCTION public.digest(bytea, text);
 
-CREATE OR REPLACE FUNCTION public.digest(text, text)
+CREATE OR REPLACE FUNCTION public.digest(bytea, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1593,15 +1840,6 @@ CREATE OR REPLACE FUNCTION public.gen_random_uuid()
 AS '$libdir/pgcrypto', $function$pg_random_uuid$function$
 ;
 
--- DROP FUNCTION public.gen_salt(text);
-
-CREATE OR REPLACE FUNCTION public.gen_salt(text)
- RETURNS text
- LANGUAGE c
- PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pg_gen_salt$function$
-;
-
 -- DROP FUNCTION public.gen_salt(text, int4);
 
 CREATE OR REPLACE FUNCTION public.gen_salt(text, integer)
@@ -1611,18 +1849,27 @@ CREATE OR REPLACE FUNCTION public.gen_salt(text, integer)
 AS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$
 ;
 
--- DROP FUNCTION public.hmac(text, text, text);
+-- DROP FUNCTION public.gen_salt(text);
 
-CREATE OR REPLACE FUNCTION public.hmac(text, text, text)
+CREATE OR REPLACE FUNCTION public.gen_salt(text)
+ RETURNS text
+ LANGUAGE c
+ PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pg_gen_salt$function$
+;
+
+-- DROP FUNCTION public.hmac(bytea, bytea, text);
+
+CREATE OR REPLACE FUNCTION public.hmac(bytea, bytea, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pg_hmac$function$
 ;
 
--- DROP FUNCTION public.hmac(bytea, bytea, text);
+-- DROP FUNCTION public.hmac(text, text, text);
 
-CREATE OR REPLACE FUNCTION public.hmac(bytea, bytea, text)
+CREATE OR REPLACE FUNCTION public.hmac(text, text, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1705,18 +1952,18 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt(bytea, bytea)
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text);
+-- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text);
+-- DROP FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1732,15 +1979,6 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_decrypt_bytea(bytea, bytea)
 AS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt(text, bytea);
-
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea)
- RETURNS bytea
- LANGUAGE c
- PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
-;
-
 -- DROP FUNCTION public.pgp_pub_encrypt(text, bytea, text);
 
 CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea, text)
@@ -1750,18 +1988,27 @@ CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea);
+-- DROP FUNCTION public.pgp_pub_encrypt(text, bytea);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea)
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt(text, bytea)
+ RETURNS bytea
+ LANGUAGE c
+ PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$
+;
+
+-- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text);
+
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text);
+-- DROP FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea);
 
-CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_pub_encrypt_bytea(bytea, bytea)
  RETURNS bytea
  LANGUAGE c
  PARALLEL SAFE STRICT
@@ -1786,18 +2033,18 @@ CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt(bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text);
+-- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
 AS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text);
+-- DROP FUNCTION public.pgp_sym_decrypt_bytea(bytea, text);
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text, text)
+CREATE OR REPLACE FUNCTION public.pgp_sym_decrypt_bytea(bytea, text)
  RETURNS bytea
  LANGUAGE c
  IMMUTABLE PARALLEL SAFE STRICT
@@ -1822,6 +2069,15 @@ CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt(text, text)
 AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$
 ;
 
+-- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text);
+
+CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text)
+ RETURNS bytea
+ LANGUAGE c
+ PARALLEL SAFE STRICT
+AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$
+;
+
 -- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text);
 
 CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text)
@@ -1831,14 +2087,28 @@ CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text)
 AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$
 ;
 
--- DROP FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text);
+-- DROP FUNCTION public.recalculate_leaderboard_ranks();
 
-CREATE OR REPLACE FUNCTION public.pgp_sym_encrypt_bytea(bytea, text, text)
- RETURNS bytea
- LANGUAGE c
- PARALLEL SAFE STRICT
-AS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$
+CREATE OR REPLACE FUNCTION public.recalculate_leaderboard_ranks()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    WITH ranked_users AS (
+        SELECT 
+            user_id,
+            ROW_NUMBER() OVER (ORDER BY overall_score DESC, updated_at ASC) AS new_rank
+        FROM user_leaderboard_scores
+    )
+    UPDATE user_leaderboard_scores uls
+    SET rank_position = ru.new_rank
+    FROM ranked_users ru
+    WHERE uls.user_id = ru.user_id;
+END;
+$function$
 ;
+
+COMMENT ON FUNCTION public.recalculate_leaderboard_ranks() IS 'Recalculates rank positions for all users in the leaderboard';
 
 -- DROP FUNCTION public.slugify_text(text);
 
@@ -1850,6 +2120,67 @@ AS $function$
   SELECT trim(both '-' from lower(regexp_replace(coalesce(input, ''), '[^A-Za-z0-9]+', '-', 'g')));
 $function$
 ;
+
+-- DROP FUNCTION public.trigger_update_leaderboard_score();
+
+CREATE OR REPLACE FUNCTION public.trigger_update_leaderboard_score()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    -- Update score for the affected user
+    -- Handle different table structures properly
+    IF TG_TABLE_NAME = 'users' THEN
+        PERFORM update_user_leaderboard_score(NEW.id);
+    ELSIF TG_TABLE_NAME = 'user_work_status' THEN
+        PERFORM update_user_leaderboard_score(NEW.user_id);
+    ELSIF TG_TABLE_NAME = 'ai_analysis_results' THEN
+        PERFORM update_user_leaderboard_score(NEW.user_id);
+    ELSIF TG_TABLE_NAME = 'applications' THEN
+        PERFORM update_user_leaderboard_score(NEW.user_id);
+    ELSIF TG_TABLE_NAME = 'typing_hero_stats' THEN
+        PERFORM update_user_leaderboard_score(NEW.user_id);
+    ELSIF TG_TABLE_NAME = 'disc_personality_stats' THEN
+        PERFORM update_user_leaderboard_score(NEW.user_id);
+    ELSE
+        -- Fallback: try to get user_id from the record
+        PERFORM update_user_leaderboard_score(NEW.user_id);
+    END IF;
+    
+    -- Recalculate ranks after score update
+    PERFORM recalculate_leaderboard_ranks();
+    
+    RETURN NEW;
+END;
+$function$
+;
+
+COMMENT ON FUNCTION public.trigger_update_leaderboard_score() IS 'Fixed trigger function that properly handles different table structures for leaderboard score updates';
+
+-- DROP FUNCTION public.update_all_leaderboard_scores();
+
+CREATE OR REPLACE FUNCTION public.update_all_leaderboard_scores()
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_user_id UUID;
+    v_count INTEGER := 0;
+BEGIN
+    FOR v_user_id IN SELECT id FROM users LOOP
+        PERFORM update_user_leaderboard_score(v_user_id);
+        v_count := v_count + 1;
+    END LOOP;
+    
+    -- Recalculate ranks after all scores updated
+    PERFORM recalculate_leaderboard_ranks();
+    
+    RETURN v_count;
+END;
+$function$
+;
+
+COMMENT ON FUNCTION public.update_all_leaderboard_scores() IS 'Updates leaderboard scores for all users and recalculates ranks';
 
 -- DROP FUNCTION public.update_applications_updated_at();
 
@@ -1941,6 +2272,61 @@ BEGIN
 END;
 $function$
 ;
+
+-- DROP FUNCTION public.update_user_leaderboard_score(uuid);
+
+CREATE OR REPLACE FUNCTION public.update_user_leaderboard_score(p_user_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_scores RECORD;
+BEGIN
+    -- Calculate scores
+    SELECT * INTO v_scores FROM calculate_user_leaderboard_score(p_user_id);
+    
+    -- Upsert into leaderboard table
+    INSERT INTO user_leaderboard_scores (
+        user_id,
+        typing_hero_score,
+        disc_personality_score,
+        profile_completion_score,
+        resume_building_score,
+        application_activity_score,
+        overall_score,
+        tier,
+        metrics,
+        updated_at,
+        last_activity_at
+    ) VALUES (
+        p_user_id,
+        v_scores.typing_score,
+        v_scores.disc_score,
+        v_scores.profile_score,
+        v_scores.resume_score,
+        v_scores.application_score,
+        v_scores.overall,
+        v_scores.tier_name,
+        v_scores.detailed_metrics,
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (user_id) DO UPDATE SET
+        typing_hero_score = EXCLUDED.typing_hero_score,
+        disc_personality_score = EXCLUDED.disc_personality_score,
+        profile_completion_score = EXCLUDED.profile_completion_score,
+        resume_building_score = EXCLUDED.resume_building_score,
+        application_activity_score = EXCLUDED.application_activity_score,
+        overall_score = EXCLUDED.overall_score,
+        tier = EXCLUDED.tier,
+        metrics = EXCLUDED.metrics,
+        updated_at = NOW(),
+        last_activity_at = NOW();
+END;
+$function$
+;
+
+COMMENT ON FUNCTION public.update_user_leaderboard_score(uuid) IS 'Updates leaderboard score for a specific user';
 
 -- DROP FUNCTION public.users_set_slug_trigger();
 

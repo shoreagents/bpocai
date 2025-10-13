@@ -1440,7 +1440,7 @@ export default function ProfilePage() {
                                     </h4>
                                     <p className="text-gray-400 text-sm">
                                       {isFullyVerified 
-                                        ? 'Your profile is complete and verified' 
+                                        ? `Your profile is verified (${completionPercentage}% complete)` 
                                         : 'Complete your profile to gain verification'
                                       }
                                     </p>
@@ -1464,7 +1464,7 @@ export default function ProfilePage() {
                                 <p className="text-gray-300 text-sm leading-relaxed">
                                   {isFullyVerified ? (
                                     <>
-                                      <span className="text-green-400 font-medium">✓ Congratulations!</span> You have successfully completed all required profile information and gained the <span className="text-blue-400 font-semibold">Verified</span> badge. This badge appears next to your name and indicates that your profile is complete and trustworthy.
+                                      <span className="text-green-400 font-medium">✓ Congratulations!</span> You have completed {completionPercentage}% of your profile and gained the <span className="text-blue-400 font-semibold">Verified</span> badge. This badge appears next to your name and indicates that your profile meets the verification requirements.
                                     </>
                                   ) : (
                                     <>
@@ -3114,8 +3114,8 @@ export default function ProfilePage() {
                                   
                                   // Sort scores: primary type first, then highest score, then by score descending
                                   const sortedScores = scores.sort((a, b) => {
-                                    const aIsPrimary = userProfile.game_stats.disc_personality_stats.primary_type === a.type;
-                                    const bIsPrimary = userProfile.game_stats.disc_personality_stats.primary_type === b.type;
+                                    const aIsPrimary = userProfile.game_stats?.disc_personality_stats?.primary_type === a.type;
+                                    const bIsPrimary = userProfile.game_stats?.disc_personality_stats?.primary_type === b.type;
                                     const aIsHighest = a.score === maxScore && a.score > 0;
                                     const bIsHighest = b.score === maxScore && b.score > 0;
                                     
@@ -3133,7 +3133,7 @@ export default function ProfilePage() {
                                   
                                   return sortedScores.map((item, index) => {
                                     const isHighest = item.score === maxScore && item.score > 0;
-                                    const isPrimary = userProfile.game_stats.disc_personality_stats.primary_type === item.type;
+                                    const isPrimary = userProfile.game_stats?.disc_personality_stats?.primary_type === item.type;
                                     
                                     return (
                                       <div key={item.type} className={`flex flex-col p-3 rounded-lg border transition-all duration-300 ${
@@ -3217,22 +3217,116 @@ export default function ProfilePage() {
                                         }
                                       }
                                       
-                                      // Get the animal personality reason section using the exact same logic as DISC results page
-                                      // Look for the ANIMAL PERSONALITY REASON section in the assessment
-                                      const animalReasonParagraph = assessment.split('\n\n').find((paragraph: string) => 
+                                      // Get the user's actual animal from their DISC results
+                                      const userAnimal = userProfile.game_stats?.disc_personality_stats?.latest_animal;
+                                      let userPrimaryType = userProfile.game_stats?.disc_personality_stats?.latest_primary_type;
+                                      
+                                      // Debug: Log the primary type from database
+                                      console.log('🔍 Primary Type from Database:', userPrimaryType);
+                                      
+                                      // Always recalculate primary type from scores to ensure accuracy
+                                      if (userProfile.game_stats?.disc_personality_stats) {
+                                        const scores = userProfile.game_stats.disc_personality_stats;
+                                        const scoreValues = {
+                                          D: scores.d_score || 0,
+                                          I: scores.i_score || 0,
+                                          S: scores.s_score || 0,
+                                          C: scores.c_score || 0
+                                        };
+                                        
+                                        console.log('🔍 Raw Database Scores:', {
+                                          d_score: scores.d_score,
+                                          i_score: scores.i_score,
+                                          s_score: scores.s_score,
+                                          c_score: scores.c_score
+                                        });
+                                        
+                                        // Find the highest scoring type
+                                        const maxScore = Math.max(...Object.values(scoreValues));
+                                        const calculatedPrimaryType = Object.keys(scoreValues).find(key => scoreValues[key as keyof typeof scoreValues] === maxScore) || 'D';
+                                        
+                                        console.log('🔍 Calculated Primary Type from Scores:', calculatedPrimaryType);
+                                        console.log('🔍 Score Values:', scoreValues);
+                                        console.log('🔍 Database Primary Type:', userPrimaryType);
+                                        console.log('🔍 Max Score:', maxScore);
+                                        console.log('🔍 All Scores:', Object.entries(scoreValues).map(([key, value]) => `${key}: ${value}`).join(', '));
+                                        
+                                        // Always use calculated type to ensure accuracy
+                                        userPrimaryType = calculatedPrimaryType;
+                                        console.log('✅ Using calculated primary type:', userPrimaryType);
+                                        
+                                        // Additional check: if scores are all 0 or undefined, try to get from latest session
+                                        if (maxScore === 0) {
+                                          console.log('⚠️ All scores are 0, checking for latest session data...');
+                                          // This might indicate we need to look at the latest session data instead
+                                        }
+                                      }
+                                      
+                                      // Create correct animal personality reason based on user's actual animal
+                                      const animalMap = {
+                                        'D': { emoji: '🦅', name: 'EAGLE', traits: 'leadership instincts and decisive nature' },
+                                        'I': { emoji: '🦚', name: 'PEACOCK', traits: 'social influence and team-building abilities' },
+                                        'S': { emoji: '🐢', name: 'TURTLE', traits: 'reliability and steady support' },
+                                        'C': { emoji: '🦉', name: 'OWL', traits: 'analytical thinking and systematic approach' }
+                                      };
+                                      
+                                      let userAnimalData = animalMap[userPrimaryType as keyof typeof animalMap] || animalMap['D'];
+                                      let userAnimalName = userAnimalData.name;
+                                      let userAnimalTraits = userAnimalData.traits;
+                                      
+                                      console.log('🔍 Animal Mapping Debug:');
+                                      console.log('📊 userPrimaryType:', userPrimaryType);
+                                      console.log('📊 userAnimalData:', userAnimalData);
+                                      console.log('📊 userAnimalName:', userAnimalName);
+                                      console.log('📊 userAnimalTraits:', userAnimalTraits);
+                                      
+                                      // Additional fallback: Try to determine animal from content if scores are wrong
+                                      if (assessment && assessment.length > 100) {
+                                        const assessmentLower = assessment.toLowerCase();
+                                        let detectedAnimal = null;
+                                        
+                                        if (assessmentLower.includes('owl') && assessmentLower.includes('conscientiousness')) {
+                                          detectedAnimal = 'C';
+                                          console.log('🔍 Detected Owl from content analysis');
+                                        } else if (assessmentLower.includes('eagle') && assessmentLower.includes('dominance')) {
+                                          detectedAnimal = 'D';
+                                          console.log('🔍 Detected Eagle from content analysis');
+                                        } else if (assessmentLower.includes('peacock') && assessmentLower.includes('influence')) {
+                                          detectedAnimal = 'I';
+                                          console.log('🔍 Detected Peacock from content analysis');
+                                        } else if (assessmentLower.includes('turtle') && assessmentLower.includes('steadiness')) {
+                                          detectedAnimal = 'S';
+                                          console.log('🔍 Detected Turtle from content analysis');
+                                        }
+                                        
+                                        if (detectedAnimal && detectedAnimal !== userPrimaryType) {
+                                          console.log('⚠️ Content analysis suggests different animal. Using content-based detection.');
+                                          userPrimaryType = detectedAnimal;
+                                          const correctedAnimalData = animalMap[detectedAnimal as keyof typeof animalMap];
+                                          const correctedAnimalName = correctedAnimalData.name;
+                                          console.log('✅ Corrected animal name:', correctedAnimalName);
+                                          
+                                          // Update the animal data with corrected values
+                                          userAnimalData = correctedAnimalData;
+                                          userAnimalName = correctedAnimalName;
+                                          userAnimalTraits = correctedAnimalData.traits;
+                                        }
+                                      }
+                                      
+                                      // Try to extract the actual AI assessment content from database
+                                      // Look for the ANIMAL PERSONALITY REASON section specifically
+                                      let animalReasonParagraph = assessment.split('\n\n').find((paragraph: string) => 
                                         paragraph.toLowerCase().includes('animal personality reason')
                                       );
                                       
-                                      let animalAnalysisParagraph: string | undefined;
-                                      
                                       if (animalReasonParagraph) {
-                                        // Extract the content after the section title (exact same logic as DISC results page)
+                                        // Extract the content after the section title
                                         const reasonContent = animalReasonParagraph
                                           .split(/animal personality reason[:\s]*/i)[1]
                                           ?.trim();
                                         
                                         if (reasonContent) {
-                                          // Parse bullet points (exact same logic as DISC results page)
+                                          // Parse bullet points from the database content
                                           const bulletPoints = reasonContent
                                             .split('\n')
                                             .map((line: string) => line.trim())
@@ -3246,45 +3340,93 @@ export default function ProfilePage() {
                                             animalContent = reasonContent;
                                           }
                                         }
-                                      } else {
-                                        // If not found, try to find any paragraph that contains animal personality analysis
-                                        animalAnalysisParagraph = assessment.split('\n\n').find((paragraph: string) => 
-                                          paragraph.toLowerCase().includes('personality analysis') || 
-                                          paragraph.toLowerCase().includes('turtle analysis') ||
-                                          paragraph.toLowerCase().includes('owl analysis') ||
-                                          paragraph.toLowerCase().includes('eagle analysis') ||
-                                          paragraph.toLowerCase().includes('peacock analysis')
-                                        );
+                                      }
+                                      
+                                      // If not found, try alternative patterns
+                                      let alternativeParagraph = null;
+                                      if (!animalContent || animalContent.length < 10) {
+                                        // Try to find any paragraph that contains animal personality analysis
+                                        alternativeParagraph = assessment.split('\n\n').find((paragraph: string) => {
+                                          const lowerParagraph = paragraph.toLowerCase();
+                                          return (lowerParagraph.includes('animal personality') && 
+                                                  (lowerParagraph.includes('analysis') || 
+                                                   lowerParagraph.includes('reason') ||
+                                                   lowerParagraph.includes('instincts'))) ||
+                                                 (lowerParagraph.includes('eagle') && lowerParagraph.includes('personality')) ||
+                                                 (lowerParagraph.includes('peacock') && lowerParagraph.includes('personality')) ||
+                                                 (lowerParagraph.includes('turtle') && lowerParagraph.includes('personality')) ||
+                                                 (lowerParagraph.includes('owl') && lowerParagraph.includes('personality'));
+                                        });
                                         
-                                        if (animalAnalysisParagraph) {
-                                          // Extract bullet points from this paragraph
-                                          const bulletPoints = animalAnalysisParagraph
-                                            .split('\n')
-                                            .map((line: string) => line.trim())
-                                            .filter((line: string) => line && line.startsWith('•'))
-                                            .map((line: string) => line.replace(/^•\s*/, '').trim())
-                                            .filter((line: string) => line.length > 0);
+                                        if (alternativeParagraph) {
+                                          // Extract content after any animal personality header
+                                          const content = alternativeParagraph
+                                            .split(/animal personality[:\s]*/i)[1] ||
+                                            alternativeParagraph
+                                            .split(/personality[:\s]*/i)[1] ||
+                                            alternativeParagraph;
                                           
-                                          if (bulletPoints.length > 0) {
-                                            animalContent = bulletPoints.join('\n');
+                                          if (content && content.trim().length > 10) {
+                                            animalContent = content.trim();
                                           }
                                         }
                                       }
                                       
+                                      // Final fallback: Look for specific animal name in assessment
+                                      if (!animalContent || animalContent.length < 10) {
+                                        // Try to find content that mentions the specific animal
+                                        const animalSpecificParagraph = assessment.split('\n\n').find((paragraph: string) => {
+                                          const lowerParagraph = paragraph.toLowerCase();
+                                          const animalLower = userAnimalName.toLowerCase();
+                                          return lowerParagraph.includes(animalLower) && 
+                                                 (lowerParagraph.includes('personality') || 
+                                                  lowerParagraph.includes('instincts') ||
+                                                  lowerParagraph.includes('natural'));
+                                        });
+                                        
+                                        if (animalSpecificParagraph) {
+                                          // Extract content after the animal name
+                                          const content = animalSpecificParagraph
+                                            .split(new RegExp(`${userAnimalName}[:\s]*`, 'i'))[1] ||
+                                            animalSpecificParagraph;
+                                          
+                                          if (content && content.trim().length > 10) {
+                                            animalContent = content.trim();
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Final fallback: Generate correct animal personality reason if database content not found
+                                      if (!animalContent || animalContent.length < 10) {
+                                        const userName = userProfile.first_name || userProfile.email || 'this person';
+                                        animalContent = `• Like the ${userAnimalName}'s natural instincts, ${userName} demonstrates ${userAnimalTraits} in their decision-making patterns\n• The ${userAnimalName} personality reflects ${userName}'s authentic approach to challenges and social interactions\n• This ${userPrimaryType === 'D' ? 'dominance' : userPrimaryType === 'I' ? 'influence' : userPrimaryType === 'S' ? 'steadiness' : 'conscientiousness'}-dominant profile shows how ${userName} naturally navigates professional and personal situations`;
+                                      }
+                                      
                                       // Debug logging
                                       console.log('🔍 Profile Animal Personality Debug:');
+                                      console.log('📊 User Primary Type:', userPrimaryType);
+                                      console.log('📊 User Animal Name (for title):', userAnimalName);
+                                      console.log('📊 User Animal from DB:', userAnimal);
+                                      console.log('📊 DISC Scores:', {
+                                        D: userProfile.game_stats?.disc_personality_stats?.d_score,
+                                        I: userProfile.game_stats?.disc_personality_stats?.i_score,
+                                        S: userProfile.game_stats?.disc_personality_stats?.s_score,
+                                        C: userProfile.game_stats?.disc_personality_stats?.c_score
+                                      });
                                       console.log('📊 Assessment contains ANIMAL PERSONALITY REASON:', assessment.includes('ANIMAL PERSONALITY REASON'));
-                                      console.log('📊 Assessment contains TURTLE ANALYSIS:', assessment.includes('TURTLE ANALYSIS'));
-                                      console.log('📊 Assessment contains PERSONALITY ANALYSIS:', assessment.includes('PERSONALITY ANALYSIS'));
+                                      console.log('📊 Assessment contains ANIMAL PERSONALITY:', assessment.includes('ANIMAL PERSONALITY'));
+                                      console.log('📊 Assessment contains ANALYSIS:', assessment.includes('ANALYSIS'));
                                       console.log('📊 Animal Reason Paragraph found:', !!animalReasonParagraph);
-                                      console.log('📊 Animal Analysis Paragraph found:', !!animalAnalysisParagraph);
-                                      console.log('📊 Animal Content:', animalContent);
+                                      console.log('📊 Alternative Paragraph found:', !!alternativeParagraph);
+                                      console.log('📊 Final Animal Content:', animalContent);
+                                      console.log('📊 Animal Content length:', animalContent.length);
                                       console.log('📊 Animal Content first line:', animalContent.split('\n')[0]);
                                       console.log('📊 Assessment preview:', assessment.substring(0, 1000));
+                                      console.log('🎯 TITLE WILL SHOW: ANIMAL PERSONALITY (' + userAnimalName + ') ANALYSIS:');
                                       
                                       // Fallback: If no animal content found, create a basic one
                                       if (!animalContent || animalContent.length < 10) {
-                                        const primaryType = userProfile.game_stats.disc_personality_stats.latest_primary_type;
+                                        const primaryType = userProfile.game_stats?.disc_personality_stats?.latest_primary_type;
                                         const animalName = primaryType === 'D' ? 'Eagle' : primaryType === 'I' ? 'Peacock' : primaryType === 'S' ? 'Turtle' : 'Owl';
                                         const discType = primaryType === 'D' ? 'Dominance' : primaryType === 'I' ? 'Influence' : primaryType === 'S' ? 'Steadiness' : 'Conscientiousness';
                                         
@@ -3336,51 +3478,7 @@ export default function ProfilePage() {
                                             {cleanAnimal && cleanAnimal.length > 10 && (
                                               <div>
                                                 <h4 className="text-lg font-semibold text-purple-300 mb-3">
-                                                  ANIMAL PERSONALITY REASON ({
-                                                    // Try to extract animal and type from content first, fallback to primary_type
-                                                    (() => {
-                                                      console.log('🔍 Title Debug - Animal Content:', animalContent);
-                                                      console.log('🔍 Title Debug - First line:', animalContent.split('\n')[0]);
-                                                      
-                                                      // Try multiple patterns to find the animal (without type)
-                                                      const patterns = [
-                                                        /\((OWL|EAGLE|PEACOCK|TURTLE)\s*-\s*(.*?)\)/i,
-                                                        /(OWL|EAGLE|PEACOCK|TURTLE)\s*-\s*(.*?):/i,
-                                                        /(OWL|EAGLE|PEACOCK|TURTLE)\s*ANALYSIS/i,
-                                                        /(OWL|EAGLE|PEACOCK|TURTLE)\s*PERSONALITY/i
-                                                      ];
-                                                      
-                                                      for (const pattern of patterns) {
-                                                        const match = animalContent.match(pattern);
-                                                        if (match && match[1]) {
-                                                          const animal = match[1].toUpperCase();
-                                                          console.log('🔍 Title Debug - Found match:', animal);
-                                                          return animal;
-                                                        }
-                                                      }
-                                                      
-                                                      // If no pattern found, try to determine from content context
-                                                      if (animalContent.toLowerCase().includes('turtle')) {
-                                                        console.log('🔍 Title Debug - Found turtle in content');
-                                                        return 'TURTLE';
-                                                      } else if (animalContent.toLowerCase().includes('owl')) {
-                                                        console.log('🔍 Title Debug - Found owl in content');
-                                                        return 'OWL';
-                                                      } else if (animalContent.toLowerCase().includes('eagle')) {
-                                                        console.log('🔍 Title Debug - Found eagle in content');
-                                                        return 'EAGLE';
-                                                      } else if (animalContent.toLowerCase().includes('peacock')) {
-                                                        console.log('🔍 Title Debug - Found peacock in content');
-                                                        return 'PEACOCK';
-                                                      }
-                                                      
-                                                      // Fallback to primary_type if not found in content
-                                                      const primaryType = userProfile.game_stats.disc_personality_stats.latest_primary_type;
-                                                      const animalName = primaryType === 'D' ? 'Eagle' : primaryType === 'I' ? 'Peacock' : primaryType === 'S' ? 'Turtle' : 'Owl';
-                                                      console.log('🔍 Title Debug - Using fallback:', animalName);
-                                                      return animalName;
-                                                    })()
-                                                  }):
+                                                  ANIMAL PERSONALITY ({userAnimalName}) ANALYSIS:
                                                 </h4>
                                                 <div className="space-y-4">
                                                   {cleanAnimal
@@ -3499,6 +3597,10 @@ export default function ProfilePage() {
                                               .replace(/\bteamoriented\b/gi, 'team-oriented')
                                               .replace(/\bclientoriented\b/gi, 'client-oriented')
                                               .replace(/\bdataoriented\b/gi, 'data-oriented')
+                                              .replace(/\bactionoriented\b/gi, 'action-oriented')
+                                              .replace(/\brelationshipconscious\b/gi, 'relationship-conscious')
+                                              .replace(/\bstrategicrelationship\b/gi, 'strategic relationship')
+                                              .replace(/\badaptablecommunicator\b/gi, 'adaptable communicator')
                                               .replace(/\bprocessfocused\b/gi, 'process-focused')
                                               .replace(/\bresultfocused\b/gi, 'result-focused')
                                               .replace(/\boutcomefocused\b/gi, 'outcome-focused')
