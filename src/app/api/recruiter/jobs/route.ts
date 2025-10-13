@@ -3,23 +3,14 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 GET /api/recruiter/jobs - Starting request')
-    console.log('🔍 Environment check:', {
-      hasDatabaseUrl: !!process.env.DATABASE_URL,
-      nodeEnv: process.env.NODE_ENV
-    })
-    
     // Get user ID from headers (set by middleware)
     const userId = request.headers.get('x-user-id')
-    console.log('🔍 User ID from headers:', userId)
-    
     if (!userId) {
-      console.log('❌ No user ID found in headers')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Verify user is a recruiter
-    const user = await prisma.users.findUnique({
+    const user = await (prisma as any).user.findUnique({
       where: { id: userId },
       select: { admin_level: true }
     })
@@ -34,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch from recruiter_jobs table for the current recruiter
     console.log('🔍 Fetching jobs for userId:', userId)
-    const recruiterJobs = await prisma.recruiter_jobs.findMany({
+    const recruiterJobs = await (prisma as any).recruiterJob.findMany({
       where: { recruiter_id: userId },
       orderBy: { created_at: 'desc' }
     })
@@ -89,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is a recruiter
-    const user = await prisma.users.findUnique({
+    const user = await (prisma as any).user.findUnique({
       where: { id: userId },
       select: { admin_level: true, company: true }
     })
@@ -164,7 +155,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Insert into recruiter_jobs table using Prisma
-    const newJob = await prisma.recruiter_jobs.create({
+    const newJob = await (prisma as any).recruiterJob.create({
       data: {
         recruiter_id: recruiterId,
         company_id: recruiterCompany,

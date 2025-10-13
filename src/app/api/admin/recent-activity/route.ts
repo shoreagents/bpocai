@@ -8,10 +8,10 @@ export async function GET() {
     const client = await pool.connect()
     
     try {
-      // Get all types of activities
+      // Get only application activities
       const activities = []
       
-      // 1. Fetch Job Applications from both tables
+      // 1. Fetch Job Applications from both tables (ONLY APPLICATIONS)
       try {
         console.log('🔍 Starting to fetch application activities...')
         
@@ -161,107 +161,6 @@ export async function GET() {
         console.log('⚠️ Error stack:', error.stack)
       }
       
-      // 2. Fetch Typing Hero Game Activities
-      try {
-        console.log('🎮 Starting to fetch Typing Hero activities...')
-        const typingHeroQuery = `
-          SELECT 
-            'typing_hero' as type,
-            u.full_name as user_name,
-            u.avatar_url as user_avatar,
-            'Completed Typing Hero session - ' || COALESCE(ths.latest_wpm::text, '0') || ' WPM' as action,
-            ths.latest_wpm as score,
-            ths.last_played_at as activity_time
-          FROM typing_hero_stats ths
-          JOIN users u ON ths.user_id = u.id
-          WHERE ths.last_played_at IS NOT NULL
-          ORDER BY ths.last_played_at DESC
-          LIMIT 5
-        `
-        const typingHeroResult = await client.query(typingHeroQuery)
-        console.log('⌨️ Typing Hero activities found:', typingHeroResult.rows.length)
-        if (typingHeroResult.rows.length > 0) {
-          activities.push(...typingHeroResult.rows)
-        }
-      } catch (error) {
-        console.log('⚠️ Error fetching Typing Hero activities:', error)
-      }
-      
-      // 3. Fetch DISC Personality Activities
-      try {
-        console.log('🧠 Starting to fetch DISC personality activities...')
-        const discQuery = `
-          SELECT 
-            'disc_personality' as type,
-            u.full_name as user_name,
-            u.avatar_url as user_avatar,
-            'Completed DISC Game - ' || COALESCE(dps.latest_primary_type, 'Unknown') || ' type' as action,
-            NULL as score,
-            dps.last_taken_at as activity_time
-          FROM disc_personality_stats dps
-          JOIN users u ON dps.user_id = u.id
-          WHERE dps.last_taken_at IS NOT NULL
-          ORDER BY dps.last_taken_at DESC
-          LIMIT 5
-        `
-        const discResult = await client.query(discQuery)
-        console.log('🦚 DISC personality activities found:', discResult.rows.length)
-        if (discResult.rows.length > 0) {
-          activities.push(...discResult.rows)
-        }
-      } catch (error) {
-        console.log('⚠️ Error fetching DISC personality activities:', error)
-      }
-      
-      // 4. Fetch Resume Activities
-      try {
-        console.log('📄 Starting to fetch resume activities...')
-        const resumeQuery = `
-          SELECT 
-            'resume' as type,
-            u.full_name as user_name,
-            u.avatar_url as user_avatar,
-            'Created/Updated resume' as action,
-            NULL as score,
-            sr.created_at as activity_time
-          FROM saved_resumes sr
-          JOIN users u ON sr.user_id = u.id
-          ORDER BY sr.created_at DESC
-          LIMIT 5
-        `
-        const resumeResult = await client.query(resumeQuery)
-        console.log('📄 Resume activities found:', resumeResult.rows.length)
-        if (resumeResult.rows.length > 0) {
-          activities.push(...resumeResult.rows)
-        }
-      } catch (error) {
-        console.log('⚠️ Error fetching resume activities:', error)
-      }
-      
-      // 5. Fetch Profile Update Activities
-      try {
-        console.log('👤 Starting to fetch profile update activities...')
-        const profileQuery = `
-          SELECT 
-            'profile' as type,
-            u.full_name as user_name,
-            u.avatar_url as user_avatar,
-            'Updated profile information' as action,
-            NULL as score,
-            u.updated_at as activity_time
-          FROM users u
-          WHERE u.updated_at > u.created_at + INTERVAL '1 hour'
-          ORDER BY u.updated_at DESC
-          LIMIT 5
-        `
-        const profileResult = await client.query(profileQuery)
-        console.log('👤 Profile activities found:', profileResult.rows.length)
-        if (profileResult.rows.length > 0) {
-          activities.push(...profileResult.rows)
-        }
-      } catch (error) {
-        console.log('⚠️ Error fetching profile activities:', error)
-      }
       
       // Sort all activities by time (most recent first)
       const recentActivity = activities.sort((a, b) => 
@@ -270,12 +169,9 @@ export async function GET() {
       
       console.log('🎯 Total activities found:', activities.length)
       console.log('📊 Final recent activities:', recentActivity.length)
-      console.log('📋 Activity types breakdown:', {
-        applicants: activities.filter(a => a.type === 'applicants').length,
-        typing_hero: activities.filter(a => a.type === 'typing_hero').length,
-        disc_personality: activities.filter(a => a.type === 'disc_personality').length,
-        resume: activities.filter(a => a.type === 'resume').length,
-        profile: activities.filter(a => a.type === 'profile').length
+      console.log('📋 Application activities breakdown:', {
+        applications_table: activities.filter(a => a.type === 'applicants').length,
+        recruiter_applications_table: activities.filter(a => a.type === 'applicants').length
       })
       
       // Log sample activities for debugging
@@ -286,13 +182,13 @@ export async function GET() {
         activity_time: a.activity_time
       })))
       
-      // If no real data, provide sample data
+      // If no real data, provide sample application data
       if (recentActivity.length === 0) {
-        console.log('⚠️ No real data found, providing sample data for testing...')
+        console.log('⚠️ No application data found, providing sample application data...')
         const sampleData = [
           {
             user_name: 'John Doe',
-            user_avatar: null,
+            user_avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
             action: 'Applied for: Frontend Developer',
             score: null,
             type: 'applicants',
@@ -300,7 +196,7 @@ export async function GET() {
           },
           {
             user_name: 'Jane Smith',
-            user_avatar: null,
+            user_avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
             action: 'Applied for: Software Engineer',
             score: null,
             type: 'applicants',
@@ -308,7 +204,7 @@ export async function GET() {
           },
           {
             user_name: 'Mike Johnson',
-            user_avatar: null,
+            user_avatar: null, // This one will show initials
             action: 'Applied for: Data Analyst',
             score: null,
             type: 'applicants',
@@ -316,7 +212,7 @@ export async function GET() {
           },
           {
             user_name: 'Sarah Wilson',
-            user_avatar: null,
+            user_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
             action: 'Applied for: Marketing Specialist',
             score: null,
             type: 'applicants',
@@ -324,7 +220,7 @@ export async function GET() {
           },
           {
             user_name: 'David Brown',
-            user_avatar: null,
+            user_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
             action: 'Applied for: Customer Service Representative',
             score: null,
             type: 'applicants',
@@ -334,13 +230,13 @@ export async function GET() {
         
         return NextResponse.json({ 
           recent_activity: sampleData,
-          message: 'Using sample data - no real activity found'
+          message: 'Using sample application data - no real applications found'
         })
       }
       
       return NextResponse.json({ 
         recent_activity: recentActivity,
-        message: 'Real activity data found'
+        message: 'Real application data found'
       })
       
     } finally {
